@@ -1,0 +1,338 @@
+id: ch/openparldata/parliamentary-data
+title: OpenParlData.ch — Swiss Parliamentary Data
+description: >
+  Harmonized parliamentary data from Switzerland's federal, cantonal, and
+  municipal bodies: people, memberships, interests, affairs, meetings,
+  speeches, votes, documents, and their relations. Public API, no key.
+category: parliamentary
+jurisdiction: "ch"
+runtime: local
+endpoint: https://api.openparldata.ch/v1
+auth:
+  type: none
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+license:
+  data_license: 'CC BY 4.0 (attribute "Source: OpenParlData.ch")'
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-07-20"
+status: queryable
+notes: >
+  One source-level router covers the upstream's consistent table API. Search
+  and detail operations share one adapter; allow-listed relation traversal
+  handles joins such as person→interests and affair→votings. Offset is capped
+  upstream at 100,000; use the upstream NDJSON exports for full datasets.
+examples:
+  - 'Find Swiss parliamentarians named Müller'
+  - 'Search Swiss parliamentary affairs about climate policy'
+  - 'Get the declared interests for OpenParlData person 123'
+input_schema:
+  type: object
+  properties:
+    resource:
+      type: string
+      description: Primary upstream table. Inferred as persons from name/person_id and affairs from q/affair_id.
+      enum: [persons, memberships, interests, access_badges, groups, bodies, affairs, votings, votes, speeches, meetings, docs, events, agendas, texts, news, contributors, identities, external_links, person_images]
+    q:
+      type: string
+      description: Full-text query; defaults resource to affairs.
+    name:
+      type: string
+      description: Person-name search; defaults resource to persons.
+    id:
+      type: integer
+      description: Record ID for detail or relation lookup.
+    person_id:
+      type: integer
+      description: Person ID shorthand; defaults resource to persons.
+    affair_id:
+      type: integer
+      description: Affair ID shorthand; defaults resource to affairs.
+    relation:
+      type: string
+      description: Allow-listed related table, e.g. interests, votes, votings, docs, or speeches.
+    filters:
+      type: object
+      description: Upstream field filters, e.g. {"body_key":"CHE","active":true}.
+    search_mode:
+      type: string
+      enum: [partial, exact, natural, boolean]
+      default: partial
+    search_scope:
+      type: string
+      description: Comma-separated upstream scopes such as metadata,docs,texts,speeches.
+    search_language:
+      type: string
+      enum: [de, fr, it, rm, en]
+    language:
+      type: string
+      enum: [de, fr, it, rm, en]
+      default: en
+    language_fallback:
+      type: string
+      enum: [de, fr, it, rm, en]
+      default: de
+    sort_by:
+      type: string
+      description: Upstream field, prefix descending fields with -.
+    expand:
+      type: string
+      description: Comma-separated relations to embed.
+    fields:
+      type: string
+      description: Comma-separated response fields, including relation dot notation.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    offset:
+      type: integer
+      minimum: 0
+      maximum: 100000
+      default: 0
+    include_raw:
+      type: boolean
+      default: false
+      description: Include the complete upstream object beside normalized fields.
+  additionalProperties: false
+output_schema:
+  entity: ParliamentaryRecord
+  fields:
+  - resource
+  - id
+  - name
+  - title
+  - body_key
+  - party
+  - role
+  - person_id
+  - affair_id
+  - meeting_id
+  - date
+  - status
+  - source_url
+  - raw
+  - active
+  - birth_date
+  - electoral_district
+  - email
+  - first_name
+  - last_name
+  - wikidata_id
+operations:
+- id: search-persons
+  title: Search Persons
+  description: Search Persons using the fields returned by the current OpenParlData.ch — Swiss Parliamentary Data adapter.
+  status: queryable
+  entities:
+  - ParliamentaryRecord
+  actions:
+  - search
+  input_fields:
+  - q
+  - name
+  - person_id
+  - language
+  - limit
+  required: []
+  any_of_required: []
+  aliases:
+    search: q
+  adapter_input:
+    resource: persons
+  output_fields:
+  - active
+  - birth_date
+  - body_key
+  - electoral_district
+  - email
+  - first_name
+  - id
+  - last_name
+  - name
+  - party
+  - resource
+  - role
+  - source_url
+  - wikidata_id
+  filters:
+  - q
+  - name
+  - person_id
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: false
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: []
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - q
+    - name
+    consent_required: false
+  examples:
+  - Find Swiss parliamentarians named Müller
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search persons
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification:
+    endpoint_live: true
+    query_tested: true
+    adapter_tested: true
+    fixture_tested: true
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.
+- id: search-affairs
+  title: Search Affairs
+  description: Search Affairs using the fields returned by the current OpenParlData.ch — Swiss Parliamentary Data adapter.
+  status: unavailable
+  entities:
+  - ParliamentaryRecord
+  actions:
+  - search
+  input_fields:
+  - q
+  - affair_id
+  required: []
+  any_of_required: []
+  aliases:
+    search: q
+  adapter_input:
+    resource: affairs
+  output_fields:
+  - resource
+  - id
+  - name
+  - title
+  - body_key
+  - party
+  - role
+  - person_id
+  - affair_id
+  - meeting_id
+  - date
+  - status
+  - source_url
+  - raw
+  filters:
+  - q
+  - affair_id
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: false
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: []
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - q
+    consent_required: false
+  examples:
+  - Search Swiss parliamentary affairs about climate policy
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search affairs
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification: &id001
+    endpoint_live: true
+    query_tested: true
+    adapter_tested: true
+    fixture_tested: false
+  availability_reason: Operation-level fixture coverage is not available; this operation is not released yet.
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.
+- id: list-person-interests
+  title: List Person Interests
+  description: List Person Interests using the fields returned by the current OpenParlData.ch — Swiss Parliamentary Data adapter.
+  status: unavailable
+  entities:
+  - ParliamentaryRecord
+  actions:
+  - list
+  input_fields:
+  - person_id
+  required:
+  - person_id
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    resource: persons
+    relation: interests
+  output_fields:
+  - resource
+  - id
+  - name
+  - title
+  - body_key
+  - party
+  - role
+  - person_id
+  - affair_id
+  - meeting_id
+  - date
+  - status
+  - source_url
+  - raw
+  filters:
+  - person_id
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: false
+    joins: relation
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: []
+    data_classes:
+    - query parameters
+    sensitive_inputs: []
+    consent_required: false
+  examples:
+  - Get the declared interests for OpenParlData person 123
+  counterexamples:
+  - query: Aggregate or join arbitrary records with list person interests
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification: *id001
+  availability_reason: Operation-level fixture coverage is not available; this operation is not released yet.
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.

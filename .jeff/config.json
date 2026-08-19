@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "system": "jeff",
+  "active": true,
+  "flavor": false,
+  "maxParallelTasks": 1
+}
