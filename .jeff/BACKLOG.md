@@ -4,11 +4,10 @@ Next free id: 9
 
 ## NOW
 
-- 0003 local-intake
+- 0004 prepare-profile
 
 ## NEXT
 
-- 0004 prepare-profile
 - 0005 detectors-and-execute
 - 0006 recommend-detectors
 - 0007 replay-review-report
