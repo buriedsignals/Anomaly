@@ -1,0 +1,17 @@
+[project]
+name = "anomaly"
+version = "0.0.0"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

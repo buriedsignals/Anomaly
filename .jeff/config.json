@@ -3,5 +3,7 @@
   "system": "jeff",
   "active": true,
   "flavor": false,
-  "maxParallelTasks": 1
+  "maxParallelTasks": 1,
+  "testCommand": "uv run --extra test pytest tests/",
+  "prunedTaskIds": [1]
 }
