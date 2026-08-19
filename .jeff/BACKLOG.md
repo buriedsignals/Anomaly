@@ -4,11 +4,10 @@ Next free id: 9
 
 ## NOW
 
-- 0002 case-folder
+- 0003 local-intake
 
 ## NEXT
 
-- 0003 local-intake
 - 0004 prepare-profile
 - 0005 detectors-and-execute
 - 0006 recommend-detectors
