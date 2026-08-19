@@ -1,10 +1,10 @@
 # BACKLOG
 
-Next free id: 9
+Next free id: 10
 
 ## NOW
 
-- 0004 prepare-profile
+- 0009 symlink-safe-prepare-profile
 
 ## NEXT
 
