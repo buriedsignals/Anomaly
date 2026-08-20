@@ -1,10 +1,10 @@
 # BACKLOG
 
-Next free id: 15
+Next free id: 16
 
 ## NOW
 
-- 0013 static-case-safety
+- 0015 canonical-case-semantics
 
 ## NEXT
 
