@@ -1,6 +1,6 @@
 # BACKLOG
 
-Next free id: 14
+Next free id: 15
 
 ## NOW
 
@@ -8,7 +8,7 @@ Next free id: 14
 
 ## NEXT
 
-- 0011 record-decoding-contract
+- 0014 decoder-correctness
 - 0012 prepare-profile-integration
 - 0005 detectors-and-execute
 - 0006 recommend-detectors
