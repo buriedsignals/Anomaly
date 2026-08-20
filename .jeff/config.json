@@ -5,5 +5,5 @@
   "flavor": false,
   "maxParallelTasks": 1,
   "testCommand": "uv run --extra test pytest tests/",
-  "prunedTaskIds": [1, 2, 3, 4]
+  "prunedTaskIds": [1, 2, 3, 4, 9]
 }

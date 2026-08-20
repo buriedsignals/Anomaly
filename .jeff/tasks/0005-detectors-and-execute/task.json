@@ -8,7 +8,7 @@
   "category": "code",
   "stage": "capture",
   "priority": "p1",
-  "deps": [1, 4, 9],
+  "deps": [1, 4, 9, 12],
   "complexity": "complex",
   "createdAt": "2026-08-19T10:46:58Z",
   "updatedAt": "2026-08-19T10:46:58Z",

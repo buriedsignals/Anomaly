@@ -1,13 +1,15 @@
 # BACKLOG
 
-Next free id: 10
+Next free id: 13
 
 ## NOW
 
-- 0009 symlink-safe-prepare-profile
+- 0010 case-tree-safety
 
 ## NEXT
 
+- 0011 record-decoding-contract
+- 0012 prepare-profile-integration
 - 0005 detectors-and-execute
 - 0006 recommend-detectors
 - 0007 replay-review-report
