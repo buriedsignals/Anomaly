@@ -1,4 +1,7 @@
 from __future__ import annotations
+from contextlib import contextmanager
+from contextvars import ContextVar
+from tempfile import TemporaryDirectory
 
 import csv
 import json
@@ -20,13 +23,35 @@ class DecodeError(ValueError):
 class UnsupportedFormatError(DecodeError):
     """Raised when no record decoder owns the requested format."""
 
-
 class UnsafeXMLDecodeError(DecodeError):
     """Raised when XML contains declarations or references that are not inert."""
 
 
+_VERIFIED_SNAPSHOTS: ContextVar[dict[Path, Path]] = ContextVar(
+    "anomaly_verified_snapshots", default={}
+)
+
+
+@contextmanager
+def verified_source_snapshot(path: Path | str, payload: bytes):
+    """Make the public decoder read an immutable verified source snapshot."""
+    source_path = Path(path)
+    with TemporaryDirectory(prefix=".anomaly-verified-") as directory:
+        snapshot_path = Path(directory) / (source_path.name or "source")
+        snapshot_path.write_bytes(payload)
+        snapshots = dict(_VERIFIED_SNAPSHOTS.get())
+        snapshots[source_path] = snapshot_path
+        token = _VERIFIED_SNAPSHOTS.set(snapshots)
+        try:
+            yield
+        finally:
+            _VERIFIED_SNAPSHOTS.reset(token)
+
+
 def decode_records(path: Path | str, format_name: str) -> list[dict[str, Any]]:
     """Decode a supported local file into records, or fail without partial output."""
+    source_path = Path(path)
+    path = _VERIFIED_SNAPSHOTS.get().get(source_path, source_path)
     decoders: dict[str, Callable[[Path], list[dict[str, Any]]]] = {
         "csv": _decode_csv,
         "json": _decode_json,

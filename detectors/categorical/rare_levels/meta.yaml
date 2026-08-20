@@ -1,0 +1,24 @@
+id: categorical.rare_levels
+version: 1.0.0
+title: Rare categorical levels
+author: anomaly
+license: internal
+group: categorical
+description: Finds categorical values with unusually low frequency.
+query: query.sql
+required_tables:
+  - "*"
+required_fields:
+  - group
+required_types:
+  group:
+    - text
+minimum_coverage:
+  group: 0.75
+relevance: 0.8
+utility: 0.7
+cost: 0.2
+false_positive_risk: 0.1
+parameters:
+  maximum_fraction: 0.05
+sensitive_output: redact

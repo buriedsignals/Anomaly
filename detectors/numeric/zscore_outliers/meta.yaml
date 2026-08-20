@@ -1,0 +1,30 @@
+id: numeric.zscore_outliers
+version: 1.0.0
+title: Z-score outliers
+author: anomaly
+license: internal
+group: numeric
+description: Identifies numeric observations far from their column mean.
+query: query.sql
+required_tables:
+  - "*"
+required_fields:
+  - id
+  - amount
+required_types:
+  id:
+    - integer
+    - text
+  amount:
+    - integer
+    - float
+minimum_coverage:
+  id: 0.75
+  amount: 0.75
+relevance: 0.8
+utility: 0.7
+cost: 0.2
+false_positive_risk: 0.1
+parameters:
+  z_threshold: 3.0
+sensitive_output: redact

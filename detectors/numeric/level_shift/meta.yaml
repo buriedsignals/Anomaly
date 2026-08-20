@@ -1,0 +1,34 @@
+id: numeric.level_shift
+version: 1.0.0
+title: Numeric level shift
+author: anomaly
+license: internal
+group: numeric
+description: Finds persistent changes in a numeric series level.
+query: query.sql
+required_tables:
+  - "*"
+required_fields:
+  - id
+  - observed_at
+  - amount
+required_types:
+  id:
+    - integer
+    - text
+  observed_at:
+    - datetime
+  amount:
+    - integer
+    - float
+minimum_coverage:
+  id: 0.75
+  observed_at: 0.75
+  amount: 0.75
+relevance: 0.8
+utility: 0.7
+cost: 0.2
+false_positive_risk: 0.1
+parameters:
+  window: 3
+sensitive_output: redact

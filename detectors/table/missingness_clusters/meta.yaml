@@ -1,0 +1,29 @@
+id: table.missingness_clusters
+version: 1.0.0
+title: Missingness clusters
+author: anomaly
+license: internal
+group: table
+description: Finds fields that go missing together in prepared rows.
+query: query.sql
+required_tables:
+  - "*"
+required_fields:
+  - group
+  - amount
+required_types:
+  group:
+    - text
+  amount:
+    - integer
+    - float
+minimum_coverage:
+  group: 0.75
+  amount: 0.75
+relevance: 0.8
+utility: 0.7
+cost: 0.2
+false_positive_risk: 0.1
+parameters:
+  min_missing_fraction: 0.2
+sensitive_output: redact

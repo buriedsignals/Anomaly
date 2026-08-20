@@ -1,0 +1,25 @@
+id: table.duplicate_rows
+version: 1.0.0
+title: Duplicate rows
+author: anomaly
+license: internal
+group: table
+description: Finds exact duplicate records in a prepared table.
+query: query.sql
+required_tables:
+  - "*"
+required_fields:
+  - id
+required_types:
+  id:
+    - integer
+    - text
+minimum_coverage:
+  id: 0.75
+relevance: 0.8
+utility: 0.7
+cost: 0.2
+false_positive_risk: 0.1
+parameters:
+  minimum_count: 2
+sensitive_output: redact

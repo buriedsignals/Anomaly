@@ -1,11 +1,22 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import shutil
+import stat
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from anomaly.semantics import (
+    UnsafeCasePathError,
+    canonical_key,
+    validate_case_documents,
+    validate_case_record,
+    validate_portable_component,
+)
 
 AGENTS_MD = """# Agent instructions
 
@@ -86,8 +97,6 @@ class CaseNotFoundError(Exception):
     pass
 
 
-class UnsafeCasePathError(Exception):
-    pass
 
 
 def create_case(
@@ -99,6 +108,7 @@ def create_case(
     now: datetime,
 ) -> Case:
     root = Path(root).resolve()
+    validate_portable_component(case_id)
     root.mkdir(parents=True, exist_ok=True)
     if _case_exists(root):
         raise CaseExistsError(_offer(root))
@@ -141,9 +151,16 @@ def resume_case(root: Path) -> Case:
 
 
 def fork_case(source: Path, dest: Path, *, case_id: str, now: datetime) -> Case:
-    source = Path(source).resolve()
+    source = Path(source)
     dest = Path(dest).resolve()
+    _scan_case_tree(source)
+    source = Path(os.path.abspath(os.fspath(source)))
     parent = resume_case(source)
+    validate_portable_component(case_id)
+    if canonical_key(case_id) == canonical_key(parent.record.case_id):
+        raise UnsafeCasePathError("child identity must differ from parent")
+    records, _ = validate_case_documents(source)
+    _verify_included_source_hashes(source, records)
     shutil.copytree(source, dest)
     payload = {
         "case_id": case_id,
@@ -167,8 +184,11 @@ def _offer(root: Path) -> ExistingCaseOffer:
 
 
 def _load_case(root: Path) -> Case:
-    payload = json.loads(_read(root, "case.json"))
-    _reject_absolute_paths(payload)
+    try:
+        payload = json.loads(_read(root, "case.json"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise UnsafeCasePathError(str(root / "case.json")) from error
+    validate_case_record(payload)
     return Case(record=_record(payload), progress=_progress(root))
 
 
@@ -195,18 +215,6 @@ def _progress(root: Path) -> CaseProgress:
     )
 
 
-def _reject_absolute_paths(value: object) -> None:
-    if isinstance(value, str):
-        if Path(value).is_absolute():
-            raise UnsafeCasePathError(value)
-        return
-    if isinstance(value, dict):
-        for item in value.values():
-            _reject_absolute_paths(item)
-        return
-    if isinstance(value, list):
-        for item in value:
-            _reject_absolute_paths(item)
 
 
 def _stamp(now: datetime) -> str:
@@ -229,6 +237,77 @@ def _readme(title: str, question: str) -> str:
         "To fork this case for further exploration, copy the folder and assign "
         "a new case_id with derived_from set to the parent id.\n"
     )
+
+
+def _scan_case_tree(root: Path) -> None:
+    """Reject links and special files before any fork destination is created."""
+    root = Path(os.path.abspath(os.fspath(root)))
+    current = root
+    while True:
+        try:
+            mode = current.lstat().st_mode
+        except FileNotFoundError:
+            mode = None
+        if mode is not None and stat.S_ISLNK(mode):
+            raise UnsafeCasePathError(f"symlink in case tree: {current}")
+        if current.parent == current:
+            break
+        current = current.parent
+
+    try:
+        root_mode = root.lstat().st_mode
+    except FileNotFoundError:
+        return
+    if not stat.S_ISDIR(root_mode):
+        raise UnsafeCasePathError(f"case root is not a directory: {root}")
+
+    pending = [root]
+    while pending:
+        directory = pending.pop()
+        try:
+            entries = list(os.scandir(directory))
+        except OSError as error:
+            raise UnsafeCasePathError(f"cannot scan case tree: {directory}") from error
+        for entry in entries:
+            try:
+                mode = entry.stat(follow_symlinks=False).st_mode
+            except OSError as error:
+                raise UnsafeCasePathError(f"cannot inspect case tree: {entry.path}") from error
+            path = Path(entry.path)
+            if stat.S_ISLNK(mode):
+                raise UnsafeCasePathError(f"symlink in case tree: {path}")
+            if stat.S_ISDIR(mode):
+                pending.append(path)
+            elif not stat.S_ISREG(mode):
+                raise UnsafeCasePathError(f"non-regular case artifact: {path}")
+
+
+def _verify_included_source_hashes(
+    root: Path, records: list[dict[str, Any]]
+) -> None:
+    for record in records:
+        if not record["included"]:
+            continue
+        path = _under_root(root, record["path"])
+        try:
+            mode = path.lstat().st_mode
+        except OSError as error:
+            raise UnsafeCasePathError(
+                f"included source is missing: {record['path']}"
+            ) from error
+        if not stat.S_ISREG(mode):
+            raise UnsafeCasePathError(
+                f"included source is not a regular file: {record['path']}"
+            )
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as error:
+            raise UnsafeCasePathError(
+                f"included source cannot be read: {record['path']}"
+            ) from error
+        actual = f"sha256:{digest}"
+        if actual != record["content_hash"]:
+            raise UnsafeCasePathError(f"source hash mismatch: {record['source_id']}")
 
 
 def _under_root(root: Path, relative: str) -> Path:
