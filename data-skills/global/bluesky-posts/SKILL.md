@@ -6,7 +6,7 @@ description: >-
   resolution and profile preservation. Do not invoke the currently blocked
   post-search operation, treat handles as permanent, or treat biographies as
   independently verified identity claims.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to public.api.bsky.app.
+compatibility: Requires Python 3.11+ and network access to public.api.bsky.app.
 metadata:
   author: Buried Signals
   version: "1.0"

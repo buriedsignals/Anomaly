@@ -6,7 +6,7 @@ description: >-
   and time window. Apply it to award-level procurement and assistance research;
   keep award amount distinct from transactions, obligations, outlays, payments,
   and subawards, and resolve recipients with UEI and award identifiers.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.usaspending.gov.
+compatibility: Requires Python 3.11+ and network access to api.usaspending.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

@@ -6,7 +6,7 @@ description: >-
   to worldwide news-coverage discovery and comparison. Do not call the ranked,
   capped result set exhaustive or treat the presence of an article as
   verification of its claims.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.gdeltproject.org.
+compatibility: Requires Python 3.11+ and network access to api.gdeltproject.org.
 metadata:
   author: Buried Signals
   version: "1.0"

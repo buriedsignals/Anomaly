@@ -6,7 +6,7 @@ description: >-
   lead, concurrence, or dissent records. Apply it to legal-source discovery;
   do not treat relevance ranking or an indexed snippet as legal authority, and
   explicitly opt into unpublished or other non-default statuses.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires Python 3.11+ and network access to www.courtlistener.com; a CourtListener token is optional but recommended for clients.
 metadata:
   author: Buried Signals
   version: "1.0"

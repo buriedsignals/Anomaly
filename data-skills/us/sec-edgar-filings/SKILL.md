@@ -5,7 +5,7 @@ description: >-
   EDGAR documents and attachments since 2001. Apply exact/Boolean query, form,
   and date semantics carefully, open the filing for context, and disclose that
   the JSON route is a live but undocumented Full-Text Search UI backend.
-compatibility: Requires the catalogue CLI, Python 3.11+, a descriptive requester User-Agent, and network access to efts.sec.gov and sec.gov.
+compatibility: Requires Python 3.11+, a descriptive requester User-Agent, and network access to efts.sec.gov and sec.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

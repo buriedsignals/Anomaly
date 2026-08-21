@@ -26,7 +26,7 @@ auth:
   setup_help: |
     Congress.gov uses a free api.data.gov key:
       1. Request a key at https://api.congress.gov/sign-up/
-      2. Run: catalogue keys set congress
+      2. Provide the api.data.gov key through the execution context
     A configured shared `data_gov` key is used when no congress-specific key exists.
   test_request:
     input: {congress: 119, limit: 1}

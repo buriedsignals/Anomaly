@@ -93,6 +93,8 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
         module.run = _unavailable_run(entry, exc)  # type: ignore[attr-defined]
     finally:
         sys.dont_write_bytecode = previous
+    implementation = module.run
+    module.run = _contract_run(entry, implementation)  # type: ignore[attr-defined]
     return module
 
 
@@ -113,4 +115,69 @@ def _unavailable_run(entry: SourceEntry, cause: ModuleNotFoundError):
             "normalized": True,
             "error": {"code": "adapter-dependency-unavailable", "message": str(cause)},
         }
+    return run
+
+
+def _contract_run(entry: SourceEntry, implementation):
+    """Bind a source-specific adapter to the catalogue result contract."""
+    source_hash = "sha256:" + hashlib.sha256(
+        (entry.package / "adapter.py").read_bytes()
+    ).hexdigest()
+
+    def run(input: dict[str, Any], ctx: Any) -> dict[str, Any]:
+        base = {
+            "source_id": entry.source_id,
+            "operation": entry.metadata["operation"],
+            "license": entry.metadata["license"],
+            "endpoint": entry.metadata["endpoint"],
+            "source_hash": source_hash,
+            "provenance": {"source": str(entry.package / "adapter.py")},
+        }
+        try:
+            raw = implementation(input, ctx)
+        except ValueError as exc:
+            return base | {
+                "status": "error",
+                "records": [],
+                "normalized": True,
+                "error": {"code": "invalid-source-request", "message": str(exc)},
+            }
+        except Exception as exc:
+            return base | {
+                "status": "unavailable",
+                "records": [],
+                "normalized": True,
+                "error": {"code": "upstream-unavailable", "message": str(exc)},
+            }
+
+        if not isinstance(raw, dict):
+            return base | {
+                "status": "error",
+                "records": [],
+                "normalized": True,
+                "error": {"code": "invalid-source-result", "message": "adapter returned a non-object"},
+            }
+        records = raw.get("records", [])
+        if not isinstance(records, list):
+            return base | {
+                "status": "error",
+                "records": [],
+                "normalized": True,
+                "error": {"code": "invalid-source-result", "message": "adapter records must be an array"},
+            }
+        if not records:
+            return base | {
+                "status": "unavailable",
+                "records": [],
+                "normalized": True,
+                "error": {"code": "empty-source-result", "message": "source returned no records"},
+            }
+        return base | {
+            "status": "ok",
+            "records": records,
+            "normalized": True,
+            "error": None,
+            "provenance": base["provenance"] | {"adapter": raw.get("source_id", entry.source_id)},
+        }
+
     return run

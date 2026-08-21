@@ -6,7 +6,7 @@ description: >-
   Apply it to bounded legislative monitoring, exact Bioguide lookups, and
   Congress- or state-scoped member research; do not present its recent-title
   filter as full-text search or an update timestamp as legislative action.
-compatibility: Requires the catalogue CLI, Python 3.11+, a free api.data.gov key, and network access to api.congress.gov.
+compatibility: Requires Python 3.11+, a free api.data.gov key, and network access to api.congress.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

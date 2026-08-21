@@ -7,7 +7,7 @@ description: >-
   collection discovery; do not treat name hits or adjacency as confirmed
   identity, ownership, or wrongdoing, and always check collection-specific
   provenance and reuse terms.
-compatibility: Requires the catalogue CLI, Python 3.11+, an OCCRP Aleph API key, and network access to aleph.occrp.org.
+compatibility: Requires Python 3.11+, an OCCRP Aleph API key, and network access to aleph.occrp.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -67,7 +67,7 @@ collection provenance, and graph interpretation.
 
 ## Authentication and collection boundary
 
-Store the account key with `catalogue keys set occrp-aleph`. Aleph user API keys
+Provide the account key through the execution context. Aleph user API keys
 use the `ApiKey` authorization method; the provider source distinguishes this
 from `Token`, which is a signed session token. Search scope and entity
 visibility depend on the account's collection permissions.

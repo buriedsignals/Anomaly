@@ -6,7 +6,7 @@ description: >-
   to Norwegian legal-entity resolution and current register observations; do
   not confuse main entities with sub-entities or infer historical status from
   the current record.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.brreg.no.
+compatibility: Requires Python 3.11+ and network access to data.brreg.no.
 metadata:
   author: Buried Signals
   version: "1.0"

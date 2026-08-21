@@ -1,7 +1,12 @@
 # Notes
 
-- This is the sole `test-contract-repair` recovery episode after the first
-  review/audit round. Production files were not edited.
+- This is the bounded test-contract repair after the first review/audit round.
+- The second independent review round passed the security audit but found the
+  real-adapter envelope and lazy-loading tests still under-specified; those
+  findings are routed to a fresh plan/test-author pass.
+- The current checkpoint includes production catalogue and registry changes;
+  earlier wording that production files were not edited was stale and is
+  superseded by the checkpoint evidence.
 - Required bundled skills read: Jeff `code-standards` 6.3.4 and `testing`
   6.3.4. The brief's canonical project coding-rules path,
   `/Users/tomvaillant/buried_signals/kit/coding-rules/SKILL.md`, is not
@@ -19,9 +24,10 @@
 - Approach: repair the proof contract in `tests/test_source_catalogue.py`
   around the authoritative Navigator inventory, one-to-one package migration,
   shared result states for every real catalogue adapter, catalogue-wide
-  forbidden-surface absence, deterministic request-time loading, and registry
-  symlink/duplicate-id rejection. Keep the implementation boundary local,
-  networkless, and limited to tests plus plan records.
+  forbidden-surface absence including catalogue CLI/key commands, deterministic
+  request-time loading, and registry symlink/duplicate-id rejection. Keep the
+  implementation boundary local, networkless, and limited to tests plus plan
+  records.
 - YAGNI boundary: reuse the existing package metadata, adapters, result
   validator, registry, `tmp_path`, and import-loader seams. No production
   adapter, registry, service, CLI, hosted runtime, membership, metering,
@@ -36,8 +42,8 @@
 ## Acceptance dispositions
 
 1. `revise`: `test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations` derives the 29-package inventory from Navigator, excludes only Arbiter, and requires exactly one Anomaly metadata/skill/adapter package per remaining id. The derived id sets, counts, and package files are the consumer-observable seam.
-2. `revise`: `test_shared_result_contract_enforces_each_real_adapter_state` loads every real catalogue adapter and exercises the shared success, unavailable, and error result states through `validate_source_result`. The validator result and state-specific error envelope are the deterministic seam.
-3. `revise`: `test_registry_loads_real_adapters_only_after_request` checks repeatable source-id ordering and request-time loading for a real migrated source. Discovery order, module identity, and callable adapter are the consumer seam.
+2. `revise`: `test_shared_result_contract_validates_each_real_adapter_output_without_network` loads every real catalogue adapter through an offline HTTP module and validates its returned success, unavailable, or error envelope with `validate_source_result`. The validator result and typed error envelope are the deterministic seam.
+3. `revise`: `test_registry_loads_real_adapters_only_after_request` checks repeatable source-id ordering, side-effect-free discovery, request-time loading, and non-loading of a distinct unrequested adapter. Discovery side effects, module identity, and callable adapter are the consumer seam.
 4. `revise`: `test_registry_rejects_symlink_escape_before_loading` and `test_registry_rejects_duplicate_ids` require fail-closed registry behavior for a symlink-parent escape and duplicate source ids. The typed `ValueError` safety boundary is the deterministic seam.
 5. `revise`: `test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces` scans all catalogue files for the locked forbidden surfaces while allowing ordinary source-domain language such as data memberships. Catalogue-wide absence is the consumer seam.
 6. `reuse`: `test_prd_m3_language_describes_catalogue_only_migration` continues to verify the existing PRD M3 catalogue wording; no redundant backlog test is added.
@@ -47,22 +53,22 @@
 1. Establish the authoritative 29-to-28 inventory and one-to-one package
    migration contract.
 2. Enforce the shared result contract's success/unavailable/error states for
-   the real adapter set without network access.
+   the real adapter set through an offline HTTP module.
 3. Enforce catalogue-wide forbidden-surface absence and ThinkPol's ordinary
    local catalogue representation.
-4. Enforce deterministic registry ordering, request-time loading, symlink
-   escape rejection, and duplicate-id rejection.
+4. Enforce deterministic registry ordering, side-effect-free discovery,
+   request-time loading, unrequested-adapter non-loading, symlink escape
+   rejection, and duplicate-id rejection.
 5. Run only the targeted source-catalogue test and hand off RED to the
    implementation stage, retaining the required audit.
 
 ## RED evidence
 
-- Command: `uv run --extra test pytest -q tests/test_source_catalogue.py`
-- The first sandbox attempt was blocked by uv cache permissions. The approved
-  retry of the revised targeted suite reached pytest and produced `7 failed,
-  2 passed`.
-- Decisive failures include: the current registry rejects
-  `global/opensanctions`; discovery does not reject a symlink-parent escape;
-  discovery does not reject duplicate ids; and the catalogue contains
-  `navigator cli` text. The inventory and adapter-state tests also remain red
-  until the registry accepts the locked inventory and real adapter contract.
+- Command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`
+- The revised targeted suite reached pytest and produced `2 failed, 5 passed`.
+- Decisive failures are consumer-observable: a real OpenParlData adapter call
+  propagates the offline upstream exception instead of returning a validated
+  unavailable/error envelope, and the catalogue contains `catalogue cli`.
+- The suite also asserts that discovery does not add real adapter modules and
+  that loading one requested adapter leaves a distinct unrequested adapter
+  unloaded; those assertions are green against the current registry.

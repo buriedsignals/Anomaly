@@ -6,7 +6,7 @@ description: >-
   parties, courts, docket metadata, and up to three matching filing documents;
   never call the embedded matches a complete docket sheet or infer that an
   absent RECAP result means the case or filing does not exist.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires Python 3.11+ and network access to www.courtlistener.com; a CourtListener token is optional but recommended for clients.
 metadata:
   author: Buried Signals
   version: "1.0"

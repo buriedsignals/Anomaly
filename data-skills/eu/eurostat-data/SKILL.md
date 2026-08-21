@@ -6,7 +6,7 @@ description: >-
   Apply it to reproducible European statistical queries; do not assume a local
   output limit makes an upstream cube small, ignore status flags, or treat the
   latest dissemination value as a complete revision history.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to ec.europa.eu.
+compatibility: Requires Python 3.11+ and network access to ec.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"

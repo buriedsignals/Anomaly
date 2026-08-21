@@ -23,7 +23,7 @@ auth:
   setup_url: https://aleph.occrp.org/settings
   setup_help: >-
     Sign in to Aleph, copy the API key from account settings, and run
-    `catalogue keys set occrp-aleph`. Collection visibility is account-specific.
+    the OCCRP Aleph key through the execution context. Collection visibility is account-specific.
   test_request:
     input: {q: Putin, schema: Person, limit: 1}
 

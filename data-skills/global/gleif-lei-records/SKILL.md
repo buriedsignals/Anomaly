@@ -6,7 +6,7 @@ description: >-
   Apply it to cross-border entity resolution and LEI status checks; do not
   treat missing LEI coverage as proof that an entity does not exist or equate
   a lapsed LEI registration with dissolution.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.gleif.org.
+compatibility: Requires Python 3.11+ and network access to api.gleif.org.
 metadata:
   author: Buried Signals
   version: "1.0"

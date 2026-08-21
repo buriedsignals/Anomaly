@@ -6,7 +6,7 @@ description: >-
   to one fetched page. Apply it to procurement-notice discovery and process
   tracking; do not call local term results exhaustive or equate tender value
   with an award, contract, or payment.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.find-tender.service.gov.uk.
+compatibility: Requires Python 3.11+ and network access to www.find-tender.service.gov.uk.
 metadata:
   author: Buried Signals
   version: "1.0"

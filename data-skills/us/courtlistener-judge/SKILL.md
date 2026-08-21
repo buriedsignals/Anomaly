@@ -6,7 +6,7 @@ description: >-
   and position-link data. Preserve alias and date-granularity fields, and treat
   race and gender as provider-inferred, potentially incorrect attributes rather
   than self-reported facts.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires Python 3.11+ and network access to www.courtlistener.com; a CourtListener token is optional but recommended for clients.
 metadata:
   author: Buried Signals
   version: "1.0"

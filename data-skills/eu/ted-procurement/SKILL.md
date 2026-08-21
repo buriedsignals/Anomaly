@@ -6,7 +6,7 @@ description: >-
   Apply it to bounded EU tender and award-notice discovery; do not infer an
   executed contract, winning supplier, or award value from the normalized
   search fields.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.ted.europa.eu.
+compatibility: Requires Python 3.11+ and network access to api.ted.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"

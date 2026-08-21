@@ -21,7 +21,7 @@ auth:
   key_name: opensanctions
   setup_url: https://www.opensanctions.org/account/
   setup_help: >-
-    Obtain an API key and run `catalogue keys set opensanctions`. The provider
+    Obtain an API key and provide it through the execution context. The provider
     documents free keys for qualifying public-interest journalism, civil society,
     and academic work; commercial use requires the applicable licence.
 

@@ -14,3 +14,11 @@
 {"seq":13,"at":"2026-08-21T13:35:33.610Z","event":"record","stage":"plan","agent":"01a02484-6f39-72b2-9165-3d6e35eb589a"}
 {"seq":14,"at":"2026-08-21T13:35:37.988Z","event":"intent","stage":"implement","note":"Fresh implementer for revised contract and security repair plan."}
 {"seq":15,"at":"2026-08-21T13:41:32.733Z","event":"record","stage":"implement","agent":"01a02488-f0f5-7800-818d-69915e8c17b1"}
+{"seq":16,"at":"2026-08-21T13:41:47.080Z","event":"gate","hash":"f2bed7e03f9b43a0ab81fd425bd5704f63b90251","green":true,"clean":true}
+{"seq":17,"at":"2026-08-21T13:41:58.881Z","event":"intent","stage":"review","note":"Fresh primary reviewer against repair checkpoint."}
+{"seq":18,"at":"2026-08-21T13:41:58.931Z","event":"intent","stage":"review","note":"Fresh decorrelated secondary reviewer against repair checkpoint."}
+{"seq":19,"at":"2026-08-21T13:41:58.982Z","event":"intent","stage":"audit","note":"Fresh required security audit against repair checkpoint."}
+{"seq":20,"at":"2026-08-21T13:55:28.793Z","event":"intent","stage":"plan","note":"Fresh test-contract repair after second review round found fabricated real-adapter assertions and incomplete lazy-loading proof."}
+{"seq":21,"at":"2026-08-21T14:00:12.420Z","event":"record","stage":"plan","agent":"01a0249b-5476-77d0-b3a1-c25b44221d2a"}
+{"seq":22,"at":"2026-08-21T14:00:17.887Z","event":"intent","stage":"implement","note":"Fresh implementer for real adapter offline error envelopes and remaining forbidden catalogue CLI surfaces."}
+{"seq":23,"at":"2026-08-21T14:04:36.468Z","event":"record","stage":"implement","agent":"01a0249f-8260-7363-8a4b-025b4993bc76"}

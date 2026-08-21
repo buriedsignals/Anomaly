@@ -7,7 +7,7 @@ description: >-
   relationships and source-lineage identifiers. Apply it to sanctions, PEP,
   debarment, and watchlist research; do not equate search relevance or match
   scores with identity, target status, or grounds for an adverse decision.
-compatibility: Requires the catalogue CLI, Python 3.11+, an OpenSanctions API key, and network access to api.opensanctions.org.
+compatibility: Requires Python 3.11+, an OpenSanctions API key, and network access to api.opensanctions.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -84,7 +84,7 @@ review, false-positive handling, and evidence reporting.
 
 ## Privacy, authentication, and reuse
 
-Store the key with `catalogue keys set opensanctions`. Match sends structured
+Provide the key through the execution context. Match sends structured
 identity attributes in a POST body; search uses a GET query string that the
 provider warns can enter access logs. Do not send confidential lead names
 without considering that disclosure.

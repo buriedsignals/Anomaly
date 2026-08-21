@@ -6,7 +6,7 @@ description: >-
   seats, status, and cantonal excerpt links. Apply it to Swiss company-name
   resolution; do not imply that the bounded legacy response is exhaustive or
   that it is the same API as the current authenticated ZefixPublicREST spec.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.zefix.ch.
+compatibility: Requires Python 3.11+ and network access to www.zefix.ch.
 metadata:
   author: Buried Signals
   version: "1.0"

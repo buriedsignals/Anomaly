@@ -13,17 +13,21 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T13:41:32Z",
+  "updatedAt": "2026-08-21T14:04:36Z",
   "agents": {
-    "implementer_agent_id": "01a02488-f0f5-7800-818d-69915e8c17b1",
-    "reviewer_agent_id": "01a0247e-c8e2-7130-a8fd-1864bcfcdbc9",
-    "reviewer2_agent_id": "01a0247e-c935-74e2-8274-5ebd7fd908bf",
-    "audit_agent_id": "01a0247e-c991-7d53-a3c8-0e70a1e351c8"
+    "implementer_agent_id": "01a0249f-8260-7363-8a4b-025b4993bc76",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a02484-6f39-72b2-9165-3d6e35eb589a",
+    "authored_by_agent_id": "01a0249b-5476-77d0-b3a1-c25b44221d2a",
     "green": false,
     "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
@@ -31,9 +35,9 @@
     ]
   },
   "review": {
-    "verdict": "needs-work",
-    "reportedVerdict": "needs-work",
-    "reviewer_agent_id": "01a0247e-c8e2-7130-a8fd-1864bcfcdbc9",
+    "verdict": null,
+    "reportedVerdict": null,
+    "reviewer_agent_id": null,
     "findings": [
       {
         "file": "data-skills/global/thinkpol-reddit-evidence/adapter.py",
@@ -142,8 +146,8 @@
   },
   "audit": {
     "required": true,
-    "verdict": "needs-work",
-    "audit_agent_id": "01a0247e-c991-7d53-a3c8-0e70a1e351c8",
+    "verdict": "na",
+    "audit_agent_id": null,
     "evidence": [
       {
         "command": "security scanner",
@@ -240,40 +244,38 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Establish authoritative 29-to-28 inventory and one-to-one migration proof.",
-      "Enforce shared success/unavailable/error contract states for real adapters.",
-      "Reject forbidden catalogue surfaces.",
-      "Verify deterministic loading, symlink safety, and duplicate-id rejection."
+      "Establish the authoritative 29-to-28 inventory and migration contract.",
+      "Invoke every real adapter through an offline HTTP boundary and validate typed result envelopes.",
+      "Enforce forbidden catalogue-surface absence, including CLI and key commands.",
+      "Prove deterministic, side-effect-free discovery and request-time loading.",
+      "Hand off targeted RED for implementation."
     ],
     "testFiles": [
-      "tools/anomaly/tests/test_source_catalogue.py"
+      "tests/test_source_catalogue.py"
     ],
     "redRun": {
-      "command": "uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "7 failed, 2 passed; RED covers opensanctions id rejection, forbidden surfaces, symlink escapes, duplicate ids, and adapter contract paths. Canonical coding-rules path unavailable."
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
+      "output": "2 failed, 5 passed: OpenParlData propagates the offline upstream exception instead of returning a validated unavailable/error envelope; catalogue contains forbidden 'catalogue cli' text."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize all real adapter result construction behind the shared contract while preserving source-specific query behavior."
+    "refactorOpportunity": "Harmonize real adapter result construction behind the shared envelope while preserving source-specific query behavior."
   },
   "implement": {
-    "agent_id": "01a02488-f0f5-7800-818d-69915e8c17b1",
+    "agent_id": "01a0249f-8260-7363-8a4b-025b4993bc76",
     "result": "green",
     "files": [
-      "src/anomaly/sources/registry.py",
-      "data-skills",
-      "PRD.md",
-      ".jeff/BACKLOG.md",
-      ".jeff/tasks/0016-navigator-source-catalogue-migration/context.md"
+      "tools/anomaly/src/anomaly/sources/registry.py",
+      "tools/anomaly/data-skills"
     ],
     "greenRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "9 passed in 0.27s"
+      "output": "7 passed in 0.21s"
     }
   },
   "review2": {
-    "verdict": "needs-work",
-    "reportedVerdict": "needs-work",
-    "reviewer_agent_id": "01a0247e-c935-74e2-8274-5ebd7fd908bf",
+    "verdict": null,
+    "reportedVerdict": null,
+    "reviewer_agent_id": null,
     "findings": [
       {
         "file": "data-skills/ch/zefix-companies/adapter.py",

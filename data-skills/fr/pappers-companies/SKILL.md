@@ -6,7 +6,7 @@ description: >-
   French legal-entity resolution using lean, credit-aware calls; do not request
   unwrapped officers or beneficial owners, expose the key, or interpret blank
   partial-diffusion fields as proof of absence or misconduct.
-compatibility: Requires the catalogue CLI, Python 3.11+, a Pappers API key, and network access to api.pappers.fr.
+compatibility: Requires Python 3.11+, a Pappers API key, and network access to api.pappers.fr.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -30,7 +30,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 <!-- END GENERATED OPERATION STATUS -->
 ## Authentication and credits
 
-Configure the key once with `catalogue keys set pappers`. catalogue sends it in
+Provide the key through the execution context. The adapter sends it in
 the recommended `api-key` header and never exposes it to the agent. The checked
 pricing page assigns 0.1 credit per search result and one credit per company
 profile; supplementary fields can cost more. This adapter requests only the

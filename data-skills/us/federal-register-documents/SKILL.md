@@ -6,7 +6,7 @@ description: >-
   rules, proposed rules, notices, and presidential documents; verify material
   legal text against the linked govinfo PDF because FederalRegister.gov is an
   unofficial prototype edition.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.federalregister.gov.
+compatibility: Requires Python 3.11+ and network access to www.federalregister.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

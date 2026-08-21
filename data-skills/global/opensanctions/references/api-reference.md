@@ -19,7 +19,7 @@ schema identified itself as OpenSanctions API / yente 5.5.0 at retrieval time.
 
 - Base: `https://api.opensanctions.org`
 - Header: `Authorization: ApiKey <key>` on every local API request
-- Store with `catalogue keys set opensanctions`.
+- Provide through the execution context.
 
 The provider says it issues free API keys for qualifying journalism,
 civil-society advocacy, and academic research. That does not waive the need to

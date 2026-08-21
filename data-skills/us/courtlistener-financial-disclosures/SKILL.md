@@ -6,7 +6,7 @@ description: >-
   debts, agreements, positions, reimbursements, income, redactions, and source
   PDFs. Apply it to conflict-of-interest research; preserve value ranges and
   inferred flags, and verify every material finding in the original filing.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires Python 3.11+ and network access to www.courtlistener.com; a CourtListener token is optional but recommended for clients.
 metadata:
   author: Buried Signals
   version: "1.0"

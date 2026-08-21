@@ -6,7 +6,7 @@ description: >-
   texts. Apply it to Parliament identity and document discovery; do not use the
   source router as an unrestricted API proxy or infer legal effect, a complete
   transcript, or a person's identity from the normalized result alone.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.europarl.europa.eu.
+compatibility: Requires Python 3.11+ and network access to data.europarl.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"

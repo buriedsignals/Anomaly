@@ -22,7 +22,7 @@ auth:
   setup_url: https://api.opencorporates.com/documentation/API-Reference#api-accounts
   setup_help: >-
     Obtain an API account appropriate to the intended use, then run
-    `catalogue keys set opencorporates`. The provider documents open-data and
+    the OpenCorporates token through the execution context. The provider documents open-data and
     public-benefit access as well as account-specific limits; verify current
     eligibility directly rather than relying on a fixed price in this skill.
   test_request:

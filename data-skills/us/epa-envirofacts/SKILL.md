@@ -6,7 +6,7 @@ description: >-
   resolving facilities and systems, ownership, activity, and location; do not
   infer pollutant releases, violations, compliance, or drinking-water safety
   because those facts require different tables and evidence.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.epa.gov.
+compatibility: Requires Python 3.11+ and network access to data.epa.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

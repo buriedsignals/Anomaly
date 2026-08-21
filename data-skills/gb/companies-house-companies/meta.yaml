@@ -23,7 +23,7 @@ auth:
   setup_url: https://developer.company-information.service.gov.uk/get-started
   setup_help: |
     Create a Companies House application and Live REST API key, then run:
-      catalogue keys set companies-house
+      provide the Companies House key through the execution context
     catalogue sends the key as the HTTP Basic username with an empty password
     and never places the secret in the prompt or query parameters.
   test_request:

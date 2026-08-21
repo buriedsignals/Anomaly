@@ -5,7 +5,7 @@ description: >-
   name with official OpenFEC filters and stable FEC identifiers. Apply it to
   candidate/committee identity and filing-history discovery, not transaction or
   financial-total claims; check current FEC terms and acceptable-use limits.
-compatibility: Requires the catalogue CLI, Python 3.11+, a free api.data.gov key, and network access to api.open.fec.gov.
+compatibility: Requires Python 3.11+, a free api.data.gov key, and network access to api.open.fec.gov.
 metadata:
   author: Buried Signals
   version: "1.0"

@@ -7,7 +7,7 @@ description: >-
   links, and OpenCorporates attribution. Apply it to corporate entity
   resolution; do not infer ownership, current activity, solvency, or official
   legal status beyond the returned and corroborated registry fields.
-compatibility: Requires the catalogue CLI, Python 3.11+, an OpenCorporates API token, and network access to api.opencorporates.com.
+compatibility: Requires Python 3.11+, an OpenCorporates API token, and network access to api.opencorporates.com.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -72,7 +72,7 @@ corroboration.
 
 ## Authentication and reuse
 
-Store the token with `catalogue keys set opencorporates`; never place it in
+Provide the token through the execution context; never place it in
 prompts or command arguments. Usage depends on the account and can be inspected
 through the provider's `/account_status` route. Follow OpenCorporates ODbL
 attribution/share-alike requirements and any underlying source terms preserved

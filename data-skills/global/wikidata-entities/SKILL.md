@@ -6,7 +6,7 @@ description: >-
   match metadata, HTTPS links, and continuation offsets. Apply it to entity
   reconciliation; do not treat first-ranked candidates as confirmed identity or
   expect arbitrary statements and identifiers from search.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.wikidata.org.
+compatibility: Requires Python 3.11+ and network access to www.wikidata.org.
 metadata:
   author: Buried Signals
   version: "1.0"

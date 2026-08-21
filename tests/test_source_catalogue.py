@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import re
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -40,22 +43,66 @@ def _load_adapter(path: Path):
     return module
 
 
-def _base_result(source_id: str, status: str) -> dict:
-    result = {
-        "source_id": source_id,
-        "operation": "catalogue-contract-test",
-        "license": "test licence",
-        "endpoint": "https://example.test/source",
-        "source_hash": "sha256:" + "a" * 64,
-        "provenance": {"endpoint": "https://example.test/source", "request": {}},
-        "status": status,
-        "records": [{"id": "1"}] if status == "ok" else [],
-        "normalized": True,
-        "error": None,
-    }
-    if status != "ok":
-        result["error"] = {"code": f"{status}-source", "message": "fixture state"}
-    return result
+class _OfflineContext:
+    def get_key(self, _name: str) -> str:
+        return "offline-test-key"
+
+    def get_key_optional(self, _name: str) -> str | None:
+        return None
+
+
+class _OfflineError(Exception):
+    pass
+
+
+class _OfflineClient:
+    def __init__(self, *_args, **_kwargs) -> None:
+        pass
+
+    def __enter__(self) -> "_OfflineClient":
+        return self
+
+    def __exit__(self, *_args) -> None:
+        return None
+
+    def _request(self, *_args, **_kwargs):
+        raise _OfflineError("network disabled by source catalogue test")
+
+    get = _request
+    post = _request
+
+
+def _offline_request(*_args, **_kwargs):
+    raise _OfflineError("network disabled by source catalogue test")
+
+
+def _offline_httpx() -> types.ModuleType:
+    module = types.ModuleType("httpx")
+    module.Client = _OfflineClient
+    module.HTTPError = _OfflineError
+    module.get = _offline_request
+    module.post = _offline_request
+    return module
+
+
+def _offline_input(source_id: str) -> dict:
+    if source_id == "no/brreg/enheter":
+        return {"operation": "search-companies", "navn": "test"}
+    if source_id == "fr/pappers/companies":
+        return {"operation": "search-companies", "q": "test"}
+    if source_id == "gb/companies-house/companies":
+        return {"operation": "search-companies", "q": "test"}
+    if source_id == "us/epa/envirofacts":
+        return {"mode": "tri", "id": "TEST"}
+    if source_id == "us/usaspending/awards":
+        return {"keyword": "test"}
+    if source_id == "us/courtlistener/financial-disclosures":
+        return {"person_id": 1}
+    if source_id == "eu/eurostat/data":
+        return {"mode": "datasets", "q": "test"}
+    if source_id == "us/congress/legislation":
+        return {"q": "test"}
+    return {"q": "test"}
 
 
 def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations() -> None:
@@ -76,21 +123,28 @@ def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migration
         assert meta_path.with_name("adapter.py").is_file()
 
 
-@pytest.mark.parametrize("status", ["ok", "unavailable", "error"])
-def test_shared_result_contract_enforces_each_real_adapter_state(status: str) -> None:
+def test_shared_result_contract_validates_each_real_adapter_output_without_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "httpx", _offline_httpx())
     entries = discover_sources(SOURCE_ROOT)
     assert len(entries) == 28
     for entry in entries:
         adapter = load_source_adapter(entries, entry.source_id)
         assert callable(getattr(adapter, "run", None))
-        result = validate_source_result(_base_result(entry.source_id, status))
+        result = adapter.run(_offline_input(entry.source_id), _OfflineContext())
+        result = validate_source_result(result)
         assert result["source_id"] == entry.source_id
-        assert result["status"] == status
+        assert result["status"] in {"ok", "unavailable", "error"}
+        if result["status"] != "ok":
+            assert result["error"]["code"]
+            assert result["error"]["message"]
 
 
 def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
     forbidden = (
         r"navigator\s+(?:query|data\s+show|cli|service)",
+        r"catalogue\s+(?:cli|keys\s+set)",
         r"hosted\s+(?:key|credential|runtime|execution|access)",
         r"requires[_ -]hosted[_ -]access",
         r"membership[_ -]?(?:required|tier|plan|metering)",
@@ -109,13 +163,27 @@ def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
 
 
 def test_registry_loads_real_adapters_only_after_request() -> None:
+    source_ids = {entry.source_id for entry in discover_sources(SOURCE_ROOT)}
+    module_names = {
+        "anomaly_source_" + hashlib.sha256(source_id.encode()).hexdigest(): source_id
+        for source_id in source_ids
+    }
+    for module_name in module_names:
+        sys.modules.pop(module_name, None)
+
     first = discover_sources(SOURCE_ROOT)
     second = discover_sources(SOURCE_ROOT)
     assert first == second
     assert [entry.source_id for entry in first] == sorted(entry.source_id for entry in first)
-    adapter = load_source_adapter(first, "global/opensanctions")
+    assert not (set(module_names) & sys.modules.keys())
+
+    requested_id = "global/opensanctions"
+    unrequested_id = next(source_id for source_id in source_ids if source_id != requested_id)
+    adapter = load_source_adapter(first, requested_id)
     assert adapter.__name__.startswith("anomaly_source_")
     assert callable(adapter.run)
+    assert adapter.__name__ not in sys.modules
+    assert "anomaly_source_" + hashlib.sha256(unrequested_id.encode()).hexdigest() not in sys.modules
 
 
 def test_registry_rejects_symlink_escape_before_loading(tmp_path: Path) -> None:

@@ -6,7 +6,7 @@ description: >-
   people, and oral-argument audio. Always choose one of the documented type
   codes o, r, rd, d, p, or oa and interpret the normalized record according to
   that type; never treat relevance as authority or a search miss as proof.
-compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires Python 3.11+ and network access to www.courtlistener.com; a CourtListener token is optional but recommended for clients.
 metadata:
   author: Buried Signals
   version: "1.0"

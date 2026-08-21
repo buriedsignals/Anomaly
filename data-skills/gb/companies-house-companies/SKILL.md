@@ -6,7 +6,7 @@ description: >-
   to company identity and current register checks; preserve leading zeros and
   do not infer directors, beneficial ownership, continuous trading, or
   historical status from the released fields.
-compatibility: Requires the catalogue CLI, Python 3.11+, a Companies House Live REST API key, and network access to api.company-information.service.gov.uk.
+compatibility: Requires Python 3.11+, a Companies House Live REST API key, and network access to api.company-information.service.gov.uk.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -30,7 +30,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 <!-- END GENERATED OPERATION STATUS -->
 ## Authentication and quota
 
-Create a Live REST API key and run `catalogue keys set companies-house`.
+Provide a Live REST API key through the execution context.
 catalogue sends the key as the HTTP Basic username with an empty password and
 keeps it out of prompts. Companies House publishes a limit of 600 requests per
 five minutes; exceeding it returns 429. A 401 means unauthorised, not quota.
