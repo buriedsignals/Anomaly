@@ -101,3 +101,32 @@
   --extra test pytest -q tests/test_source_catalogue.py` produced `2 failed, 7
   passed`. The ThinkPol test failed on the existing `api_key` surface; the
   malformed-package test failed because discovery did not raise `ValueError`.
+
+## Fresh plan/test-author pass: AC7 wording repair
+
+- Approach: revise the existing PRD M3 wording test into a joint PRD/backlog
+  contract. Extract the descriptive `M3 migrate` backlog entry, require the
+  28-package non-Arbiter scope, ordinary ThinkPol local-catalogue treatment,
+  and explicit catalogue-only/no-service wording, while preserving the PRD
+  catalogue-only assertions.
+- YAGNI boundary: reuse the existing `re` import, `ANOMALY_ROOT`, and direct
+  markdown reads; edit no production or backlog files and add no new fixture or
+  dependency.
+- Complexity: simple. Audit remains required because the task's overall
+  registry and dynamic adapter-loading boundary still requires the existing
+  security audit.
+- Refactor opportunity: null; this slice changes only the documentation proof
+  contract and does not owe production deduplication, deletion, or
+  harmonization.
+- Acceptance dispositions: AC7 `revise` — the combined PRD/backlog test makes
+  catalogue-only, no-service M3 wording consumer-observable; the deterministic
+  seam is the extracted M3 backlog entry and PRD M3 row. Other criteria
+  `reuse` — existing targeted tests remain the proof contract.
+- Ordered slices: (1) revise the existing M3 documentation test to cover the
+  descriptive backlog entry alongside PRD wording; (2) run the mandated
+  targeted test command and hand off RED without editing backlog or production.
+- RED evidence: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run
+  --extra test pytest -q tests/test_source_catalogue.py` produced `1 failed, 8
+  passed in 0.32s`. The deterministic failure is the missing explicit
+  `catalogue-only` wording in the descriptive M3 backlog entry; PRD wording and
+  all existing catalogue/registry tests passed.

@@ -25,3 +25,7 @@
 - `tools/anomaly/src/anomaly/sources/registry.py:42` — package validation; `registry.py:63` — adapter AST parsing; `registry.py:74` — catalogue discovery.
 - Targeted command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`.
 - Latest targeted result: `2 failed, 7 passed in 0.50s`; failures are missing provenance `adapter` and no `ValueError` for the overwritten non-callable `run`.
+- `tools/anomaly/tests/test_source_catalogue.py:264` — joint PRD/backlog M3 wording test; extracts the descriptive `M3 migrate` backlog entry and checks scope and catalogue-only/no-service terms alongside the PRD M3 row.
+- `tools/anomaly/.jeff/BACKLOG.md:16` — descriptive M3 backlog entry; includes the 28-package, ThinkPol, and local-catalogue wording.
+- Latest targeted command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`.
+- Latest targeted result: `1 failed, 8 passed in 0.32s`; the failing test reports missing `catalogue-only` wording in the descriptive M3 backlog entry.

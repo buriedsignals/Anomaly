@@ -261,10 +261,21 @@ def test_registry_rejects_adapter_without_callable_run(tmp_path: Path) -> None:
         discover_sources(tmp_path)
 
 
-def test_prd_m3_language_describes_catalogue_only_migration() -> None:
+def test_prd_and_backlog_m3_language_describes_catalogue_only_migration() -> None:
     prd = (ANOMALY_ROOT / "PRD.md").read_text(encoding="utf-8")
     m3_line = next(line for line in prd.splitlines() if "| M3 |" in line)
 
     assert "28 non-Arbiter Navigator source packages" in m3_line
     assert "catalogue" in m3_line.lower()
     assert all(term not in m3_line.lower() for term in ("cli", "service", "mcp", "deployment"))
+
+    backlog = (ANOMALY_ROOT / ".jeff" / "BACKLOG.md").read_text(encoding="utf-8")
+    m3_entry = re.search(r"(?ms)^- M3 migrate\b.*?(?=^-\s|\Z)", backlog)
+    assert m3_entry is not None
+    m3_text = m3_entry.group(0).lower()
+
+    assert "28 non-arbiter navigator source packages" in m3_text
+    assert "thinkpol" in m3_text
+    assert "normal local catalogue entry" in m3_text
+    assert re.search(r"catalogue[- ]only", m3_text)
+    assert re.search(r"no[- ]service", m3_text)

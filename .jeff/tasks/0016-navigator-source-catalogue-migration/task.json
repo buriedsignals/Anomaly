@@ -6,24 +6,28 @@
   "title": "M3 Navigator source catalogue migration",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "review",
   "priority": "p1",
   "deps": [
     15
   ],
   "complexity": "simple",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T14:23:26Z",
+  "updatedAt": "2026-08-21T14:32:22Z",
   "agents": {
-    "implementer_agent_id": "01a024b3-17d3-70c2-9ff3-8ee9a94df826",
+    "implementer_agent_id": "01a024bb-7385-7e43-b240-381bae3e8002",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a024b0-52aa-7b51-a7ef-919eeeb5bcc7",
+    "authored_by_agent_id": "01a024b9-4d28-7433-9875-a7ffc9a711d4",
     "green": false,
     "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
@@ -46,23 +50,25 @@
     "verdict": null,
     "reportedVerdict": null,
     "reviewer_agent_id": null,
-    "findings": [],
+    "findings": [
+      {
+        "file": ".jeff/BACKLOG.md",
+        "line": 16,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Backlog wording lacks explicit catalogue-only/no-service scope and is not tested.",
+        "why": "AC7 requires both PRD and backlog language to describe the revised catalogue-only model; current test covers PRD only."
+      }
+    ],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
         "output": "9 passed in 0.36s"
       },
       {
-        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-        "output": "637 passed in 4.64s"
-      },
-      {
-        "command": "catalogue inventory",
-        "output": "28 metadata files, 28 skills, and 28 adapters"
-      },
-      {
-        "command": "forbidden surface scan",
-        "output": "No locked forbidden matches"
+        "command": "backlog wording inspection",
+        "output": "M3 line lacks catalogue-only/no-service language."
       }
     ],
     "acLedger": [
@@ -105,8 +111,8 @@
       {
         "ac": "AC7",
         "claimed": "reuse",
-        "rederived": "reuse",
-        "ok": true
+        "rederived": "revise",
+        "ok": false
       }
     ]
   },
@@ -117,11 +123,11 @@
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "9 passed in 0.33s"
+        "output": "9 passed in 0.38s"
       },
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-        "output": "637 passed in 4.99s"
+        "output": "637 passed in 5.15s"
       },
       {
         "command": "security report reachability review",
@@ -131,9 +137,9 @@
     "reportedVerdict": "pass",
     "findings": [],
     "scan": {
-      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final2",
+      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final3",
       "recommendation": "REVIEW",
-      "reportPath": "/private/tmp/anomaly-security-audit-16-final2/security-audit-20260821-141438.md"
+      "reportPath": "/private/tmp/anomaly-security-audit-16-final3/security-audit-20260821-142345.md"
     },
     "coverage": [
       {
@@ -189,29 +195,27 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Add metadata, source-hash, and provenance assertions.",
-      "Test rejection of a final non-callable run attribute.",
-      "Run the targeted test command and hand off RED."
+      "Revise the PRD/backlog M3 wording contract and hand off deterministic RED."
     ],
     "testFiles": [
       "tests/test_source_catalogue.py"
     ],
     "redRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "2 failed, 7 passed in 0.50s"
+      "output": "1 failed, 8 passed in 0.32s; missing explicit catalogue-only wording in the M3 backlog entry."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize registry validation around one callable-run predicate."
+    "refactorOpportunity": null
   },
   "implement": {
-    "agent_id": "01a024b3-17d3-70c2-9ff3-8ee9a94df826",
+    "agent_id": "01a024bb-7385-7e43-b240-381bae3e8002",
     "result": "green",
     "files": [
-      "src/anomaly/sources/registry.py"
+      "tools/anomaly/.jeff/BACKLOG.md"
     ],
     "greenRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "9 passed in 0.50s"
+      "output": "9 passed in 0.30s"
     }
   },
   "review2": {
@@ -220,22 +224,13 @@
     "reviewer_agent_id": null,
     "findings": [
       {
-        "file": "src/anomaly/sources/registry.py",
-        "line": 66,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Discovery does not verify the final run attribute is callable.",
-        "why": "An adapter can overwrite run after defining it, pass discovery, and fail later outside the typed malformed-package boundary."
-      },
-      {
         "file": "tests/test_source_catalogue.py",
-        "line": 192,
+        "line": 260,
         "severity": "high",
         "class": "blocking",
         "kickTo": "plan",
-        "what": "The contract test does not verify hash/provenance/metadata consistency.",
-        "why": "It checks only hash format and provenance type, so explicit source-hash, requested-source, and metadata contract behavior can regress undetected."
+        "what": "Documentation acceptance coverage omits the backlog.",
+        "why": "The backlog is consumer-visible and can drift independently from PRD; add a behavior assertion for its 28-package catalogue-only wording."
       }
     ],
     "evidence": [
@@ -244,52 +239,52 @@
         "output": "9 passed in 0.49s"
       },
       {
-        "command": "catalogue syntax and inventory",
-        "output": "28 metadata packages, 28 adapters, 420 catalogue files, 57 Python files parsed"
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
+        "output": "637 passed in 5.01s"
       }
     ],
     "acLedger": [
       {
         "ac": "AC1",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC2",
-        "claimed": "write",
-        "rederived": "write",
-        "ok": false
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
       },
       {
         "ac": "AC3",
-        "claimed": "write",
-        "rederived": "write",
-        "ok": false
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
       },
       {
         "ac": "AC4",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC5",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC6",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC7",
         "claimed": "reuse",
-        "rederived": "reuse",
-        "ok": true
+        "rederived": "revise",
+        "ok": false
       }
     ]
   }
