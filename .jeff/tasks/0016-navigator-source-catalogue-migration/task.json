@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.3.4",
+  "id": 16,
+  "slug": "navigator-source-catalogue-migration",
+  "title": "M3 Navigator source catalogue migration",
+  "status": "pending",
+  "category": "code",
+  "stage": "capture",
+  "priority": "p1",
+  "deps": [15],
+  "complexity": "complex",
+  "createdAt": "2026-08-21T13:00:00Z",
+  "updatedAt": "2026-08-21T13:00:00Z",
+  "agents": {
+    "implementer_agent_id": null,
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": null,
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": false,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null
+}
