@@ -16,8 +16,8 @@ description: Registrants with one or two clients and high total income.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 200
   min_total_income: 250000
+  limit: 200
 signal_category: lobbying
 severity: medium
 expected_output: [registrant_id, registrant_name, distinct_clients, filings, total_income, earliest_year, latest_year, clients]

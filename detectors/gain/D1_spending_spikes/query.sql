@@ -30,8 +30,8 @@
             FROM windowed
             WHERE prior_n >= 3
               AND prior_sd > 0
-              AND total_income >= 50000
-              AND abs((total_income - prior_mean) / prior_sd) >= 2.0
+              AND total_income >= ?
+              AND abs((total_income - prior_mean) / prior_sd) >= ?
             ORDER BY abs((total_income - prior_mean) / prior_sd) DESC
-            LIMIT 200
+            LIMIT ?
         

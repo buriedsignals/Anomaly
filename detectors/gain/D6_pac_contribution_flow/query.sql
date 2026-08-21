@@ -10,5 +10,5 @@
             WHERE payee_name IS NOT NULL OR honoree_name IS NOT NULL
             GROUP BY 1,2
             ORDER BY total_amount DESC NULLS LAST
-            LIMIT 500
+            LIMIT ?
         

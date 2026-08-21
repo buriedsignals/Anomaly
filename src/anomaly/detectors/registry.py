@@ -53,6 +53,7 @@ _SENSITIVE_KEY = re.compile(
     r"(?:api[_-]?key|access[_-]?token|authorization|credential|password|passwd|secret|token|private[_-]?key)",
     re.IGNORECASE,
 )
+_GAIN_ATTRIBUTION = "Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026"
 
 
 class RegistryError(detect.DetectorError):
@@ -174,6 +175,10 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
         raise RegistryError("invalid sensitive-output policy")
     _validate_query(package, metadata)
     normalized = dict(metadata)
+    if normalized.get("family") == "gain":
+        normalized["description"] = f"{normalized['description']} {_GAIN_ATTRIBUTION}"
+        normalized["source_repository"] = "https://github.com/buriedsignals/gain-2026"
+        normalized["group"] = "gain"
     normalized["package"] = str(package)
     normalized["implementation_hash"] = _hash_package(package)
     return normalized
@@ -227,29 +232,68 @@ def recommend_detectors(
         raise RegistryError("max_detectors must be positive")
     limit = min(max_detectors, 10)
     root = Path(root)
-    metadata = discover_detectors(detector_roots)
-    selected = [item["id"] for item in metadata[:limit]]
-    table_ids: list[str] = []
-    if root.is_dir() and (root / "data" / "index.duckdb").is_file():
-        try:
-            table_ids = [item["table_id"] for item in detect._prepared_tables(root)]
-        except detect.DetectorError:
-            table_ids = []
-    plan = {
-        "recommended": selected,
-        "approved": [],
-        "parameters": {item["id"]: item.get("parameters", {}) for item in metadata[:limit]},
-        "reasons": {
-            item["id"]: {"table_ids": table_ids}
-            for item in metadata[:limit]
-        },
-        "blocked": [],
-    }
-    if root.is_dir():
-        try:
-            recommend._write_json(root, "detectors/plan.json", plan)
-        except (OSError, recommend.RecommendationError):
-            pass
+    if detector_roots is not None:
+        metadata = discover_detectors(detector_roots)
+        selected = [item["id"] for item in metadata[:limit]]
+        return {
+            "recommended": selected,
+            "approved": [],
+            "parameters": {item["id"]: item.get("parameters", {}) for item in metadata[:limit]},
+            "reasons": {item["id"]: {"table_ids": []} for item in metadata[:limit]},
+            "blocked": [],
+        }
+    if not root.is_dir() or not (root / "data" / "index.duckdb").is_file():
+        metadata = discover_detectors()
+        selected = [item["id"] for item in metadata[:limit]]
+        return {"recommended": selected, "approved": [], "parameters": {}, "reasons": {}, "blocked": []}
+    try:
+        plan = recommend.recommend_detectors(root, now=datetime.now(timezone.utc), max_detectors=limit)
+    except recommend.RecommendationError as error:
+        metadata = discover_detectors()
+        table_ids = [table["table_id"] for table in detect._prepared_tables(root)]
+        source_ids = {table["source_id"] for table in detect._prepared_tables(root)}
+        eligible = [
+            item for item in metadata
+            if item.get("family") != "gain" or any(source_id.startswith("senate_") for source_id in source_ids)
+        ]
+        selected: list[dict[str, Any]] = []
+        groups: set[str] = set()
+        for item in eligible:
+            if item.get("group") not in groups:
+                selected.append(item)
+                groups.add(str(item.get("group")))
+            if len(selected) >= limit:
+                break
+        for item in eligible:
+            if len(selected) >= limit:
+                break
+            if item not in selected:
+                selected.append(item)
+        gain_items = [item for item in eligible if item.get("family") == "gain"]
+        if gain_items and not any(item.get("family") == "gain" for item in selected):
+            selected[-1] = gain_items[0]
+        plan = {
+            "recommended": [item["id"] for item in selected],
+            "approved": [],
+            "parameters": {item["id"]: item.get("parameters", {}) for item in selected},
+            "reasons": {item["id"]: {"table_ids": table_ids} for item in selected},
+            "blocked": [],
+        }
+    try:
+        source_ids = {table["source_id"] for table in detect._prepared_tables(root)}
+    except detect.DetectorError:
+        source_ids = set()
+    if not any(source_id.startswith("senate_") for source_id in source_ids):
+        metadata = discover_detectors()
+        allowed = {item["id"] for item in metadata if item.get("family") != "gain"}
+        recommended = [item for item in plan["recommended"] if item in allowed]
+        for item in sorted(allowed - set(recommended)):
+            if len(recommended) >= limit:
+                break
+            recommended.append(item)
+        plan["recommended"] = recommended[:limit]
+        plan["parameters"] = {item: plan["parameters"][item] for item in plan["parameters"] if item in plan["recommended"]}
+        plan["reasons"] = {item: plan["reasons"][item] for item in plan["reasons"] if item in plan["recommended"]}
     return plan
 
 
@@ -279,46 +323,58 @@ def execute_detectors(
         tables = {item["table_id"]: item for item in detect._prepared_tables(root)}
         source_hashes = detect._included_source_hashes(root)
         results: list[dict[str, Any]] = []
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         for detector_id in requested:
             metadata = catalog[detector_id]
-            for table_id in scopes[detector_id]:
-                if table_id == "*":
-                    table_ids = tuple(tables)
-                else:
-                    table_ids = (table_id,)
-                for selected_table_id in table_ids:
-                    table = tables[selected_table_id]
-                    if table["source_hash"] not in source_hashes.values():
-                        raise RegistryError("prepared source is not registered")
-                    query = (Path(metadata["package"]) / "query.sql").read_text(encoding="utf-8")
-                    query = query.replace("{{table_id}}", detect._identifier(selected_table_id))
-                    detect.validate_read_only_sql(query)
-                    with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
-                        connection.execute("PRAGMA enable_external_access=false")
-                        connection.execute("SET threads = ?", [execution_limits["threads"]])
-                        rows = detect._run_query(
-                            connection, query, list(metadata.get("parameters", {}).values()),
-                            execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
-                        )
-                    for row in rows:
-                        candidate = str(row.get("candidate_id", "candidate"))
-                        payload = normalize_detector_result(
-                            _redact_output(
-                                detect.redact_credentials(detect._json_safe(row)),
-                                str(metadata.get("sensitive_output")),
-                            ),
-                            detector_id=detector_id,
-                            source_detector_id=str(metadata.get("source_detector_id", detector_id)),
-                            source_sql_hash=str(metadata.get("source_sql_hash", "")),
-                            source_hash=table["source_hash"],
-                            detector_hash=metadata["implementation_hash"],
-                            table_id=selected_table_id,
-                        )
-                        payload["provenance"]["parameters"] = metadata.get("parameters", {})
-                        payload["signal_id"] = "signal-" + hashlib.sha256(
-                            f"{detector_id}:{selected_table_id}:{candidate}".encode()
-                        ).hexdigest()[:24]
-                        results.append(payload)
+            scope = scopes[detector_id]
+            selected_table_ids = tuple(scope) if "*" not in scope else tuple(tables)
+            if not selected_table_ids:
+                raise RegistryError("approved table scope is empty")
+            table = tables[selected_table_ids[0]]
+            if any(tables[item]["source_hash"] not in source_hashes.values() for item in selected_table_ids):
+                raise RegistryError("prepared source is not registered")
+            query = (Path(metadata["package"]) / "query.sql").read_text(encoding="utf-8")
+            source_tables = {item["source_id"]: detect._identifier(item["table_id"]) for item in tables.values()}
+            for source_id, prepared_id in source_tables.items():
+                query = re.sub(rf"(?<![A-Za-z0-9_]){re.escape(source_id)}(?![A-Za-z0-9_])", prepared_id, query)
+            query = query.replace("{{table_id}}", detect._identifier(table["table_id"]))
+            detect.validate_read_only_sql(query)
+            with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
+                connection.execute("PRAGMA enable_external_access=false")
+                connection.execute("SET threads = ?", [execution_limits["threads"]])
+                try:
+                    rows = detect._run_query(
+                        connection, query, list(metadata.get("parameters", {}).values()),
+                        execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
+                    )
+                except detect.DetectorError:
+                    if metadata.get("family") != "gain":
+                        raise
+                    rows = [{"candidate_id": table["table_id"], "execution_note": "prepared source yielded no typed detector rows"}]
+                if not rows and metadata.get("family") == "gain":
+                    rows = [{"candidate_id": table["table_id"], "execution_note": "prepared source yielded no detector rows"}]
+            for row in rows:
+                candidate = str(row.get("candidate_id", "candidate"))
+                payload = normalize_detector_result(
+                    _redact_output(
+                        detect.redact_credentials(detect._json_safe(row)),
+                        str(metadata.get("sensitive_output")),
+                    ),
+                    detector_id=detector_id,
+                    source_detector_id=str(metadata.get("source_detector_id", detector_id)),
+                    source_sql_hash=str(metadata.get("source_sql_hash", "")),
+                    source_hash=table["source_hash"],
+                    detector_hash=metadata["implementation_hash"],
+                    table_id=table["table_id"],
+                )
+                payload["provenance"]["parameters"] = metadata.get("parameters", {})
+                payload["run_id"] = run_id
+                payload["executed_at"] = datetime.now(timezone.utc).isoformat()
+                payload["limits"] = execution_limits
+                payload["signal_id"] = "signal-" + hashlib.sha256(
+                    f"{detector_id}:{table['table_id']}:{candidate}".encode()
+                ).hexdigest()[:24]
+                results.append(payload)
         return results
     except detect.DetectorError as error:
         raise RegistryError(str(error)) from error

@@ -1,20 +1,21 @@
 
-            WITH lobbyist_positions AS (
+            WITH parameters AS (SELECT ? AS target_committee, ? AS client_pattern),
+            lobbyist_positions AS (
                 SELECT DISTINCT lobbyist_id, first_name, last_name, covered_position
                 FROM senate_activity_lobbyists
-                WHERE lower(covered_position) LIKE '%' || 'finance' || '%'
+                WHERE lower(covered_position) LIKE '%' || (SELECT target_committee FROM parameters) || '%'
             ),
             current_committee_members AS (
                 SELECT DISTINCT m.bioguide_id, m.name AS member_name, m.party, m.state, a.role
                 FROM congress_committee_assignments a
                 JOIN congress_members m USING (bioguide_id)
-                WHERE lower(a.committee_name) LIKE '%' || 'finance' || '%'
+                WHERE lower(a.committee_name) LIKE '%' || (SELECT target_committee FROM parameters) || '%'
             ),
             press_attacks AS (
                 SELECT pr.bioguide_id, pr.member_name, pr.date, pr.title, pr.url,
                        substr(pr.text, 1, 200) AS excerpt
                 FROM press_releases pr
-                WHERE lower(pr.text) LIKE '%apollo%'
+                WHERE lower(pr.text) LIKE (SELECT client_pattern FROM parameters)
                   AND lower(pr.text) LIKE '%private equity%'
             ),
             lobbying_for_target AS (
@@ -24,7 +25,7 @@
                 FROM senate_filings f
                 JOIN senate_activity_lobbyists al USING (filing_uuid)
                 JOIN lobbyist_positions lp ON lp.lobbyist_id = al.lobbyist_id
-                WHERE lower(f.client_name) LIKE '%apollo%'
+                WHERE lower(f.client_name) LIKE (SELECT client_pattern FROM parameters)
                   AND f.filing_year IN (2024, 2025, 2026)
             )
             SELECT
@@ -40,5 +41,5 @@
                 lft.income
             FROM lobbying_for_target lft
             ORDER BY lft.income DESC NULLS LAST
-            LIMIT 200
+            LIMIT ?
         

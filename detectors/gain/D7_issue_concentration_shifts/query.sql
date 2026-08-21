@@ -27,7 +27,7 @@
             FROM ordered
             WHERE prior_income IS NOT NULL
               AND prior_income > 0
-              AND abs((total_income - prior_income) / prior_income) * 100 >= 25
+              AND abs((total_income - prior_income) / prior_income) * 100 >= ?
             ORDER BY abs(total_income - prior_income) DESC
-            LIMIT 500
+            LIMIT ?
         

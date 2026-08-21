@@ -15,7 +15,7 @@
             new_regs AS (
                 SELECT ff.registrant_id, ff.first_yp
                 FROM first_filing ff, recent_qs r
-                WHERE ff.first_yp >= r.max_yp - 2
+                WHERE ff.first_yp >= r.max_yp - ?
             )
             SELECT
                 f.registrant_id,
@@ -30,5 +30,5 @@
             GROUP BY 1
             HAVING total_income > 0
             ORDER BY total_income DESC
-            LIMIT 200
+            LIMIT ?
         

@@ -16,8 +16,8 @@ description: New registrants ranked by recent filing income.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 200
   lookback_quarters: 2
+  limit: 200
 signal_category: lobbying
 severity: medium
 expected_output: [registrant_id, registrant_name, filings_in_window, distinct_clients, total_income, clients]

@@ -62,5 +62,5 @@
               AND ca.income IS NOT NULL
               AND ca.income > 0
             ORDER BY ca.income DESC NULLS LAST
-            LIMIT 200
+            LIMIT ?
         

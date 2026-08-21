@@ -12,7 +12,7 @@
             WHERE filing_type IN ('Q1','Q2','Q3','Q4')
             GROUP BY 1
             HAVING distinct_clients BETWEEN 1 AND 2
-               AND total_income >= 250000
+               AND total_income >= ?
             ORDER BY total_income DESC
-            LIMIT 200
+            LIMIT ?
         

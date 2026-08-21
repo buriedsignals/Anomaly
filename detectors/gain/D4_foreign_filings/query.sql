@@ -15,5 +15,5 @@
             FROM senate_foreign_entities fe
             JOIN senate_filings f USING (filing_uuid)
             ORDER BY f.income DESC NULLS LAST
-            LIMIT 500
+            LIMIT ?
         

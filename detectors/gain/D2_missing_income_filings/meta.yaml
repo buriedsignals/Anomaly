@@ -16,8 +16,8 @@ description: Quarterly filings with null income clustered by registrant.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 200
   min_filings: 4
+  limit: 200
 signal_category: lobbying
 severity: medium
 expected_output: [registrant_id, registrant_name, quarterly_filings_with_null_income, distinct_clients, first_seen, last_seen]

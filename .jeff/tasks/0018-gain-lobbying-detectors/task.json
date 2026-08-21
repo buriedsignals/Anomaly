@@ -6,35 +6,252 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "implement",
+  "stage": "refactor",
   "priority": "p1",
   "deps": [
     17
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T17:38:34Z",
+  "updatedAt": "2026-08-21T18:00:10Z",
   "agents": {
-    "implementer_agent_id": "01a0255d-eccc-7fc2-b75b-77b2fbdc98e4",
+    "implementer_agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a02562-e0d3-7b23-a55b-4645ea3e2c03",
+    "authored_by_agent_id": "01a02571-03fa-71a3-839b-3f48238465ff",
     "green": false,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ]
   },
   "review": {
     "verdict": null,
+    "reportedVerdict": null,
     "reviewer_agent_id": null,
-    "evidence": []
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 296,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "GAIN metadata parameters are passed to SQL queries without bind placeholders.",
+        "why": "Approved execution can fail with parameter-count mismatches."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 292,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "GAIN SQL uses hard-coded source tables instead of the prepared table contract.",
+        "why": "Valid prepared cases cannot reliably execute the ported queries."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 230,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Recommendation selects the first ten entries and excludes the GAIN family.",
+        "why": "GAIN detectors are not available through the ordinary scalable menu."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 284,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Wildcard required_tables causes multi-table GAIN queries to run once per prepared table.",
+        "why": "Results can duplicate and table provenance becomes misleading."
+      },
+      {
+        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
+        "line": 1,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "GAIN metadata lacks explicit GAIN 2026 Challenge attribution and source repository.",
+        "why": "The requested visible attribution and traceability are absent."
+      },
+      {
+        "file": "tests/test_gain_detectors.py",
+        "line": 55,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Tests validate static fixtures but do not execute queries against valid prepared data or compare rows to source artifacts.",
+        "why": "The suite cannot detect parameter, duplication, or real parity failures."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "675 passed"
+      },
+      {
+        "command": "security scanner",
+        "output": "70 files scanned; 0 automated findings; PASS"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
+    ]
   },
   "audit": {
     "required": true,
     "verdict": "na",
     "audit_agent_id": null,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "security scanner",
+        "output": "70 files scanned; zero automated findings; PASS"
+      },
+      {
+        "command": "manual security review",
+        "output": "Approved valid-case GAIN execution is not yet demonstrated and has parameter/table-scope integrity risks."
+      }
+    ],
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 299,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-20",
+        "kickTo": "implement",
+        "what": "GAIN queries have no bind placeholders while execution passes parameters.",
+        "why": "Approved real-case execution can fail or ignore caller-selected parameters."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 284,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-20",
+        "kickTo": "implement",
+        "what": "Wildcard table scope runs multi-table queries once per prepared table.",
+        "why": "Results can duplicate and provenance can be misleading."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 230,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-20",
+        "kickTo": "implement",
+        "what": "Default recommendation excludes GAIN entries.",
+        "why": "The intended scalable menu cannot select the new family."
+      },
+      {
+        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
+        "line": 1,
+        "severity": "medium",
+        "class": "blocking",
+        "cwe": "CWE-20",
+        "kickTo": "implement",
+        "what": "Source attribution is incomplete.",
+        "why": "Provenance cannot identify the GAIN Challenge/source repository."
+      }
+    ],
+    "scan": {
+      "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py tests/test_gain_detectors.py tests/test_source_catalogue.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task18",
+      "recommendation": "PASS",
+      "reportPath": "/private/tmp/anomaly-security-audit-task18/security-audit-20260821-173903.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "not_covered"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_no_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [
@@ -50,31 +267,33 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Update the M2 registry contract to assert the 20 core plus 12 namespaced GAIN catalogue while preserving scalable category behavior.",
-      "Update the sensitive-output fixture contract to accept the GAIN CSV expected.csv/source.provenance.json format without weakening redaction assertions.",
-      "Update the stale M3 backlog contract to reflect forward-only backlog while retaining PRD M3 wording checks.",
-      "Preserve GAIN attribution, source-bound provenance, and exact fixture/hash assertions."
+      "Add prepared-case Gate A execution tests",
+      "Add parameter and multi-table deduplication tests",
+      "Add scalable recommendation and attribution tests",
+      "Add source-checkout row parity and lineage tests",
+      "Preserve forbidden-surface constraints"
     ],
     "testFiles": [
-      "tests/test_detector_registry.py",
-      "tests/test_source_catalogue.py"
+      "tests/test_gain_detectors.py"
     ],
     "redRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-      "output": "3 failed, 658 passed before test-contract repair; repaired test contracts now pass 675 tests."
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py; env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
+      "output": "Focused: 7 failed, 18 passed. Full suite: 676 passed, 7 failed; failures are the new RED GAIN tests."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
+    "refactorOpportunity": "Harmonize GAIN execution with the existing namespaced registry and normalized provenance envelope."
   },
   "implement": {
-    "agent_id": "01a0255d-eccc-7fc2-b75b-77b2fbdc98e4",
+    "agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
     "result": "green",
     "files": [
-      "src/anomaly/detectors/registry.py"
+      "src/anomaly/detectors/registry.py",
+      "detectors/gain/*/query.sql",
+      "detectors/gain/*/meta.yaml"
     ],
     "greenRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
-      "output": ".................                                                        [100%]\n17 passed in 0.42s"
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
+      "output": "25 passed; 683 passed"
     }
   },
   "refactor": {
@@ -88,6 +307,121 @@
     },
     "summary": [
       "No safe behavior-preserving production refactor identified; existing GAIN registry integration is already minimal and aligned with the task contract."
+    ]
+  },
+  "review2": {
+    "verdict": null,
+    "reportedVerdict": null,
+    "reviewer_agent_id": null,
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 299,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "GAIN queries contain no parameter placeholders while the executor passes parameter values.",
+        "why": "Real approved execution is not behaviorally executable."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 305,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Normalized provenance omits detector version, source provenance hash, source CSV hash, and complete run metadata.",
+        "why": "Leads cannot be fully replayed or tied to source artifacts."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 231,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Default recommendation is positional and excludes all GAIN detectors.",
+        "why": "The scalable category menu is not implemented."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 34,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "GAIN ordering is hardcoded rather than derived from package metadata.",
+        "why": "Future detector additions require registry edits and lack generic category discovery."
+      },
+      {
+        "file": "tests/test_gain_detectors.py",
+        "line": 87,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "No valid prepared-case execution or row-level source parity test exists.",
+        "why": "The green suite misses the consumer-visible execution seam."
+      },
+      {
+        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
+        "line": 1,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Attribution and source repository are not visible in metadata.",
+        "why": "The package provenance contract is incomplete."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "675 passed"
+      },
+      {
+        "command": "registry inspection",
+        "output": "12 gain packages discoverable but not validly executable/recommended through the shared menu"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
     ]
   }
 }

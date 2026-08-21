@@ -43,3 +43,45 @@ matching treated the legitimate byte-exact D3 fixture value `MCPC` as the
 forbidden concept `mcp`. The scope assertion now matches escaped forbidden
 terms on word boundaries, preserving the forbidden-scope behavior while
 leaving production files, fixture bytes, and their hashes unchanged.
+
+## Fresh repair plan evidence
+
+The fresh plan adds only test contracts in `tests/test_gain_detectors.py`.
+The implementation surface remains the single namespaced registry catalogue;
+no second GAIN execution engine is specified.
+
+Acceptance dispositions for this repair:
+
+- AC1: revise — execute representative single-table and multi-table packages
+  through a prepared case and Gate A, while checking category-aware bounded
+  recommendation; the deterministic seam is registry execution and plan
+  output.
+- AC2: revise — require every declared parameter to have a bound SQL
+  placeholder and require approved execution to produce normalized leads; the
+  seam is DuckDB parameter binding and result status.
+- AC3: revise — compare each local fixture's complete CSV rows and order with
+  the matching source-checkout CSV, in addition to the stored hash; the seam
+  is exact `csv.reader` equality.
+- AC4: revise — require source/local/CSV/provenance hashes, parameters, signal
+  identity, and run metadata in execution output; the seam is the normalized
+  lead envelope.
+- AC5: revise — retain Gate A approval setup and local-only forbidden-surface
+  assertions; the seam is prepared-case approval and lexical scope scanning.
+- AC6: revise — cover attribution, parameter semantics, duplicate-scope
+  prevention, recommendation bounds, source parity, and complete lineage in
+  deterministic focused tests.
+
+Focused RED run:
+
+`env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py`
+
+Result: 7 failed, 18 passed. The failures are the intended missing contracts:
+attribution/source URL, approved prepared-case execution, parameter binding,
+multi-table duplicate execution, GAIN recommendation, and complete run
+lineage.
+
+Full-suite preservation run:
+
+`env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/`
+
+Result: 676 passed, 7 failed; all failures are the new GAIN RED tests.

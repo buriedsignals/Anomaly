@@ -16,9 +16,9 @@ description: Multi-corpus committee, lobbying, and press-release comparison.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 200
   target_committee: finance
   client_pattern: '%apollo%'
+  limit: 200
 signal_category: lobbying
 severity: medium
 expected_output: [lobbying_firm, lobbied_client, lobbyist, former_role, current_committee_members, attack_press_releases, committee_members_attacking, income]

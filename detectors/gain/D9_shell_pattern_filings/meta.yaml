@@ -16,8 +16,8 @@ description: Filings with multiple deterministic text-pattern signals.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 100
   min_score: 2
+  limit: 100
 signal_category: lobbying
 severity: medium
 expected_output: [filing_uuid, filing_year, filing_period, filing_type, registrant_name, client_name, client_desc, income, shell_score, sig_sovereign_client, sig_established_govt, sig_esoteric_terms, sig_self_styled_title, sig_posted_by_llc_slashes, sig_global_pbc_naming, url]

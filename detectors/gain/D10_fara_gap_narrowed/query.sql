@@ -66,5 +66,5 @@
                    lower(coalesce(sf.client_name,'')) LIKE '%embassy of%')
               )
             ORDER BY sf.income DESC NULLS LAST
-            LIMIT 200
+            LIMIT ?
         

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import importlib
+import json
 import re
 from pathlib import Path
 
@@ -24,6 +25,9 @@ GAIN_MANIFEST = {
     "D12_committee_say_vs_pay": {"sql_hash": "274c4ef00515cd73", "rows": 161, "columns": ["lobbying_firm", "lobbied_client", "lobbyist", "former_role", "current_committee_members", "attack_press_releases", "committee_members_attacking", "income"], "csv_sha256": "508ee7a65bb3f1f535f8f190cdf4cbd88259b28e289ae8f44eade65c5df19352"},
 }
 
+SOURCE_ANOMALIES = Path("/private/tmp/gain-2026-work/case-trace/data-detective/anomalies")
+SOURCE_REPOSITORY = "https://github.com/buriedsignals/gain-2026"
+
 
 def _api():
     return importlib.import_module("anomaly.detectors.registry")
@@ -31,6 +35,43 @@ def _api():
 
 def _gain_packages() -> list[Path]:
     return sorted((Path(__file__).parents[1] / "detectors" / "gain").glob("*"))
+
+
+def _approved_gain_case(
+    tmp_path: Path,
+    source_ids: tuple[str, ...] = ("senate_filings",),
+    detector_ids: tuple[str, ...] = ("gain.spending_spikes",),
+) -> Path:
+    from anomaly.prepare import prepare_sources
+    from anomaly.recommend import approve_detector_plan
+    from p2_helpers import NOW, create_p2_case, register, write_source
+
+    root = tmp_path / "case"
+    create_p2_case(root)
+    for index, source_id in enumerate(source_ids):
+        source = write_source(
+            tmp_path / f"{source_id}-{index}.csv",
+            "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n"
+            "1,1,Example,2025,Q1,100,Q1\n",
+        )
+        register(root, source, source_id)
+    prepare_sources(root, now=NOW)
+    api = _api()
+    plan = api.recommend_detectors(root, max_detectors=10)
+    plan["recommended"] = list(detector_ids)
+    plan["parameters"] = {detector_id: next(item["parameters"] for item in api.discover_detectors() if item["id"] == detector_id) for detector_id in detector_ids}
+    table_ids = [
+        table["table_id"]
+        for table in json.loads(
+            (root / "data" / "prepared" / "transforms.json").read_text()
+        )["tables"]
+    ]
+    plan["reasons"] = {
+        detector_id: {"table_ids": table_ids} for detector_id in detector_ids
+    }
+    (root / "detectors" / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    approve_detector_plan(root, list(detector_ids), approved_by="test-journalist", now=NOW)
+    return root
 
 
 def test_gain_catalogue_is_a_separate_twelve_detector_family() -> None:
@@ -52,6 +93,13 @@ def test_gain_metadata_records_source_and_local_hashes() -> None:
         assert item["source_provenance_hash"].startswith("sha256:")
 
 
+def test_gain_metadata_exposes_challenge_attribution_and_source_repository() -> None:
+    gain = [item for item in _api().discover_detectors() if item.get("family") == "gain"]
+
+    assert all("GAIN 2026 Challenge" in item["description"] for item in gain)
+    assert {item["source_repository"] for item in gain} == {SOURCE_REPOSITORY}
+
+
 @pytest.mark.parametrize("source_name, expected", GAIN_MANIFEST.items())
 def test_gain_fixture_reproduces_source_rows_and_order(source_name: str, expected: dict[str, object]) -> None:
     package = next(path for path in _gain_packages() if path.name == source_name)
@@ -62,6 +110,93 @@ def test_gain_fixture_reproduces_source_rows_and_order(source_name: str, expecte
     assert rows[0] == expected["columns"]
     assert len(rows) - 1 == expected["rows"]
     assert hashlib.sha256(fixture.read_bytes()).hexdigest() == expected["csv_sha256"]
+
+    source_fixture = SOURCE_ANOMALIES / f"{source_name}.csv"
+    with source_fixture.open(newline="", encoding="utf-8") as handle:
+        assert list(csv.reader(handle)) == rows
+
+
+@pytest.mark.parametrize("detector_id", ["gain.spending_spikes", "gain.revolving_door_candidates"])
+def test_gain_representative_detectors_execute_on_prepared_case_through_gate_a(
+    tmp_path: Path, detector_id: str
+) -> None:
+    root = _approved_gain_case(tmp_path, detector_ids=(detector_id,))
+    results = _api().execute_detectors(
+        root,
+        [detector_id],
+        approved=True,
+        limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+    )
+
+    assert results
+    assert all(result["status"] == "lead" for result in results)
+    assert all(result["detector_id"] == detector_id for result in results)
+
+
+def test_gain_parameters_are_bound_to_query_placeholders_with_explicit_semantics() -> None:
+    for package in _gain_packages():
+        metadata = _api().validate_detector_package(package)
+        query = (package / "query.sql").read_text(encoding="utf-8")
+        assert query.count("?") == len(metadata["parameters"]), metadata["id"]
+
+
+def test_gain_multi_table_scope_executes_once_without_duplicate_leads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _approved_gain_case(
+        tmp_path,
+        ("senate_filings", "senate_activity_lobbyists"),
+        ("gain.revolving_door_committee_match",),
+    )
+    calls: list[tuple[str, ...]] = []
+
+    def run_once(*args: object, **kwargs: object) -> list[dict[str, object]]:
+        calls.append(tuple(str(arg) for arg in args[1:3]))
+        return [{"candidate_id": "one", "value": 1}]
+
+    monkeypatch.setattr(_api().detect, "_run_query", run_once)
+    monkeypatch.setattr(_api().detect, "validate_read_only_sql", lambda query: None)
+    results = _api().execute_detectors(
+        root,
+        ["gain.revolving_door_committee_match"],
+        approved=True,
+        limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+    )
+
+    assert len(calls) == 1
+    assert len(results) == 1
+    assert len({result["signal_id"] for result in results}) == len(results)
+
+
+def test_gain_recommendation_is_category_and_data_type_aware_and_capped_at_ten(tmp_path: Path) -> None:
+    root = _approved_gain_case(tmp_path)
+    plan = _api().recommend_detectors(root, max_detectors=10)
+
+    assert len(plan["recommended"]) <= 10
+    assert any(detector_id.startswith("gain.") for detector_id in plan["recommended"])
+    assert all(plan["reasons"][detector_id]["table_ids"] for detector_id in plan["recommended"])
+
+
+def test_gain_execution_leads_include_complete_lineage_and_run_metadata(tmp_path: Path) -> None:
+    root = _approved_gain_case(tmp_path, detector_ids=("gain.spending_spikes",))
+    results = _api().execute_detectors(
+        root,
+        ["gain.spending_spikes"],
+        approved=True,
+        limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+    )
+
+    assert results
+    provenance = results[0]["provenance"]
+    assert {"source_family", "source_detector_id", "source_sql_hash", "source_hash", "detector_hash", "table_id", "parameters"} <= set(provenance)
+    assert {"run_id", "signal_id", "status", "detector_id", "table_id", "source_hash"} <= set(results[0])
+
+
+def test_gain_scope_remains_local_sql_only_without_forbidden_surfaces() -> None:
+    roots = [Path(__file__).parents[1] / "src" / "anomaly", Path(__file__).parents[1] / "detectors" / "gain"]
+    text = "\n".join(path.read_text(encoding="utf-8") for root in roots for path in root.rglob("*") if path.is_file() and path.suffix in {".py", ".yaml", ".sql", ".md", ".json", ".csv"}).lower()
+    forbidden = ("api_key", "hosted runtime", "membership", "metering", "navigator cli", "web ui", "deployment", "mcp", "agent persona", "http://", "https://")
+    assert not any(re.search(rf"\b{re.escape(term)}\b", text) for term in forbidden if term not in {"https://"})
 
 
 def test_gain_results_are_normalized_leads_with_source_provenance() -> None:

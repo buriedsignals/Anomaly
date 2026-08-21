@@ -9,7 +9,7 @@
             WHERE filing_type IN ('Q1','Q2','Q3','Q4')
               AND income IS NULL
             GROUP BY 1,2
-            HAVING count(*) >= 4
+            HAVING count(*) >= ?
             ORDER BY quarterly_filings_with_null_income DESC, distinct_clients DESC
-            LIMIT 200
+            LIMIT ?
         

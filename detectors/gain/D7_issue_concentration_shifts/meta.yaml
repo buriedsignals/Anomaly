@@ -16,8 +16,8 @@ description: Quarter-over-quarter issue-code income and registrant shifts.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 500
   min_qoq_delta_pct: 25
+  limit: 500
 signal_category: lobbying
 severity: medium
 expected_output: [general_issue_code, filing_year, filing_period, registrants, total_income, prior_income, prior_registrants, income_delta_pct, registrants_delta_pct]

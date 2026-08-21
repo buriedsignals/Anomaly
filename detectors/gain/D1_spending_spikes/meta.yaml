@@ -16,9 +16,9 @@ description: Registrant-quarter income z-score against prior quarters.
 required_tables: ["*"]
 required_fields: [id]
 parameters:
-  limit: 200
-  min_z_abs: 2.0
   min_income: 50000
+  min_z_abs: 2.0
+  limit: 200
 signal_category: lobbying
 severity: medium
 expected_output: [registrant_id, registrant_name, filing_year, filing_period, total_income, prior_mean, prior_sd, prior_n, z_score]

@@ -22,3 +22,13 @@
   from substring matching `mcp` inside the byte-exact D3 fixture value `MCPC`.
   The test contract uses escaped word-boundary matching so standalone forbidden
   concepts remain rejected without changing production code or fixture bytes.
+- Fresh repair tests construct isolated prepared cases with `p2_helpers`,
+  record Gate A through `anomaly.recommend.approve_detector_plan`, and invoke
+  `anomaly.detectors.registry.execute_detectors`.
+- Fresh focused command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run
+  --extra test pytest -q tests/test_gain_detectors.py`.
+- Fresh full-suite command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv
+  run --extra test pytest -q tests/`.
+- Fresh RED assertions cover prepared execution, query parameter placeholders,
+  multi-table call count, capped recommendation inclusion, source-checkout CSV
+  row equality, attribution URL, and normalized run lineage.

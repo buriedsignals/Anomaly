@@ -43,7 +43,7 @@
                 url
             FROM scored
             WHERE (sig_sovereign_client + sig_established_govt + sig_esoteric_terms +
-                   sig_self_styled_title + sig_posted_by_llc_slashes + sig_global_pbc_naming) >= 2
+                   sig_self_styled_title + sig_posted_by_llc_slashes + sig_global_pbc_naming) >= ?
             ORDER BY shell_score DESC, income DESC NULLS LAST
-            LIMIT 100
+            LIMIT ?
         

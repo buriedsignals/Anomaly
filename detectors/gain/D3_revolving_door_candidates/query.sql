@@ -25,5 +25,5 @@
             SELECT *
             FROM with_clients
             ORDER BY filings_with_lobbyist DESC
-            LIMIT 500
+            LIMIT ?
         
