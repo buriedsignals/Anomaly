@@ -13,12 +13,12 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T18:46:44Z",
+  "updatedAt": "2026-08-21T18:58:16Z",
   "agents": {
-    "implementer_agent_id": "01a025a4-298d-7661-870d-4ee61a334adb",
-    "reviewer_agent_id": "01a02593-c3ef-7f72-a07f-d8ac84bc8e83",
-    "reviewer2_agent_id": "01a02592-554a-73e0-bf3d-7328687568f4",
-    "audit_agent_id": "01a02593-9010-7040-a46a-2cff29df3090"
+    "implementer_agent_id": "01a025ad-fdff-7b40-b0b0-26cb339dee52",
+    "reviewer_agent_id": "01a025a5-fd42-73d1-b85f-1bb144ec3873",
+    "reviewer2_agent_id": "01a025a5-fda1-77e1-8277-8743dc52ba7d",
+    "audit_agent_id": "01a025ab-1c77-7c92-bece-c38685fdce94"
   },
   "tests": {
     "authored_by_agent_id": "01a02598-a573-7a63-bad1-b0293b11e7b3",
@@ -47,55 +47,50 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ]
   },
   "review": {
     "verdict": "needs-work",
     "reportedVerdict": "needs-work",
-    "reviewer_agent_id": "01a02593-c3ef-7f72-a07f-d8ac84bc8e83",
+    "reviewer_agent_id": "01a025a5-fd42-73d1-b85f-1bb144ec3873",
     "findings": [
       {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 157,
+        "file": "detectors/gain/D10_fara_gap_narrowed/meta.yaml",
+        "line": 20,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "Registry rewrites metadata group and hard-codes GAIN family semantics.",
-        "why": "Future detector families cannot participate through metadata-derived data-type menu behavior."
+        "what": "Declared required tables omit fara_registrants referenced by query.sql.",
+        "why": "D10 can be recommended but fail at execution with incomplete provenance."
       },
       {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 274,
+        "file": "detectors/gain/D12_committee_say_vs_pay/meta.yaml",
+        "line": 20,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "Recommendation and ordering special-case GAIN and source names.",
-        "why": "The scalable menu is not generic."
-      },
-      {
-        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
-        "line": 1,
-        "severity": "medium",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Attribution and source repository are not visible in package metadata.",
-        "why": "Package-level provenance is weaker than required."
+        "what": "Declared required tables omit congress_committee_assignments, congress_members, and press_releases referenced by query.sql.",
+        "why": "D12 can be recommended but fail at execution with incomplete table scope."
       },
       {
         "file": "tests/test_gain_detectors.py",
-        "line": 259,
+        "line": 382,
         "severity": "medium",
         "class": "blocking",
         "kickTo": "plan",
-        "what": "Lineage test does not validate a real lead.",
-        "why": "Replayable lineage is not directly proven."
+        "what": "Lineage assertion still uses an empty D1 result and execution coverage exercises only D1/D3.",
+        "why": "The suite does not prove real lineage across the full package set."
       }
     ],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-        "output": "684 passed"
+        "output": "688 passed"
       }
     ],
     "acLedger": [
@@ -121,7 +116,7 @@
         "ac": "AC4",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       },
       {
         "ac": "AC5",
@@ -146,53 +141,33 @@
   "audit": {
     "required": true,
     "verdict": "needs-work",
-    "audit_agent_id": "01a02593-9010-7040-a46a-2cff29df3090",
+    "audit_agent_id": "01a025ab-1c77-7c92-bece-c38685fdce94",
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-        "output": "684 passed"
+        "output": "688 passed"
       },
       {
         "command": "security scanner",
-        "output": "70 files scanned; zero automated findings; PASS"
+        "output": "27 files scanned; one review finding"
       }
     ],
     "findings": [
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 347,
+        "line": 348,
         "severity": "high",
         "class": "blocking",
-        "cwe": "CWE-345",
+        "cwe": "CWE-59",
         "kickTo": "implement",
-        "what": "Multi-table execution records only the first prepared table and source hash.",
-        "why": "D3 joins multiple inputs, so returned leads lack complete replayable lineage."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 360,
-        "severity": "medium",
-        "class": "blocking",
-        "cwe": "CWE-770",
-        "kickTo": "implement",
-        "what": "Declared memory_mb execution limit is not enforced on the registry path.",
-        "why": "The bounded local execution contract is incomplete."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 270,
-        "severity": "medium",
-        "class": "blocking",
-        "cwe": "CWE-20",
-        "kickTo": "implement",
-        "what": "Recommendation eligibility is too coarse for required-table compatibility.",
-        "why": "A sparse case can receive a detector recommendation that cannot execute."
+        "what": "Registry opens data/index.duckdb after only an existence check, bypassing owned-path and symlink validation.",
+        "why": "A crafted case can redirect read-only detector queries outside the case boundary."
       }
     ],
     "scan": {
-      "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py tests/test_gain_detectors.py tests/test_source_catalogue.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task18-final2",
-      "recommendation": "PASS",
-      "reportPath": "/private/tmp/anomaly-security-audit-task18-final2/security-audit-20260821-182505.md"
+      "command": "review-security.sh src/anomaly/detectors/registry.py detectors/gain tests/test_detector_registry.py tests/test_gain_detectors.py --skip-deps",
+      "recommendation": "REVIEW",
+      "reportPath": "/private/tmp/anomaly-security-audit-task18-fresh/security-audit-20260821-185401.md"
     },
     "coverage": [
       {
@@ -273,26 +248,14 @@
     "refactorOpportunity": "Harmonize the scalable registry with metadata-defined categories and the existing normalized signal contract; do not create a GAIN-specific execution engine."
   },
   "implement": {
-    "agent_id": "01a025a4-298d-7661-870d-4ee61a334adb",
+    "agent_id": "01a025ad-fdff-7b40-b0b0-26cb339dee52",
     "result": "green",
     "files": [
-      "src/anomaly/detectors/registry.py",
-      "detectors/gain/D1_spending_spikes/meta.yaml",
-      "detectors/gain/D2_missing_income_filings/meta.yaml",
-      "detectors/gain/D3_revolving_door_candidates/meta.yaml",
-      "detectors/gain/D4_foreign_filings/meta.yaml",
-      "detectors/gain/D5_single_client_juggernauts/meta.yaml",
-      "detectors/gain/D6_pac_contribution_flow/meta.yaml",
-      "detectors/gain/D7_issue_concentration_shifts/meta.yaml",
-      "detectors/gain/D8_new_registrant_surge/meta.yaml",
-      "detectors/gain/D9_shell_pattern_filings/meta.yaml",
-      "detectors/gain/D10_fara_gap_narrowed/meta.yaml",
-      "detectors/gain/D11_revolving_door_committee_match/meta.yaml",
-      "detectors/gain/D12_committee_say_vs_pay/meta.yaml"
+      "src/anomaly/detectors/registry.py"
     ],
     "greenRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-      "output": "focused 30 passed; full 688 passed"
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "focused 49 passed; full 688 passed"
     }
   },
   "refactor": {
@@ -311,7 +274,7 @@
   "review2": {
     "verdict": "pass",
     "reportedVerdict": "pass",
-    "reviewer_agent_id": "01a02592-554a-73e0-bf3d-7328687568f4",
+    "reviewer_agent_id": "01a025a5-fda1-77e1-8277-8743dc52ba7d",
     "findings": [],
     "evidence": [
       {

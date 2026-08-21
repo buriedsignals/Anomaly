@@ -345,9 +345,15 @@ def execute_detectors(
     if unknown:
         raise RegistryError("unknown detector")
     root = Path(root)
-    if not root.is_dir() or not (root / "data" / "index.duckdb").is_file():
+    if not root.is_dir():
         raise RegistryError("prepared case with index is required")
     try:
+        try:
+            index = detect._owned_path(root, "data/index.duckdb", "data")
+        except detect.UnsafeCasePathError as error:
+            raise RegistryError("prepared case with index is required") from error
+        if not index.is_file() or index.is_symlink():
+            raise RegistryError("prepared case with index is required")
         scopes = detect._require_gate_a(root, requested)
         execution_limits = detect._validate_limits(limits)
         tables = {item["table_id"]: item for item in detect._prepared_tables(root)}
@@ -376,7 +382,7 @@ def execute_detectors(
                 query = re.sub(rf"(?<![A-Za-z0-9_]){re.escape(source_id)}(?![A-Za-z0-9_])", prepared_id, query)
             query = query.replace("{{table_id}}", detect._identifier(detector_tables[0]["table_id"]))
             detect.validate_read_only_sql(query)
-            with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
+            with duckdb.connect(str(index), read_only=True) as connection:
                 connection.execute("PRAGMA enable_external_access=false")
                 connection.execute("SET threads = ?", [detector_limits["threads"]])
                 connection.execute(f"PRAGMA memory_limit='{detector_limits['memory_mb']}MB'")
