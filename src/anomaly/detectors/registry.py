@@ -385,7 +385,7 @@ def execute_detectors(
             with duckdb.connect(str(index), read_only=True) as connection:
                 connection.execute("PRAGMA enable_external_access=false")
                 connection.execute("SET threads = ?", [detector_limits["threads"]])
-                connection.execute(f"PRAGMA memory_limit='{detector_limits['memory_mb']}MB'")
+                connection.execute("SET memory_limit = ?", [f"{detector_limits['memory_mb']}MB"])
                 rows = detect._run_query(
                     connection, query, list(metadata.get("parameters", {}).values()),
                     detector_limits["timeout_seconds"], detector_limits["max_output_rows"],

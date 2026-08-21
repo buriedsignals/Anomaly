@@ -17,7 +17,7 @@ source_csv_hash: sha256:66087f341d23d9de815f3c6b9b191758cdb7f44f12a59b4c6b62f0f8
 source_row_count: 200
 source_columns: [filing_uuid, filing_year, registrant_name, client_name, client_country, client_ppb_country, fe_countries, income, sig_non_us_client, sig_non_us_ppb, sig_foreign_gov_topic, sig_soe_pattern, url]
 description: Named foreign-lobbying candidates absent from the FARA registrant set.
-required_tables: [senate_filings, senate_foreign_entities, senate_lobbying_activities]
+required_tables: [senate_filings, senate_foreign_entities, senate_lobbying_activities, fara_registrants]
 required_fields: [id]
 parameters:
   limit: 200

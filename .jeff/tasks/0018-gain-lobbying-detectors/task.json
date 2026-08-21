@@ -13,9 +13,9 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T18:58:16Z",
+  "updatedAt": "2026-08-21T19:04:38Z",
   "agents": {
-    "implementer_agent_id": "01a025ad-fdff-7b40-b0b0-26cb339dee52",
+    "implementer_agent_id": "01a025b3-3945-7ac1-afeb-93624cb61e35",
     "reviewer_agent_id": "01a025a5-fd42-73d1-b85f-1bb144ec3873",
     "reviewer2_agent_id": "01a025a5-fda1-77e1-8277-8743dc52ba7d",
     "audit_agent_id": "01a025ab-1c77-7c92-bece-c38685fdce94"
@@ -35,6 +35,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify red (exit 2): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       },
       {
         "command": "uv run --extra test pytest tests/",
@@ -248,14 +252,16 @@
     "refactorOpportunity": "Harmonize the scalable registry with metadata-defined categories and the existing normalized signal contract; do not create a GAIN-specific execution engine."
   },
   "implement": {
-    "agent_id": "01a025ad-fdff-7b40-b0b0-26cb339dee52",
+    "agent_id": "01a025b3-3945-7ac1-afeb-93624cb61e35",
     "result": "green",
     "files": [
+      "detectors/gain/D10_fara_gap_narrowed/meta.yaml",
+      "detectors/gain/D12_committee_say_vs_pay/meta.yaml",
       "src/anomaly/detectors/registry.py"
     ],
     "greenRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-      "output": "focused 49 passed; full 688 passed"
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "focused 30 passed; full 688 passed; security scan 0 findings"
     }
   },
   "refactor": {
