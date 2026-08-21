@@ -15,3 +15,8 @@
   --extra test pytest -q tests/test_detector_registry.py`.
 - Constraint: plan stage may edit tests and task notes/context only; production
   source remains untouched.
+- Repair test authority: `tests/test_detector_registry.py` covers complete
+  metadata rejection, symlink and executable-file boundaries, one catalogue
+  across recommendation and real-case execution, user SQL onboarding, Gate A
+  enforcement without synthetic leads, non-placeholder fixture outputs, and
+  sensitive-output redaction policy.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 import pytest
@@ -142,18 +143,11 @@ def test_recommendation_is_capped_at_ten_and_execution_requires_explicit_approva
 
 
 def test_execution_is_read_only_bounded_and_returns_provenance_bearing_leads(tmp_path: Path) -> None:
-    result = _registry_api().execute_detectors(
-        tmp_path / "prepared-case",
-        ["table.duplicate_rows"],
-        approved=True,
-        limits={"memory_mb": 32, "timeout_seconds": 2, "threads": 1, "max_output_rows": 10},
-    )
-
-    assert result
-    assert all(item["status"] == "lead" for item in result)
-    assert all(item["provenance"]["detector_id"] for item in result)
-    assert all(item["provenance"]["source_hash"] for item in result)
-    assert all(item["provenance"]["parameters"] is not None for item in result)
+    with pytest.raises(Exception, match=r"(?i)(prepared|gate|receipt)"):
+        _registry_api().execute_detectors(
+            tmp_path / "prepared-case", ["table.duplicate_rows"], approved=True,
+            limits={"memory_mb": 32, "timeout_seconds": 2, "threads": 1, "max_output_rows": 10},
+        )
 
 
 def test_registry_and_detector_outputs_have_no_hosted_or_service_surface() -> None:
@@ -173,3 +167,95 @@ def test_user_template_is_documented_and_has_no_runtime_or_network_dependency() 
     text = (template / "query.sql").read_text(encoding="utf-8").upper()
     assert "SELECT" in text
     assert not any(token in text for token in ("ATTACH", "COPY", "INSTALL", "LOAD", "HTTP"))
+
+
+def test_registry_rejects_packages_with_incomplete_required_metadata(tmp_path: Path) -> None:
+    package = tmp_path / "incomplete"
+    package.mkdir()
+    (package / "meta.yaml").write_text(
+        "id: user.incomplete\nversion: 1.0.0\nquery: query.sql\n", encoding="utf-8"
+    )
+    (package / "query.sql").write_text("SELECT 1", encoding="utf-8")
+
+    with pytest.raises(Exception, match=r"(?i)(metadata|required|invalid)"):
+        _registry_api().validate_detector_package(package)
+
+
+@pytest.mark.parametrize("filename", ["meta.yaml", "query.sql"])
+def test_registry_rejects_symlinked_package_files(tmp_path: Path, filename: str) -> None:
+    package = _valid_user_package(tmp_path)
+    outside = tmp_path / f"outside-{filename}"
+    outside.write_text((package / filename).read_text(encoding="utf-8"), encoding="utf-8")
+    (package / filename).unlink()
+    (package / filename).symlink_to(outside)
+
+    with pytest.raises(Exception, match=r"(?i)(symlink|unsafe|boundary)"):
+        _registry_api().validate_detector_package(package)
+
+
+def test_registry_rejects_executable_files_in_sql_only_packages(tmp_path: Path) -> None:
+    package = _valid_user_package(tmp_path)
+    (package / "detector.py").write_text("raise RuntimeError('must not load')\n", encoding="utf-8")
+
+    with pytest.raises(Exception, match=r"(?i)(executable|python|unsupported|unsafe)"):
+        _registry_api().validate_detector_package(package)
+
+
+def test_registry_uses_one_catalog_for_recommendation_and_prepared_case_execution(
+    tmp_path: Path,
+) -> None:
+    from p2_helpers import NOW, create_p2_case, register, write_source
+    from anomaly.prepare import prepare_sources
+    from anomaly.profile import profile_prepared
+
+    root = tmp_path / "case"
+    create_p2_case(root)
+    register(root, write_source(tmp_path / "observations.csv", "id,amount\n1,10\n2,20\n"), "observations")
+    prepare_sources(root, now=NOW)
+    profile_prepared(root, now=NOW)
+
+    api = _registry_api()
+    plan = api.recommend_detectors(root, max_detectors=10)
+
+    assert set(plan["recommended"]) <= set(CORE_DETECTOR_IDS)
+    assert len(plan["recommended"]) == 10
+    with pytest.raises(Exception, match=r"(?i)(gate|approv|receipt)"):
+        api.execute_detectors(root, plan["recommended"], approved=True)
+
+
+def test_registry_discovers_and_recommends_user_sql_package(tmp_path: Path) -> None:
+    _valid_user_package(tmp_path)
+    api = _registry_api()
+    discovered = api.discover_detectors([Path(__file__).parents[1] / "detectors", tmp_path])
+
+    assert any(item["id"] == "user.sql_lead" for item in discovered)
+    plan = api.recommend_detectors(
+        tmp_path / "prepared-case", max_detectors=10, detector_roots=[tmp_path]
+    )
+    assert "user.sql_lead" in plan["recommended"]
+
+
+def test_all_new_detector_fixtures_have_nonempty_deterministic_outputs() -> None:
+    root = Path(__file__).parents[1] / "detectors"
+    existing_ids = {
+        "categorical.rare_levels", "numeric.level_shift", "numeric.zscore_outliers",
+        "table.duplicate_rows", "table.missingness_clusters", "temporal.coverage_gaps",
+    }
+    for detector_id in CORE_DETECTOR_IDS:
+        if detector_id in existing_ids:
+            continue
+        package = root.joinpath(*detector_id.split("."))
+        query = (package / "query.sql").read_text(encoding="utf-8").upper()
+        expected = json.loads((package / "fixtures" / "expected.json").read_text(encoding="utf-8"))
+        assert "LIMIT 0" not in query, detector_id
+        assert expected, detector_id
+
+
+def test_sensitive_output_metadata_requires_redacted_fixture_results() -> None:
+    root = Path(__file__).parents[1] / "detectors"
+    for metadata in _registry_api().discover_detectors():
+        package = root.joinpath(*metadata["id"].split("."))
+        expected = (package / "fixtures" / "expected.json").read_text(encoding="utf-8").lower()
+        assert metadata["sensitive_output"] in {"redact", "reference", "none"}
+        assert "sk_live_" not in expected
+        assert "private_key" not in expected

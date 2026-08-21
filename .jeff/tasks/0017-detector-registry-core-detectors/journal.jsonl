@@ -1,3 +1,12 @@
 {"seq":0,"at":"2026-08-21T15:16:09.342Z","event":"intent","stage":"plan","note":"Capture locked M2 to 20 total core detectors: six existing M1 SQL detectors plus 14 new detectors, with local registry, validated SQL template, bounded recommendations/execution, provenance, and required security audit."}
 {"seq":1,"at":"2026-08-21T15:19:04.683Z","event":"intent","stage":"plan","note":"Plan/test-author stage: authored detector registry RED contract for exact 20 core detectors, safe discovery, SQL template validation, ten-detector approval bound, read-only bounded provenance, and forbidden local-only scope."}
 {"seq":2,"at":"2026-08-21T15:19:45.874Z","event":"record","stage":"plan","agent":"01a024e4-ef63-7381-8c6a-408c8409469d"}
+{"seq":3,"at":"2026-08-21T15:25:47.211Z","event":"record","stage":"implement","agent":"01a024e8-5773-7710-86d3-a9ba85b183c7"}
+{"seq":4,"at":"2026-08-21T15:26:02.150Z","event":"gate","hash":"5fc4feb600f93f90c92e39994f68fcfa12be81be","green":true,"clean":true}
+{"seq":5,"at":"2026-08-21T15:26:02.200Z","event":"intent","stage":"review","note":"Fresh dual reviews requested against task 17 implementation checkpoint."}
+{"seq":6,"at":"2026-08-21T15:26:02.251Z","event":"intent","stage":"audit","note":"Fresh security audit requested for detector registry, SQL template validation, bounded read-only execution, filesystem boundaries, and sensitive-output handling."}
+{"seq":7,"at":"2026-08-21T15:29:34.255Z","event":"record","stage":"review","agent":"01a024ee-27d1-7f82-8410-d3d4f6e97431"}
+{"seq":8,"at":"2026-08-21T15:29:34.311Z","event":"record","stage":"review","agent":"01a024ee-286d-7993-a884-2e58a647aeab"}
+{"seq":9,"at":"2026-08-21T15:29:34.364Z","event":"record","stage":"audit","agent":"01a024ee-2938-73f0-82e9-af2781689555"}
+{"seq":10,"at":"2026-08-21T15:29:43.784Z","event":"intent","stage":"plan","note":"Review and audit kickback: route fresh plan/test repair for complete metadata validation, symlink/package boundary rejection, authoritative 20-detector recommendation/execution integration, removal of synthetic leads and approval bypass, real fixture tests, and metadata-driven sensitive-output handling."}
+{"seq":11,"at":"2026-08-21T15:32:52.939Z","event":"record","stage":"plan","agent":"01a024e4-ef63-7381-8c6a-408c8409469d"}

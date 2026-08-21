@@ -32,3 +32,9 @@ false_positive_risk: 0.1
 parameters:
   window: 3
 sensitive_output: redact
+signal_category: anomaly
+severity: medium
+expected_output: [candidate_id]
+assumptions: [numeric values are comparable over time]
+false_positives: [legitimate distribution changes]
+resource_limits: {timeout_seconds: 5, memory_mb: 64, max_output_rows: 100}

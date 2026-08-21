@@ -40,3 +40,11 @@ RED evidence: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra
 test pytest -q tests/test_detector_registry.py` -> `10 failed, 1 passed in
 0.28s`; the registry module and SQL template do not yet exist, and the exact
 20-package/template/provenance contract is therefore red.
+
+Repair RED evidence: the focused contract now also proves that incomplete
+metadata, symlinked package files, executable package files, synthetic
+approved execution, absent user-package recommendation, empty placeholder
+fixtures, and unredacted sensitive fixture output are unacceptable. The
+prepared-case test intentionally fails until registry recommendation and
+execution share the complete 20-detector catalogue and Gate A remains
+mandatory.

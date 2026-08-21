@@ -27,3 +27,9 @@ false_positive_risk: 0.1
 parameters:
   min_missing_fraction: 0.2
 sensitive_output: redact
+signal_category: anomaly
+severity: medium
+expected_output: [candidate_id]
+assumptions: [missingness is meaningful in the selected table]
+false_positives: [optional fields]
+resource_limits: {timeout_seconds: 5, memory_mb: 64, max_output_rows: 100}

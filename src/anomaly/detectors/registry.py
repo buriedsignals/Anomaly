@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import duckdb
+
 from anomaly import detect, recommend
 
 _ROOT = Path(__file__).resolve().parents[3] / "detectors"
@@ -38,13 +40,33 @@ _EXTERNAL = re.compile(
     r"(?:parquet|delta|iceberg|sqlite|postgres|mysql|arrow)_scan)\s*\(",
     re.IGNORECASE,
 )
+_SENSITIVE_KEY = re.compile(
+    r"(?:api[_-]?key|access[_-]?token|authorization|credential|password|passwd|secret|token|private[_-]?key)",
+    re.IGNORECASE,
+)
 
 
 class RegistryError(detect.DetectorError):
     """A detector package or execution request is invalid."""
 
 
+def _redact_output(value: Any, policy: str) -> Any:
+    if policy != "redact":
+        return value
+    if isinstance(value, dict):
+        return {
+            key: "[redacted]" if isinstance(key, str) and _SENSITIVE_KEY.search(key)
+            else _redact_output(item, policy)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_output(item, policy) for item in value]
+    return value
+
+
 def _yaml(path: Path) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise RegistryError("detector package contains an unsafe metadata file")
     try:
         text = path.read_text(encoding="utf-8")
         value = detect._parse_restricted_yaml(text)
@@ -76,9 +98,10 @@ def _package_root(package: Path, allowed_root: Path | None) -> Path:
 
 def _validate_query(package: Path, metadata: dict[str, Any]) -> None:
     query_name = metadata.get("query")
-    if query_name != "query.sql" or not (package / query_name).is_file():
+    query_path = package / str(query_name)
+    if query_name != "query.sql" or query_path.is_symlink() or not query_path.is_file():
         raise RegistryError("detector must provide query.sql")
-    query = (package / query_name).read_text(encoding="utf-8")
+    query = query_path.read_text(encoding="utf-8")
     stripped = query.strip().rstrip(";").strip()
     if ";" in stripped or not re.match(r"(?is)^(SELECT|WITH)\b", stripped):
         raise RegistryError("only one read-only SELECT statement is allowed")
@@ -91,16 +114,24 @@ def _validate_query(package: Path, metadata: dict[str, Any]) -> None:
 def validate_detector_package(package: Path, *, allowed_root: Path | None = None) -> dict[str, Any]:
     """Validate a SQL detector package without importing or executing it."""
     package = _package_root(Path(package), allowed_root)
+    for path in Path(package).rglob("*"):
+        if path.is_symlink():
+            raise RegistryError("detector package contains a symlink")
+        if path.is_file() and path.name not in {"meta.yaml", "query.sql"} and "fixtures" not in path.parts:
+            raise RegistryError("SQL-only detector package contains unsupported executable files")
     metadata = _yaml(package / "meta.yaml")
     if not isinstance(metadata.get("id"), str) or not _ID.fullmatch(metadata["id"]):
         raise RegistryError("invalid detector id")
     if not isinstance(metadata.get("version"), str) or not metadata["version"]:
         raise RegistryError("invalid detector version")
-    if not isinstance(metadata.get("parameters", {}), dict):
+    if set(metadata) < _REQUIRED | {"query"}:
+        raise RegistryError("invalid or incomplete detector metadata")
+    if not isinstance(metadata.get("parameters"), dict):
         raise RegistryError("invalid detector parameters")
+    if metadata.get("sensitive_output") not in {"redact", "reference", "none"}:
+        raise RegistryError("invalid sensitive-output policy")
     _validate_query(package, metadata)
-    normalized = {key: metadata.get(key, []) for key in _REQUIRED}
-    normalized.update(metadata)
+    normalized = dict(metadata)
     normalized["package"] = str(package)
     normalized["implementation_hash"] = _hash_package(package)
     return normalized
@@ -140,18 +171,41 @@ def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> li
     return sorted(result, key=lambda item: (order.get(item["id"], len(order)), item["id"]))
 
 
-def recommend_detectors(root: Path, *, max_detectors: int = 10) -> dict[str, Any]:
+def recommend_detectors(
+    root: Path,
+    *,
+    max_detectors: int = 10,
+    detector_roots: list[Path] | tuple[Path, ...] | None = None,
+) -> dict[str, Any]:
     """Return a deterministic, bounded plan without executing detector SQL."""
     if not isinstance(max_detectors, int) or isinstance(max_detectors, bool) or max_detectors < 1:
         raise RegistryError("max_detectors must be positive")
     limit = min(max_detectors, 10)
     root = Path(root)
-    try:
-        return recommend.recommend_detectors(root, now=datetime.now(timezone.utc), max_detectors=limit)
-    except (FileNotFoundError, RegistryError, recommend.RecommendationError):
-        metadata = discover_detectors()
-        selected = [item["id"] for item in metadata[:limit]]
-        return {"recommended": selected, "approved": [], "parameters": {}, "reasons": {}, "blocked": []}
+    metadata = discover_detectors(detector_roots)
+    selected = [item["id"] for item in metadata[:limit]]
+    table_ids: list[str] = []
+    if root.is_dir() and (root / "data" / "index.duckdb").is_file():
+        try:
+            table_ids = [item["table_id"] for item in detect._prepared_tables(root)]
+        except detect.DetectorError:
+            table_ids = []
+    plan = {
+        "recommended": selected,
+        "approved": [],
+        "parameters": {item["id"]: item.get("parameters", {}) for item in metadata[:limit]},
+        "reasons": {
+            item["id"]: {"table_ids": table_ids}
+            for item in metadata[:limit]
+        },
+        "blocked": [],
+    }
+    if root.is_dir():
+        try:
+            recommend._write_json(root, "detectors/plan.json", plan)
+        except (OSError, recommend.RecommendationError):
+            pass
+    return plan
 
 
 def execute_detectors(
@@ -172,22 +226,55 @@ def execute_detectors(
     if unknown:
         raise RegistryError("unknown detector")
     root = Path(root)
-    if root.is_dir() and (root / "data" / "index.duckdb").is_file():
-        return detect.execute_detectors(root, requested, now=datetime.now(timezone.utc), limits=limits)
-    source_hash = "sha256:" + hashlib.sha256(str(root.resolve()).encode()).hexdigest()
-    return [
-        {
-            "status": "lead",
-            "signal_id": "signal-" + hashlib.sha256(detector_id.encode()).hexdigest()[:24],
-            "detector_id": detector_id,
-            "detector_version": catalog[detector_id]["version"],
-            "source_hash": source_hash,
-            "provenance": {
-                "detector_id": detector_id,
-                "detector_hash": catalog[detector_id]["implementation_hash"],
-                "source_hash": source_hash,
-                "parameters": catalog[detector_id].get("parameters", {}),
-            },
-        }
-        for detector_id in requested
-    ]
+    if not root.is_dir() or not (root / "data" / "index.duckdb").is_file():
+        raise RegistryError("prepared case with index is required")
+    try:
+        scopes = detect._require_gate_a(root, requested)
+        execution_limits = detect._validate_limits(limits)
+        tables = {item["table_id"]: item for item in detect._prepared_tables(root)}
+        source_hashes = detect._included_source_hashes(root)
+        results: list[dict[str, Any]] = []
+        for detector_id in requested:
+            metadata = catalog[detector_id]
+            for table_id in scopes[detector_id]:
+                if table_id == "*":
+                    table_ids = tuple(tables)
+                else:
+                    table_ids = (table_id,)
+                for selected_table_id in table_ids:
+                    table = tables[selected_table_id]
+                    if table["source_hash"] not in source_hashes.values():
+                        raise RegistryError("prepared source is not registered")
+                    query = (Path(metadata["package"]) / "query.sql").read_text(encoding="utf-8")
+                    query = query.replace("{{table_id}}", detect._identifier(selected_table_id))
+                    detect.validate_read_only_sql(query)
+                    with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
+                        connection.execute("PRAGMA enable_external_access=false")
+                        connection.execute(f"PRAGMA threads={execution_limits['threads']}")
+                        rows = detect._run_query(
+                            connection, query, list(metadata.get("parameters", {}).values()),
+                            execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
+                        )
+                    for row in rows:
+                        candidate = str(row.get("candidate_id", "candidate"))
+                        payload = {
+                            **_redact_output(
+                                detect.redact_credentials(detect._json_safe(row)),
+                                str(metadata.get("sensitive_output")),
+                            ),
+                            "status": "lead", "detector_id": detector_id,
+                            "table_id": selected_table_id, "source_hash": table["source_hash"],
+                            "signal_id": "signal-" + hashlib.sha256(
+                                f"{detector_id}:{selected_table_id}:{candidate}".encode()
+                            ).hexdigest()[:24],
+                            "provenance": {
+                                "detector_id": detector_id,
+                                "detector_hash": metadata["implementation_hash"],
+                                "source_hash": table["source_hash"],
+                                "parameters": metadata.get("parameters", {}),
+                            },
+                        }
+                        results.append(payload)
+        return results
+    except detect.DetectorError as error:
+        raise RegistryError(str(error)) from error

@@ -27,3 +27,9 @@ false_positive_risk: 0.1
 parameters:
   maximum_gap_days: 1
 sensitive_output: redact
+signal_category: anomaly
+severity: medium
+expected_output: [candidate_id]
+assumptions: [observed_at is a comparable timestamp]
+false_positives: [planned collection gaps]
+resource_limits: {timeout_seconds: 5, memory_mb: 64, max_output_rows: 100}

@@ -13,28 +13,257 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T15:00:00Z",
-  "updatedAt": "2026-08-21T15:19:45Z",
+  "updatedAt": "2026-08-21T15:32:52Z",
   "agents": {
-    "implementer_agent_id": null,
+    "implementer_agent_id": "01a024e8-5773-7710-86d3-a9ba85b183c7",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
     "authored_by_agent_id": "01a024e4-ef63-7381-8c6a-408c8409469d",
-    "green": false,
-    "evidence": []
+    "green": true,
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ],
+    "gate": {
+      "hash": "5fc4feb600f93f90c92e39994f68fcfa12be81be",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-21T15:26:02Z"
+    }
   },
   "review": {
     "verdict": null,
+    "reportedVerdict": null,
     "reviewer_agent_id": null,
-    "evidence": []
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 176,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "The 14 new detector IDs are not wired into the real recommendation/execution catalogue; legacy APIs still contain only six M1 IDs.",
+        "why": "The exact 20-detector catalogue cannot execute or be recommended against a valid prepared case."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 150,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Recommendation delegates to the six-detector legacy recommender and has no user-package root.",
+        "why": "User SQL detectors and the 14 new built-ins are not recommended alongside the built-ins."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 102,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Missing required metadata is filled with empty defaults instead of rejected.",
+        "why": "Malformed detector packages pass the trust boundary without the documented metadata contract."
+      },
+      {
+        "file": "detectors/credential/private_key_patterns/query.sql",
+        "line": 1,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Many new detector queries are LIMIT 0 placeholders with no useful behavior.",
+        "why": "The required 14 new detectors need deterministic, fixture-backed behavior."
+      },
+      {
+        "file": "tests/test_detector_registry.py",
+        "line": 73,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Tests do not cover valid prepared-case execution, complete recommendation, user onboarding, metadata rejection, or fixture results.",
+        "why": "The green suite misses the acceptance-critical integration seams."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py",
+        "output": "11 passed"
+      },
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "650 passed"
+      },
+      {
+        "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task17",
+        "output": "44 files scanned; 0 findings; recommendation PASS"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
+    ]
   },
   "audit": {
     "required": true,
     "verdict": "na",
     "audit_agent_id": null,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "security scanner",
+        "output": "44 files scanned; zero automated findings; manual audit found five blockers."
+      },
+      {
+        "command": "security report",
+        "output": "/private/tmp/anomaly-security-audit-task17/security-audit-20260821-152657.md"
+      }
+    ],
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 175,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-863",
+        "kickTo": "implement",
+        "what": "Missing or incomplete case roots trigger a synthetic lead-return path and approved=True bypasses Gate A and real execution.",
+        "why": "The registry can fabricate provenance-bearing leads without bounded detector execution."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 94,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-59",
+        "kickTo": "implement",
+        "what": "Symlinked metadata and query files are followed.",
+        "why": "Validated content and provenance can diverge and package boundaries can escape."
+      },
+      {
+        "file": "src/anomaly/detect.py",
+        "line": 658,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-200",
+        "kickTo": "implement",
+        "what": "Sensitive-output handling does not enforce metadata-driven redaction for arbitrary sensitive values.",
+        "why": "Permitted SQL output can persist sensitive values outside the narrow token regex."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 102,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-20",
+        "kickTo": "implement",
+        "what": "Required metadata fields are defaulted rather than validated.",
+        "why": "Malformed packages pass discovery."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 176,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-345",
+        "kickTo": "implement",
+        "what": "The registry discovers 20 detectors but execution authorizes only six legacy IDs.",
+        "why": "Approval and executable implementation do not correspond."
+      }
+    ],
+    "scan": {
+      "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task17",
+      "recommendation": "PASS",
+      "reportPath": "/private/tmp/anomaly-security-audit-task17/security-audit-20260821-152607.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "not_covered"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_no_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [],
@@ -43,19 +272,156 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Implement deterministic discovery and validation for exactly 20 core detector packages, including safe boundaries, duplicate rejection, and complete metadata.",
-      "Add the documented SQL detector template and validate user packages while rejecting mutation, external access, file relations, and multiple statements.",
-      "Integrate recommendation and execution through an explicit approval boundary capped at 10 detectors, with bounded read-only access and provenance-bearing lead outputs.",
-      "Add the 14 new detector packages with fixtures and deterministic behavior; preserve the six existing detectors and local-only forbidden-surface constraints."
+      "Enforce complete required metadata and reject symlinked metadata/query files plus executable files in SQL-only packages.",
+      "Unify the authoritative 20-detector catalogue across recommendation and real prepared-case execution, including discovered user SQL packages.",
+      "Require Gate A receipts for every approved execution and remove synthetic lead fabrication.",
+      "Replace all 14 placeholder detector queries with deterministic fixture-backed behavior and enforce metadata-driven sensitive-output redaction."
     ],
     "testFiles": [
       "tests/test_detector_registry.py"
     ],
     "redRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py",
-      "output": "10 failed, 1 passed in 0.28s; anomaly.detectors.registry and detectors/_template are absent, and the exact 20-detector, validation, approval, execution, and provenance contract is red."
+      "output": "7 failed, 12 passed; failures cover incomplete metadata, symlink and executable-file rejection, authoritative recommendation/execution, user SQL recommendation, placeholder fixtures, and sensitive-output contract."
     },
     "escalation": null,
     "refactorOpportunity": null
+  },
+  "implement": {
+    "agent_id": "01a024e8-5773-7710-86d3-a9ba85b183c7",
+    "result": "green",
+    "files": [
+      "src/anomaly/detectors/registry.py",
+      "src/anomaly/detectors/__init__.py",
+      "detectors/_template/meta.yaml",
+      "detectors/_template/query.sql",
+      "detectors/*/*/meta.yaml",
+      "detectors/*/*/query.sql",
+      "detectors/*/*/fixtures/*",
+      ".jeff/BACKLOG.md"
+    ],
+    "greenRun": {
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "11 passed; 650 passed in 4.73s"
+    }
+  },
+  "review2": {
+    "verdict": null,
+    "reportedVerdict": null,
+    "reviewer_agent_id": null,
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 102,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Required metadata fields are defaulted instead of validated.",
+        "why": "Incomplete packages are accepted as valid."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 79,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Symlinked query/meta files and extra detector.py files are not rejected.",
+        "why": "The SQL-only package boundary and provenance integrity can be bypassed."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 150,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Recommendation does not discover user packages or the 14 new detectors on a valid case.",
+        "why": "The advertised catalogue is not integrated."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 176,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Execution delegates to a six-ID legacy loader.",
+        "why": "The 14 new detectors cannot execute."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 177,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Missing case roots produce synthetic leads and approved execution bypasses Gate A checks.",
+        "why": "Outputs can appear provenance-backed without real detector execution."
+      },
+      {
+        "file": "tests/test_detector_registry.py",
+        "line": 73,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Critical valid-case and malformed-package behaviors are untested.",
+        "why": "Current tests cannot detect the integration failures."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py",
+        "output": "11 passed"
+      },
+      {
+        "command": "metadata completeness inspection",
+        "output": "Six packages omit required fields; normalization masks omissions."
+      },
+      {
+        "command": "legacy loader inspection",
+        "output": "anomaly.detect._BUILTIN_IDS contains only six M1 detectors."
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
+    ]
   }
 }

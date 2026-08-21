@@ -23,3 +23,9 @@ false_positive_risk: 0.1
 parameters:
   minimum_count: 2
 sensitive_output: redact
+signal_category: anomaly
+severity: medium
+expected_output: [candidate_id]
+assumptions: [duplicate rows indicate a review lead]
+false_positives: [intentional repeated records]
+resource_limits: {timeout_seconds: 5, memory_mb: 64, max_output_rows: 100}
