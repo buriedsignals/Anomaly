@@ -1,0 +1,18 @@
+id: network.shared_infrastructure
+version: 1.0.0
+title: Shared infrastructure
+author: anomaly
+license: internal
+group: network
+description: Finds shared infrastructure identifiers.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: network
+severity: medium
+expected_output: [candidate_id]
+assumptions: [Infrastructure identifiers are normalized.]
+false_positives: [Shared public providers.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

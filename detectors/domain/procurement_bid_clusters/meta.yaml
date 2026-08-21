@@ -1,0 +1,18 @@
+id: domain.procurement_bid_clusters
+version: 1.0.0
+title: Procurement bid clusters
+author: anomaly
+license: internal
+group: domain
+description: Finds clustered procurement bid observations.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: procurement
+severity: medium
+expected_output: [candidate_id]
+assumptions: [Bid records share a stable schema.]
+false_positives: [Competitive markets with few bidders.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

@@ -1,0 +1,24 @@
+id: user.example_detector
+version: 1.0.0
+title: User SQL detector
+author: journalist
+license: CC0-1.0
+group: domain
+description: Finds a documented lead in prepared case data.
+required_tables:
+  - observations
+required_fields:
+  - candidate_id
+parameters: {}
+signal_category: anomaly
+severity: medium
+expected_output:
+  - candidate_id
+assumptions:
+  - Prepared observations use the documented schema.
+false_positives:
+  - Legitimate unusual observations.
+sensitive_output: redact
+resource_limits:
+  timeout_seconds: 5
+query: query.sql

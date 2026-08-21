@@ -1,0 +1,18 @@
+id: text.secret_patterns
+version: 1.0.0
+title: Text secret patterns
+author: anomaly
+license: internal
+group: text
+description: Finds redacted secret-shaped strings in text.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: credential
+severity: high
+expected_output: [candidate_id]
+assumptions: [Values are redacted before persistence.]
+false_positives: [Documentation examples.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

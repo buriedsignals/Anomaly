@@ -1,0 +1,18 @@
+id: text.path_hostname_leakage
+version: 1.0.0
+title: Path hostname leakage
+author: anomaly
+license: internal
+group: text
+description: Finds host and path references in text observations.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: text
+severity: medium
+expected_output: [candidate_id]
+assumptions: [Text is safely redacted before persistence.]
+false_positives: [Public documentation paths.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

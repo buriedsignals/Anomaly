@@ -1,0 +1,18 @@
+id: network.cross_commit_overlap
+version: 1.0.0
+title: Cross-commit overlap
+author: anomaly
+license: internal
+group: network
+description: Finds overlapping entities across prepared commitments.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: network
+severity: medium
+expected_output: [candidate_id]
+assumptions: [Entity identifiers are normalized.]
+false_positives: [Common infrastructure.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

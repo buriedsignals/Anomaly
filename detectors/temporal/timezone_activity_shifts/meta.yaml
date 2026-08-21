@@ -1,0 +1,18 @@
+id: temporal.timezone_activity_shifts
+version: 1.0.0
+title: Timezone activity shifts
+author: anomaly
+license: internal
+group: temporal
+description: Finds shifts in observed activity timezones.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: temporal
+severity: low
+expected_output: [candidate_id]
+assumptions: [Timestamps retain their original offset.]
+false_positives: [Travel or daylight saving changes.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

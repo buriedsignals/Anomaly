@@ -1,0 +1,18 @@
+id: domain.contractor_concentration
+version: 1.0.0
+title: Contractor concentration
+author: anomaly
+license: internal
+group: domain
+description: Finds concentration of observations among contractors.
+required_tables: ["*"]
+required_fields: [id]
+parameters: {}
+signal_category: procurement
+severity: medium
+expected_output: [candidate_id]
+assumptions: [Contractor identifiers are normalized.]
+false_positives: [Small supplier pools.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

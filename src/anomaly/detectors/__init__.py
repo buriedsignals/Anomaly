@@ -1,0 +1,1 @@
+"""Local detector catalogue APIs."""
