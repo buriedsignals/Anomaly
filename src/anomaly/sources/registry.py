@@ -63,12 +63,26 @@ def _safe_package(root: Path, meta_path: Path) -> SourceEntry:
         tree = ast.parse((package / "adapter.py").read_text(encoding="utf-8"))
     except SyntaxError as exc:
         raise ValueError(f"malformed adapter: {package}") from exc
-    if not any(
-        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "run"
-        for node in tree.body
-    ):
+    if not _has_callable_run(tree):
         raise ValueError(f"adapter must define a callable run: {package}")
     return SourceEntry(source_id, package, metadata)
+
+
+def _has_callable_run(tree: ast.Module) -> bool:
+    """Check the final top-level binding of ``run`` without importing code."""
+    callable_run = False
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "run":
+            callable_run = True
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(target, ast.Name) and target.id == "run" for target in targets):
+                callable_run = isinstance(node.value, ast.Lambda)
+        elif isinstance(node, ast.Delete) and any(
+            isinstance(target, ast.Name) and target.id == "run" for target in node.targets
+        ):
+            callable_run = False
+    return callable_run
 
 
 def discover_sources(root: Path) -> list[SourceEntry]:
@@ -119,7 +133,10 @@ def _unavailable_run(entry: SourceEntry, cause: ModuleNotFoundError):
             "source_hash": "sha256:" + hashlib.sha256(
                 (entry.package / "adapter.py").read_bytes()
             ).hexdigest(),
-            "provenance": {"source": str(entry.package / "adapter.py")},
+            "provenance": {
+                "source": str(entry.package / "adapter.py"),
+                "adapter": entry.source_id,
+            },
             "status": "unavailable",
             "records": [],
             "normalized": True,
@@ -141,7 +158,10 @@ def _contract_run(entry: SourceEntry, implementation):
             "license": entry.metadata["license"],
             "endpoint": entry.metadata["endpoint"],
             "source_hash": source_hash,
-            "provenance": {"source": str(entry.package / "adapter.py")},
+            "provenance": {
+                "source": str(entry.package / "adapter.py"),
+                "adapter": entry.source_id,
+            },
         }
         try:
             raw = implementation(input, ctx)
@@ -187,7 +207,7 @@ def _contract_run(entry: SourceEntry, implementation):
             "records": records,
             "normalized": True,
             "error": None,
-            "provenance": base["provenance"] | {"adapter": raw.get("source_id", entry.source_id)},
+            "provenance": base["provenance"],
         }
 
     return run

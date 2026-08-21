@@ -73,6 +73,16 @@
   that loading one requested adapter leaves a distinct unrequested adapter
   unloaded; those assertions are green against the current registry.
 
+## Fresh plan/test-author pass: review repair
+
+- Approach: strengthen the existing real-adapter envelope test with exact source-hash, requested-source provenance, and discovered-metadata assertions; strengthen the isolated malformed-package test with a callable `run` definition followed by a non-callable final overwrite.
+- YAGNI boundary: reuse `discover_sources`, `load_source_adapter`, `SourceEntry.metadata`, the existing offline HTTP fixture, `hashlib`, and `tmp_path`; edit no production or catalogue files.
+- Complexity: simple. Audit remains required because the tests cover dynamic adapter discovery and request-time loading safety.
+- Refactor opportunity: harmonize registry validation so AST discovery and loaded-module validation share one callable-`run` predicate without adding per-source wiring.
+- Acceptance dispositions: AC2 `revise` — each real adapter result must preserve the discovered operation, licence, endpoint, exact adapter-content hash, and requested-source provenance; the validated result envelope is the deterministic seam. AC3 `revise` — discovery must reject an adapter whose final `run` attribute is non-callable after overwrite; the isolated `ValueError` boundary is the deterministic seam. Other criteria `reuse`.
+- Ordered slices: (1) add exact real-adapter metadata/hash/provenance assertions; (2) make the malformed adapter overwrite `run` with a non-callable final attribute; (3) run the mandated targeted test command and hand off RED.
+- RED evidence: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py` produced `2 failed, 7 passed in 0.50s`. The real-adapter test failed with `KeyError: 'adapter'` because provenance did not identify the requested source; the malformed-package test failed because discovery did not raise `ValueError` for the overwritten non-callable `run`.
+
 ## Fresh plan/test-author pass
 
 - This pass adds two proof obligations from the latest review: ThinkPol-specific

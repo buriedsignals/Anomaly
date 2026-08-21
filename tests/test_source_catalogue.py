@@ -135,6 +135,15 @@ def test_shared_result_contract_validates_each_real_adapter_output_without_netwo
         result = adapter.run(_offline_input(entry.source_id), _OfflineContext())
         result = validate_source_result(result)
         assert result["source_id"] == entry.source_id
+        assert result["operation"] == entry.metadata["operation"]
+        assert result["license"] == entry.metadata["license"]
+        assert result["endpoint"] == entry.metadata["endpoint"]
+        expected_hash = "sha256:" + hashlib.sha256(
+            (entry.package / "adapter.py").read_bytes()
+        ).hexdigest()
+        assert result["source_hash"] == expected_hash
+        assert result["provenance"]["source"] == str(entry.package / "adapter.py")
+        assert result["provenance"]["adapter"] == entry.source_id
         assert result["status"] in {"ok", "unavailable", "error"}
         if result["status"] != "ok":
             assert result["error"]["code"]
@@ -243,7 +252,10 @@ def test_registry_rejects_adapter_without_callable_run(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
-    (package / "adapter.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (package / "adapter.py").write_text(
+        "def run(input, ctx):\n    return {}\n\nrun = 1\n",
+        encoding="utf-8",
+    )
 
     with pytest.raises(ValueError, match="callable run"):
         discover_sources(tmp_path)

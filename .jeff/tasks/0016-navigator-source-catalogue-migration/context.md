@@ -20,3 +20,8 @@
 - `tools/anomaly/tests/test_source_catalogue.py:236` — malformed adapter test creates an isolated package without callable `run`.
 - Targeted command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`.
 - Latest targeted result: `2 failed, 7 passed`; the ThinkPol test reports an `api_key` match and the malformed-adapter test reports no discovery error.
+- `tools/anomaly/tests/test_source_catalogue.py:126` — real-adapter envelope test; compares operation, licence, endpoint, source hash, and provenance with the discovered `SourceEntry`.
+- `tools/anomaly/tests/test_source_catalogue.py:237` — malformed adapter test; fixture defines `run` and assigns a non-callable final value before discovery.
+- `tools/anomaly/src/anomaly/sources/registry.py:42` — package validation; `registry.py:63` — adapter AST parsing; `registry.py:74` — catalogue discovery.
+- Targeted command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`.
+- Latest targeted result: `2 failed, 7 passed in 0.50s`; failures are missing provenance `adapter` and no `ValueError` for the overwritten non-callable `run`.

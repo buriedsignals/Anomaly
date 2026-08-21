@@ -11,19 +11,23 @@
   "deps": [
     15
   ],
-  "complexity": "complex",
+  "complexity": "simple",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T14:14:23Z",
+  "updatedAt": "2026-08-21T14:23:26Z",
   "agents": {
-    "implementer_agent_id": "01a024a9-94d5-7b82-8b56-2800a4396298",
+    "implementer_agent_id": "01a024b3-17d3-70c2-9ff3-8ee9a94df826",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a024a7-ce85-7b40-b942-51d9d094a6a1",
+    "authored_by_agent_id": "01a024b0-52aa-7b51-a7ef-919eeeb5bcc7",
     "green": false,
     "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
@@ -42,62 +46,60 @@
     "verdict": null,
     "reportedVerdict": null,
     "reviewer_agent_id": null,
-    "findings": [
-      {
-        "file": "data-skills/global/thinkpol-reddit-evidence/meta.yaml",
-        "line": 25,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "ThinkPol retains api_key, quota, and profile operations.",
-        "why": "AC4 requires ThinkPol to be an ordinary catalogue source without hosted-key or membership concepts; its metadata and adapter still expose credential-backed quota/profile behavior."
-      }
-    ],
+    "findings": [],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "7 passed in 0.25s"
+        "output": "9 passed in 0.36s"
       },
       {
-        "command": "ThinkPol forbidden-surface scan",
-        "output": "api_key, ctx.get_key, quota, and profile operations remain in ThinkPol metadata and adapter."
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "637 passed in 4.64s"
+      },
+      {
+        "command": "catalogue inventory",
+        "output": "28 metadata files, 28 skills, and 28 adapters"
+      },
+      {
+        "command": "forbidden surface scan",
+        "output": "No locked forbidden matches"
       }
     ],
     "acLedger": [
       {
         "ac": "AC1",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC2",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC3",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC4",
-        "claimed": "write",
-        "rederived": "write",
-        "ok": false
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
       },
       {
         "ac": "AC5",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
         "ac": "AC6",
-        "claimed": "write",
-        "rederived": "write",
+        "claimed": "revise",
+        "rederived": "revise",
         "ok": true
       },
       {
@@ -115,23 +117,23 @@
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "7 passed in 0.21s"
+        "output": "9 passed in 0.33s"
       },
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-        "output": "635 passed in 4.58s"
+        "output": "637 passed in 4.99s"
       },
       {
-        "command": "security audit report",
-        "output": "6 high scanner patterns were refuted in context; no reachable injection or code-execution exploit established."
+        "command": "security report reachability review",
+        "output": "No reachable injection, path escape, secret, or code-execution exploit established."
       }
     ],
     "reportedVerdict": "pass",
     "findings": [],
     "scan": {
-      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final",
+      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final2",
       "recommendation": "REVIEW",
-      "reportPath": "/private/tmp/anomaly-security-audit-16-final/security-audit-20260821-140457.md"
+      "reportPath": "/private/tmp/anomaly-security-audit-16-final2/security-audit-20260821-141438.md"
     },
     "coverage": [
       {
@@ -187,33 +189,29 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Add ThinkPol-specific forbidden-surface tests.",
-      "Add deterministic malformed-adapter discovery rejection test."
+      "Add metadata, source-hash, and provenance assertions.",
+      "Test rejection of a final non-callable run attribute.",
+      "Run the targeted test command and hand off RED."
     ],
     "testFiles": [
       "tests/test_source_catalogue.py"
     ],
     "redRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "2 failed, 7 passed; ThinkPol api_key surface detected and malformed adapter was not rejected."
+      "output": "2 failed, 7 passed in 0.50s"
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize real adapter result construction behind the shared contract while preserving source-specific query behavior."
+    "refactorOpportunity": "Harmonize registry validation around one callable-run predicate."
   },
   "implement": {
-    "agent_id": "01a024a9-94d5-7b82-8b56-2800a4396298",
+    "agent_id": "01a024b3-17d3-70c2-9ff3-8ee9a94df826",
     "result": "green",
     "files": [
-      "src/anomaly/sources/registry.py",
-      "data-skills/global/thinkpol-reddit-evidence/adapter.py",
-      "data-skills/global/thinkpol-reddit-evidence/meta.yaml",
-      "data-skills/global/thinkpol-reddit-evidence/SKILL.md",
-      "data-skills/global/thinkpol-reddit-evidence/references/api-reference.md",
-      "data-skills/global/thinkpol-reddit-evidence/references/query-guide.md"
+      "src/anomaly/sources/registry.py"
     ],
     "greenRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": ".........                                                                [100%]\n9 passed in 0.30s"
+      "output": "9 passed in 0.50s"
     }
   },
   "review2": {
@@ -223,22 +221,31 @@
     "findings": [
       {
         "file": "src/anomaly/sources/registry.py",
-        "line": 59,
+        "line": 66,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "Malformed adapter packages are not rejected before loading.",
-        "why": "Discovery checks that adapter.py exists but does not require a callable run, so malformed packages pass discovery and later fail with an untyped AttributeError."
+        "what": "Discovery does not verify the final run attribute is callable.",
+        "why": "An adapter can overwrite run after defining it, pass discovery, and fail later outside the typed malformed-package boundary."
+      },
+      {
+        "file": "tests/test_source_catalogue.py",
+        "line": 192,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "The contract test does not verify hash/provenance/metadata consistency.",
+        "why": "It checks only hash format and provenance type, so explicit source-hash, requested-source, and metadata contract behavior can regress undetected."
       }
     ],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "7 passed in 0.40s"
+        "output": "9 passed in 0.49s"
       },
       {
-        "command": "malformed adapter fixture",
-        "output": "Package without callable run passes discovery and fails during load."
+        "command": "catalogue syntax and inventory",
+        "output": "28 metadata packages, 28 adapters, 420 catalogue files, 57 Python files parsed"
       }
     ],
     "acLedger": [
@@ -252,7 +259,7 @@
         "ac": "AC2",
         "claimed": "write",
         "rederived": "write",
-        "ok": true
+        "ok": false
       },
       {
         "ac": "AC3",
@@ -281,8 +288,8 @@
       {
         "ac": "AC7",
         "claimed": "reuse",
-        "rederived": "write",
-        "ok": false
+        "rederived": "reuse",
+        "ok": true
       }
     ]
   }
