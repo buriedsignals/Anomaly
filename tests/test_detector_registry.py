@@ -30,6 +30,21 @@ CORE_DETECTOR_IDS = (
     "text.secret_patterns",
 )
 
+GAIN_DETECTOR_IDS = (
+    "gain.committee_say_vs_pay",
+    "gain.fara_gap_narrowed",
+    "gain.foreign_filings",
+    "gain.missing_income_filings",
+    "gain.new_registrant_surge",
+    "gain.pac_contribution_flow",
+    "gain.revolving_door_candidates",
+    "gain.revolving_door_committee_match",
+    "gain.shell_pattern_filings",
+    "gain.single_client_juggernauts",
+    "gain.spending_spikes",
+    "gain.issue_concentration_shifts",
+)
+
 
 def _registry_api():
     return importlib.import_module("anomaly.detectors.registry")
@@ -70,11 +85,15 @@ def _valid_user_package(root: Path) -> Path:
     return package
 
 
-def test_registry_discovers_exactly_twenty_core_detectors_with_complete_metadata() -> None:
+def test_registry_discovers_core_and_gain_detectors_with_scalable_groups() -> None:
     detectors = _registry_api().discover_detectors()
 
-    assert tuple(item["id"] for item in detectors) == CORE_DETECTOR_IDS
-    assert len(detectors) == 20
+    ids = tuple(item["id"] for item in detectors)
+    assert len(ids) == 32
+    assert set(ids) == set(CORE_DETECTOR_IDS) | set(GAIN_DETECTOR_IDS)
+    assert set(item["id"] for item in detectors if item["id"].startswith("gain.")) == set(GAIN_DETECTOR_IDS)
+    assert {item["group"] for item in detectors} >= {"categorical", "domain", "network", "text"}
+    assert {item.get("family") for item in detectors if item["id"].startswith("gain.")} == {"gain"}
     required = {
         "id", "version", "title", "author", "license", "group", "description",
         "required_tables", "required_fields", "parameters", "signal_category",
@@ -254,8 +273,18 @@ def test_all_new_detector_fixtures_have_nonempty_deterministic_outputs() -> None
 def test_sensitive_output_metadata_requires_redacted_fixture_results() -> None:
     root = Path(__file__).parents[1] / "detectors"
     for metadata in _registry_api().discover_detectors():
-        package = root.joinpath(*metadata["id"].split("."))
-        expected = (package / "fixtures" / "expected.json").read_text(encoding="utf-8").lower()
+        package = next(
+            path.parent
+            for path in root.rglob("meta.yaml")
+            if f"id: {metadata['id']}" in path.read_text(encoding="utf-8")
+        )
+        fixtures = package / "fixtures"
+        expected_path = fixtures / "expected.json"
+        if not expected_path.is_file():
+            expected_path = fixtures / "expected.csv"
+            assert expected_path.is_file(), metadata["id"]
+            assert (fixtures / "source.provenance.json").is_file(), metadata["id"]
+        expected = expected_path.read_text(encoding="utf-8").lower()
         assert metadata["sensitive_output"] in {"redact", "reference", "none"}
         assert "sk_live_" not in expected
         assert "private_key" not in expected

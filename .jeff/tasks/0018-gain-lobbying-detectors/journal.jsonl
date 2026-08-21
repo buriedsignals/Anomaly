@@ -9,3 +9,7 @@
 {"seq":8,"at":"2026-08-21T17:29:17.581Z","event":"record","stage":"implement","agent":"01a0255d-eccc-7fc2-b75b-77b2fbdc98e4"}
 {"seq":9,"at":"2026-08-21T17:29:33.684Z","event":"intent","stage":"refactor","note":"Perform behavior-preserving simplification of the GAIN registry integration; preserve exact fixtures and focused behavior."}
 {"seq":10,"at":"2026-08-21T17:30:40.254Z","event":"record","stage":"refactor","agent":"01a0255f-2a22-74f0-83b4-d1783407a224"}
+{"seq":11,"at":"2026-08-21T17:31:42.057Z","event":"intent","stage":"plan","note":"Chef authorized stale contract-test updates: update M2 registry tests for the 32-entry catalogue, support GAIN CSV fixture format, and remove the completed M3 backlog assertion while preserving M3 wording in PRD/history."}
+{"seq":12,"at":"2026-08-21T17:32:48.675Z","event":"record","stage":"plan","agent":"01a0254c-af6e-77c3-b3df-c863cba5d1ab"}
+{"seq":13,"at":"2026-08-21T17:33:34.202Z","event":"record","stage":"plan","agent":"01a02561-2db7-70c0-a30f-c9dc1f09e632"}
+{"seq":14,"at":"2026-08-21T17:38:34.690Z","event":"record","stage":"plan","agent":"01a02562-e0d3-7b23-a55b-4645ea3e2c03"}

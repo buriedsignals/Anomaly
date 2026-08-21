@@ -6,14 +6,14 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "review",
+  "stage": "implement",
   "priority": "p1",
   "deps": [
     17
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T17:30:40Z",
+  "updatedAt": "2026-08-21T17:38:34Z",
   "agents": {
     "implementer_agent_id": "01a0255d-eccc-7fc2-b75b-77b2fbdc98e4",
     "reviewer_agent_id": null,
@@ -21,7 +21,7 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a0255b-3411-79a0-a2b0-66f99cc8fac1",
+    "authored_by_agent_id": "01a02562-e0d3-7b23-a55b-4645ea3e2c03",
     "green": false,
     "evidence": []
   },
@@ -50,16 +50,18 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Repair forbidden-scope assertion with word-boundary matching.",
-      "Record kickback disposition in task context and notes.",
-      "Preserve production code, fixture bytes, and hashes."
+      "Update the M2 registry contract to assert the 20 core plus 12 namespaced GAIN catalogue while preserving scalable category behavior.",
+      "Update the sensitive-output fixture contract to accept the GAIN CSV expected.csv/source.provenance.json format without weakening redaction assertions.",
+      "Update the stale M3 backlog contract to reflect forward-only backlog while retaining PRD M3 wording checks.",
+      "Preserve GAIN attribution, source-bound provenance, and exact fixture/hash assertions."
     ],
     "testFiles": [
-      "tests/test_gain_detectors.py"
+      "tests/test_detector_registry.py",
+      "tests/test_source_catalogue.py"
     ],
     "redRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
-      "output": "17 passed in 0.37s after repairing the infeasible forbidden-scope assertion; fresh implementer must preserve production and fixture bytes."
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "3 failed, 658 passed before test-contract repair; repaired test contracts now pass 675 tests."
     },
     "escalation": null,
     "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
