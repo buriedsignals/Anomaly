@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.3.4",
+  "id": 18,
+  "slug": "gain-lobbying-detectors",
+  "title": "M4 port GAIN lobbying detectors",
+  "status": "in_progress",
+  "category": "code",
+  "stage": "plan",
+  "priority": "p1",
+  "deps": [17],
+  "complexity": "complex",
+  "createdAt": "2026-08-21T16:00:00Z",
+  "updatedAt": "2026-08-21T16:00:00Z",
+  "agents": {
+    "implementer_agent_id": null,
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": null,
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": true,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null
+}
