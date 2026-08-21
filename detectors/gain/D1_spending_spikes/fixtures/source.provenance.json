@@ -1,0 +1,52 @@
+{
+  "name": "D1_spending_spikes",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH quarterly AS (\n                SELECT\n                    registrant_id,\n                    registrant_name,\n                    filing_year,\n                    filing_period,\n                    sum(coalesce(income, 0)) AS total_income,\n                    count(*) AS n_filings\n                FROM senate_filings\n                WHERE filing_type IN ('Q1','Q2','Q3','Q4')\n                  AND income IS NOT NULL\n                GROUP BY 1,2,3,4\n            ),\n            windowed AS (\n                SELECT\n                    registrant_id, registrant_name, filing_year, filing_period, total_income,\n                    avg(total_income) OVER (PARTITION BY registrant_id ORDER BY filing_year, filing_period\n                                            ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS prior_mean,\n                    stddev_pop(total_income) OVER (PARTITION BY registrant_id ORDER BY filing_year, filing_period\n                                                   ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS prior_sd,\n                    count(*) OVER (PARTITION BY registrant_id ORDER BY filing_year, filing_period\n                                   ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS prior_n\n                FROM quarterly\n            )\n            SELECT\n                registrant_id, registrant_name, filing_year, filing_period,\n                total_income, prior_mean, prior_sd, prior_n,\n                CASE WHEN prior_sd > 0 THEN (total_income - prior_mean) / prior_sd END AS z_score\n            FROM windowed\n            WHERE prior_n >= 3\n              AND prior_sd > 0\n              AND total_income >= 50000\n              AND abs((total_income - prior_mean) / prior_sd) >= 2.0\n            ORDER BY abs((total_income - prior_mean) / prior_sd) DESC\n            LIMIT 200\n        ",
+  "sql_hash": "0a110bb8b0fc1347",
+  "params": {
+    "limit": 200,
+    "min_z_abs": 2.0,
+    "min_income": 50000
+  },
+  "schema": [
+    {
+      "column": "registrant_id",
+      "type": "INTEGER"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "filing_period",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "total_income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "prior_mean",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "prior_sd",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "prior_n",
+      "type": "BIGINT"
+    },
+    {
+      "column": "z_score",
+      "type": "DOUBLE"
+    }
+  ],
+  "row_count": 200,
+  "elapsed_seconds": 0.013,
+  "executed_at": "2026-05-22T09:02:44Z"
+}

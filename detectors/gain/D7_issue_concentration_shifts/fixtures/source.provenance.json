@@ -1,0 +1,51 @@
+{
+  "name": "D7_issue_concentration_shifts",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH per_q AS (\n                SELECT\n                    a.general_issue_code,\n                    f.filing_year,\n                    f.filing_period,\n                    count(DISTINCT f.registrant_id) AS registrants,\n                    sum(coalesce(f.income, 0)) AS total_income\n                FROM senate_lobbying_activities a\n                JOIN senate_filings f USING (filing_uuid)\n                WHERE f.filing_type IN ('Q1','Q2','Q3','Q4')\n                  AND a.general_issue_code IS NOT NULL\n                GROUP BY 1,2,3\n            ),\n            ordered AS (\n                SELECT\n                    general_issue_code, filing_year, filing_period, registrants, total_income,\n                    lag(total_income) OVER (PARTITION BY general_issue_code\n                                            ORDER BY filing_year, filing_period) AS prior_income,\n                    lag(registrants) OVER (PARTITION BY general_issue_code\n                                           ORDER BY filing_year, filing_period) AS prior_registrants\n                FROM per_q\n            )\n            SELECT *,\n                   CASE WHEN prior_income > 0 THEN round(100.0 * (total_income - prior_income) / prior_income, 1) END AS income_delta_pct,\n                   CASE WHEN prior_registrants > 0 THEN round(100.0 * (registrants - prior_registrants) / prior_registrants, 1) END AS registrants_delta_pct\n            FROM ordered\n            WHERE prior_income IS NOT NULL\n              AND prior_income > 0\n              AND abs((total_income - prior_income) / prior_income) * 100 >= 25\n            ORDER BY abs(total_income - prior_income) DESC\n            LIMIT 500\n        ",
+  "sql_hash": "d7d0657d4e725c32",
+  "params": {
+    "limit": 500,
+    "min_qoq_delta_pct": 25
+  },
+  "schema": [
+    {
+      "column": "general_issue_code",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "filing_period",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "registrants",
+      "type": "BIGINT"
+    },
+    {
+      "column": "total_income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "prior_income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "prior_registrants",
+      "type": "BIGINT"
+    },
+    {
+      "column": "income_delta_pct",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "registrants_delta_pct",
+      "type": "DOUBLE"
+    }
+  ],
+  "row_count": 126,
+  "elapsed_seconds": 0.023,
+  "executed_at": "2026-05-22T09:02:45Z"
+}

@@ -1,0 +1,66 @@
+{
+  "name": "D10_fara_gap_narrowed",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH norm_sf AS (\n                SELECT DISTINCT\n                    f.filing_uuid, f.registrant_name, f.client_name,\n                    f.client_country, f.client_ppb_country,\n                    f.filing_year, f.income, f.url,\n                    upper(regexp_replace(coalesce(f.registrant_name,''), '[^A-Z0-9 ]', ' ', 'g')) AS norm_r\n                FROM senate_filings f\n                WHERE f.filing_year IN (2024, 2025, 2026)\n                  AND EXISTS (SELECT 1 FROM senate_foreign_entities fe WHERE fe.filing_uuid = f.filing_uuid)\n            ),\n            norm_fara AS (\n                SELECT DISTINCT\n                    upper(regexp_replace(coalesce(registrant_name,''), '[^A-Z0-9 ]', ' ', 'g')) AS norm_r\n                FROM fara_registrants\n            ),\n            activity_text AS (\n                SELECT filing_uuid,\n                       string_agg(coalesce(description,''), ' ' ORDER BY activity_index) AS act_text\n                FROM senate_lobbying_activities GROUP BY 1\n            ),\n            fp_country_for_filing AS (\n                SELECT filing_uuid,\n                       string_agg(DISTINCT country, ',' ORDER BY country) AS fe_countries\n                FROM senate_foreign_entities GROUP BY 1\n            )\n            SELECT\n                sf.filing_uuid, sf.filing_year,\n                sf.registrant_name, sf.client_name,\n                sf.client_country, sf.client_ppb_country,\n                fp.fe_countries,\n                sf.income,\n                (sf.client_country IS NOT NULL AND sf.client_country NOT IN ('US','United States of America'))::int AS sig_non_us_client,\n                (sf.client_ppb_country IS NOT NULL AND sf.client_ppb_country NOT IN ('US','United States of America'))::int AS sig_non_us_ppb,\n                (lower(coalesce(actv.act_text,'')) LIKE '%foreign government%' OR\n                 lower(coalesce(actv.act_text,'')) LIKE '%embassy%' OR\n                 lower(coalesce(actv.act_text,'')) LIKE '%fara%' OR\n                 lower(coalesce(actv.act_text,'')) LIKE '%sanctions%' OR\n                 lower(coalesce(actv.act_text,'')) LIKE '%ambassador%')::int AS sig_foreign_gov_topic,\n                (lower(coalesce(sf.client_name,'')) LIKE '%national oil%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%state-owned%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%national bank%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%republic of%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%kingdom of%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%ministry of%' OR\n                 lower(coalesce(sf.client_name,'')) LIKE '%embassy of%')::int AS sig_soe_pattern,\n                sf.url\n            FROM norm_sf sf\n            LEFT JOIN activity_text actv ON actv.filing_uuid = sf.filing_uuid\n            LEFT JOIN fp_country_for_filing fp ON fp.filing_uuid = sf.filing_uuid\n            WHERE NOT EXISTS (SELECT 1 FROM norm_fara nf WHERE nf.norm_r = sf.norm_r)\n              AND (\n                  (sf.client_country IS NOT NULL AND sf.client_country NOT IN ('US','United States of America'))\n               OR (sf.client_ppb_country IS NOT NULL AND sf.client_ppb_country NOT IN ('US','United States of America'))\n               OR (lower(coalesce(actv.act_text,'')) LIKE '%foreign government%' OR\n                   lower(coalesce(actv.act_text,'')) LIKE '%embassy%' OR\n                   lower(coalesce(actv.act_text,'')) LIKE '%fara%' OR\n                   lower(coalesce(actv.act_text,'')) LIKE '%sanctions%' OR\n                   lower(coalesce(actv.act_text,'')) LIKE '%ambassador%')\n               OR (lower(coalesce(sf.client_name,'')) LIKE '%national oil%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%state-owned%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%national bank%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%republic of%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%kingdom of%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%ministry of%' OR\n                   lower(coalesce(sf.client_name,'')) LIKE '%embassy of%')\n              )\n            ORDER BY sf.income DESC NULLS LAST\n            LIMIT 200\n        ",
+  "sql_hash": "ae4ebdb2ecf19559",
+  "params": {
+    "limit": 200
+  },
+  "schema": [
+    {
+      "column": "filing_uuid",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_country",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_ppb_country",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "fe_countries",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "sig_non_us_client",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_non_us_ppb",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_foreign_gov_topic",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_soe_pattern",
+      "type": "INTEGER"
+    },
+    {
+      "column": "url",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 200,
+  "elapsed_seconds": 0.601,
+  "executed_at": "2026-05-22T10:01:55Z"
+}

@@ -5,7 +5,11 @@ contains D1–D12 definitions and committed anomaly CSV/provenance artifacts,
 which provide a deterministic parity basis without live acquisition.
 
 The 20 M2 core detectors remain separate; GAIN detectors are an additional
-source family with source-bound provenance.
+source family with source-bound provenance. User clarification locked the
+registry direction: detector packages must be namespaced and grouped by data
+type/category (a menu suitable for hundreds of future detectors), with GAIN
+2026 Challenge attribution visible in package metadata/docs. GAIN is the first
+source family, not a special execution path.
 
 ## Capture plan
 
@@ -31,3 +35,11 @@ Acceptance dispositions:
 Refactor opportunity: harmonize the GAIN family with the existing registry's
 single catalogue and normalized result envelope; do not create a second
 execution engine.
+
+## Test-contract repair
+
+The implementer kickback identified one focused-suite failure: substring
+matching treated the legitimate byte-exact D3 fixture value `MCPC` as the
+forbidden concept `mcp`. The scope assertion now matches escaped forbidden
+terms on word boundaries, preserving the forbidden-scope behavior while
+leaving production files, fixture bytes, and their hashes unchanged.

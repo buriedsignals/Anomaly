@@ -1,0 +1,48 @@
+{
+  "name": "D12_committee_say_vs_pay",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH lobbyist_positions AS (\n                SELECT DISTINCT lobbyist_id, first_name, last_name, covered_position\n                FROM senate_activity_lobbyists\n                WHERE lower(covered_position) LIKE '%' || 'finance' || '%'\n            ),\n            current_committee_members AS (\n                SELECT DISTINCT m.bioguide_id, m.name AS member_name, m.party, m.state, a.role\n                FROM congress_committee_assignments a\n                JOIN congress_members m USING (bioguide_id)\n                WHERE lower(a.committee_name) LIKE '%' || 'finance' || '%'\n            ),\n            press_attacks AS (\n                SELECT pr.bioguide_id, pr.member_name, pr.date, pr.title, pr.url,\n                       substr(pr.text, 1, 200) AS excerpt\n                FROM press_releases pr\n                WHERE lower(pr.text) LIKE '%apollo%'\n                  AND lower(pr.text) LIKE '%private equity%'\n            ),\n            lobbying_for_target AS (\n                SELECT DISTINCT f.filing_uuid, f.registrant_name, f.client_name, f.income,\n                       lp.first_name AS lobbyist_first, lp.last_name AS lobbyist_last,\n                       lp.covered_position\n                FROM senate_filings f\n                JOIN senate_activity_lobbyists al USING (filing_uuid)\n                JOIN lobbyist_positions lp ON lp.lobbyist_id = al.lobbyist_id\n                WHERE lower(f.client_name) LIKE '%apollo%'\n                  AND f.filing_year IN (2024, 2025, 2026)\n            )\n            SELECT\n                lft.registrant_name      AS lobbying_firm,\n                lft.client_name          AS lobbied_client,\n                lft.lobbyist_first || ' ' || lft.lobbyist_last AS lobbyist,\n                lft.covered_position     AS former_role,\n                (SELECT count(*) FROM current_committee_members) AS current_committee_members,\n                (SELECT count(*) FROM press_attacks)             AS attack_press_releases,\n                (SELECT count(DISTINCT member_name) FROM press_attacks\n                 WHERE bioguide_id IN (SELECT bioguide_id FROM current_committee_members))\n                                          AS committee_members_attacking,\n                lft.income\n            FROM lobbying_for_target lft\n            ORDER BY lft.income DESC NULLS LAST\n            LIMIT 200\n        ",
+  "sql_hash": "274c4ef00515cd73",
+  "params": {
+    "limit": 200,
+    "target_committee": "finance",
+    "client_pattern": "%apollo%"
+  },
+  "schema": [
+    {
+      "column": "lobbying_firm",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "lobbied_client",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "lobbyist",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "former_role",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "current_committee_members",
+      "type": "BIGINT"
+    },
+    {
+      "column": "attack_press_releases",
+      "type": "BIGINT"
+    },
+    {
+      "column": "committee_members_attacking",
+      "type": "BIGINT"
+    },
+    {
+      "column": "income",
+      "type": "DOUBLE"
+    }
+  ],
+  "row_count": 161,
+  "elapsed_seconds": 0.612,
+  "executed_at": "2026-05-22T11:40:08Z"
+}

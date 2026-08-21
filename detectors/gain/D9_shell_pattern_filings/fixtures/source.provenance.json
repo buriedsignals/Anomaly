@@ -1,0 +1,79 @@
+{
+  "name": "D9_shell_pattern_filings",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH activity_text AS (\n                SELECT filing_uuid,\n                       string_agg(coalesce(description,''), ' ' ORDER BY activity_index) AS act_text\n                FROM senate_lobbying_activities GROUP BY 1\n            ),\n            lobbyist_text AS (\n                SELECT filing_uuid,\n                       string_agg(coalesce(covered_position,''), ' | ') AS pos_text\n                FROM senate_activity_lobbyists GROUP BY 1\n            ),\n            scored AS (\n                SELECT\n                    f.filing_uuid,\n                    f.filing_year, f.filing_period, f.filing_type,\n                    f.registrant_name, f.client_name,\n                    f.client_general_description AS client_desc,\n                    f.income, f.url,\n                    -- Shell-pattern signals (each adds 1 to score)\n                    (lower(coalesce(f.client_general_description,'')) LIKE '%sovereign%')::int                              AS sig_sovereign_client,\n                    (lower(coalesce(f.client_general_description,'')) LIKE '%established government%')::int                 AS sig_established_govt,\n                    (lower(coalesce(actv.act_text,'')) LIKE '%empress%' OR\n                     lower(coalesce(actv.act_text,'')) LIKE '%annuit coeptis%' OR\n                     lower(coalesce(actv.act_text,'')) LIKE '%king solomon%' OR\n                     lower(coalesce(actv.act_text,'')) LIKE '%sui generis%')::int                                              AS sig_esoteric_terms,\n                    (lower(coalesce(lt.pos_text,'')) LIKE '%empress%' OR\n                     lower(coalesce(lt.pos_text,'')) LIKE '%head of state%' OR\n                     lower(coalesce(lt.pos_text,'')) LIKE '%assumed the presiden%' OR\n                     lower(coalesce(lt.pos_text,'')) LIKE '%queen%')::int                                                    AS sig_self_styled_title,\n                    (f.posted_by_name LIKE '%/%/%' OR f.posted_by_name LIKE '%LLC%')::int                                    AS sig_posted_by_llc_slashes,\n                    (upper(coalesce(f.client_name,'')) LIKE '%GLOBAL PUBLIC BENEFIT%')::int                                  AS sig_global_pbc_naming\n                FROM senate_filings f\n                LEFT JOIN activity_text actv USING (filing_uuid)\n                LEFT JOIN lobbyist_text lt USING (filing_uuid)\n            )\n            SELECT\n                filing_uuid, filing_year, filing_period, filing_type,\n                registrant_name, client_name, client_desc, income,\n                (sig_sovereign_client + sig_established_govt + sig_esoteric_terms +\n                 sig_self_styled_title + sig_posted_by_llc_slashes + sig_global_pbc_naming) AS shell_score,\n                sig_sovereign_client, sig_established_govt, sig_esoteric_terms,\n                sig_self_styled_title, sig_posted_by_llc_slashes, sig_global_pbc_naming,\n                url\n            FROM scored\n            WHERE (sig_sovereign_client + sig_established_govt + sig_esoteric_terms +\n                   sig_self_styled_title + sig_posted_by_llc_slashes + sig_global_pbc_naming) >= 2\n            ORDER BY shell_score DESC, income DESC NULLS LAST\n            LIMIT 100\n        ",
+  "sql_hash": "bbbea171aa997a1e",
+  "params": {
+    "limit": 100,
+    "min_score": 2
+  },
+  "schema": [
+    {
+      "column": "filing_uuid",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "filing_period",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_type",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_desc",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "shell_score",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_sovereign_client",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_established_govt",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_esoteric_terms",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_self_styled_title",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_posted_by_llc_slashes",
+      "type": "INTEGER"
+    },
+    {
+      "column": "sig_global_pbc_naming",
+      "type": "INTEGER"
+    },
+    {
+      "column": "url",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 15,
+  "elapsed_seconds": 0.879,
+  "executed_at": "2026-05-22T10:01:54Z"
+}

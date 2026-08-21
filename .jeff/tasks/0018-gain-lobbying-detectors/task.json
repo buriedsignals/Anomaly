@@ -6,22 +6,22 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "implement",
+  "stage": "review",
   "priority": "p1",
   "deps": [
     17
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T17:13:51Z",
+  "updatedAt": "2026-08-21T17:30:40Z",
   "agents": {
-    "implementer_agent_id": null,
+    "implementer_agent_id": "01a0255d-eccc-7fc2-b75b-77b2fbdc98e4",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a0254c-af6e-77c3-b3df-c863cba5d1ab",
+    "authored_by_agent_id": "01a0255b-3411-79a0-a2b0-66f99cc8fac1",
     "green": false,
     "evidence": []
   },
@@ -37,25 +37,55 @@
     "evidence": []
   },
   "commits": [],
-  "kickbacks": [],
+  "kickbacks": [
+    {
+      "from": "implement",
+      "to": "plan",
+      "reason": "Focused RED test is infeasible without modifying the required byte-exact fixture or the test.",
+      "at": "2026-08-21T17:24:50Z"
+    }
+  ],
   "blockedReason": null,
   "abandonReason": null,
   "plan": {
     "result": "red",
     "slices": [
-      "Add a separate twelve-detector GAIN catalogue with stable IDs and complete metadata.",
-      "Port D1-D12 SQL semantics, parameters, source hashes, local hashes, and deterministic parity fixtures.",
-      "Normalize GAIN results into provenance-bearing leads through bounded, approval-gated local execution.",
-      "Verify forbidden hosted, orchestration, service, UI, deployment, membership, metering, CLI, and MCP scope."
+      "Repair forbidden-scope assertion with word-boundary matching.",
+      "Record kickback disposition in task context and notes.",
+      "Preserve production code, fixture bytes, and hashes."
     ],
     "testFiles": [
       "tests/test_gain_detectors.py"
     ],
     "redRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
-      "output": "14 failed, 3 passed in 0.13s; GAIN catalogue/packages/fixtures and normalize_detector_result are absent."
+      "output": "17 passed in 0.37s after repairing the infeasible forbidden-scope assertion; fresh implementer must preserve production and fixture bytes."
     },
     "escalation": null,
     "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
+  },
+  "implement": {
+    "agent_id": "01a0255d-eccc-7fc2-b75b-77b2fbdc98e4",
+    "result": "green",
+    "files": [
+      "src/anomaly/detectors/registry.py"
+    ],
+    "greenRun": {
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
+      "output": ".................                                                        [100%]\n17 passed in 0.42s"
+    }
+  },
+  "refactor": {
+    "agent_id": "01a0255f-2a22-74f0-83b4-d1783407a224",
+    "result": "clean",
+    "files": [],
+    "outsideDiff": [],
+    "greenRun": {
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
+      "output": ".................                                                        [100%]\n17 passed in 0.25s"
+    },
+    "summary": [
+      "No safe behavior-preserving production refactor identified; existing GAIN registry integration is already minimal and aligned with the task contract."
+    ]
   }
 }

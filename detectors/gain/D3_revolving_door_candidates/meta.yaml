@@ -1,0 +1,27 @@
+id: gain.revolving_door_candidates
+version: 1.0.0
+title: GAIN D3 revolving door candidates
+author: gain-2026
+license: internal
+group: domain
+family: gain
+source_detector_id: D3
+source_name: D3_revolving_door_candidates
+source_sql_hash: 61b1486a422655b1
+source_provenance_hash: sha256:00e13c0f3680a1bee8e10b5bb7b8c509e2da9185dadc53f837ecee80e9b6e882
+source_csv_hash: sha256:4254e0be967611451f5c399f7e1fed6c33426012969b818e1dd7a614f098c255
+source_row_count: 500
+source_columns: [lobbyist_id, first_name, last_name, sample_position, filings_with_lobbyist, distinct_positions, clients_lobbied_for]
+description: Lobbyists with populated covered-position text and current clients.
+required_tables: ["*"]
+required_fields: [id]
+parameters:
+  limit: 500
+signal_category: lobbying
+severity: medium
+expected_output: [lobbyist_id, first_name, last_name, sample_position, filings_with_lobbyist, distinct_positions, clients_lobbied_for]
+assumptions: [Prepared local tables use the GAIN source schema.]
+false_positives: [Legitimate activity can produce the observed pattern.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

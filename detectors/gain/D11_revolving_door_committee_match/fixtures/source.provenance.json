@@ -1,0 +1,70 @@
+{
+  "name": "D11_revolving_door_committee_match",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH lobbyist_positions AS (\n                -- Distinct lobbyist + covered_position pairs with relevant keywords\n                SELECT DISTINCT\n                    lobbyist_id, first_name, last_name, covered_position,\n                    -- Extract committee acronym/name from covered_position text\n                    CASE\n                        WHEN lower(covered_position) LIKE '%armed services%' THEN 'armed_services'\n                        WHEN lower(covered_position) LIKE '%ways and means%' THEN 'ways_means'\n                        WHEN lower(covered_position) LIKE '%appropriation%' THEN 'appropriations'\n                        WHEN lower(covered_position) LIKE '%finance%' THEN 'finance'\n                        WHEN lower(covered_position) LIKE '%judiciary%' THEN 'judiciary'\n                        WHEN lower(covered_position) LIKE '%intelligence%' THEN 'intelligence'\n                        WHEN lower(covered_position) LIKE '%foreign relations%' THEN 'foreign_relations'\n                        WHEN lower(covered_position) LIKE '%foreign affairs%' THEN 'foreign_affairs'\n                        WHEN lower(covered_position) LIKE '%energy and commerce%' OR lower(covered_position) LIKE '%energy & commerce%' THEN 'energy_commerce'\n                        WHEN lower(covered_position) LIKE '%homeland security%' THEN 'homeland_security'\n                        WHEN lower(covered_position) LIKE '%veterans%' THEN 'veterans_affairs'\n                        WHEN lower(covered_position) LIKE '%health%' THEN 'health'\n                        WHEN lower(covered_position) LIKE '%agriculture%' THEN 'agriculture'\n                        ELSE NULL\n                    END AS former_committee\n                FROM senate_activity_lobbyists\n                WHERE covered_position IS NOT NULL AND length(covered_position) >= 12\n            ),\n            current_activities AS (\n                -- Current activities of those lobbyists; check if topic matches their former committee\n                SELECT\n                    al.lobbyist_id,\n                    f.filing_uuid, f.filing_year, f.filing_period,\n                    f.registrant_name, f.client_name, f.income,\n                    a.general_issue_code, a.description, f.url\n                FROM senate_activity_lobbyists al\n                JOIN senate_lobbying_activities a USING (filing_uuid)\n                JOIN senate_filings f USING (filing_uuid)\n                WHERE f.filing_year IN (2024, 2025, 2026)\n                  AND f.filing_type IN ('Q1','Q2','Q3','Q4')\n            )\n            SELECT\n                lp.lobbyist_id, lp.first_name, lp.last_name,\n                lp.former_committee, lp.covered_position,\n                ca.filing_uuid, ca.filing_year, ca.filing_period,\n                ca.registrant_name, ca.client_name, ca.general_issue_code,\n                ca.description, ca.income, ca.url\n            FROM lobbyist_positions lp\n            JOIN current_activities ca USING (lobbyist_id)\n            WHERE lp.former_committee IS NOT NULL\n              AND (\n                  (lp.former_committee = 'armed_services'   AND ca.general_issue_code IN ('DEF','HOM','INT')) OR\n                  (lp.former_committee = 'ways_means'       AND ca.general_issue_code IN ('TAX','BUD','TRD','HCR')) OR\n                  (lp.former_committee = 'appropriations'   AND ca.general_issue_code IN ('BUD','DEF','HCR','EDU')) OR\n                  (lp.former_committee = 'finance'          AND ca.general_issue_code IN ('TAX','BUD','BAN','FIN')) OR\n                  (lp.former_committee = 'judiciary'        AND ca.general_issue_code IN ('LAW','IMM','BNK','CON','CIV')) OR\n                  (lp.former_committee = 'intelligence'     AND ca.general_issue_code IN ('INT','DEF','HOM','CSP')) OR\n                  (lp.former_committee = 'foreign_relations' AND ca.general_issue_code IN ('FOR','TRD','DEF')) OR\n                  (lp.former_committee = 'foreign_affairs'  AND ca.general_issue_code IN ('FOR','TRD','DEF')) OR\n                  (lp.former_committee = 'energy_commerce'  AND ca.general_issue_code IN ('ENG','HCR','TEC','TRA','CPT')) OR\n                  (lp.former_committee = 'homeland_security' AND ca.general_issue_code IN ('HOM','IMM','CSP')) OR\n                  (lp.former_committee = 'health'           AND ca.general_issue_code IN ('HCR','MED','HPI')) OR\n                  (lp.former_committee = 'agriculture'      AND ca.general_issue_code IN ('AGR','FOO','TRD'))\n              )\n              AND ca.income IS NOT NULL\n              AND ca.income > 0\n            ORDER BY ca.income DESC NULLS LAST\n            LIMIT 200\n        ",
+  "sql_hash": "a7712c723043a717",
+  "params": {
+    "limit": 200
+  },
+  "schema": [
+    {
+      "column": "lobbyist_id",
+      "type": "INTEGER"
+    },
+    {
+      "column": "first_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "last_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "former_committee",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "covered_position",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_uuid",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "filing_period",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "general_issue_code",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "description",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "url",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 200,
+  "elapsed_seconds": 0.346,
+  "executed_at": "2026-05-22T10:01:24Z"
+}

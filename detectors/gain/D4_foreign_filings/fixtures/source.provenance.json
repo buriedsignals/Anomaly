@@ -1,0 +1,62 @@
+{
+  "name": "D4_foreign_filings",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            SELECT\n                f.filing_uuid,\n                f.filing_year,\n                f.filing_period,\n                f.registrant_name,\n                f.client_name,\n                f.client_country,\n                f.client_ppb_country,\n                fe.foreign_entity_name,\n                fe.country AS foreign_entity_country,\n                fe.ppb_country AS foreign_entity_ppb,\n                f.income,\n                f.url\n            FROM senate_foreign_entities fe\n            JOIN senate_filings f USING (filing_uuid)\n            ORDER BY f.income DESC NULLS LAST\n            LIMIT 500\n        ",
+  "sql_hash": "f7c962b62d2393b1",
+  "params": {
+    "limit": 500
+  },
+  "schema": [
+    {
+      "column": "filing_uuid",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filing_year",
+      "type": "INTEGER"
+    },
+    {
+      "column": "filing_period",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_country",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "client_ppb_country",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "foreign_entity_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "foreign_entity_country",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "foreign_entity_ppb",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "url",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 500,
+  "elapsed_seconds": 0.01,
+  "executed_at": "2026-05-22T09:02:44Z"
+}

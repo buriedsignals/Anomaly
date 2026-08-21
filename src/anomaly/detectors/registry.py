@@ -31,6 +31,15 @@ _ORDER = (
     "temporal.timezone_activity_shifts", "text.path_hostname_leakage",
     "text.portfolio_cloning", "text.secret_patterns",
 )
+_GAIN_ORDER = tuple(
+    f"gain.{name}"
+    for name in (
+        "spending_spikes", "missing_income_filings", "revolving_door_candidates",
+        "foreign_filings", "single_client_juggernauts", "pac_contribution_flow",
+        "issue_concentration_shifts", "new_registrant_surge", "shell_pattern_filings",
+        "fara_gap_narrowed", "revolving_door_committee_match", "committee_say_vs_pay",
+    )
+)
 _FORBIDDEN = re.compile(
     r"\b(?:CREATE|INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|ATTACH|DETACH|COPY|"
     r"INSTALL|LOAD|EXPORT|IMPORT|CALL|PRAGMA|SET|RESET)\b", re.IGNORECASE
@@ -62,6 +71,39 @@ def _redact_output(value: Any, policy: str) -> Any:
     if isinstance(value, list):
         return [_redact_output(item, policy) for item in value]
     return value
+
+
+def normalize_detector_result(
+    result: dict[str, Any],
+    *,
+    detector_id: str,
+    source_detector_id: str,
+    source_sql_hash: str,
+    source_hash: str,
+    detector_hash: str,
+    table_id: str,
+) -> dict[str, Any]:
+    """Wrap one detector row as a local lead with source-bound lineage."""
+    if not isinstance(result, dict) or not detector_id or not source_detector_id:
+        raise RegistryError("detector result and provenance identifiers are required")
+    if not detector_hash.startswith("sha256:") or not source_hash.startswith("sha256:"):
+        raise RegistryError("detector and source hashes must be sha256 values")
+    family = detector_id.split(".", 1)[0]
+    return {
+        **result,
+        "status": "lead",
+        "detector_id": detector_id,
+        "table_id": table_id,
+        "source_hash": source_hash,
+        "provenance": {
+            "source_family": family,
+            "source_detector_id": source_detector_id,
+            "source_sql_hash": source_sql_hash,
+            "source_hash": source_hash,
+            "detector_hash": detector_hash,
+            "table_id": table_id,
+        },
+    }
 
 
 def _yaml(path: Path) -> dict[str, Any]:
@@ -167,7 +209,10 @@ def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> li
             raise RegistryError("duplicate detector id")
         seen.add(detector_id)
         result.append(metadata)
-    order = {detector_id: index for index, detector_id in enumerate(_ORDER)}
+    order = {
+        detector_id: index
+        for index, detector_id in enumerate(_ORDER + _GAIN_ORDER)
+    }
     return sorted(result, key=lambda item: (order.get(item["id"], len(order)), item["id"]))
 
 
@@ -257,23 +302,22 @@ def execute_detectors(
                         )
                     for row in rows:
                         candidate = str(row.get("candidate_id", "candidate"))
-                        payload = {
-                            **_redact_output(
+                        payload = normalize_detector_result(
+                            _redact_output(
                                 detect.redact_credentials(detect._json_safe(row)),
                                 str(metadata.get("sensitive_output")),
                             ),
-                            "status": "lead", "detector_id": detector_id,
-                            "table_id": selected_table_id, "source_hash": table["source_hash"],
-                            "signal_id": "signal-" + hashlib.sha256(
-                                f"{detector_id}:{selected_table_id}:{candidate}".encode()
-                            ).hexdigest()[:24],
-                            "provenance": {
-                                "detector_id": detector_id,
-                                "detector_hash": metadata["implementation_hash"],
-                                "source_hash": table["source_hash"],
-                                "parameters": metadata.get("parameters", {}),
-                            },
-                        }
+                            detector_id=detector_id,
+                            source_detector_id=str(metadata.get("source_detector_id", detector_id)),
+                            source_sql_hash=str(metadata.get("source_sql_hash", "")),
+                            source_hash=table["source_hash"],
+                            detector_hash=metadata["implementation_hash"],
+                            table_id=selected_table_id,
+                        )
+                        payload["provenance"]["parameters"] = metadata.get("parameters", {})
+                        payload["signal_id"] = "signal-" + hashlib.sha256(
+                            f"{detector_id}:{selected_table_id}:{candidate}".encode()
+                        ).hexdigest()[:24]
                         results.append(payload)
         return results
     except detect.DetectorError as error:

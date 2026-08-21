@@ -1,0 +1,39 @@
+{
+  "name": "D8_new_registrant_surge",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH first_filing AS (\n                SELECT\n                    registrant_id,\n                    min(filing_year * 10 + CAST(substr(filing_type, 2, 1) AS INTEGER)) AS first_yp\n                FROM senate_filings\n                WHERE filing_type IN ('Q1','Q2','Q3','Q4')\n                GROUP BY 1\n            ),\n            recent_qs AS (\n                SELECT max(filing_year * 10 + CAST(substr(filing_type, 2, 1) AS INTEGER)) AS max_yp\n                FROM senate_filings\n                WHERE filing_type IN ('Q1','Q2','Q3','Q4')\n            ),\n            new_regs AS (\n                SELECT ff.registrant_id, ff.first_yp\n                FROM first_filing ff, recent_qs r\n                WHERE ff.first_yp >= r.max_yp - 2\n            )\n            SELECT\n                f.registrant_id,\n                any_value(f.registrant_name) AS registrant_name,\n                count(DISTINCT f.filing_uuid) AS filings_in_window,\n                count(DISTINCT f.client_id) AS distinct_clients,\n                sum(coalesce(f.income, 0)) AS total_income,\n                string_agg(DISTINCT f.client_name, ' | ') AS clients\n            FROM senate_filings f\n            JOIN new_regs nr ON f.registrant_id = nr.registrant_id\n            WHERE f.filing_type IN ('Q1','Q2','Q3','Q4')\n            GROUP BY 1\n            HAVING total_income > 0\n            ORDER BY total_income DESC\n            LIMIT 200\n        ",
+  "sql_hash": "e51ec9c1d23d4479",
+  "params": {
+    "limit": 200,
+    "lookback_quarters": 2
+  },
+  "schema": [
+    {
+      "column": "registrant_id",
+      "type": "INTEGER"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filings_in_window",
+      "type": "BIGINT"
+    },
+    {
+      "column": "distinct_clients",
+      "type": "BIGINT"
+    },
+    {
+      "column": "total_income",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "clients",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 45,
+  "elapsed_seconds": 0.033,
+  "executed_at": "2026-05-22T09:03:11Z"
+}

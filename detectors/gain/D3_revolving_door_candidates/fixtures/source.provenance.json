@@ -1,0 +1,42 @@
+{
+  "name": "D3_revolving_door_candidates",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            WITH personal AS (\n                SELECT\n                    lobbyist_id,\n                    first_name, last_name,\n                    any_value(covered_position) AS sample_position,\n                    count(DISTINCT filing_uuid) AS filings_with_lobbyist,\n                    count(DISTINCT covered_position) AS distinct_positions\n                FROM senate_activity_lobbyists\n                WHERE covered_position IS NOT NULL AND length(covered_position) >= 12\n                GROUP BY 1,2,3\n            ),\n            with_clients AS (\n                SELECT\n                    p.*,\n                    (\n                        SELECT string_agg(DISTINCT f.client_name, ' | ')\n                        FROM senate_activity_lobbyists al\n                        JOIN senate_filings f USING (filing_uuid)\n                        WHERE al.lobbyist_id = p.lobbyist_id\n                          AND f.client_name IS NOT NULL\n                    ) AS clients_lobbied_for\n                FROM personal p\n            )\n            SELECT *\n            FROM with_clients\n            ORDER BY filings_with_lobbyist DESC\n            LIMIT 500\n        ",
+  "sql_hash": "61b1486a422655b1",
+  "params": {
+    "limit": 500
+  },
+  "schema": [
+    {
+      "column": "lobbyist_id",
+      "type": "INTEGER"
+    },
+    {
+      "column": "first_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "last_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "sample_position",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "filings_with_lobbyist",
+      "type": "BIGINT"
+    },
+    {
+      "column": "distinct_positions",
+      "type": "BIGINT"
+    },
+    {
+      "column": "clients_lobbied_for",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 500,
+  "elapsed_seconds": 0.04,
+  "executed_at": "2026-05-22T09:02:44Z"
+}

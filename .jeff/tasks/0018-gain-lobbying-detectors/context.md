@@ -18,3 +18,7 @@
 - Constraints: plan stage may edit tests and task notes/context only; no live
   acquisition, hosted keys/runtime, orchestration, service, UI, deployment,
   membership, metering, CLI, or MCP concepts.
+- Kickback disposition: the focused suite's single failure was a false positive
+  from substring matching `mcp` inside the byte-exact D3 fixture value `MCPC`.
+  The test contract uses escaped word-boundary matching so standalone forbidden
+  concepts remain rejected without changing production code or fixture bytes.

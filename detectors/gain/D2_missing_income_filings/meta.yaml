@@ -1,0 +1,28 @@
+id: gain.missing_income_filings
+version: 1.0.0
+title: GAIN D2 missing income filings
+author: gain-2026
+license: internal
+group: domain
+family: gain
+source_detector_id: D2
+source_name: D2_missing_income_filings
+source_sql_hash: fb87b5e50dca9aa7
+source_provenance_hash: sha256:56cd7f6c686aebe6ebe2a8e6b4f69478ddc994aaa34c8786658d7bd29ce7e822
+source_csv_hash: sha256:ed1fea798ea180b4959585b197dc62cf874604e4eb847fa92de3cce3d2ff46b5
+source_row_count: 200
+source_columns: [registrant_id, registrant_name, quarterly_filings_with_null_income, distinct_clients, first_seen, last_seen]
+description: Quarterly filings with null income clustered by registrant.
+required_tables: ["*"]
+required_fields: [id]
+parameters:
+  limit: 200
+  min_filings: 4
+signal_category: lobbying
+severity: medium
+expected_output: [registrant_id, registrant_name, quarterly_filings_with_null_income, distinct_clients, first_seen, last_seen]
+assumptions: [Prepared local tables use the GAIN source schema.]
+false_positives: [Legitimate activity can produce the observed pattern.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5}
+query: query.sql

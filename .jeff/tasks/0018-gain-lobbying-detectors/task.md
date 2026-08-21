@@ -18,6 +18,8 @@ local detector catalogue while preserving signal behavior and provenance.
 
 1. D1–D12 are represented as local Anomaly detector packages with stable IDs,
    metadata, SQL, hashes, and provenance distinct from the 20 M2 core detectors.
+   IDs are namespaced and discoverable by category/data type so this remains a
+   scalable menu for hundreds of future detectors rather than a GAIN-only path.
 2. The port preserves the source detector semantics, parameters, output fields,
    and deterministic ordering; source SQL hashes and Anomaly hashes are both
    recorded for traceability.
@@ -25,11 +27,14 @@ local detector catalogue while preserving signal behavior and provenance.
    including row identity and ordering where the source artifact defines them.
 4. Detector outputs use Anomaly's normalized lead/provenance contract and retain
    source detector ID, version, SQL hash, input/source hashes, and run metadata.
+   Each GAIN package records a visible attribution note that it was built during
+   the GAIN 2026 Challenge and identifies the source repository.
 5. Ported detectors execute through the local registry's bounded, read-only,
    approval-gated path without hosted keys, hosted runtime, service, CLI, web UI,
    deployment, membership, metering, or MCP concepts.
 6. Tests cover all 12 detectors, parity fixtures, hash/provenance translation,
-   parameter validation, recommendation bounds, and forbidden-surface scope.
+   parameter validation, category/menu discovery, scalable registry behavior,
+   attribution, recommendation bounds, and forbidden-surface scope.
 
 ## Non-goals
 

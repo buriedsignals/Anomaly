@@ -1,0 +1,39 @@
+{
+  "name": "D2_missing_income_filings",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            SELECT\n                registrant_id, registrant_name,\n                count(*) AS quarterly_filings_with_null_income,\n                count(DISTINCT client_id) AS distinct_clients,\n                min(filing_year || '-' || filing_period) AS first_seen,\n                max(filing_year || '-' || filing_period) AS last_seen\n            FROM senate_filings\n            WHERE filing_type IN ('Q1','Q2','Q3','Q4')\n              AND income IS NULL\n            GROUP BY 1,2\n            HAVING count(*) >= 4\n            ORDER BY quarterly_filings_with_null_income DESC, distinct_clients DESC\n            LIMIT 200\n        ",
+  "sql_hash": "fb87b5e50dca9aa7",
+  "params": {
+    "limit": 200,
+    "min_filings": 4
+  },
+  "schema": [
+    {
+      "column": "registrant_id",
+      "type": "INTEGER"
+    },
+    {
+      "column": "registrant_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "quarterly_filings_with_null_income",
+      "type": "BIGINT"
+    },
+    {
+      "column": "distinct_clients",
+      "type": "BIGINT"
+    },
+    {
+      "column": "first_seen",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "last_seen",
+      "type": "VARCHAR"
+    }
+  ],
+  "row_count": 200,
+  "elapsed_seconds": 0.007,
+  "executed_at": "2026-05-22T09:02:44Z"
+}

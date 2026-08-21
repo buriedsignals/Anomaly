@@ -1,0 +1,38 @@
+{
+  "name": "D6_pac_contribution_flow",
+  "db_path": "case/index.duckdb",
+  "sql": "\n            SELECT\n                payee_name,\n                honoree_name,\n                count(*) AS n_contributions,\n                sum(coalesce(amount, 0)) AS total_amount,\n                count(DISTINCT filing_uuid) AS distinct_filings,\n                count(DISTINCT contributor_name) AS distinct_contributors\n            FROM senate_contribution_items\n            WHERE payee_name IS NOT NULL OR honoree_name IS NOT NULL\n            GROUP BY 1,2\n            ORDER BY total_amount DESC NULLS LAST\n            LIMIT 500\n        ",
+  "sql_hash": "aac2e9c1e8815f67",
+  "params": {
+    "limit": 500
+  },
+  "schema": [
+    {
+      "column": "payee_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "honoree_name",
+      "type": "VARCHAR"
+    },
+    {
+      "column": "n_contributions",
+      "type": "BIGINT"
+    },
+    {
+      "column": "total_amount",
+      "type": "DOUBLE"
+    },
+    {
+      "column": "distinct_filings",
+      "type": "BIGINT"
+    },
+    {
+      "column": "distinct_contributors",
+      "type": "BIGINT"
+    }
+  ],
+  "row_count": 500,
+  "elapsed_seconds": 0.033,
+  "executed_at": "2026-05-22T09:02:45Z"
+}

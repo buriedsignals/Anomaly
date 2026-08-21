@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import importlib
+import re
 from pathlib import Path
 
 import pytest
@@ -96,4 +97,4 @@ def test_gain_scope_has_no_hosted_orchestration_surface() -> None:
     text_suffixes = {".py", ".yaml", ".sql", ".md", ".json", ".csv"}
     text = "\n".join(path.read_text(encoding="utf-8") for root in roots for path in root.rglob("*") if path.is_file() and path.suffix in text_suffixes).lower()
     forbidden = ("api_key", "hosted runtime", "membership", "metering", "navigator cli", "web ui", "deployment", "mcp", "agent persona")
-    assert not any(term in text for term in forbidden)
+    assert not any(re.search(rf"\b{re.escape(term)}\b", text) for term in forbidden)

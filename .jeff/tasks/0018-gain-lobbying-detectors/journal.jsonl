@@ -1,2 +1,11 @@
 {"seq":0,"at":"2026-08-21T17:09:27.472Z","event":"intent","stage":"plan","note":"Capture locked GAIN D1-D12 port from gain-2026 data-detective detector definitions and committed anomaly CSV/provenance parity artifacts; keep GAIN source family separate from 20 M2 core detectors and local-only scope."}
 {"seq":1,"at":"2026-08-21T17:13:51.126Z","event":"record","stage":"plan","agent":"01a0254c-af6e-77c3-b3df-c863cba5d1ab"}
+{"seq":2,"at":"2026-08-21T17:14:38.255Z","event":"intent","stage":"implement","note":"Implement recorded RED contract for GAIN D1-D12 catalogue, parity fixtures, hashes, and shared bounded execution integration."}
+{"seq":3,"at":"2026-08-21T17:24:50.709Z","event":"record","stage":"implement","agent":"01a02554-3b1a-7390-a6e7-8c7de21e8a35"}
+{"seq":4,"at":"2026-08-21T17:25:07.615Z","event":"intent","stage":"plan","note":"Repair the forbidden-scope regression contract: avoid matching legitimate fixture value MCPC as forbidden mcp while preserving exact GAIN fixture hashes; update tests/notes/context only."}
+{"seq":5,"at":"2026-08-21T17:25:32.218Z","event":"intent","stage":"implement","note":"Chef clarification: GAIN D1-D12 must be first-class namespaced catalogue entries grouped by data type/category for a scalable menu supporting hundreds of future detectors; GAIN 2026 Challenge attribution and source repository must be visible metadata/docs; no special GAIN execution path."}
+{"seq":6,"at":"2026-08-21T17:28:06.568Z","event":"record","stage":"plan","agent":"01a0255b-3411-79a0-a2b0-66f99cc8fac1"}
+{"seq":7,"at":"2026-08-21T17:28:11.249Z","event":"intent","stage":"implement","note":"Re-run fresh implementation station after test-contract repair; preserve existing production port and exact fixture bytes, run focused suite only."}
+{"seq":8,"at":"2026-08-21T17:29:17.581Z","event":"record","stage":"implement","agent":"01a0255d-eccc-7fc2-b75b-77b2fbdc98e4"}
+{"seq":9,"at":"2026-08-21T17:29:33.684Z","event":"intent","stage":"refactor","note":"Perform behavior-preserving simplification of the GAIN registry integration; preserve exact fixtures and focused behavior."}
+{"seq":10,"at":"2026-08-21T17:30:40.254Z","event":"record","stage":"refactor","agent":"01a0255f-2a22-74f0-83b4-d1783407a224"}
