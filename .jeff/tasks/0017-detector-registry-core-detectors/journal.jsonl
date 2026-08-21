@@ -1,0 +1,1 @@
+{"seq":0,"at":"2026-08-21T15:16:09.342Z","event":"intent","stage":"plan","note":"Capture locked M2 to 20 total core detectors: six existing M1 SQL detectors plus 14 new detectors, with local registry, validated SQL template, bounded recommendations/execution, provenance, and required security audit."}
