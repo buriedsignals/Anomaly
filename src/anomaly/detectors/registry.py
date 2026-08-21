@@ -19,27 +19,6 @@ _REQUIRED = {
     "sensitive_output", "resource_limits",
 }
 _ID = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
-_ORDER = (
-    "categorical.rare_levels", "cross_dataset.location_conflicts",
-    "credential.private_key_patterns", "credential.secret_patterns",
-    "domain.contractor_concentration", "domain.procurement_bid_clusters",
-    "network.cross_commit_overlap", "network.shared_infrastructure",
-    "numeric.level_shift", "numeric.zscore_outliers",
-    "relational.conflicting_profiles", "relational.shared_identifiers",
-    "table.duplicate_rows", "table.missingness_clusters",
-    "temporal.backdated_records", "temporal.coverage_gaps",
-    "temporal.timezone_activity_shifts", "text.path_hostname_leakage",
-    "text.portfolio_cloning", "text.secret_patterns",
-)
-_GAIN_ORDER = tuple(
-    f"gain.{name}"
-    for name in (
-        "spending_spikes", "missing_income_filings", "revolving_door_candidates",
-        "foreign_filings", "single_client_juggernauts", "pac_contribution_flow",
-        "issue_concentration_shifts", "new_registrant_surge", "shell_pattern_filings",
-        "fara_gap_narrowed", "revolving_door_committee_match", "committee_say_vs_pay",
-    )
-)
 _FORBIDDEN = re.compile(
     r"\b(?:CREATE|INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|ATTACH|DETACH|COPY|"
     r"INSTALL|LOAD|EXPORT|IMPORT|CALL|PRAGMA|SET|RESET)\b", re.IGNORECASE
@@ -177,6 +156,7 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
     normalized = dict(metadata)
     if normalized.get("family") == "gain":
         normalized["description"] = f"{normalized['description']} {_GAIN_ATTRIBUTION}"
+        normalized["attribution"] = _GAIN_ATTRIBUTION
         normalized["source_repository"] = "https://github.com/buriedsignals/gain-2026"
         normalized["group"] = "gain"
     normalized["package"] = str(package)
@@ -214,11 +194,30 @@ def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> li
             raise RegistryError("duplicate detector id")
         seen.add(detector_id)
         result.append(metadata)
-    order = {
-        detector_id: index
-        for index, detector_id in enumerate(_ORDER + _GAIN_ORDER)
-    }
-    return sorted(result, key=lambda item: (order.get(item["id"], len(order)), item["id"]))
+    def menu_key(item: dict[str, Any]) -> tuple[int, int, str]:
+        family = str(item.get("family", "core"))
+        source_id = str(item.get("source_detector_id", ""))
+        numeric_source_id = int(source_id[1:]) if family == "gain" and source_id[1:].isdigit() else 0
+        return (1 if family == "gain" else 0, numeric_source_id, item["id"])
+
+    return sorted(result, key=menu_key)
+
+
+def _menu_selection(
+    metadata: list[dict[str, Any]],
+    *,
+    limit: int,
+    group: str | None,
+    family: str | None,
+    signal_category: str | None,
+) -> list[dict[str, Any]]:
+    selected = [
+        item for item in metadata
+        if (group is None or item.get("group") == group)
+        and (family is None or item.get("family", "core") == family)
+        and (signal_category is None or item.get("signal_category") == signal_category)
+    ]
+    return selected[:limit]
 
 
 def recommend_detectors(
@@ -226,14 +225,36 @@ def recommend_detectors(
     *,
     max_detectors: int = 10,
     detector_roots: list[Path] | tuple[Path, ...] | None = None,
+    group: str | None = None,
+    family: str | None = None,
+    signal_category: str | None = None,
+    category: str | None = None,
 ) -> dict[str, Any]:
     """Return a deterministic, bounded plan without executing detector SQL."""
     if not isinstance(max_detectors, int) or isinstance(max_detectors, bool) or max_detectors < 1:
         raise RegistryError("max_detectors must be positive")
     limit = min(max_detectors, 10)
+    if signal_category is not None and category is not None and signal_category != category:
+        raise RegistryError("category and signal_category must agree")
+    signal_category = signal_category or category
     root = Path(root)
+    metadata = discover_detectors(detector_roots) if detector_roots is not None else discover_detectors()
+    filtered = _menu_selection(
+        metadata,
+        limit=limit,
+        group=group,
+        family=family,
+        signal_category=signal_category,
+    )
+    if group is not None or family is not None or signal_category is not None:
+        return {
+            "recommended": [item["id"] for item in filtered],
+            "approved": [],
+            "parameters": {item["id"]: item.get("parameters", {}) for item in filtered},
+            "reasons": {item["id"]: {"table_ids": []} for item in filtered},
+            "blocked": [],
+        }
     if detector_roots is not None:
-        metadata = discover_detectors(detector_roots)
         selected = [item["id"] for item in metadata[:limit]]
         return {
             "recommended": selected,
@@ -243,13 +264,11 @@ def recommend_detectors(
             "blocked": [],
         }
     if not root.is_dir() or not (root / "data" / "index.duckdb").is_file():
-        metadata = discover_detectors()
         selected = [item["id"] for item in metadata[:limit]]
         return {"recommended": selected, "approved": [], "parameters": {}, "reasons": {}, "blocked": []}
     try:
         plan = recommend.recommend_detectors(root, now=datetime.now(timezone.utc), max_detectors=limit)
     except recommend.RecommendationError as error:
-        metadata = discover_detectors()
         table_ids = [table["table_id"] for table in detect._prepared_tables(root)]
         source_ids = {table["source_id"] for table in detect._prepared_tables(root)}
         eligible = [
@@ -284,7 +303,6 @@ def recommend_detectors(
     except detect.DetectorError:
         source_ids = set()
     if not any(source_id.startswith("senate_") for source_id in source_ids):
-        metadata = discover_detectors()
         allowed = {item["id"] for item in metadata if item.get("family") != "gain"}
         recommended = [item for item in plan["recommended"] if item in allowed]
         for item in sorted(allowed - set(recommended)):
@@ -368,6 +386,19 @@ def execute_detectors(
                     table_id=table["table_id"],
                 )
                 payload["provenance"]["parameters"] = metadata.get("parameters", {})
+                payload["provenance"].update(
+                    {
+                        "detector_version": metadata["version"],
+                        "source_provenance_hash": metadata.get("source_provenance_hash"),
+                        "source_csv_hash": metadata.get("source_csv_hash"),
+                        "package_hash": metadata["implementation_hash"],
+                        "run": {
+                            "run_id": run_id,
+                            "executed_at": datetime.now(timezone.utc).isoformat(),
+                            "limits": execution_limits,
+                        },
+                    }
+                )
                 payload["run_id"] = run_id
                 payload["executed_at"] = datetime.now(timezone.utc).isoformat()
                 payload["limits"] = execution_limits

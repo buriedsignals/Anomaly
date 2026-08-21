@@ -23,3 +23,6 @@
 {"seq":22,"at":"2026-08-21T17:53:29.442Z","event":"record","stage":"plan","agent":"01a02571-03fa-71a3-839b-3f48238465ff"}
 {"seq":23,"at":"2026-08-21T17:53:41.254Z","event":"intent","stage":"implement","note":"Fresh implementer: resolve the new RED GAIN contracts through the single scalable registry; production/package changes only, no test edits."}
 {"seq":24,"at":"2026-08-21T18:00:10.772Z","event":"record","stage":"implement","agent":"01a02575-4cd6-7253-9ad0-4d5f0c2be101"}
+{"seq":25,"at":"2026-08-21T18:00:26.158Z","event":"gate","hash":"2d83ee49cde555eb4b1dacd49594000a81a451ad","green":true,"clean":true}
+{"seq":26,"at":"2026-08-21T18:06:00.575Z","event":"record","stage":"plan","agent":"01a0256d-5eea-76b0-b56b-1ba422c5d7b9"}
+{"seq":27,"at":"2026-08-21T18:10:23.691Z","event":"intent","stage":"implement","note":"Fresh production-only repair: dynamic menu selection, complete execution provenance, and shared registry integration."}

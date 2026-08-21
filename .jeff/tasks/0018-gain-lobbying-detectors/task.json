@@ -6,14 +6,14 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "implement",
   "priority": "p1",
   "deps": [
     17
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T18:00:10Z",
+  "updatedAt": "2026-08-21T18:06:00Z",
   "agents": {
     "implementer_agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
     "reviewer_agent_id": null,
@@ -21,14 +21,25 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a02571-03fa-71a3-839b-3f48238465ff",
-    "green": false,
+    "authored_by_agent_id": "01a0256d-5eea-76b0-b56b-1ba422c5d7b9",
+    "green": true,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ]
+    ],
+    "gate": {
+      "hash": "2d83ee49cde555eb4b1dacd49594000a81a451ad",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-21T18:00:26Z"
+    }
   },
   "review": {
     "verdict": null,
@@ -267,21 +278,20 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Add prepared-case Gate A execution tests",
-      "Add parameter and multi-table deduplication tests",
-      "Add scalable recommendation and attribution tests",
-      "Add source-checkout row parity and lineage tests",
-      "Preserve forbidden-surface constraints"
+      "Add valid prepared-case execution coverage for representative single- and multi-table GAIN detectors, including parameter and table-scope correctness.",
+      "Add category-aware menu/recommendation, complete provenance, source parity, and explicit GAIN attribution proof.",
+      "Keep the namespaced gain.* family scalable and separate from the 20 M2 core detectors."
     ],
     "testFiles": [
-      "tests/test_gain_detectors.py"
+      "tests/test_gain_detectors.py",
+      "tests/test_detector_registry.py"
     ],
     "redRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py; env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-      "output": "Focused: 7 failed, 18 passed. Full suite: 676 passed, 7 failed; failures are the new RED GAIN tests."
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py tests/test_detector_registry.py",
+      "output": "44 passed after test-contract repair; original review round had 675 passed but lacked valid-case execution proof."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize GAIN execution with the existing namespaced registry and normalized provenance envelope."
+    "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
   },
   "implement": {
     "agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
