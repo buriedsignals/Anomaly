@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 6
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D6
 source_name: D6_pac_contribution_flow
 source_sql_hash: aac2e9c1e8815f67
@@ -13,7 +17,7 @@ source_csv_hash: sha256:a4bce45c0a8d1c4bd273e4004159330183b622203cb898be7ff872af
 source_row_count: 500
 source_columns: [payee_name, honoree_name, n_contributions, total_amount, distinct_filings, distinct_contributors]
 description: Contribution flows aggregated by payee and honoree.
-required_tables: ["*"]
+required_tables: [senate_contribution_items]
 required_fields: [id]
 parameters:
   limit: 500
@@ -23,5 +27,5 @@ expected_output: [payee_name, honoree_name, n_contributions, total_amount, disti
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

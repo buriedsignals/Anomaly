@@ -32,9 +32,6 @@ _SENSITIVE_KEY = re.compile(
     r"(?:api[_-]?key|access[_-]?token|authorization|credential|password|passwd|secret|token|private[_-]?key)",
     re.IGNORECASE,
 )
-_GAIN_ATTRIBUTION = "Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026"
-
-
 class RegistryError(detect.DetectorError):
     """A detector package or execution request is invalid."""
 
@@ -154,11 +151,11 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
         raise RegistryError("invalid sensitive-output policy")
     _validate_query(package, metadata)
     normalized = dict(metadata)
-    if normalized.get("family") == "gain":
-        normalized["description"] = f"{normalized['description']} {_GAIN_ATTRIBUTION}"
-        normalized["attribution"] = _GAIN_ATTRIBUTION
-        normalized["source_repository"] = "https://github.com/buriedsignals/gain-2026"
-        normalized["group"] = "gain"
+    attribution = normalized.get("attribution")
+    repository = normalized.get("source_repository")
+    if isinstance(attribution, str) and attribution and isinstance(repository, str) and repository:
+        if attribution not in str(normalized.get("description", "")):
+            normalized["description"] = f"{normalized['description']} {attribution}; source repository: {repository}"
     normalized["package"] = str(package)
     normalized["implementation_hash"] = _hash_package(package)
     return normalized
@@ -194,13 +191,62 @@ def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> li
             raise RegistryError("duplicate detector id")
         seen.add(detector_id)
         result.append(metadata)
-    def menu_key(item: dict[str, Any]) -> tuple[int, int, str]:
-        family = str(item.get("family", "core"))
-        source_id = str(item.get("source_detector_id", ""))
-        numeric_source_id = int(source_id[1:]) if family == "gain" and source_id[1:].isdigit() else 0
-        return (1 if family == "gain" else 0, numeric_source_id, item["id"])
+    return sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
 
-    return sorted(result, key=menu_key)
+
+def _table_matches(table: dict[str, Any], requirement: Any) -> bool:
+    return requirement == "*" or (
+        isinstance(requirement, str)
+        and requirement in {table.get("table_id"), table.get("source_id"), table.get("name")}
+    )
+
+
+def _compatible_tables(root: Path, metadata: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+    has_profile = True
+    try:
+        profile = recommend._read_json(root, "data/prepared/profile.json")
+        profile_tables = profile.get("tables") if isinstance(profile, dict) else None
+    except recommend.RecommendationError:
+        has_profile = False
+        profile_tables = [
+            {"table_id": table["table_id"], "source_id": table["source_id"]}
+            for table in detect._prepared_tables(root)
+        ]
+    if not isinstance(profile_tables, list) or not profile_tables:
+        return [], "profile has no prepared tables"
+    requirements = metadata.get("required_tables", [])
+    if isinstance(requirements, str):
+        requirements = [requirements]
+    if not isinstance(requirements, list):
+        requirements = []
+    if "*" in requirements:
+        matched = [table for table in profile_tables if isinstance(table, dict)]
+    else:
+        matched = [
+            table for table in profile_tables
+            if isinstance(table, dict)
+            and any(_table_matches(table, requirement) for requirement in requirements)
+        ]
+        if any(
+            not any(
+                isinstance(table, dict) and _table_matches(table, requirement)
+                for table in profile_tables
+            )
+            for requirement in requirements
+        ):
+            return [], "incompatible with profile (required table)"
+    fields = metadata.get("required_fields", [])
+    if isinstance(fields, str):
+        fields = [fields]
+    if not isinstance(fields, list):
+        fields = []
+    if has_profile and any(
+        not isinstance(table.get("fields"), dict)
+        or any(field not in table["fields"] for field in fields if isinstance(field, str))
+        for table in matched
+    ):
+        return [], "incompatible with profile (required field)"
+    return matched, None
 
 
 def _menu_selection(
@@ -239,80 +285,46 @@ def recommend_detectors(
     signal_category = signal_category or category
     root = Path(root)
     metadata = discover_detectors(detector_roots) if detector_roots is not None else discover_detectors()
-    filtered = _menu_selection(
-        metadata,
-        limit=limit,
-        group=group,
-        family=family,
-        signal_category=signal_category,
-    )
-    if group is not None or family is not None or signal_category is not None:
-        return {
-            "recommended": [item["id"] for item in filtered],
-            "approved": [],
-            "parameters": {item["id"]: item.get("parameters", {}) for item in filtered},
-            "reasons": {item["id"]: {"table_ids": []} for item in filtered},
-            "blocked": [],
-        }
-    if detector_roots is not None:
-        selected = [item["id"] for item in metadata[:limit]]
-        return {
-            "recommended": selected,
-            "approved": [],
-            "parameters": {item["id"]: item.get("parameters", {}) for item in metadata[:limit]},
-            "reasons": {item["id"]: {"table_ids": []} for item in metadata[:limit]},
-            "blocked": [],
-        }
-    if not root.is_dir() or not (root / "data" / "index.duckdb").is_file():
-        selected = [item["id"] for item in metadata[:limit]]
-        return {"recommended": selected, "approved": [], "parameters": {}, "reasons": {}, "blocked": []}
-    try:
-        plan = recommend.recommend_detectors(root, now=datetime.now(timezone.utc), max_detectors=limit)
-    except recommend.RecommendationError as error:
-        table_ids = [table["table_id"] for table in detect._prepared_tables(root)]
-        source_ids = {table["source_id"] for table in detect._prepared_tables(root)}
-        eligible = [
-            item for item in metadata
-            if item.get("family") != "gain" or any(source_id.startswith("senate_") for source_id in source_ids)
-        ]
-        selected: list[dict[str, Any]] = []
-        groups: set[str] = set()
-        for item in eligible:
-            if item.get("group") not in groups:
-                selected.append(item)
-                groups.add(str(item.get("group")))
-            if len(selected) >= limit:
-                break
-        for item in eligible:
-            if len(selected) >= limit:
-                break
-            if item not in selected:
-                selected.append(item)
-        gain_items = [item for item in eligible if item.get("family") == "gain"]
-        if gain_items and not any(item.get("family") == "gain" for item in selected):
-            selected[-1] = gain_items[0]
-        plan = {
-            "recommended": [item["id"] for item in selected],
-            "approved": [],
-            "parameters": {item["id"]: item.get("parameters", {}) for item in selected},
-            "reasons": {item["id"]: {"table_ids": table_ids} for item in selected},
-            "blocked": [],
-        }
-    try:
-        source_ids = {table["source_id"] for table in detect._prepared_tables(root)}
-    except detect.DetectorError:
-        source_ids = set()
-    if not any(source_id.startswith("senate_") for source_id in source_ids):
-        allowed = {item["id"] for item in metadata if item.get("family") != "gain"}
-        recommended = [item for item in plan["recommended"] if item in allowed]
-        for item in sorted(allowed - set(recommended)):
-            if len(recommended) >= limit:
-                break
-            recommended.append(item)
-        plan["recommended"] = recommended[:limit]
-        plan["parameters"] = {item: plan["parameters"][item] for item in plan["parameters"] if item in plan["recommended"]}
-        plan["reasons"] = {item: plan["reasons"][item] for item in plan["reasons"] if item in plan["recommended"]}
-    return plan
+    filtered = _menu_selection(metadata, limit=len(metadata), group=group, family=family, signal_category=signal_category)
+    case_ready = detector_roots is None and root.is_dir() and (root / "data" / "index.duckdb").is_file()
+    eligible: list[dict[str, Any]] = []
+    reasons: dict[str, dict[str, Any]] = {}
+    blocked: list[dict[str, str]] = []
+    for item in filtered:
+        tables: list[dict[str, Any]] = []
+        if case_ready:
+            try:
+                tables, reason = _compatible_tables(root, item)
+            except (RegistryError, recommend.RecommendationError):
+                reason = "incompatible with prepared profile"
+            if reason is not None:
+                blocked.append({"id": item["id"], "reason": reason})
+                continue
+        eligible.append(item)
+        reasons[item["id"]] = {"table_ids": [table["table_id"] for table in tables]}
+    selected: list[dict[str, Any]] = []
+    dimensions: set[str] = set()
+    for item in eligible:
+        dimension = str(item.get("data_type", item.get("signal_category", "")))
+        if dimension not in dimensions:
+            selected.append(item)
+            dimensions.add(dimension)
+        if len(selected) >= limit:
+            break
+    for item in eligible:
+        if len(selected) >= limit:
+            break
+        if item not in selected:
+            selected.append(item)
+    selected = selected[:limit]
+    selected_ids = [item["id"] for item in selected]
+    return {
+        "recommended": selected_ids,
+        "approved": [],
+        "parameters": {item["id"]: item.get("parameters", {}) for item in selected},
+        "reasons": {item_id: reasons[item_id] for item_id in selected_ids},
+        "blocked": sorted(blocked, key=lambda item: item["id"]),
+    }
 
 
 def execute_detectors(
@@ -348,24 +360,41 @@ def execute_detectors(
             selected_table_ids = tuple(scope) if "*" not in scope else tuple(tables)
             if not selected_table_ids:
                 raise RegistryError("approved table scope is empty")
-            table = tables[selected_table_ids[0]]
-            if any(tables[item]["source_hash"] not in source_hashes.values() for item in selected_table_ids):
+            detector_tables = [tables[item] for item in selected_table_ids]
+            if any(table["source_hash"] not in source_hashes.values() for table in detector_tables):
                 raise RegistryError("prepared source is not registered")
+            declared_memory = metadata.get("resource_limits", {}).get("memory_mb")
+            if isinstance(declared_memory, int) and not isinstance(declared_memory, bool) and declared_memory > 0:
+                if "memory_mb" in (limits or {}) and execution_limits["memory_mb"] > declared_memory:
+                    raise RegistryError(f"requested memory exceeds detector bound: {detector_id}")
+                detector_limits = {**execution_limits, "memory_mb": min(execution_limits["memory_mb"], declared_memory)}
+            else:
+                detector_limits = execution_limits
             query = (Path(metadata["package"]) / "query.sql").read_text(encoding="utf-8")
-            source_tables = {item["source_id"]: detect._identifier(item["table_id"]) for item in tables.values()}
+            source_tables = {item["source_id"]: detect._identifier(item["table_id"]) for item in detector_tables}
             for source_id, prepared_id in source_tables.items():
                 query = re.sub(rf"(?<![A-Za-z0-9_]){re.escape(source_id)}(?![A-Za-z0-9_])", prepared_id, query)
-            query = query.replace("{{table_id}}", detect._identifier(table["table_id"]))
+            query = query.replace("{{table_id}}", detect._identifier(detector_tables[0]["table_id"]))
             detect.validate_read_only_sql(query)
             with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
                 connection.execute("PRAGMA enable_external_access=false")
-                connection.execute("SET threads = ?", [execution_limits["threads"]])
+                connection.execute("SET threads = ?", [detector_limits["threads"]])
+                connection.execute(f"PRAGMA memory_limit='{detector_limits['memory_mb']}MB'")
                 rows = detect._run_query(
                     connection, query, list(metadata.get("parameters", {}).values()),
-                    execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
+                    detector_limits["timeout_seconds"], detector_limits["max_output_rows"],
                 )
             for row in rows:
-                candidate = str(row.get("candidate_id", "candidate"))
+                candidate = str(row.get("candidate_id") or next(iter(row.values()), "candidate"))
+                executed_at = datetime.now(timezone.utc).isoformat()
+                evidence_refs = [
+                    {
+                        "source_id": table["source_id"],
+                        "table_id": table["table_id"],
+                        "candidate_id": row.get("candidate_id", candidate),
+                    }
+                    for table in detector_tables
+                ]
                 payload = normalize_detector_result(
                     _redact_output(
                         detect.redact_credentials(detect._json_safe(row)),
@@ -374,9 +403,22 @@ def execute_detectors(
                     detector_id=detector_id,
                     source_detector_id=str(metadata.get("source_detector_id", detector_id)),
                     source_sql_hash=str(metadata.get("source_sql_hash", "")),
-                    source_hash=table["source_hash"],
+                    source_hash=detector_tables[0]["source_hash"],
                     detector_hash=metadata["implementation_hash"],
-                    table_id=table["table_id"],
+                    table_id=detector_tables[0]["table_id"],
+                )
+                payload.update(
+                    {
+                        "candidate_id": candidate,
+                        "detector_version": metadata["version"],
+                        "detector_hash": metadata["implementation_hash"],
+                        "category": metadata["signal_category"],
+                        "severity": metadata["severity"],
+                        "observed_at": row.get("observed_at", executed_at),
+                        "summary": metadata["title"],
+                        "evidence_refs": evidence_refs,
+                        "warnings": [],
+                    }
                 )
                 payload["provenance"]["parameters"] = metadata.get("parameters", {})
                 payload["provenance"].update(
@@ -388,15 +430,24 @@ def execute_detectors(
                         "run": {
                             "run_id": run_id,
                             "executed_at": datetime.now(timezone.utc).isoformat(),
-                            "limits": execution_limits,
+                            "limits": detector_limits,
+                        },
+                        "table_ids": [table["table_id"] for table in detector_tables],
+                        "source_hashes": [table["source_hash"] for table in detector_tables],
+                        "table_sources": {
+                            table["table_id"]: {
+                                "source_id": table["source_id"],
+                                "source_hash": table["source_hash"],
+                            }
+                            for table in detector_tables
                         },
                     }
                 )
                 payload["run_id"] = run_id
-                payload["executed_at"] = datetime.now(timezone.utc).isoformat()
-                payload["limits"] = execution_limits
+                payload["executed_at"] = executed_at
+                payload["limits"] = detector_limits
                 payload["signal_id"] = "signal-" + hashlib.sha256(
-                    f"{detector_id}:{table['table_id']}:{candidate}".encode()
+                    f"{detector_id}:{','.join(selected_table_ids)}:{candidate}".encode()
                 ).hexdigest()[:24]
                 results.append(payload)
         return results

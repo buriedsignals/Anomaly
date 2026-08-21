@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 12
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D12
 source_name: D12_committee_say_vs_pay
 source_sql_hash: 274c4ef00515cd73
@@ -13,7 +17,7 @@ source_csv_hash: sha256:508ee7a65bb3f1f535f8f190cdf4cbd88259b28e289ae8f44eade65c
 source_row_count: 161
 source_columns: [lobbying_firm, lobbied_client, lobbyist, former_role, current_committee_members, attack_press_releases, committee_members_attacking, income]
 description: Multi-corpus committee, lobbying, and press-release comparison.
-required_tables: ["*"]
+required_tables: [senate_activity_lobbyists, senate_filings]
 required_fields: [id]
 parameters:
   target_committee: finance
@@ -25,5 +29,5 @@ expected_output: [lobbying_firm, lobbied_client, lobbyist, former_role, current_
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

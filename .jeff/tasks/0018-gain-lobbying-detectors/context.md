@@ -32,3 +32,9 @@
 - Fresh RED assertions cover prepared execution, query parameter placeholders,
   multi-table call count, capped recommendation inclusion, source-checkout CSV
   row equality, attribution URL, and normalized run lineage.
+- Recovery RED assertions additionally cover raw package attribution/source
+  fields, preservation of declared groups, metadata-ID ordering, declared
+  memory bounds, the PRD top-level signal envelope, complete D3 table/source
+  lineage, and required-table-aware recommendation filtering.
+- Recovery focused result: 8 failed, 22 passed in
+  `tests/test_gain_detectors.py`; failures are the new repair contracts.

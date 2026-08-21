@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 7
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D7
 source_name: D7_issue_concentration_shifts
 source_sql_hash: d7d0657d4e725c32
@@ -13,7 +17,7 @@ source_csv_hash: sha256:945e47913e86c99ba06efd4dcfbac8fa0bc0b89866fd481b5edc8358
 source_row_count: 126
 source_columns: [general_issue_code, filing_year, filing_period, registrants, total_income, prior_income, prior_registrants, income_delta_pct, registrants_delta_pct]
 description: Quarter-over-quarter issue-code income and registrant shifts.
-required_tables: ["*"]
+required_tables: [senate_filings, senate_lobbying_activities]
 required_fields: [id]
 parameters:
   min_qoq_delta_pct: 25
@@ -24,5 +28,5 @@ expected_output: [general_issue_code, filing_year, filing_period, registrants, t
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

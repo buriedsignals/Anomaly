@@ -39,3 +39,11 @@
 {"seq":38,"at":"2026-08-21T18:23:15.944Z","event":"intent","stage":"plan","note":"Production repair removed synthetic GAIN leads; fresh test-author must update the stale lineage assertion to expect empty results on an empty detector output while retaining valid D1/D3 lineage tests."}
 {"seq":39,"at":"2026-08-21T18:24:26.841Z","event":"record","stage":"plan","agent":"01a02590-3830-70e1-9cba-e8158145b8f1"}
 {"seq":40,"at":"2026-08-21T18:24:40.600Z","event":"record","stage":"implement","agent":"01a0258e-2199-7850-9857-0da32d5aaafa"}
+{"seq":41,"at":"2026-08-21T18:25:00.867Z","event":"gate","hash":"17ccdcb510b64c03637cb022e5c56463f7de7af8","green":true,"clean":true}
+{"seq":42,"at":"2026-08-21T18:25:00.917Z","event":"intent","stage":"review","note":"Final fresh dual review requested after synthetic-lead fallback removal and valid D1/D3 tests."}
+{"seq":43,"at":"2026-08-21T18:25:00.969Z","event":"intent","stage":"audit","note":"Final fresh security audit requested after execution-integrity repair."}
+{"seq":44,"at":"2026-08-21T18:30:25.027Z","event":"record","stage":"review","agent":"01a02593-c3ef-7f72-a07f-d8ac84bc8e83"}
+{"seq":45,"at":"2026-08-21T18:31:00.943Z","event":"record","stage":"review","agent":"01a02592-554a-73e0-bf3d-7328687568f4"}
+{"seq":46,"at":"2026-08-21T18:32:16.651Z","event":"record","stage":"audit","agent":"01a02593-9010-7040-a46a-2cff29df3090"}
+{"seq":47,"at":"2026-08-21T18:37:17.005Z","event":"record","stage":"plan","agent":"01a02598-a573-7a63-bad1-b0293b11e7b3"}
+{"seq":48,"at":"2026-08-21T18:46:44.018Z","event":"record","stage":"implement","agent":"01a025a4-298d-7661-870d-4ee61a334adb"}

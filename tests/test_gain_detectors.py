@@ -37,6 +37,47 @@ def _gain_packages() -> list[Path]:
     return sorted((Path(__file__).parents[1] / "detectors" / "gain").glob("*"))
 
 
+def _write_registry_package(
+    root: Path,
+    detector_id: str,
+    *,
+    family: str,
+    group: str,
+    source_detector_id: str | None = None,
+) -> Path:
+    package = root / detector_id.replace(".", "-")
+    package.mkdir()
+    source_line = f"source_detector_id: {source_detector_id}\n" if source_detector_id else ""
+    metadata = (
+        f"id: {detector_id}\n"
+        "version: 1.0.0\n"
+        "title: Synthetic registry package\n"
+        "author: test\n"
+        "license: CC0-1.0\n"
+        f"group: {group}\n"
+        f"family: {family}\n"
+        f"{source_line}"
+        "description: A metadata-driven registry fixture.\n"
+        "required_tables: [observations]\n"
+        "required_fields: [id]\n"
+        "parameters: {}\n"
+        "signal_category: anomaly\n"
+        "severity: low\n"
+        "expected_output: [candidate_id]\n"
+        "assumptions: [Synthetic prepared observations.]\n"
+        "false_positives: [Synthetic fixture only.]\n"
+        "sensitive_output: none\n"
+        "resource_limits: {timeout_seconds: 5}\n"
+        "query: query.sql\n"
+    )
+    (package / "meta.yaml").write_text(metadata, encoding="utf-8")
+    (package / "query.sql").write_text(
+        "SELECT id AS candidate_id FROM {{table_id}}",
+        encoding="utf-8",
+    )
+    return package
+
+
 def _approved_gain_case(
     tmp_path: Path,
     source_ids: tuple[str, ...] = ("senate_filings",),
@@ -104,6 +145,35 @@ def test_gain_metadata_exposes_challenge_attribution_and_source_repository() -> 
     assert all("GAIN 2026 Challenge" in item["description"] for item in gain)
     assert {item["source_repository"] for item in gain} == {SOURCE_REPOSITORY}
 
+    for package in _gain_packages():
+        metadata_text = (package / "meta.yaml").read_text(encoding="utf-8")
+        assert "attribution:" in metadata_text
+        assert "source_repository:" in metadata_text
+
+
+def test_registry_preserves_package_groups_and_orders_by_metadata_id(tmp_path: Path) -> None:
+    _write_registry_package(
+        tmp_path, "gain.zeta", family="gain", group="relational", source_detector_id="D1"
+    )
+    _write_registry_package(
+        tmp_path, "gain.alpha", family="gain", group="temporal", source_detector_id="D2"
+    )
+
+    discovered = _api().discover_detectors([tmp_path])
+
+    assert [item["id"] for item in discovered] == ["gain.alpha", "gain.zeta"]
+    assert {item["id"]: item["group"] for item in discovered} == {
+        "gain.alpha": "temporal",
+        "gain.zeta": "relational",
+    }
+
+
+def test_gain_packages_declare_memory_bounds() -> None:
+    for package in _gain_packages():
+        metadata = _api().validate_detector_package(package)
+        assert isinstance(metadata["resource_limits"].get("memory_mb"), int)
+        assert metadata["resource_limits"]["memory_mb"] > 0
+
 
 @pytest.mark.parametrize("source_name, expected", GAIN_MANIFEST.items())
 def test_gain_fixture_reproduces_source_rows_and_order(source_name: str, expected: dict[str, object]) -> None:
@@ -150,6 +220,14 @@ def test_gain_d1_executes_against_a_valid_prepared_schema_and_returns_detector_r
     assert results[0]["registrant_id"] == "r-1"
     assert results[0]["prior_n"] >= 3
     assert results[0]["z_score"] >= 2
+    required_signal_fields = {
+        "signal_id", "detector_id", "detector_version", "detector_hash",
+        "candidate_id", "category", "severity", "observed_at", "summary",
+        "evidence_refs", "warnings", "status",
+    }
+    assert required_signal_fields <= results[0].keys()
+    assert results[0]["category"] == "lobbying"
+    assert results[0]["status"] == "lead"
 
 
 def test_gain_d3_executes_against_valid_joined_schemas_and_returns_detector_rows(
@@ -184,6 +262,17 @@ def test_gain_d3_executes_against_valid_joined_schemas_and_returns_detector_rows
     assert results[0]["lobbyist_id"] == "l-1"
     assert results[0]["filings_with_lobbyist"] == 2
     assert results[0]["clients_lobbied_for"] == "Example Client | Another Client"
+
+    transforms = json.loads(
+        (root / "data" / "prepared" / "transforms.json").read_text(encoding="utf-8")
+    )
+    table_ids = {table["table_id"] for table in transforms["tables"]}
+    source_hashes = {table["source"]["sha256"] for table in transforms["tables"]}
+    provenance = results[0]["provenance"]
+    assert set(provenance["table_ids"]) == table_ids
+    assert set(provenance["source_hashes"]) == source_hashes
+    assert set(provenance["table_sources"]) == table_ids
+    assert {entry["source_hash"] for entry in provenance["table_sources"].values()} == source_hashes
 
 
 def test_gain_execution_errors_raise_without_synthetic_leads(
@@ -243,6 +332,32 @@ def test_gain_multi_table_scope_executes_once_without_duplicate_leads(
     assert len({result["signal_id"] for result in results}) == len(results)
 
 
+def test_gain_execution_rejects_memory_limits_above_package_bound(tmp_path: Path) -> None:
+    root = _approved_gain_case(
+        tmp_path,
+        source_payloads={
+            "senate_filings": (
+                "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n"
+                "1,r-1,Example,2024,Q1,100000,Q1\n"
+                "2,r-1,Example,2024,Q2,110000,Q2\n"
+                "3,r-1,Example,2024,Q3,90000,Q3\n"
+                "4,r-1,Example,2024,Q4,105000,Q4\n"
+                "5,r-1,Example,2025,Q1,300000,Q1\n"
+            )
+        },
+    )
+    metadata = next(item for item in _api().discover_detectors() if item["id"] == "gain.spending_spikes")
+    declared = metadata["resource_limits"]["memory_mb"]
+
+    with pytest.raises(_api().RegistryError, match=r"(?i)memory"):
+        _api().execute_detectors(
+            root,
+            ["gain.spending_spikes"],
+            approved=True,
+            limits={"memory_mb": declared + 1, "timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+        )
+
+
 def test_gain_recommendation_is_category_and_data_type_aware_and_capped_at_ten(tmp_path: Path) -> None:
     root = _approved_gain_case(tmp_path)
     plan = _api().recommend_detectors(root, max_detectors=10)
@@ -253,7 +368,15 @@ def test_gain_recommendation_is_category_and_data_type_aware_and_capped_at_ten(t
     assert all(plan["reasons"][detector_id]["table_ids"] for detector_id in plan["recommended"])
     assert gain_menu["recommended"]
     assert all(detector_id.startswith("gain.") for detector_id in gain_menu["recommended"])
-    assert {item["group"] for item in _api().discover_detectors() if item.get("family") == "gain"} == {"gain"}
+    assert {item["group"] for item in _api().discover_detectors() if item.get("family") == "gain"} == {"domain"}
+
+
+def test_gain_recommendation_excludes_multi_table_detector_from_sparse_case(tmp_path: Path) -> None:
+    root = _approved_gain_case(tmp_path)
+
+    plan = _api().recommend_detectors(root, max_detectors=10, family="gain")
+
+    assert "gain.revolving_door_candidates" not in plan["recommended"]
 
 
 def test_gain_execution_leads_include_complete_lineage_and_run_metadata(tmp_path: Path) -> None:

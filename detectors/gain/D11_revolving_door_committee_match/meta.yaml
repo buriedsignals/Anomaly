@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 11
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D11
 source_name: D11_revolving_door_committee_match
 source_sql_hash: a7712c723043a717
@@ -13,7 +17,7 @@ source_csv_hash: sha256:f09884d2874097a74ea31eb9fc072f6830273623ec28a7d7847c3ab5
 source_row_count: 200
 source_columns: [lobbyist_id, first_name, last_name, former_committee, covered_position, filing_uuid, filing_year, filing_period, registrant_name, client_name, general_issue_code, description, income, url]
 description: Lobbyist former-committee text matched to current issue codes.
-required_tables: ["*"]
+required_tables: [senate_activity_lobbyists, senate_filings, senate_lobbying_activities]
 required_fields: [id]
 parameters:
   limit: 200
@@ -23,5 +27,5 @@ expected_output: [lobbyist_id, first_name, last_name, former_committee, covered_
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

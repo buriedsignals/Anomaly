@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 10
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D10
 source_name: D10_fara_gap_narrowed
 source_sql_hash: ae4ebdb2ecf19559
@@ -13,7 +17,7 @@ source_csv_hash: sha256:66087f341d23d9de815f3c6b9b191758cdb7f44f12a59b4c6b62f0f8
 source_row_count: 200
 source_columns: [filing_uuid, filing_year, registrant_name, client_name, client_country, client_ppb_country, fe_countries, income, sig_non_us_client, sig_non_us_ppb, sig_foreign_gov_topic, sig_soe_pattern, url]
 description: Named foreign-lobbying candidates absent from the FARA registrant set.
-required_tables: ["*"]
+required_tables: [senate_filings, senate_foreign_entities, senate_lobbying_activities]
 required_fields: [id]
 parameters:
   limit: 200
@@ -23,5 +27,5 @@ expected_output: [filing_uuid, filing_year, registrant_name, client_name, client
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

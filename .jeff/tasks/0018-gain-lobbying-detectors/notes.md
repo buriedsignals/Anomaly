@@ -85,3 +85,37 @@ Full-suite preservation run:
 `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/`
 
 Result: 676 passed, 7 failed; all failures are the new GAIN RED tests.
+
+## Recovery plan / test-author contract
+
+Complexity: complex. Audit remains required because the repair changes registry
+eligibility, SQL execution bounds, and replayable provenance.
+
+Ordered slices:
+
+1. Make package metadata authoritative: preserve declared group/category and
+   stable ID ordering; move GAIN attribution and source repository into each
+   package's metadata; keep family/menu filtering generic.
+2. Make recommendation compatibility derive from declared required tables and
+   fields, excluding multi-table detectors from sparse cases while retaining
+   the global maximum of ten.
+3. Enforce each package's declared memory bound (or narrow the documented
+   execution contract before implementation if the runtime cannot enforce it).
+4. Emit the PRD minimum top-level signal fields for real D1 leads and retain
+   complete D3 table/source lineage in every lead.
+
+Test changes are confined to `tests/test_gain_detectors.py`: package-level
+attribution/source-field checks; metadata group preservation and ID ordering;
+declared memory and over-bound rejection; PRD signal-envelope assertions;
+complete D3 multi-table lineage; and sparse-case recommendation compatibility.
+Existing fixture hash/order, parameter-placeholder, approval, local-only, and
+duplicate-scope tests remain in place.
+
+Targeted RED evidence:
+
+`env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py`
+
+Result: 8 failed, 22 passed. Failures are limited to the intended repair
+contracts: package attribution fields, metadata-driven group/order behavior,
+memory declaration/bound, PRD top-level signal fields, complete D3 lineage,
+and sparse recommendation compatibility. No production files were changed.

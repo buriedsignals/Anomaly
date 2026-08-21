@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 5
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D5
 source_name: D5_single_client_juggernauts
 source_sql_hash: f9e737b8f3554a90
@@ -13,7 +17,7 @@ source_csv_hash: sha256:047a4f4834295a4ea59edf016d89a228463a0743037297a0000c6e4f
 source_row_count: 200
 source_columns: [registrant_id, registrant_name, distinct_clients, filings, total_income, earliest_year, latest_year, clients]
 description: Registrants with one or two clients and high total income.
-required_tables: ["*"]
+required_tables: [senate_filings]
 required_fields: [id]
 parameters:
   min_total_income: 250000
@@ -24,5 +28,5 @@ expected_output: [registrant_id, registrant_name, distinct_clients, filings, tot
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

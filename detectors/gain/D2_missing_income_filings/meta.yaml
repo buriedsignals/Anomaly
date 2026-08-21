@@ -5,6 +5,10 @@ author: gain-2026
 license: internal
 group: domain
 family: gain
+data_type: lobbying
+menu_order: 2
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
 source_detector_id: D2
 source_name: D2_missing_income_filings
 source_sql_hash: fb87b5e50dca9aa7
@@ -13,7 +17,7 @@ source_csv_hash: sha256:ed1fea798ea180b4959585b197dc62cf874604e4eb847fa92de3cce3
 source_row_count: 200
 source_columns: [registrant_id, registrant_name, quarterly_filings_with_null_income, distinct_clients, first_seen, last_seen]
 description: Quarterly filings with null income clustered by registrant.
-required_tables: ["*"]
+required_tables: [senate_filings]
 required_fields: [id]
 parameters:
   min_filings: 4
@@ -24,5 +28,5 @@ expected_output: [registrant_id, registrant_name, quarterly_filings_with_null_in
 assumptions: [Prepared local tables use the GAIN source schema.]
 false_positives: [Legitimate activity can produce the observed pattern.]
 sensitive_output: redact
-resource_limits: {timeout_seconds: 5}
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql
