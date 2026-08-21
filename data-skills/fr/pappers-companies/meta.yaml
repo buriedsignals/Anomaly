@@ -23,7 +23,7 @@ auth:
   setup_help: |
     Pappers API v2 accepts the member key in the `api-key` header.
     Create and activate an API account at https://www.pappers.fr/api, then run:
-      navigator keys set pappers
+      catalogue keys set pappers
     Calls consume Pappers credits; the released adapter requests no paid
     supplementary fields except the documented free company-page link.
   test_request:

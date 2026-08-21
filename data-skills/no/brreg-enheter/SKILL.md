@@ -6,7 +6,7 @@ description: >-
   to Norwegian legal-entity resolution and current register observations; do
   not confuse main entities with sub-entities or infer historical status from
   the current record.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to data.brreg.no.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.brreg.no.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 Use only released operations and treat `meta.yaml` as the executable contract.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -33,17 +33,17 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete question and inspect the operation contract:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show no/brreg/enheter:search-companies
+   catalogue data assess "<complete question>" --json
+   catalogue data show no/brreg/enheter:search-companies
    ```
 
 2. Search with a small page, retain all plausible candidates, then retrieve the
    chosen organisation number:
 
    ```bash
-   navigator query no/brreg/enheter --operation search-companies \
+   catalogue query no/brreg/enheter --operation search-companies \
      --input '{"navn":"Equinor","size":5,"page":0}'
-   navigator query no/brreg/enheter --operation get-company \
+   catalogue query no/brreg/enheter --operation get-company \
      --input '{"organisasjonsnummer":"923609016"}'
    ```
 

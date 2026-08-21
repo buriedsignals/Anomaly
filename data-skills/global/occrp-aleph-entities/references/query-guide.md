@@ -10,7 +10,7 @@
 4. Retrieve the exact ID only after documenting the resolution basis.
 
 ```bash
-navigator query global/occrp-aleph/entities --operation search-entities \
+catalogue query global/occrp-aleph/entities --operation search-entities \
   --input '{"q":"Gazprom","schema":"Company","limit":10,"offset":0}'
 ```
 
@@ -25,7 +25,7 @@ retrieval time.
 ## Exact retrieval
 
 ```bash
-navigator query global/occrp-aleph/entities --operation get-entity \
+catalogue query global/occrp-aleph/entities --operation get-entity \
   --input '{"entity_id":"<exact-id>"}'
 ```
 
@@ -36,7 +36,7 @@ command.
 ## Bounded relation expansion
 
 ```bash
-navigator query global/occrp-aleph/entities --operation expand-entity \
+catalogue query global/occrp-aleph/entities --operation expand-entity \
   --input '{"entity_id":"<exact-id>","limit":10,"properties":["directorshipDirector"]}'
 ```
 

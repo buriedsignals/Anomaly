@@ -79,7 +79,7 @@ def _normalize(record: dict[str, Any]) -> dict[str, Any]:
 def _headers(ctx) -> dict[str, str]:
     headers = {
         "Accept": "application/json",
-        "User-Agent": "BuriedSignals-Navigator/1.0",
+        "User-Agent": "BuriedSignals-catalogue/1.0",
     }
     token = ctx.get_key_optional("courtlistener")
     if token:

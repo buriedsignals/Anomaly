@@ -1,7 +1,7 @@
 ---
 name: thinkpol-reddit-evidence
 description: >-
-  Query ThinkPol's authenticated Reddit evidence API through Data Navigator.
+  Query ThinkPol's authenticated Reddit evidence API through Data catalogue.
   Use for case-insensitive AND search across archived submissions and comments,
   or when evaluating the provider's documented user-history, subreddit-user,
   quota, and AI-profile capabilities. Preserve provider and Reddit identifiers,
@@ -20,7 +20,7 @@ Use `meta.yaml` as the executable contract. Inspect the operation before every
 query and execute only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -45,13 +45,13 @@ other sections in this playbook may document provider or unreleased adapter scop
 2. Inspect the exact contract:
 
    ```bash
-   navigator data show global/thinkpol/reddit-evidence:search-content
+   catalogue data show global/thinkpol/reddit-evidence:search-content
    ```
 
 3. Run a bounded documented search:
 
    ```bash
-   navigator query global/thinkpol/reddit-evidence --operation search-content \
+   catalogue query global/thinkpol/reddit-evidence --operation search-content \
      --input '{"terms":["election","integrity"],"content_type":"comment"}'
    ```
 
@@ -107,7 +107,7 @@ credential in prompts, examples, assets, logs, or command arguments.
   evidence, full documented endpoint matrix, mappings, auth, terms, and drift.
 - [references/query-guide.md](references/query-guide.md) — query construction,
   disclosure checks, interpretation cautions, and no-result recovery.
-- `scripts/verify.py` — non-interactive bounded verification through Navigator.
+- `scripts/verify.py` — non-interactive bounded verification through catalogue.
 - `assets/verification-cases.json` — executable released-operation test case.
 - `evals/evals.json` — realistic agent evaluation prompts and expected behavior.
 
@@ -120,5 +120,5 @@ python3 scripts/verify.py --list
 Run them only when network access and the configured credential are intended:
 
 ```bash
-python3 scripts/verify.py --navigator navigator --timeout 90
+python3 scripts/verify.py --catalogue catalogue --timeout 90
 ```

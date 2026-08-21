@@ -6,7 +6,7 @@ description: >-
   Apply it to cross-border entity resolution and LEI status checks; do not
   treat missing LEI coverage as proof that an entity does not exist or equate
   a lapsed LEI registration with dissolution.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to api.gleif.org.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.gleif.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 Use only released operations and treat `meta.yaml` as the executable contract.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,17 +32,17 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete request and inspect the released operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show global/gleif/lei-records:search-lei-records
+   catalogue data assess "<complete question>" --json
+   catalogue data show global/gleif/lei-records:search-lei-records
    ```
 
 2. Use full text for discovery, legal-name filtering to narrow candidates, or
    LEI mode only for a known 20-character identifier:
 
    ```bash
-   navigator query global/gleif/lei-records --operation search-lei-records \
+   catalogue query global/gleif/lei-records --operation search-lei-records \
      --input '{"q":"EQUINOR ASA","search_field":"legal_name","jurisdiction":"NO","limit":5,"page":1}'
-   navigator query global/gleif/lei-records --operation search-lei-records \
+   catalogue query global/gleif/lei-records --operation search-lei-records \
      --input '{"q":"OW6OFBNCKXC4US5C7523","search_field":"lei","limit":1}'
    ```
 

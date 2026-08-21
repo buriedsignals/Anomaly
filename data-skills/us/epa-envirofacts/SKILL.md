@@ -6,7 +6,7 @@ description: >-
   resolving facilities and systems, ownership, activity, and location; do not
   infer pollutant releases, violations, compliance, or drinking-water safety
   because those facts require different tables and evidence.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to data.epa.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.epa.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -34,9 +34,9 @@ other sections in this playbook may document provider or unreleased adapter scop
 - `search-water-systems` queries `sdwis.water_system`.
 
 ```bash
-navigator query us/epa/envirofacts --operation search-tri-facilities \
+catalogue query us/epa/envirofacts --operation search-tri-facilities \
   --input '{"state":"RI","name":"chemical","limit":10}'
-navigator query us/epa/envirofacts --operation search-water-systems \
+catalogue query us/epa/envirofacts --operation search-water-systems \
   --input '{"state":"VT","name":"Springfield","limit":10}'
 ```
 

@@ -9,7 +9,7 @@ provider_scope: >-
   languages and supports ArticleList, timelines, tone analyses, image modes,
   query operators, relative or exact time windows, and several output formats.
 roadmap_scope:
-  - Coverage-volume and tone timelines are documented by the provider but not released by Navigator.
+  - Coverage-volume and tone timelines are documented by the provider but not released by catalogue.
   - Image search, galleries, RSS feeds, and archive feeds are not currently released.
   - ArticleList does not expose a continuation cursor or an exhaustive result count.
 category: news
@@ -34,7 +34,7 @@ license:
 last_tested: "2026-08-12"
 status: queryable
 notes: >-
-  Navigator deliberately defaults to a one-week window instead of the
+  catalogue deliberately defaults to a one-week window instead of the
   provider's three-month default. ArticleList returns at most 250 ranked
   records and no continuation cursor, so it cannot prove complete coverage.
   Query operators belong inside `query`; they are not separate URL fields.

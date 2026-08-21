@@ -7,7 +7,7 @@ description: >-
   relationships and source-lineage identifiers. Apply it to sanctions, PEP,
   debarment, and watchlist research; do not equate search relevance or match
   scores with identity, target status, or grounds for an adverse decision.
-compatibility: Requires the Navigator CLI, Python 3.11+, an OpenSanctions API key, and network access to api.opensanctions.org.
+compatibility: Requires the catalogue CLI, Python 3.11+, an OpenSanctions API key, and network access to api.opensanctions.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -19,7 +19,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -40,7 +40,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 Inspect the contract before sending identity data upstream:
 
 ```bash
-navigator data show global/opensanctions:match-entity
+catalogue data show global/opensanctions:match-entity
 ```
 
 ## Screening example
@@ -48,7 +48,7 @@ navigator data show global/opensanctions:match-entity
 Use all reliable attributes, an explicit scope, and a reviewed threshold:
 
 ```bash
-navigator query global/opensanctions --operation match-entity \
+catalogue query global/opensanctions --operation match-entity \
   --input '{"schema":"Person","properties":{"name":["Arkadii Rotenberg"],"birthDate":["1951"],"nationality":["Russia"]},"dataset":"default","topics":["sanction"],"threshold":0.8,"algorithm":"logic-v2","limit":5}'
 ```
 
@@ -58,9 +58,9 @@ source evidence. A score above threshold is not a final identity decision.
 ## Discovery and exact retrieval
 
 ```bash
-navigator query global/opensanctions --operation search-entities \
+catalogue query global/opensanctions --operation search-entities \
   --input '{"q":"\"Wagner Group\"","schema":"Organization","dataset":"default","limit":10,"offset":0,"filter_op":"AND"}'
-navigator query global/opensanctions --operation get-entity \
+catalogue query global/opensanctions --operation get-entity \
   --input '{"entity_id":"<exact-id>","nested":true}'
 ```
 
@@ -84,7 +84,7 @@ review, false-positive handling, and evidence reporting.
 
 ## Privacy, authentication, and reuse
 
-Store the key with `navigator keys set opensanctions`. Match sends structured
+Store the key with `catalogue keys set opensanctions`. Match sends structured
 identity attributes in a POST body; search uses a GET query string that the
 provider warns can enter access logs. Do not send confidential lead names
 without considering that disclosure.

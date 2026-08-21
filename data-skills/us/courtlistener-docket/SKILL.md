@@ -6,7 +6,7 @@ description: >-
   parties, courts, docket metadata, and up to three matching filing documents;
   never call the embedded matches a complete docket sheet or infer that an
   absent RECAP result means the case or filing does not exist.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -34,9 +34,9 @@ Use `search-dockets` for a party, case, filing term, or documented advanced
 operator. Use `get-docket` only for a known CourtListener numeric docket ID.
 
 ```bash
-navigator query us/courtlistener/docket --operation search-dockets \
+catalogue query us/courtlistener/docket --operation search-dockets \
   --input '{"q":"Purdue Pharma","court":"nysb","limit":5}'
-navigator query us/courtlistener/docket --operation get-docket \
+catalogue query us/courtlistener/docket --operation get-docket \
   --input '{"docket_id":16199029,"limit":1}'
 ```
 

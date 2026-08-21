@@ -9,7 +9,7 @@
    signed statement, or another primary source.
 
 ```bash
-navigator query global/bluesky/posts --operation get-profile \
+catalogue query global/bluesky/posts --operation get-profile \
   --input '{"actor":"bsky.app"}'
 ```
 

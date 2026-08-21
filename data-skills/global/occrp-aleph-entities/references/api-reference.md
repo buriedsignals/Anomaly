@@ -3,7 +3,7 @@
 ## Evidence checked
 
 Aleph's public user documentation does not currently provide a complete REST
-reference for these routes, and the live OCCRP deployment returned 404 for
+reference for these routes, and the live OCCRP publication returned 404 for
 common `/openapi.json` and `/swagger.json` paths. To avoid inventing a contract,
 the implementation evidence below was fetched with Firecrawl on 2026-08-12 from
 the official `alephdata/aleph` repository and compared with the existing OCCRP
@@ -21,7 +21,7 @@ endpoint.
 
 Base: `https://aleph.occrp.org/api/2`
 
-Navigator sends:
+catalogue sends:
 
 ```text
 Authorization: ApiKey <user API key>
@@ -42,16 +42,16 @@ anonymous public results as evidence that the key was accepted.
 
 Released parameters:
 
-| Navigator | Provider | Meaning |
+| catalogue | Provider | Meaning |
 |---|---|---|
 | `q` | `q` | Search string; provider supports its search syntax |
 | `schema` | `filter:schemata` | FollowTheMoney schema filter |
 | `collection_id` | `filter:collection_id` | One readable collection |
-| `limit` | `limit` | Navigator restricts to 1–50 although upstream route docs allow a much larger maximum |
-| `offset` | `offset` | Navigator bounds to 0–10,000 |
+| `limit` | `limit` | catalogue restricts to 1–50 although upstream route docs allow a much larger maximum |
+| `offset` | `offset` | catalogue bounds to 0–10,000 |
 
 The upstream result includes total, total type, limit, offset, facets/links, and
-FollowTheMoney entities. Navigator normalizes schema, ID, caption/name,
+FollowTheMoney entities. catalogue normalizes schema, ID, caption/name,
 collection label/ID, countries, and the Aleph entity page URL.
 
 The provider route requires only anonymous browsing permission at the code
@@ -64,7 +64,7 @@ can be public, private, or shared selectively.
 
 The route returns one entity visible to the requester. The provider excludes
 some large text/numeric fields from this view and adds presentation-oriented
-fields. Navigator extracts a stable summary; it does not claim to reproduce
+fields. catalogue extracts a stable summary; it does not claim to reproduce
 every FollowTheMoney property.
 
 ## Expand graph relations
@@ -73,13 +73,13 @@ every FollowTheMoney property.
 
 Parameters:
 
-- `limit`: number of adjacent entities returned per property; Navigator bounds
+- `limit`: number of adjacent entities returned per property; catalogue bounds
   this to 1–50.
 - `filter:property`: one or more FollowTheMoney property names.
 
 The response groups results by property. Each group has `property`, `count`,
 and an `entities` list. The expansion code locates adjacent graph nodes through
-entity-valued properties and edge entities. Navigator flattens the groups while
+entity-valued properties and edge entities. catalogue flattens the groups while
 retaining `relation` and `relation_count` on every record.
 
 This is one bounded graph hop, not a complete network traversal. A property can

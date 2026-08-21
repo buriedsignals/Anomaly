@@ -42,7 +42,7 @@ proof of contract execution or payment.
 
 Page-number mode stops at 15,000 retrievable notices. Do not present that slice
 as complete when the total is larger. Iteration mode and XML bulk retrieval are
-documented provider workflows but not released Navigator operations.
+documented provider workflows but not released catalogue operations.
 
 ## Reporting checklist
 

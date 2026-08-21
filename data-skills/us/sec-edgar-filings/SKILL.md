@@ -5,7 +5,7 @@ description: >-
   EDGAR documents and attachments since 2001. Apply exact/Boolean query, form,
   and date semantics carefully, open the filing for context, and disclose that
   the JSON route is a live but undocumented Full-Text Search UI backend.
-compatibility: Requires the Navigator CLI, Python 3.11+, a descriptive requester User-Agent, and network access to efts.sec.gov and sec.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, a descriptive requester User-Agent, and network access to efts.sec.gov and sec.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -17,7 +17,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -29,10 +29,10 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Run a bounded search
 
 ```bash
-navigator query us/sec-edgar/filings --operation search-filings \
+catalogue query us/sec-edgar/filings --operation search-filings \
   --input '{"q":"\"material weakness\"","forms":"10-K","limit":10}'
 
-navigator query us/sec-edgar/filings --operation search-filings \
+catalogue query us/sec-edgar/filings --operation search-filings \
   --input '{"q":"cryptocurrency","forms":"8-K","startdt":"2025-01-01","enddt":"2025-12-31","limit":10}'
 ```
 
@@ -58,7 +58,7 @@ backend shape and pagination as unstable and keep fixture/live checks current.
 ## Respect fair access
 
 The adapter sends a requester-and-contact User-Agent. Override it with
-`NAVIGATOR_SEC_UA="Organization contact@example.org"`. SEC guidance caps
+`catalogue_SEC_UA="Organization contact@example.org"`. SEC guidance caps
 automated access at 10 requests per second across machines and asks users to
 download only what they need.
 

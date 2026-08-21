@@ -11,7 +11,7 @@
 | Generate inferred personal attributes | `analyze-profile` | Unavailable | Model-generated profile requiring separate safeguards |
 
 Do not call an unavailable operation directly. Provider documentation explains
-capability but does not override Data Navigator's release gate.
+capability but does not override Data catalogue's release gate.
 
 ## Decide whether to disclose the query
 
@@ -30,14 +30,14 @@ not convert a provider statement into a zero-logging guarantee.
 Start with one term and, where useful, one content type:
 
 ```bash
-navigator query global/thinkpol/reddit-evidence --operation search-content \
+catalogue query global/thinkpol/reddit-evidence --operation search-content \
   --input '{"q":"disinformation","content_type":"comment"}'
 ```
 
 Use repeated terms only when an AND query matches the research question:
 
 ```bash
-navigator query global/thinkpol/reddit-evidence --operation search-content \
+catalogue query global/thinkpol/reddit-evidence --operation search-content \
   --input '{"terms":["election","integrity"],"content_type":"submission"}'
 ```
 

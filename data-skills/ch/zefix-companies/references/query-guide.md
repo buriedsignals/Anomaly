@@ -36,7 +36,7 @@ algorithm is not established by current provider documentation.
 
 Do not copy filters or paths from the current ZefixPublicREST specification into
 the legacy request. The successor API requires Basic credentials and is not a
-released Navigator operation. If authenticated migration is authorized, it
+released catalogue operation. If authenticated migration is authorized, it
 requires a new adapter contract, fixtures, references, and live verification.
 
 ## Reporting checklist

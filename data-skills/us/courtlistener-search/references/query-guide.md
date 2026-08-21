@@ -14,7 +14,7 @@ Use a domain-specific skill when you need its richer contract or safeguards.
 ## Run and interpret
 
 ```bash
-navigator query us/courtlistener/search --operation search-court-records \
+catalogue query us/courtlistener/search --operation search-court-records \
   --input '{"q":"Purdue Pharma","type":"rd","limit":5}'
 ```
 

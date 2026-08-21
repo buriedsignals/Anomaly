@@ -5,7 +5,7 @@ description: >-
   name with official OpenFEC filters and stable FEC identifiers. Apply it to
   candidate/committee identity and filing-history discovery, not transaction or
   financial-total claims; check current FEC terms and acceptable-use limits.
-compatibility: Requires the Navigator CLI, Python 3.11+, a free api.data.gov key, and network access to api.open.fec.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, a free api.data.gov key, and network access to api.open.fec.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -17,7 +17,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -30,10 +30,10 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Search entities, then resolve identifiers
 
 ```bash
-navigator query us/fec/campaign-finance --operation search-candidates \
+catalogue query us/fec/campaign-finance --operation search-candidates \
   --input '{"q":"Warren","office":"S","state":"MA","per_page":10}'
 
-navigator query us/fec/campaign-finance --operation search-committees \
+catalogue query us/fec/campaign-finance --operation search-committees \
   --input '{"q":"ACTBLUE","per_page":10}'
 ```
 

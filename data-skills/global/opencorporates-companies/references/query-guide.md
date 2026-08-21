@@ -6,7 +6,7 @@ Start with the registered or best-known name and a small page. Add the expected
 jurisdiction only when justified.
 
 ```bash
-navigator query global/opencorporates/companies --operation search-companies \
+catalogue query global/opencorporates/companies --operation search-companies \
   --input '{"q":"Barclays","jurisdiction_code":"gb","per_page":10,"page":1}'
 ```
 
@@ -26,7 +26,7 @@ exist in multiple jurisdictions and across historical entities.
 When both provider jurisdiction and registry number are known:
 
 ```bash
-navigator query global/opencorporates/companies --operation get-company \
+catalogue query global/opencorporates/companies --operation get-company \
   --input '{"jurisdiction_code":"gb","company_number":"00102498"}'
 ```
 

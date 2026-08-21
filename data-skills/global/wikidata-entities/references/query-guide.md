@@ -10,21 +10,21 @@
 5. Confirm consequential identity claims against primary records.
 
 ```bash
-navigator query global/wikidata/entities --operation search-entities \
+catalogue query global/wikidata/entities --operation search-entities \
   --input '{"q":"OpenAI","language":"en","type":"item","limit":10}'
 ```
 
 For a property rather than an item:
 
 ```bash
-navigator query global/wikidata/entities --operation search-entities \
+catalogue query global/wikidata/entities --operation search-entities \
   --input '{"q":"official website","language":"en","type":"property","limit":10}'
 ```
 
 Continue an unchanged search scope:
 
 ```bash
-navigator query global/wikidata/entities --operation search-entities \
+catalogue query global/wikidata/entities --operation search-entities \
   --input '{"q":"Mercury","language":"en","type":"item","limit":10,"continue":10}'
 ```
 

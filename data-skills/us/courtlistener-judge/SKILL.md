@@ -6,7 +6,7 @@ description: >-
   and position-link data. Preserve alias and date-granularity fields, and treat
   race and gender as provider-inferred, potentially incorrect attributes rather
   than self-reported facts.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -34,9 +34,9 @@ Use free text for discovery, exact name components for database filtering, and
 `get-judge` only after resolving a provider ID:
 
 ```bash
-navigator query us/courtlistener/judge --operation search-judges \
+catalogue query us/courtlistener/judge --operation search-judges \
   --input '{"q":"Ruth Bader Ginsburg","limit":5}'
-navigator query us/courtlistener/judge --operation get-judge \
+catalogue query us/courtlistener/judge --operation get-judge \
   --input '{"person_id":2738}'
 ```
 

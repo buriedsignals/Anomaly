@@ -10,14 +10,14 @@
 5. Open and verify the returned reporting and its primary evidence.
 
 ```bash
-navigator query global/gdelt/news --operation search-news \
+catalogue query global/gdelt/news --operation search-news \
   --input '{"query":"\"climate change\" sourcecountry:france","timespan":"3d","sort":"DateDesc","maxrecords":25}'
 ```
 
 For an exact interval:
 
 ```bash
-navigator query global/gdelt/news --operation search-news \
+catalogue query global/gdelt/news --operation search-news \
   --input '{"query":"\"OpenAI\"","startdatetime":"20260801000000","enddatetime":"20260812235959","sort":"DateAsc","maxrecords":50}'
 ```
 

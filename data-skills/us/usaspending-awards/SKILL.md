@@ -6,7 +6,7 @@ description: >-
   and time window. Apply it to award-level procurement and assistance research;
   keep award amount distinct from transactions, obligations, outlays, payments,
   and subawards, and resolve recipients with UEI and award identifiers.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to api.usaspending.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.usaspending.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -30,7 +30,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Define type and time explicitly
 
 ```bash
-navigator query us/usaspending/awards --operation search-awards \
+catalogue query us/usaspending/awards --operation search-awards \
   --input '{"recipient":"Boeing","award_type":"contracts","fiscal_year":2025,"limit":10}'
 ```
 

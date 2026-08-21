@@ -12,7 +12,7 @@ live API on 2026-08-12.
 
 ## Provider scope and released coverage
 
-| Provider capability | Provider route or area | Navigator status |
+| Provider capability | Provider route or area | catalogue status |
 |---|---|---|
 | Search main entities | `GET /enhetsregisteret/api/enheter` | `search-companies` released |
 | Get one main entity | `GET /enhetsregisteret/api/enheter/{organisasjonsnummer}` | `get-company` released |
@@ -25,15 +25,15 @@ live API on 2026-08-12.
 
 `GET https://data.brreg.no/enhetsregisteret/api/enheter`
 
-| Navigator field | Provider parameter | Semantics |
+| catalogue field | Provider parameter | Semantics |
 |---|---|---|
 | `navn` | `navn` | Required name query for released search. Treat results as candidates. |
-| `size` | `size` | Page size bounded by Navigator to 1–100. |
+| `size` | `size` | Page size bounded by catalogue to 1–100. |
 | `page` | `page` | Zero-based page number; defaults to 0. |
 
 The HAL-style response returns entities under `_embedded.enheter`, links under
 `_links`, and `size`, `totalElements`, `totalPages`, and `number` under `page`.
-Navigator preserves the essential page values and record count.
+catalogue preserves the essential page values and record count.
 
 ## `get-company`
 

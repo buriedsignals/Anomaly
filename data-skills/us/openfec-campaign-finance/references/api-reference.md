@@ -48,7 +48,7 @@ or transactions.
 
 ## Authentication and use policy
 
-A free api.data.gov key is required. Navigator accepts `openfec` or a shared
+A free api.data.gov key is required. catalogue accepts `openfec` or a shared
 `data_gov` key. The FEC asks services to identify OpenFEC as the data source and
 not imply FEC endorsement.
 

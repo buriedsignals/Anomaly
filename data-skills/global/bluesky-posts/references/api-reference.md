@@ -20,11 +20,11 @@ has been removed.
 
 `GET https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile`
 
-| Navigator field | Provider parameter | Meaning |
+| catalogue field | Provider parameter | Meaning |
 |---|---|---|
 | `actor` | `actor` | Handle or DID; required |
 
-Navigator returns one profile with the mutable handle and stable DID kept as
+catalogue returns one profile with the mutable handle and stable DID kept as
 separate fields. Counts and profile text are time-sensitive user-generated
 state. `created_at` and `indexed_at` are different timestamps.
 
@@ -32,7 +32,7 @@ state. `created_at` and `indexed_at` are different timestamps.
 
 `GET https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts`
 
-| Navigator field | Provider contract |
+| catalogue field | Provider contract |
 |---|---|
 | `q` | Required string; syntax is unspecified, although Lucene is recommended |
 | `sort` | Known values `top` or `latest`; default `latest` |
@@ -58,7 +58,7 @@ truncated and that the cursor may not traverse the entire result set.
   egress on 2026-08-12.
 - The lexicon explicitly says search may require authentication for some
   providers. The direct AppView documentation says direct endpoints do not
-  support authentication, so Navigator cannot repair this by attaching a token
+  support authentication, so catalogue cannot repair this by attaching a token
   to `public.api.bsky.app`.
 
 The search adapter remains fixture-tested but the operation is unavailable.

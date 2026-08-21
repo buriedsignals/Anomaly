@@ -33,7 +33,7 @@ Important current details:
   when more data is needed.
 
 The earlier `/efservice` route still responded during the audit, but EPA's
-current documentation specifies `/dmapservice`; Navigator now uses the current
+current documentation specifies `/dmapservice`; catalogue now uses the current
 contract rather than relying on the legacy route.
 
 ## Released tables

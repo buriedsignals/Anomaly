@@ -6,7 +6,7 @@ description: >-
   resolution and profile preservation. Do not invoke the currently blocked
   post-search operation, treat handles as permanent, or treat biographies as
   independently verified identity claims.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to public.api.bsky.app.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to public.api.bsky.app.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -29,20 +29,20 @@ other sections in this playbook may document provider or unreleased adapter scop
 
 **Not released**
 
-- `global/bluesky/posts:search-posts` — Public AppView searchPosts returned HTTP 403 from Navigator's egress on 2026-08-12; the lexicon permits providers to require authentication.
+- `global/bluesky/posts:search-posts` — Public AppView searchPosts returned HTTP 403 from catalogue's egress on 2026-08-12; the lexicon permits providers to require authentication.
 <!-- END GENERATED OPERATION STATUS -->
 ## Workflow
 
 1. Inspect the operation before sending an account identifier:
 
    ```bash
-   navigator data show global/bluesky/posts:get-profile
+   catalogue data show global/bluesky/posts:get-profile
    ```
 
 2. Resolve the exact handle or stable DID:
 
    ```bash
-   navigator query global/bluesky/posts --operation get-profile \
+   catalogue query global/bluesky/posts --operation get-profile \
      --input '{"actor":"bsky.app"}'
    ```
 
@@ -57,7 +57,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 The official profile lexicon is public and no-auth. The official search lexicon
 declares richer filters but allows service providers to require auth. On
 2026-08-12, the public AppView returned 403 for search and 200 for profile.
-Navigator therefore releases profile lookup only.
+catalogue therefore releases profile lookup only.
 
 The direct AppView documentation does not publish a numeric request ceiling;
 it calls limits generous and directs users to contact Bluesky when limited.

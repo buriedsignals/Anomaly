@@ -16,7 +16,7 @@ and `OPTIONS` requests were used only to verify the documented contract.
 
 `GET https://www.courtlistener.com/api/rest/v4/search/`
 
-Navigator always supplies `type=r`, `q`, `Accept: application/json`, and a
+catalogue always supplies `type=r`, `q`, `Accept: application/json`, and a
 descriptive User-Agent. If configured, it sends:
 
 ```text
@@ -40,7 +40,7 @@ matches. Those three records are not a full docket sheet. Full entry/document
 pagination requires other APIs not released here.
 
 The provider says type `r` and `d` counts use cardinality aggregation and can
-have about ±6% error above 2,000 results. Navigator exposes
+have about ±6% error above 2,000 results. catalogue exposes
 `count_is_approximate` for that condition.
 
 Search fields are camelCase and advanced operators belong in `q`. The API

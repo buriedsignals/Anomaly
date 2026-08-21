@@ -29,7 +29,7 @@ credit-usage lookup.
 ## Authentication and credits
 
 The documentation permits the `api-key` header or discouraged `api_token`
-query parameter. Navigator uses only the header so secrets do not enter URLs or
+query parameter. catalogue uses only the header so secrets do not enter URLs or
 logs. The checked pricing page states:
 
 - company profile: one credit;
@@ -42,13 +42,13 @@ which the documentation lists as free. Do not add enriched fields ad hoc.
 
 ## `search-companies`
 
-| Navigator field | Provider parameter | Semantics |
+| catalogue field | Provider parameter | Semantics |
 |---|---|---|
 | `q` | `q` | Company denomination or natural-person name text. |
 | `page` | `page` | One-based page; defaults to 1. |
-| `par_page` | `par_page` | Provider page size; Navigator caps at 100. |
+| `par_page` | `par_page` | Provider page size; catalogue caps at 100. |
 
-The provider says all search filters are optional, but Navigator requires `q`
+The provider says all search filters are optional, but catalogue requires `q`
 to avoid costly broad search. Pappers page-number pagination is limited to the
 first 400 results. Provider cursor fields (`curseur`, `par_curseur`, and
 `curseurSuivant`) cover deeper traversal but are not released.
@@ -62,7 +62,7 @@ as a bounded no-result condition.
 `siren` must contain nine digits. Pappers also accepts SIRET upstream, but the
 released operation intentionally resolves legal units only by SIREN. The API
 documents some companies unknown to INSEE and an opt-in
-`autoriser_absence_insee`; Navigator does not enable it because resulting legal
+`autoriser_absence_insee`; catalogue does not enable it because resulting legal
 category and registered-office fields can be null and need a separate contract.
 
 ## Response mapping
@@ -98,7 +98,7 @@ concealed.
 
 - Pappers integrates INSEE, INPI, BODACC, RNA, and other sources; update timing
   and disagreements can vary by field.
-- Search ranking and precision defaults can change; Navigator does not expose
+- Search ranking and precision defaults can change; catalogue does not expose
   the provider's precision filter.
 - Page-number search is incomplete past 400 results.
 - Employee bands, status, NAF, address, and name are time-sensitive.

@@ -23,7 +23,7 @@ auth:
   setup_help: >-
     Public experimentation can work without a token. CourtListener asks deployed
     API clients to authenticate. Create an account, copy the profile API token,
-    and run `navigator keys set courtlistener`; access limits depend on account tier.
+    and run `catalogue keys set courtlistener`; access limits depend on account tier.
 verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
 license:
   data_license: Government disclosure records with CourtListener extraction; inspect source-document and embedded-content rights

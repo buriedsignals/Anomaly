@@ -6,7 +6,7 @@ description: >-
   Apply it to bounded legislative monitoring, exact Bioguide lookups, and
   Congress- or state-scoped member research; do not present its recent-title
   filter as full-text search or an update timestamp as legislative action.
-compatibility: Requires the Navigator CLI, Python 3.11+, a free api.data.gov key, and network access to api.congress.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, a free api.data.gov key, and network access to api.congress.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -31,17 +31,17 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Keep the operation bounded
 
 ```bash
-navigator query us/congress/legislation --operation search-bills \
+catalogue query us/congress/legislation --operation search-bills \
   --input '{"congress":119,"limit":10}'
 
-navigator query us/congress/legislation --operation list-members \
+catalogue query us/congress/legislation --operation list-members \
   --input '{"state":"VT","limit":10}'
 
-navigator query us/congress/legislation --operation list-members \
+catalogue query us/congress/legislation --operation list-members \
   --input '{"bioguide_id":"S000033"}'
 ```
 
-The bill endpoint does not expose full-text search. `q` is a Navigator-owned,
+The bill endpoint does not expose full-text search. `q` is a catalogue-owned,
 case-insensitive title filter over at most 250 bills returned by the provider.
 A miss therefore says nothing about older titles, summaries, actions, or text.
 

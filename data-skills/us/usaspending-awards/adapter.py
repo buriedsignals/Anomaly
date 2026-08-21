@@ -163,7 +163,7 @@ def run(input: dict, ctx) -> dict:
     response = httpx.post(
         ENDPOINT,
         json=payload,
-        headers={"Accept": "application/json", "User-Agent": "BuriedSignals-Navigator/1.0"},
+        headers={"Accept": "application/json", "User-Agent": "BuriedSignals-catalogue/1.0"},
         timeout=30,
     )
     response.raise_for_status()

@@ -30,11 +30,11 @@ the existence of a provider page.
 
 The Swagger UI labels the API version `1.0.0`, the OpenAPI format `3.0.3`, and
 two servers: `https://api.think-pol.com` and `https://api.r00m101.com`. Data
-Navigator uses only the named ThinkPol production server.
+catalogue uses only the named ThinkPol production server.
 
 ## Coverage matrix
 
-| Provider capability | Documented endpoint | Navigator operation | Release status | Verification |
+| Provider capability | Documented endpoint | catalogue operation | Release status | Verification |
 |---|---|---|---|---|
 | Hydrated submission/comment search | `GET /v2/search` | `search-content` | Released | Authenticated zero-result and 50-record searches passed through the adapter |
 | User history CSV | `GET /user/{username}` | `list-user-history` | Unavailable | An authenticated unknown-user probe returned HTTP 500; parser fixture-tested, but no record-bearing CSV was verified |
@@ -62,7 +62,7 @@ response is documented only as one integer representing remaining quota. An
 authenticated probe on 2026-08-12 confirmed the integer shape; the account's
 value was neither printed nor retained as verification evidence.
 
-Navigator operators store the hosted credential server-side under key name
+catalogue operators store the local credential server-side under key name
 `thinkpol`. Members neither configure nor receive it. Do not preserve the value
 in skill files, fixtures, commands, or logs.
 
@@ -72,9 +72,9 @@ in skill files, fixtures, commands, or logs.
 
 `GET https://api.think-pol.com/v2/search`
 
-| Navigator field | Upstream parameter | Type | Documented semantics |
+| catalogue field | Upstream parameter | Type | Documented semantics |
 |---|---|---|---|
-| `q` | one `terms` value | string | Data Navigator convenience for a single case-insensitive term |
+| `q` | one `terms` value | string | Data catalogue convenience for a single case-insensitive term |
 | `terms` | repeated `terms` | array of strings | Required; multiple values are ANDed |
 | `from` | `from` | integer | Optional Unix start timestamp; defaults to `0` |
 | `to` | `to` | integer | Optional Unix end timestamp; defaults to current time |
@@ -151,8 +151,8 @@ unavailable even though its response shapes were verified.
 ## `get-quota`
 
 `GET /quota` returns a JSON integer. No unit or reset timestamp is documented.
-Data Navigator maps it to one `ApiQuota` record with `remaining` and the
-provider endpoint URL. The live integer shape is verified, but Navigator does
+Data catalogue maps it to one `ApiQuota` record with `remaining` and the
+provider endpoint URL. The live integer shape is verified, but catalogue does
 not release shared provider-account quota as a public-record query operation.
 
 ## `analyze-profile`
@@ -205,7 +205,7 @@ external disclosure.
   redistribution or resale without authorization.
 - The terms characterize ThinkPol data and materials as proprietary and say
   customers remain responsible for third-party content rights and applicable
-  privacy law. Cache and redistribution are disabled in Data Navigator.
+  privacy law. Cache and redistribution are disabled in Data catalogue.
 - The privacy policy says the archive processes public posts, comments,
   usernames, timestamps, community identifiers, engagement signals, and
   derived analytics. It provides objection, restriction, and removal paths.

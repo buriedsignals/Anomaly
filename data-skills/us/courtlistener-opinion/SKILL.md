@@ -6,7 +6,7 @@ description: >-
   lead, concurrence, or dissent records. Apply it to legal-source discovery;
   do not treat relevance ranking or an indexed snippet as legal authority, and
   explicitly opt into unpublished or other non-default statuses.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,14 +32,14 @@ other sections in this playbook may document provider or unreleased adapter scop
 Provide exactly one of `q`, `cluster_id`, or `docket_id`:
 
 ```bash
-navigator query us/courtlistener/opinion --operation search-opinions \
+catalogue query us/courtlistener/opinion --operation search-opinions \
   --input '{"q":"\"qualified immunity\"","court":"ca9","limit":5}'
 ```
 
 Published opinions are the provider default. To broaden status scope, name it:
 
 ```bash
-navigator query us/courtlistener/opinion --operation search-opinions \
+catalogue query us/courtlistener/opinion --operation search-opinions \
   --input '{"q":"qualified immunity","include_statuses":["Unpublished"],"limit":5}'
 ```
 

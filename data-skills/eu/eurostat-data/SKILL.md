@@ -6,7 +6,7 @@ description: >-
   Apply it to reproducible European statistical queries; do not assume a local
   output limit makes an upstream cube small, ignore status flags, or treat the
   latest dissemination value as a complete revision history.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to ec.europa.eu.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to ec.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -33,14 +33,14 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete question and inspect the relevant contract:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show eu/eurostat/data:search-datasets
+   catalogue data assess "<complete question>" --json
+   catalogue data show eu/eurostat/data:search-datasets
    ```
 
 2. Discover candidate dataflows when the exact datacode is unknown:
 
    ```bash
-   navigator query eu/eurostat/data --operation search-datasets \
+   catalogue query eu/eurostat/data --operation search-datasets \
      --input '{"q":"youth unemployment","language":"en","limit":10}'
    ```
 
@@ -48,7 +48,7 @@ other sections in this playbook may document provider or unreleased adapter scop
    status vocabulary, then send an explicitly scoped observation query:
 
    ```bash
-   navigator query eu/eurostat/data --operation get-observations \
+   catalogue query eu/eurostat/data --operation get-observations \
      --input '{"dataset_code":"DEMO_GIND","filters":{"FREQ":"A","INDIC_DE":"POPTRT","GEO":"FR","TIME_PERIOD":"ge:2018+le:2023"},"limit":100}'
    ```
 

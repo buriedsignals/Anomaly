@@ -385,6 +385,6 @@ def _request(input: dict, client: httpx.Client) -> dict:
 
 def run(input: dict, ctx) -> dict:
     del ctx  # public API; retained for the standard adapter contract
-    headers = {"User-Agent": "BuriedSignals-DataNavigator-0.1"}
+    headers = {"User-Agent": "BuriedSignals-Datacatalogue-0.1"}
     with httpx.Client(headers=headers, timeout=45, follow_redirects=True) as client:
         return _request(input, client)

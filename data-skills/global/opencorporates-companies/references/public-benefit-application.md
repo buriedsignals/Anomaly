@@ -15,7 +15,7 @@ crime, cross-border ownership].
 **What you're building / investigating:** [One or two sentences. e.g. "We trace
 beneficial ownership and corporate networks across jurisdictions for
 accountability reporting, and are building an agent-assisted research tool
-(Data Navigator) that queries public company registers on behalf of member
+(Data catalogue) that queries public company registers on behalf of member
 journalists."]
 
 **Why OpenCorporates:** We need cross-jurisdiction company and officer lookups

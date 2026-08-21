@@ -34,7 +34,7 @@ last_tested: "2026-08-12"
 status: queryable
 notes: >-
   wbsearchentities searches labels and aliases and can also match an entity ID.
-  `language` controls selection while Navigator also sets `uselang` to request
+  `language` controls selection while catalogue also sets `uselang` to request
   returned labels/descriptions in that language. Results are candidates:
   descriptions and match metadata must be used to disambiguate, and the chosen
   entity's statements should be checked separately before reporting facts.

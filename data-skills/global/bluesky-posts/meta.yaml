@@ -4,7 +4,7 @@ description: >-
   Resolve a public Bluesky profile through the official AppView. The same
   adapter implements the documented post-search contract, but that operation
   is not released because the public AppView currently returns HTTP 403 to
-  unauthenticated requests from Navigator's egress.
+  unauthenticated requests from catalogue's egress.
 provider_scope: >-
   Bluesky's AppView exposes actor profiles, feeds, posts, search, graph data,
   labels, and other public application views through AT Protocol XRPC lexicons.
@@ -176,6 +176,6 @@ operations:
     retry_guidance:
       - Do not retry the current 403 in a loop; use a supported authenticated service or wait for provider access to change.
     verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
-    availability_reason: Public AppView searchPosts returned HTTP 403 from Navigator's egress on 2026-08-12; the lexicon permits providers to require authentication.
+    availability_reason: Public AppView searchPosts returned HTTP 403 from catalogue's egress on 2026-08-12; the lexicon permits providers to require authentication.
     prohibited_uses:
       - Do not treat search ranking, hitsTotal, or cursors as a complete archive of the network.

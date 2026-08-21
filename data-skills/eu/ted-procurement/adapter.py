@@ -108,7 +108,7 @@ def run(input: dict, ctx) -> dict:
     resp = httpx.post(
         ENDPOINT,
         json=body,
-        headers={"User-Agent": "BuriedSignals-Navigator/1.0", "Content-Type": "application/json"},
+        headers={"User-Agent": "BuriedSignals-catalogue/1.0", "Content-Type": "application/json"},
         timeout=30,
     )
     resp.raise_for_status()

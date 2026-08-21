@@ -19,7 +19,7 @@ be scoped by Congress and, on a more specific route, bill type. List rows carry
 Congress, type, number, title, origin chamber, latest action, update date,
 update-date-including-text, and an API URL.
 
-The API does **not** document a bill full-text query parameter. Navigator never
+The API does **not** document a bill full-text query parameter. catalogue never
 sends one: `q` fetches at most 250 list rows and filters their titles locally.
 It is a recent-window discovery aid, not corpus search. The exact bill endpoint
 and separate actions, amendments, committees, cosponsors, related bills,
@@ -33,7 +33,7 @@ not released as operations here.
 - `GET /member/congress/{congress}` — member list for one Congress.
 
 The official member contract says the unscoped `/member` list cannot be
-filtered. Navigator therefore scopes name searches to one Congress and filters
+filtered. catalogue therefore scopes name searches to one Congress and filters
 the bounded response locally. For prior Congresses the provider specifically
 recommends `currentMember=false` for complete data; current-Congress scans use
 `currentMember=true`. Exact historical identity should use Bioguide ID.
@@ -44,7 +44,7 @@ office claims require current-member and term checks.
 
 ## Authentication and reproducibility
 
-Congress.gov requires a free api.data.gov key. Navigator accepts a
+Congress.gov requires a free api.data.gov key. catalogue accepts a
 source-specific `congress` key or a shared `data_gov` key. Preserve operation,
 Congress, filters, limit, returned identifiers, provider update dates, and
 retrieval date.

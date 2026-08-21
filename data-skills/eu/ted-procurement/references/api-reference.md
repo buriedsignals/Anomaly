@@ -19,7 +19,7 @@ contract was checked against the live service on 2026-08-12.
 TED API covers published-notice search/retrieval as well as authenticated
 validation, publication, management, and rendering workflows for notice
 submitters. Anonymous access applies to services manipulating already published
-notices. Unpublished notice APIs require an API key and are not Navigator scope.
+notices. Unpublished notice APIs require an API key and are not catalogue scope.
 
 The released operation calls:
 
@@ -29,12 +29,12 @@ POST https://api.ted.europa.eu/v3/notices/search
 
 ## Request mapping
 
-| Navigator input | TED body | Semantics |
+| catalogue input | TED body | Semantics |
 |---|---|---|
 | `query` | `query` | Non-empty TED expert query; takes precedence over shortcuts. |
 | `cpv` | builds `classification-cpv={8 digits}` | Optional ninth check digit is validated then removed for the query. |
 | `country` | builds `buyer-country={alpha-3}` | Supported alpha-2 shortcuts are mapped; alpha-3 passes through. |
-| `limit` | `limit` | Navigator 1–100; provider permits up to 250 notices per page and 10,000 returned fields per page. |
+| `limit` | `limit` | catalogue 1–100; provider permits up to 250 notices per page and 10,000 returned fields per page. |
 | `page` | `page` | One-based page in `PAGE_NUMBER` mode. |
 | `scope` | `scope` | `LATEST`, `ACTIVE`, or `ALL`; defaults to `ALL`. |
 | `only_latest_versions` | `onlyLatestVersions` | Boolean version filter. |
@@ -51,7 +51,7 @@ The current OpenAPI documents:
 - `ITERATION`: follow an opaque `iterationNextToken`, with no equivalent
   retrievable-notice ceiling but no random page selection.
 
-Navigator releases only page-number mode. Do not emulate iteration by guessing
+catalogue releases only page-number mode. Do not emulate iteration by guessing
 tokens or deep page values.
 
 ## Response mapping
@@ -65,7 +65,7 @@ tokens or deep page values.
 | `publication_date` | `publication-date` | First ten characters of provider date. |
 | `source_url` | constructed notice page | Human-readable TED notice. |
 
-The response reports `totalNoticeCount`; Navigator preserves it with requested
+The response reports `totalNoticeCount`; catalogue preserves it with requested
 page and limit. A total is a count for the exact expert query and scope, not a
 count of contracts executed.
 

@@ -18,8 +18,8 @@ schema identified itself as OpenSanctions API / yente 5.5.0 at retrieval time.
 ## Authentication
 
 - Base: `https://api.opensanctions.org`
-- Header: `Authorization: ApiKey <key>` on every hosted API request
-- Store with `navigator keys set opensanctions`.
+- Header: `Authorization: ApiKey <key>` on every local API request
+- Store with `catalogue keys set opensanctions`.
 
 The provider says it issues free API keys for qualifying journalism,
 civil-society advocacy, and academic research. That does not waive the need to
@@ -49,8 +49,8 @@ Released query parameters:
 
 | Parameter | Current provider contract |
 |---|---|
-| `limit` | Upstream max 500; Navigator deliberately caps at 50, default 5 |
-| `threshold` | Match threshold, provider default 0.7; Navigator validates 0–1 |
+| `limit` | Upstream max 500; catalogue deliberately caps at 50, default 5 |
+| `threshold` | Match threshold, provider default 0.7; catalogue validates 0–1 |
 | `algorithm` | `best`, `logic-v2`, `ofac`, `name-based`, `name-qualified`, `logic-v1`, or `regression-v1` |
 | `topics` | Candidate must have at least one selected risk topic |
 | `include_dataset` / `exclude_dataset` | Source-lineage filters within the selected scope |
@@ -64,7 +64,7 @@ records, then topic filters to narrow risk meaning. A sanctions source can
 include linked but non-target entities, so dataset membership alone is not a
 sanctions determination.
 
-Navigator returns candidate entity summaries plus provider `score` and `match`.
+catalogue returns candidate entity summaries plus provider `score` and `match`.
 Scores depend on supplied attributes, algorithm, and scope. They require human
 review and corroboration.
 
@@ -75,7 +75,7 @@ review and corroboration.
 The provider explicitly says search is not suitable for a screening process.
 Search ranking measures text relevance rather than match quality. It supports:
 
-- `q`, `schema`, `limit` (upstream max 500, Navigator max 50), and `offset`
+- `q`, `schema`, `limit` (upstream max 500, catalogue max 50), and `offset`
   (upstream max 9499);
 - include/exclude dataset and schema filters;
 - `countries`, `topics`, `datasets`, and `field:value` property filters;
@@ -109,7 +109,7 @@ OpenSanctions identifies its data as CC BY-NC 4.0 for non-commercial use and
 requires a commercial licence for commercial use. Source-lineage datasets and
 linked originals may have additional attribution/context requirements.
 
-Because API-plan, privacy, and redistribution conditions can vary, Navigator
+Because API-plan, privacy, and redistribution conditions can vary, catalogue
 does not pre-authorize caching or redistribution. Determine whether the work is
 non-commercial/public-interest, preserve attribution and lineage, minimize
 stored personal data, and obtain the appropriate commercial licence when needed.

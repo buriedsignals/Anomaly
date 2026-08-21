@@ -29,7 +29,7 @@ additional status flags:
 - `stat_Relating-to=on`
 - `stat_Unknown=on`
 
-Navigator maps reviewed `include_statuses` values to those flags. It does not
+catalogue maps reviewed `include_statuses` values to those flags. It does not
 silently widen the status scope.
 
 ## Search behavior
@@ -43,7 +43,7 @@ embedding in POST, which this skill does not release.
 and show indexed excerpts rather than a complete opinion. `meta.score.bm25` is a
 search-ranking value, not a legal-authority score.
 
-Navigator accepts exactly one of:
+catalogue accepts exactly one of:
 
 - `q` for text/operator search;
 - `cluster_id`, translated to the documented advanced field expression;

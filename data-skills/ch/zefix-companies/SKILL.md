@@ -6,7 +6,7 @@ description: >-
   seats, status, and cantonal excerpt links. Apply it to Swiss company-name
   resolution; do not imply that the bounded legacy response is exhaustive or
   that it is the same API as the current authenticated ZefixPublicREST spec.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.zefix.ch.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.zefix.ch.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -20,7 +20,7 @@ contract; the reference explains the material documentation gap around the
 legacy route.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -34,20 +34,20 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete question:
 
    ```bash
-   navigator data assess "<complete question>" --json
+   catalogue data assess "<complete question>" --json
    ```
 
 2. Inspect the released contract and read [the API reference](references/api-reference.md):
 
    ```bash
-   navigator data show ch/zefix/companies:search-companies
+   catalogue data show ch/zefix/companies:search-companies
    ```
 
 3. Query a specific name, then use UID, legal seat, and the cantonal excerpt to
    resolve candidates:
 
    ```bash
-   navigator query ch/zefix/companies --operation search-companies \
+   catalogue query ch/zefix/companies --operation search-companies \
      --input '{"name":"Nestlé","language":"fr"}' --out zefix.json
    ```
 

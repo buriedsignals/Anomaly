@@ -6,7 +6,7 @@ description: >-
   texts. Apply it to Parliament identity and document discovery; do not use the
   source router as an unrestricted API proxy or infer legal effect, a complete
   transcript, or a person's identity from the normalized result alone.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to data.europarl.europa.eu.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to data.europarl.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -19,7 +19,7 @@ metadata:
 below even though the provider and source-level adapter cover more resources.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -36,20 +36,20 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete request and inspect the exact operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show eu/europarl/open-data:search-meps
+   catalogue data assess "<complete question>" --json
+   catalogue data show eu/europarl/open-data:search-meps
    ```
 
 2. Run one explicit operation:
 
    ```bash
-   navigator query eu/europarl/open-data --operation search-meps \
+   catalogue query eu/europarl/open-data --operation search-meps \
      --input '{"name":"Keller","country":"FR","limit":5}'
-   navigator query eu/europarl/open-data --operation get-mep \
+   catalogue query eu/europarl/open-data --operation get-mep \
      --input '{"mep_id":"22858","language":"en"}'
-   navigator query eu/europarl/open-data --operation search-speeches \
+   catalogue query eu/europarl/open-data --operation search-speeches \
      --input '{"q":"artificial intelligence","language":"en","limit":10}'
-   navigator query eu/europarl/open-data --operation search-adopted-texts \
+   catalogue query eu/europarl/open-data --operation search-adopted-texts \
      --input '{"q":"artificial intelligence","language":"en","limit":10}'
    ```
 

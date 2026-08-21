@@ -5,7 +5,7 @@
     {
       "id": "search-documented-v2-records",
       "operation": "search-content",
-      "requires_hosted_access": true,
+      "requires_local_access": true,
       "input": {
         "q": "disinformation",
         "content_type": "comment",

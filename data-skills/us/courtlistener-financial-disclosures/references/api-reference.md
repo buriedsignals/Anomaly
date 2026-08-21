@@ -34,7 +34,7 @@ cross-person searches on the separate nested-resource endpoints.
 
 Investment/debt forms often disclose ranges, not exact amounts. Codes J through
 P4 span `$1–$15,000` through `$50,000,001 or more`; `-1` marks failed
-extraction. Navigator preserves the original code and supplies a readable range.
+extraction. catalogue preserves the original code and supplies a readable range.
 
 `has_inferred_values` means CourtListener inferred repeated/blank table cells
 from layout. It must not be presented as explicitly reported content.

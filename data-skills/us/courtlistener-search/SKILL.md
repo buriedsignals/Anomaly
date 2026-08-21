@@ -6,7 +6,7 @@ description: >-
   people, and oral-argument audio. Always choose one of the documented type
   codes o, r, rd, d, p, or oa and interpret the normalized record according to
   that type; never treat relevance as authority or a search miss as proof.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -39,7 +39,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 | `oa` | Oral-argument audio |
 
 ```bash
-navigator query us/courtlistener/search --operation search-court-records \
+catalogue query us/courtlistener/search --operation search-court-records \
   --input '{"q":"Purdue Pharma","type":"rd","limit":5}'
 ```
 

@@ -6,7 +6,7 @@ description: >-
   to worldwide news-coverage discovery and comparison. Do not call the ranked,
   capped result set exhaustive or treat the presence of an article as
   verification of its claims.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to api.gdeltproject.org.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.gdeltproject.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,13 +32,13 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Inspect the operation and formulate a complete question:
 
    ```bash
-   navigator data show global/gdelt/news:search-news
+   catalogue data show global/gdelt/news:search-news
    ```
 
 2. Quote phrases and put documented operators inside `query`:
 
    ```bash
-   navigator query global/gdelt/news --operation search-news \
+   catalogue query global/gdelt/news --operation search-news \
      --input '{"query":"\"OpenAI\" sourcecountry:unitedstates","timespan":"1d","sort":"DateDesc","maxrecords":25}'
    ```
 
@@ -49,7 +49,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 
 ## Source boundary
 
-Navigator releases JSON ArticleList search only. GDELT also documents timeline,
+catalogue releases JSON ArticleList search only. GDELT also documents timeline,
 tone, imagery, gallery, and feed modes, but they are not exposed here.
 ArticleList is ranked, capped at 250, and has no continuation cursor. It answers
 "what coverage did this GDELT query return?", not "what are all the articles?"

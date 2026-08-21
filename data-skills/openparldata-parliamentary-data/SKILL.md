@@ -1,5 +1,5 @@
 ---
-name: data-navigator-ch-openparldata-parliamentary-data
+name: data-catalogue-ch-openparldata-parliamentary-data
 description: |
   Query harmonized Swiss parliamentary records from OpenParlData.ch: people,
   memberships and interests; or affairs, meetings, speeches, votes and docs.
@@ -12,7 +12,7 @@ description: |
 ---
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -26,7 +26,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 - `ch/openparldata/parliamentary-data:search-affairs` — Operation-level fixture coverage is not available; this operation is not released yet.
 - `ch/openparldata/parliamentary-data:list-person-interests` — Operation-level fixture coverage is not available; this operation is not released yet.
 <!-- END GENERATED OPERATION STATUS -->
-# Data Navigator — OpenParlData.ch
+# Data catalogue — OpenParlData.ch
 
 ## Purpose and routing
 
@@ -40,7 +40,7 @@ data. One registry-loaded skill routes two related domains inside one adapter:
 
 The adapter infers `persons` from `name`/`person_id` and `affairs` from `q` or
 `affair_id`. Set `resource` explicitly for every other table. This is a single
-portable multi-operation skill, matching Data Navigator's OpenSanctions pattern;
+portable multi-operation skill, matching Data catalogue's OpenSanctions pattern;
 there are no runtime sub-skills to fetch.
 
 ## Auth and licence
@@ -52,16 +52,16 @@ OpenParlData.ch**.
 
 ```bash
 # People
-navigator query ch/openparldata/parliamentary-data --input '{"name":"Müller","filters":{"active":true},"limit":5}'
+catalogue query ch/openparldata/parliamentary-data --input '{"name":"Müller","filters":{"active":true},"limit":5}'
 
 # Affairs (q defaults to the affairs resource)
-navigator query ch/openparldata/parliamentary-data --input '{"q":"Klima","search_mode":"natural","language":"de","filters":{"body_key":"CHE"},"limit":5}'
+catalogue query ch/openparldata/parliamentary-data --input '{"q":"Klima","search_mode":"natural","language":"de","filters":{"body_key":"CHE"},"limit":5}'
 
 # Relation traversal: declared interests for a known person
-navigator query ch/openparldata/parliamentary-data --input '{"resource":"persons","id":123,"relation":"interests","limit":20}'
+catalogue query ch/openparldata/parliamentary-data --input '{"resource":"persons","id":123,"relation":"interests","limit":20}'
 
 # Individual votes in a known voting
-navigator query ch/openparldata/parliamentary-data --input '{"resource":"votings","id":105037,"relation":"votes","limit":100}'
+catalogue query ch/openparldata/parliamentary-data --input '{"resource":"votings","id":105037,"relation":"votes","limit":100}'
 ```
 
 Add `--out results.json` (or `.csv`) for a file plus a compact summary.

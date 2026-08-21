@@ -15,7 +15,7 @@ Live queries verified all six documented type shapes.
 
 ## Type table
 
-| Code | Provider meaning | Navigator entity |
+| Code | Provider meaning | catalogue entity |
 |---|---|---|
 | `o` | Opinion clusters with nested opinion documents | `OpinionCluster` |
 | `r` | Federal dockets with up to three matching documents | `Docket` |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run bounded live verification cases through the public Navigator contract."""
+"""Run bounded live verification cases through the public catalogue contract."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class ConfigurationError(ValueError):
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Run source-specific verification cases through `navigator query` "
+            "Run source-specific verification cases through `catalogue query` "
             "and emit one bounded JSON summary."
         )
     )
@@ -40,9 +40,9 @@ def _parser() -> argparse.ArgumentParser:
         help="run only this case ID; repeat to select several",
     )
     parser.add_argument(
-        "--navigator",
-        default="navigator",
-        help="Navigator executable path (default: navigator)",
+        "--catalogue",
+        default="catalogue",
+        help="catalogue executable path (default: catalogue)",
     )
     parser.add_argument(
         "--timeout",
@@ -124,7 +124,7 @@ def _parse_result(completed: subprocess.CompletedProcess[str]) -> dict[str, Any]
             continue
         if isinstance(value, dict):
             return value
-    raise ValueError("Navigator did not return a JSON object")
+    raise ValueError("catalogue did not return a JSON object")
 
 
 def _assertions(payload: dict[str, Any], expect: dict[str, Any]) -> list[str]:
@@ -166,11 +166,11 @@ def _assertions(payload: dict[str, Any], expect: dict[str, Any]) -> list[str]:
 def _run_case(
     source_id: str,
     case: dict[str, Any],
-    navigator: str,
+    catalogue: str,
     timeout: float,
 ) -> dict[str, Any]:
     command = [
-        navigator,
+        catalogue,
         "query",
         source_id,
         "--operation",
@@ -189,7 +189,7 @@ def _run_case(
         )
     except FileNotFoundError as exc:
         raise RuntimeError(
-            f"Navigator executable not found: {navigator!r}; use --navigator PATH"
+            f"catalogue executable not found: {catalogue!r}; use --catalogue PATH"
         ) from exc
     except subprocess.TimeoutExpired as exc:
         return {
@@ -214,7 +214,7 @@ def _run_case(
     if completed.returncode != 0 and not expected_terminal_status:
         error = payload.get("error") if isinstance(payload.get("error"), dict) else {}
         failures.append(
-            f"navigator exited {completed.returncode}: "
+            f"catalogue exited {completed.returncode}: "
             f"{error.get('code') or payload.get('status') or 'query failed'}"
         )
     return {
@@ -264,7 +264,7 @@ def main() -> int:
         return 2
     try:
         results = [
-            _run_case(source_id, case, args.navigator, args.timeout)
+            _run_case(source_id, case, args.catalogue, args.timeout)
             for case in selected
         ]
     except RuntimeError as exc:

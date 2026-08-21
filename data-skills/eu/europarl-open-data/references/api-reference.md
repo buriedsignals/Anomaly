@@ -18,7 +18,7 @@ MEP declarations, corporate bodies, meetings, events, speeches, procedures,
 documents, plenary and committee material, parliamentary questions, adopted
 texts, and related feeds. Vote results are exposed under meeting relations.
 
-Navigator releases four operations only:
+catalogue releases four operations only:
 
 | Endpoint | Operation | Verification |
 |---|---|---|
@@ -34,7 +34,7 @@ contracts.
 ## Common request behavior
 
 - `format=application/ld+json` selects the normalized source format.
-- `limit` and `offset` are provider collection controls. Navigator caps limit
+- `limit` and `offset` are provider collection controls. catalogue caps limit
   at 50; local MEP name matching fetches one current roster page of up to 1,000.
 - `language` controls preferred normalization language.
 - Provider text search uses `text` plus `search-language`.
@@ -46,7 +46,7 @@ minutes. No authentication is required for released endpoints. Data is CC BY
 
 ## `search-meps`
 
-| Navigator field | Behavior |
+| catalogue field | Behavior |
 |---|---|
 | `country` | `country-of-representation` provider filter. |
 | `political_group` | `political-group` provider filter. |
@@ -71,7 +71,7 @@ that the role remains current at reporting time.
 
 ## `search-speeches`
 
-| Navigator field | Provider parameter |
+| catalogue field | Provider parameter |
 |---|---|
 | `q` | `text` and default `search-language=<language>` |
 | `person_id` | `person-id` |
@@ -85,7 +85,7 @@ resolved separately before attributing words to a named person.
 
 ## `search-adopted-texts`
 
-| Navigator field | Provider parameter |
+| catalogue field | Provider parameter |
 |---|---|
 | `q` | `text` and default `search-language=<language>` |
 | `year` | `year` |

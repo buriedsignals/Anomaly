@@ -20,7 +20,7 @@ import httpx
 
 API_URL = "https://public.api.bsky.app/xrpc"
 SOURCE_ID = "global/bluesky/posts"
-USER_AGENT = "BuriedSignals-Navigator/1.0"
+USER_AGENT = "BuriedSignals-catalogue/1.0"
 
 def _search_blocked_msg(code: int) -> str:
     return (

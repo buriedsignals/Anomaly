@@ -12,7 +12,7 @@ import httpx
 
 ENDPOINT = "https://www.wikidata.org/w/api.php"
 SOURCE_ID = "global/wikidata/entities"
-UA = "BuriedSignals-Navigator/1.0 (https://buriedsignals.com; navigator@buriedsignals.com)"
+UA = "BuriedSignals-catalogue/1.0 (https://buriedsignals.com; catalogue@buriedsignals.com)"
 ENTITY_TYPES = {"entity-schema", "form", "item", "lexeme", "property", "sense"}
 
 

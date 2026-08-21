@@ -82,7 +82,7 @@ def run(input: dict, ctx) -> dict:
         params=params,
         headers={
             "Accept": "application/vnd.api+json",
-            "User-Agent": "BuriedSignals-Navigator/1.0",
+            "User-Agent": "BuriedSignals-catalogue/1.0",
         },
         timeout=20,
     )

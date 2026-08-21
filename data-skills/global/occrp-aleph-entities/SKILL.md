@@ -7,7 +7,7 @@ description: >-
   collection discovery; do not treat name hits or adjacency as confirmed
   identity, ownership, or wrongdoing, and always check collection-specific
   provenance and reuse terms.
-compatibility: Requires the Navigator CLI, Python 3.11+, an OCCRP Aleph API key, and network access to aleph.occrp.org.
+compatibility: Requires the catalogue CLI, Python 3.11+, an OCCRP Aleph API key, and network access to aleph.occrp.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -19,7 +19,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -35,13 +35,13 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Inspect the intended operation:
 
    ```bash
-   navigator data show global/occrp-aleph/entities:search-entities
+   catalogue data show global/occrp-aleph/entities:search-entities
    ```
 
 2. Search narrowly, retaining collection identity:
 
    ```bash
-   navigator query global/occrp-aleph/entities --operation search-entities \
+   catalogue query global/occrp-aleph/entities --operation search-entities \
      --input '{"q":"Gazprom","schema":"Company","limit":10,"offset":0}'
    ```
 
@@ -49,7 +49,7 @@ other sections in this playbook may document provider or unreleased adapter scop
    the exact candidate only after resolving ambiguity:
 
    ```bash
-   navigator query global/occrp-aleph/entities --operation get-entity \
+   catalogue query global/occrp-aleph/entities --operation get-entity \
      --input '{"entity_id":"<exact-id>"}'
    ```
 
@@ -57,7 +57,7 @@ other sections in this playbook may document provider or unreleased adapter scop
    using FollowTheMoney semantics and the underlying record:
 
    ```bash
-   navigator query global/occrp-aleph/entities --operation expand-entity \
+   catalogue query global/occrp-aleph/entities --operation expand-entity \
      --input '{"entity_id":"<exact-id>","limit":10}'
    ```
 
@@ -67,7 +67,7 @@ collection provenance, and graph interpretation.
 
 ## Authentication and collection boundary
 
-Store the account key with `navigator keys set occrp-aleph`. Aleph user API keys
+Store the account key with `catalogue keys set occrp-aleph`. Aleph user API keys
 use the `ApiKey` authorization method; the provider source distinguishes this
 from `Token`, which is a signed session token. Search scope and entity
 visibility depend on the account's collection permissions.

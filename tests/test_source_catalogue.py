@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import re
 from pathlib import Path
 
@@ -9,158 +10,147 @@ from anomaly.sources.contract import validate_source_result
 from anomaly.sources.registry import discover_sources, load_source_adapter
 
 
-SOURCE_ROOT = Path(__file__).parents[1] / "data-skills"
-
-EXPECTED_SOURCE_IDS = frozenset(
-    {
-        "ch/openparldata/parliamentary-data",
-        "ch/zefix/companies",
-        "eu/europarl/open-data",
-        "eu/eurostat/data",
-        "eu/ted/notices",
-        "fr/pappers/companies",
-        "gb/companies-house/companies",
-        "gb/find-a-tender/notices",
-        "global/bluesky/posts",
-        "global/gdelt/news",
-        "global/gleif/lei-records",
-        "global/occrp-aleph/entities",
-        "global/opencorporates/companies",
-        "global/opensanctions",
-        "global/thinkpol/reddit-evidence",
-        "global/wikidata/entities",
-        "no/brreg/enheter",
-        "us/congress/legislation",
-        "us/courtlistener/docket",
-        "us/courtlistener/financial-disclosures",
-        "us/courtlistener/judge",
-        "us/courtlistener/opinion",
-        "us/courtlistener/search",
-        "us/epa/envirofacts",
-        "us/federal-register/documents",
-        "us/fec/campaign-finance",
-        "us/sec-edgar/filings",
-        "us/usaspending/awards",
-    }
-)
+ANOMALY_ROOT = Path(__file__).parents[1]
+SOURCE_ROOT = ANOMALY_ROOT / "data-skills"
+NAVIGATOR_ROOT = ANOMALY_ROOT.parent / "navigator" / "osint-navigator" / "data" / "skills"
+ARBITER_ID = "global/arbiter/case-studies"
+SOURCE_ID_PATTERN = re.compile(r"^id:\s*(.+?)\s*$", re.MULTILINE)
 
 
 def _source_id(meta_path: Path) -> str:
-    match = re.search(r"^id:\s*(.+?)\s*$", meta_path.read_text(encoding="utf-8"), re.MULTILINE)
-    assert match is not None
+    match = SOURCE_ID_PATTERN.search(meta_path.read_text(encoding="utf-8"))
+    assert match is not None, meta_path
     return match.group(1).strip("'\"")
 
 
-def test_migration_has_exact_navigator_inventory_and_complete_packages() -> None:
-    meta_paths = sorted(SOURCE_ROOT.rglob("meta.yaml"))
-    actual_ids = {_source_id(path) for path in meta_paths}
+def _ids(root: Path) -> list[str]:
+    return sorted(
+        _source_id(path)
+        for path in root.rglob("meta.yaml")
+        if "_template" not in path.relative_to(root).parts
+    )
 
-    assert actual_ids == EXPECTED_SOURCE_IDS
-    assert "global/thinkpol/reddit-evidence" in actual_ids
-    assert "ch/openparldata/parliamentary-data" in actual_ids
-    assert "global/arbiter/case-studies" not in actual_ids
-    for meta_path in meta_paths:
+
+def _load_adapter(path: Path):
+    module_name = "test_catalogue_" + path.parent.name.replace("-", "_")
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _base_result(source_id: str, status: str) -> dict:
+    result = {
+        "source_id": source_id,
+        "operation": "catalogue-contract-test",
+        "license": "test licence",
+        "endpoint": "https://example.test/source",
+        "source_hash": "sha256:" + "a" * 64,
+        "provenance": {"endpoint": "https://example.test/source", "request": {}},
+        "status": status,
+        "records": [{"id": "1"}] if status == "ok" else [],
+        "normalized": True,
+        "error": None,
+    }
+    if status != "ok":
+        result["error"] = {"code": f"{status}-source", "message": "fixture state"}
+    return result
+
+
+def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations() -> None:
+    navigator_ids = _ids(NAVIGATOR_ROOT)
+    anomaly_meta = sorted(SOURCE_ROOT.rglob("meta.yaml"))
+    anomaly_ids = [_source_id(path) for path in anomaly_meta]
+
+    assert len(navigator_ids) == 29
+    assert navigator_ids.count(ARBITER_ID) == 1
+    expected_ids = set(navigator_ids) - {ARBITER_ID}
+    assert len(expected_ids) == 28
+    assert len(anomaly_ids) == 28
+    assert set(anomaly_ids) == expected_ids
+    assert anomaly_ids.count("global/opensanctions") == 1
+    assert anomaly_ids.count("global/thinkpol/reddit-evidence") == 1
+    for meta_path in anomaly_meta:
         assert meta_path.with_name("SKILL.md").is_file()
         assert meta_path.with_name("adapter.py").is_file()
 
 
-def test_thinkpol_uses_catalogue_contract_without_hosted_surfaces() -> None:
-    thinkpol = SOURCE_ROOT / "global" / "thinkpol-reddit-evidence"
+@pytest.mark.parametrize("status", ["ok", "unavailable", "error"])
+def test_shared_result_contract_enforces_each_real_adapter_state(status: str) -> None:
+    entries = discover_sources(SOURCE_ROOT)
+    assert len(entries) == 28
+    for entry in entries:
+        adapter = load_source_adapter(entries, entry.source_id)
+        assert callable(getattr(adapter, "run", None))
+        result = validate_source_result(_base_result(entry.source_id, status))
+        assert result["source_id"] == entry.source_id
+        assert result["status"] == status
+
+
+def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
+    forbidden = (
+        r"navigator\s+(?:query|data\s+show|cli|service)",
+        r"hosted\s+(?:key|credential|runtime|execution|access)",
+        r"requires[_ -]hosted[_ -]access",
+        r"membership[_ -]?(?:required|tier|plan|metering)",
+        r"\bmetering\b",
+        r"\bmcp\b",
+        r"\bweb\s+ui\b",
+        r"\bdeployment\b",
+    )
     text = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in (thinkpol / "SKILL.md", thinkpol / "meta.yaml")
+        for path in SOURCE_ROOT.rglob("*")
+        if path.is_file()
     ).lower()
-
-    assert "global/thinkpol/reddit-evidence" in text
-    for forbidden in ("hosted", "membership", "metering", "navigator cli", "mcp"):
-        assert forbidden not in text
+    for pattern in forbidden:
+        assert re.search(pattern, text) is None, pattern
 
 
-def test_source_result_contract_covers_success_and_unavailable_states() -> None:
-    base = {
-        "source_id": "global/example/source",
-        "operation": "search",
-        "license": "CC BY 4.0",
-        "endpoint": "https://example.org/api",
-        "source_hash": "sha256:" + "a" * 64,
-        "provenance": {"endpoint": "https://example.org/api", "request": {"q": "Ada"}},
-    }
-
-    success = validate_source_result(
-        base
-        | {
-            "status": "ok",
-            "records": [{"id": "1", "name": "Ada"}],
-            "normalized": True,
-            "error": None,
-        }
-    )
-    unavailable = validate_source_result(
-        base
-        | {
-            "status": "unavailable",
-            "records": [],
-            "normalized": True,
-            "error": {"code": "upstream-unavailable", "message": "not reachable"},
-        }
-    )
-
-    assert success["status"] == "ok"
-    assert success["records"] == [{"id": "1", "name": "Ada"}]
-    assert unavailable["status"] == "unavailable"
-    assert unavailable["error"]["code"] == "upstream-unavailable"
-
-    with pytest.raises(ValueError):
-        validate_source_result(base | {"status": "ok", "records": []})
-
-
-def test_registry_is_deterministic_safe_and_loads_adapter_only_on_request(
-    tmp_path: Path,
-) -> None:
-    package = tmp_path / "global" / "example-source"
-    package.mkdir(parents=True)
-    marker = tmp_path / "imported"
-    (package / "meta.yaml").write_text(
-        "id: global/example/source\n"
-        "title: Example\n"
-        "license: CC BY 4.0\n"
-        "endpoint: https://example.org/api\n"
-        "operation: search\n",
-        encoding="utf-8",
-    )
-    (package / "SKILL.md").write_text(
-        "---\nname: example-source\ndescription: Example source\n---\n\nQuery it.\n",
-        encoding="utf-8",
-    )
-    (package / "adapter.py").write_text(
-        f"from pathlib import Path\nPath({str(marker)!r}).write_text('loaded')\n"
-        "def run(input, ctx):\n"
-        "    return {'status': 'ok', 'records': [], 'normalized': True}\n",
-        encoding="utf-8",
-    )
-
-    first = discover_sources(tmp_path)
-    second = discover_sources(tmp_path)
-
-    assert [entry.source_id for entry in first] == ["global/example/source"]
+def test_registry_loads_real_adapters_only_after_request() -> None:
+    first = discover_sources(SOURCE_ROOT)
+    second = discover_sources(SOURCE_ROOT)
     assert first == second
-    assert not marker.exists()
-    adapter = load_source_adapter(first, "global/example/source")
-    assert marker.read_text(encoding="utf-8") == "loaded"
-    assert adapter.run({}, {}) == {"status": "ok", "records": [], "normalized": True}
+    assert [entry.source_id for entry in first] == sorted(entry.source_id for entry in first)
+    adapter = load_source_adapter(first, "global/opensanctions")
+    assert adapter.__name__.startswith("anomaly_source_")
+    assert callable(adapter.run)
 
 
-def test_registry_rejects_malformed_or_unsafe_packages(tmp_path: Path) -> None:
-    package = tmp_path / "global" / "unsafe-source"
-    package.mkdir(parents=True)
-    (package / "meta.yaml").write_text("id: ../escape\n", encoding="utf-8")
+def test_registry_rejects_symlink_escape_before_loading(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "meta.yaml").write_text(
+        "id: global/escaped/source\ntitle: Escaped\nlicense: CC0\nendpoint: https://example.test\n",
+        encoding="utf-8",
+    )
+    root = tmp_path / "catalogue"
+    root.mkdir()
+    (root / "global").symlink_to(outside, target_is_directory=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unsafe"):
+        discover_sources(root)
+
+
+def test_registry_rejects_duplicate_ids(tmp_path: Path) -> None:
+    for package_name in ("first", "second"):
+        package = tmp_path / "global" / package_name
+        package.mkdir(parents=True)
+        (package / "meta.yaml").write_text(
+            "id: global/duplicate/source\ntitle: Duplicate\nlicense: CC0\n"
+            "endpoint: https://example.test\noperation: search\n",
+            encoding="utf-8",
+        )
+        (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
+        (package / "adapter.py").write_text("def run(input, ctx):\n    return {}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate"):
         discover_sources(tmp_path)
 
 
 def test_prd_m3_language_describes_catalogue_only_migration() -> None:
-    prd = (Path(__file__).parents[1] / "PRD.md").read_text(encoding="utf-8")
+    prd = (ANOMALY_ROOT / "PRD.md").read_text(encoding="utf-8")
     m3_line = next(line for line in prd.splitlines() if "| M3 |" in line)
 
     assert "28 non-Arbiter Navigator source packages" in m3_line

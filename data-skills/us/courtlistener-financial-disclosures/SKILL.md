@@ -6,7 +6,7 @@ description: >-
   debts, agreements, positions, reimbursements, income, redactions, and source
   PDFs. Apply it to conflict-of-interest research; preserve value ranges and
   inferred flags, and verify every material finding in the original filing.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.courtlistener.com; a CourtListener token is optional but recommended for deployed clients.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,7 +32,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 Resolve the subject to a CourtListener person ID first, then query:
 
 ```bash
-navigator query us/courtlistener/financial-disclosures \
+catalogue query us/courtlistener/financial-disclosures \
   --operation list-financial-disclosures \
   --input '{"person_id":2738,"limit":10}'
 ```

@@ -25,7 +25,7 @@ auth:
   setup_help: |
     OpenFEC uses a free api.data.gov key:
       1. Sign up at https://api.data.gov/signup/
-      2. Run: navigator keys set openfec
+      2. Run: catalogue keys set openfec
     A configured shared `data_gov` key is used when no OpenFEC-specific key exists.
   test_request:
     input: {q: Warren, per_page: 1}

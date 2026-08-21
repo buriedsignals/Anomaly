@@ -6,7 +6,7 @@ description: >-
   match metadata, HTTPS links, and continuation offsets. Apply it to entity
   reconciliation; do not treat first-ranked candidates as confirmed identity or
   expect arbitrary statements and identifiers from search.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.wikidata.org.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.wikidata.org.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,13 +32,13 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Inspect the operation and choose the correct entity type and language:
 
    ```bash
-   navigator data show global/wikidata/entities:search-entities
+   catalogue data show global/wikidata/entities:search-entities
    ```
 
 2. Retrieve candidate entities:
 
    ```bash
-   navigator query global/wikidata/entities --operation search-entities \
+   catalogue query global/wikidata/entities --operation search-entities \
      --input '{"q":"OpenAI","language":"en","type":"item","limit":10}'
    ```
 

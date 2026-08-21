@@ -544,7 +544,7 @@ packages, and case folders are not installed as skills.
 |---|---|---|
 | M1 | Jeff captures and decomposes M1; one skill, case-folder creation, local file intake, profile, six detectors, replay, review, report | Jeff's task graph is approved and completed through its gates; Tom's data runs end to end; the case can move to a second directory without path edits |
 | M2 | Detector registry and 20–30 core detectors plus the user template | A journalist can add a SQL detector with fixtures and have it recommended alongside built-ins |
-| M3 | Migrate 28 non-Arbiter Navigator source packages into Anomaly's dynamic source catalogue | Three public sources acquire and load data with license and hash records |
+| M3 | Migrate 28 non-Arbiter Navigator source packages into Anomaly's local dynamic source catalogue | Source metadata, validation, hashes, and normalized results remain local catalogue records |
 | M4 | Port useful GAIN lobbying detectors | The GAIN corpus reproduces the same signal result sets with new provenance hashes |
 | M5 | Scale registry to hundreds and test journalist handoff | Registry search stays bounded; a second journalist can inspect, fork, rerun, and review the case |
 

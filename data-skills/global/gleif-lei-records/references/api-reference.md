@@ -17,7 +17,7 @@ GLEIF documents legal-entity identity records (Level 1), direct and ultimate
 parent relationships (Level 2), reporting exceptions, fuzzy completion,
 field-specific filters, and identifier mappings including BIC and ISIN.
 
-Navigator releases one bounded `lei-records` operation with three filter modes.
+catalogue releases one bounded `lei-records` operation with three filter modes.
 Relationship traversal, fuzzy completion, and identifier mapping are not
 released and must not be approximated from name results.
 
@@ -33,10 +33,10 @@ released and must not be approximated from name results.
 
 Additional released fields:
 
-| Navigator field | Upstream parameter | Semantics |
+| catalogue field | Upstream parameter | Semantics |
 |---|---|---|
 | `jurisdiction` | `filter[entity.jurisdiction]` | Two-letter legal-jurisdiction code. This is not the legal-address country filter. |
-| `limit` | `page[size]` | Bounded by Navigator to 1–100. |
+| `limit` | `page[size]` | Bounded by catalogue to 1–100. |
 | `page` | `page[number]` | One-based page number. |
 
 Live checks confirmed that `entity.jurisdiction=NO` and
@@ -46,7 +46,7 @@ former because its input is explicitly legal jurisdiction.
 ## Pagination
 
 The JSON:API response reports `currentPage`, `perPage`, `from`, `to`, `total`,
-and `lastPage` under `meta.pagination`. Navigator exposes current page, page
+and `lastPage` under `meta.pagination`. catalogue exposes current page, page
 size, total records, total pages, and returned record count. Totals can change
 as the live LEI data pool updates.
 

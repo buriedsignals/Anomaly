@@ -584,7 +584,7 @@ def run(input: dict, ctx) -> dict:
     language = _language(input)
     limit = _integer(input, "limit", 100, minimum=1, maximum=1000)
     with httpx.Client(
-        headers={"User-Agent": "BuriedSignals-Navigator/1.0"}, timeout=60
+        headers={"User-Agent": "BuriedSignals-catalogue/1.0"}, timeout=60
     ) as client:
         if mode == "datasets":
             return _dataset_search(input, client, language, limit)

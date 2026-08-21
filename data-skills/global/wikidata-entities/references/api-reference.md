@@ -21,21 +21,21 @@ Fixed request parameters:
 - `format=json`
 - `uselang=<language>` so returned display text follows the selection language
 
-Navigator sends a descriptive User-Agent.
+catalogue sends a descriptive User-Agent.
 
 ## Inputs
 
-| Navigator | Provider | Contract |
+| catalogue | Provider | Contract |
 |---|---|---|
 | `q` | `search` | Required label, alias, term, or entity ID |
-| `language` | `language`, `uselang` | Required by provider for search; Navigator defaults to `en` |
+| `language` | `language`, `uselang` | Required by provider for search; catalogue defaults to `en` |
 | `type` | `type` | `entity-schema`, `form`, `item`, `lexeme`, `property`, or `sense`; default item |
-| `limit` | `limit` | 1–50; provider default 7, Navigator default 10 |
+| `limit` | `limit` | 1–50; provider default 7, catalogue default 10 |
 | `continue` | `continue` | Non-negative search offset |
 | `strictlanguage` | `strictlanguage` | Disable language fallback when true |
 
 The provider documents `language` as affecting selection while `uselang`
-controls returned labels/descriptions. Navigator deliberately aligns them.
+controls returned labels/descriptions. catalogue deliberately aligns them.
 
 ## Output and continuation
 
@@ -46,7 +46,7 @@ Each candidate can contain:
 - `match.type`, `match.language`, and `match.text`;
 - concept/entity URL.
 
-Navigator returns these as `id`, `name`, `description`, `match_type`,
+catalogue returns these as `id`, `name`, `description`, `match_type`,
 `match_language`, `match`, and an HTTPS `source_url`. An upstream
 `search-continue` value becomes `page.next_continue`; pass it unchanged as the
 next `continue` value. Its presence means the current page is not exhaustive.

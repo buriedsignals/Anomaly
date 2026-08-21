@@ -6,7 +6,7 @@ description: >-
   to one fetched page. Apply it to procurement-notice discovery and process
   tracking; do not call local term results exhaustive or equate tender value
   with an award, contract, or payment.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.find-tender.service.gov.uk.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.find-tender.service.gov.uk.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,22 +32,22 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete question and inspect the operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show gb/find-a-tender/notices:search-notices
+   catalogue data assess "<complete question>" --json
+   catalogue data show gb/find-a-tender/notices:search-notices
    ```
 
 2. Prefer upstream date/stage filters. Follow only the returned cursor for the
    same scope:
 
    ```bash
-   navigator query gb/find-a-tender/notices --operation search-notices \
+   catalogue query gb/find-a-tender/notices --operation search-notices \
      --input '{"updatedFrom":"2026-08-01T00:00:00","updatedTo":"2026-08-12T23:59:59","stage":"tender","limit":10}'
    ```
 
 3. Use `q` only as a transparent convenience over one fetched page:
 
    ```bash
-   navigator query gb/find-a-tender/notices --operation search-notices \
+   catalogue query gb/find-a-tender/notices --operation search-notices \
      --input '{"q":"software","stage":"tender","limit":20}'
    ```
 
@@ -57,7 +57,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Source boundary
 
 The provider documents release packages, record packages, notice/OCID detail,
-stage and date filtering, and cursor pagination. Navigator currently releases
+stage and date filtering, and cursor pagination. catalogue currently releases
 only collection release pages. It fetches up to 100 releases when local `q`
 filtering, so a miss does not establish absence outside that page.
 

@@ -1,4 +1,4 @@
-"""Hosted adapter for ThinkPol's documented Reddit evidence API."""
+"""local adapter for ThinkPol's documented Reddit evidence API."""
 
 from __future__ import annotations
 

@@ -6,7 +6,7 @@ description: >-
   Apply it to bounded EU tender and award-notice discovery; do not infer an
   executed contract, winning supplier, or award value from the normalized
   search fields.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to api.ted.europa.eu.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to api.ted.europa.eu.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,17 +32,17 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete question and inspect the operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show eu/ted/notices:search-notices
+   catalogue data assess "<complete question>" --json
+   catalogue data show eu/ted/notices:search-notices
    ```
 
 2. Prefer validated shortcuts for a simple CPV/country question; use expert
    syntax only when the exact TED field semantics are known:
 
    ```bash
-   navigator query eu/ted/notices --operation search-notices \
+   catalogue query eu/ted/notices --operation search-notices \
      --input '{"cpv":"72000000","country":"DE","only_latest_versions":true,"limit":10,"page":1}'
-   navigator query eu/ted/notices --operation search-notices \
+   catalogue query eu/ted/notices --operation search-notices \
      --input '{"query":"classification-cpv=45000000 AND buyer-country=ESP","scope":"ALL","limit":10,"page":1}'
    ```
 
@@ -54,7 +54,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 Published-notice search is anonymous. TED's validation, publication, management,
 and preview APIs concern unpublished notice workflows and require credentials;
 they are outside this skill. Search API v3 also documents XML download and
-iteration-token pagination, but Navigator currently releases page-number mode
+iteration-token pagination, but catalogue currently releases page-number mode
 only. That mode retrieves at most 15,000 notices; the adapter caps each page at
 100 even though the provider permits 250.
 

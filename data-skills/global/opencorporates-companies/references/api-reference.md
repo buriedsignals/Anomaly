@@ -19,7 +19,7 @@ the adapter's recorded search and exact-company response shapes.
 - `GET /account_status` reports daily/monthly usage. The documentation states
   daily usage refreshes at midnight UTC and monthly usage at the month boundary.
 
-Navigator retrieves the token from its key store and never places it in agent
+catalogue retrieves the token from its key store and never places it in agent
 context. HTTPS is mandatory in this skill because a query-parameter key would
 otherwise be exposed in transit.
 
@@ -29,12 +29,12 @@ otherwise be exposed in transit.
 
 Released inputs:
 
-| Navigator | Provider | Meaning |
+| catalogue | Provider | Meaning |
 |---|---|---|
 | `q` | `q` | Required company-name query |
 | `jurisdiction_code` | same | Optional provider jurisdiction filter |
 | `inactive` | same | true restricts to inactive; false excludes inactive; omitted does not filter |
-| `per_page` | same | 1–100; provider default 30, Navigator default 10 |
+| `per_page` | same | 1–100; provider default 30, catalogue default 10 |
 | `page` | same | 1–100; the provider caps pages at 100 |
 
 Search returns pagination metadata including page, per-page count, total count,
@@ -47,7 +47,7 @@ modeled and tested.
 `GET /companies/{jurisdiction_code}/{company_number}`
 
 Both identifiers are required. Company numbers are strings and can include
-meaningful leading zeroes. Navigator quotes path components and preserves the
+meaningful leading zeroes. catalogue quotes path components and preserves the
 returned identifiers unchanged.
 
 ## Status semantics
@@ -60,7 +60,7 @@ The provider returns both:
 
 The official documentation warns that not all sources make status available;
 therefore a record not marked inactive cannot automatically be called active.
-Navigator exposes these fields separately instead of overwriting
+catalogue exposes these fields separately instead of overwriting
 `current_status` with the word "inactive."
 
 ## Provenance and freshness
@@ -73,7 +73,7 @@ OpenCorporates emphasizes source provenance. Detailed records can include:
 - official registry URL;
 - OpenCorporates attribution URL.
 
-Navigator normalizes these as `updated_at`, `source_retrieved_at`,
+catalogue normalizes these as `updated_at`, `source_retrieved_at`,
 `source_publisher`, `source_registry_url`, `source_terms`, `registry_url`, and
 `source_url`. A null `source_terms` field does not mean no underlying rights
 apply. Check the official register for time-sensitive or consequential claims.

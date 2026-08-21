@@ -7,7 +7,7 @@ description: >-
   links, and OpenCorporates attribution. Apply it to corporate entity
   resolution; do not infer ownership, current activity, solvency, or official
   legal status beyond the returned and corroborated registry fields.
-compatibility: Requires the Navigator CLI, Python 3.11+, an OpenCorporates API token, and network access to api.opencorporates.com.
+compatibility: Requires the catalogue CLI, Python 3.11+, an OpenCorporates API token, and network access to api.opencorporates.com.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -19,7 +19,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -34,14 +34,14 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Inspect the operation contract and jurisdiction semantics:
 
    ```bash
-   navigator data show global/opencorporates/companies:search-companies
+   catalogue data show global/opencorporates/companies:search-companies
    ```
 
 2. Search with a small page and compare jurisdiction, number, status, address,
    and provenance rather than selecting the first name match:
 
    ```bash
-   navigator query global/opencorporates/companies --operation search-companies \
+   catalogue query global/opencorporates/companies --operation search-companies \
      --input '{"q":"Barclays","jurisdiction_code":"gb","per_page":10,"page":1}'
    ```
 
@@ -49,7 +49,7 @@ other sections in this playbook may document provider or unreleased adapter scop
    preserve leading zeroes:
 
    ```bash
-   navigator query global/opencorporates/companies --operation get-company \
+   catalogue query global/opencorporates/companies --operation get-company \
      --input '{"jurisdiction_code":"gb","company_number":"00102498"}'
    ```
 
@@ -72,7 +72,7 @@ corroboration.
 
 ## Authentication and reuse
 
-Store the token with `navigator keys set opencorporates`; never place it in
+Store the token with `catalogue keys set opencorporates`; never place it in
 prompts or command arguments. Usage depends on the account and can be inspected
 through the provider's `/account_status` route. Follow OpenCorporates ODbL
 attribution/share-alike requirements and any underlying source terms preserved

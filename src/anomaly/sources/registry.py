@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-_SOURCE_ID = re.compile(r"^[a-z0-9]+(?:/[a-z0-9][a-z0-9-]*){2,}$")
+_SOURCE_ID = re.compile(r"^[a-z0-9]+(?:/[a-z0-9][a-z0-9-]*)+$")
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,17 @@ def _metadata(meta_path: Path) -> dict[str, str]:
 
 def _safe_package(root: Path, meta_path: Path) -> SourceEntry:
     package = meta_path.parent
-    if package.is_symlink() or any(part == ".." for part in package.relative_to(root).parts):
+    root = root.resolve()
+    resolved_package = package.resolve()
+    try:
+        resolved_package.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"unsafe source package: {package}") from exc
+    relative_parts = package.relative_to(root).parts
+    if package.is_symlink() or any(
+        (root.joinpath(*relative_parts[:index])).is_symlink()
+        for index in range(1, len(relative_parts) + 1)
+    ):
         raise ValueError(f"unsafe source package: {package}")
     metadata = _metadata(meta_path)
     source_id = metadata["id"]
@@ -53,7 +64,12 @@ def _safe_package(root: Path, meta_path: Path) -> SourceEntry:
 def discover_sources(root: Path) -> list[SourceEntry]:
     """Return valid source packages in stable source-id order."""
     root = Path(root).resolve()
+    if any(path.is_symlink() for path in root.rglob("*")):
+        raise ValueError(f"unsafe source package under: {root}")
     entries = [_safe_package(root, path) for path in root.rglob("meta.yaml")]
+    source_ids = [entry.source_id for entry in entries]
+    if len(source_ids) != len(set(source_ids)):
+        raise ValueError("duplicate source id")
     return sorted(entries, key=lambda entry: entry.source_id)
 
 
@@ -67,5 +83,34 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     if spec is None or spec.loader is None:
         raise ValueError(f"cannot load adapter: {source_id}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    previous = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    except ModuleNotFoundError as exc:
+        if exc.name != "httpx":
+            raise
+        module.run = _unavailable_run(entry, exc)  # type: ignore[attr-defined]
+    finally:
+        sys.dont_write_bytecode = previous
     return module
+
+
+def _unavailable_run(entry: SourceEntry, cause: ModuleNotFoundError):
+    """Return a typed local-unavailable result when an optional client is absent."""
+    def run(input: dict[str, Any], ctx: Any) -> dict[str, Any]:
+        return {
+            "source_id": entry.source_id,
+            "operation": entry.metadata["operation"],
+            "license": entry.metadata["license"],
+            "endpoint": entry.metadata["endpoint"],
+            "source_hash": "sha256:" + hashlib.sha256(
+                (entry.package / "adapter.py").read_bytes()
+            ).hexdigest(),
+            "provenance": {"source": str(entry.package / "adapter.py")},
+            "status": "unavailable",
+            "records": [],
+            "normalized": True,
+            "error": {"code": "adapter-dependency-unavailable", "message": str(cause)},
+        }
+    return run

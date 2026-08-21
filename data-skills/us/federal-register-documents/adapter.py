@@ -56,7 +56,7 @@ def run(input: dict, ctx) -> dict:
     resp = httpx.get(
         ENDPOINT,
         params=params,
-        headers={"User-Agent": "BuriedSignals-Navigator/1.0"},
+        headers={"User-Agent": "BuriedSignals-catalogue/1.0"},
         timeout=30,
     )
     resp.raise_for_status()

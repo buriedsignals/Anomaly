@@ -6,7 +6,7 @@ description: >-
   French legal-entity resolution using lean, credit-aware calls; do not request
   unwrapped officers or beneficial owners, expose the key, or interpret blank
   partial-diffusion fields as proof of absence or misconduct.
-compatibility: Requires the Navigator CLI, Python 3.11+, a Pappers API key, and network access to api.pappers.fr.
+compatibility: Requires the catalogue CLI, Python 3.11+, a Pappers API key, and network access to api.pappers.fr.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -30,7 +30,7 @@ other sections in this playbook may document provider or unreleased adapter scop
 <!-- END GENERATED OPERATION STATUS -->
 ## Authentication and credits
 
-Configure the key once with `navigator keys set pappers`. Navigator sends it in
+Configure the key once with `catalogue keys set pappers`. catalogue sends it in
 the recommended `api-key` header and never exposes it to the agent. The checked
 pricing page assigns 0.1 credit per search result and one credit per company
 profile; supplementary fields can cost more. This adapter requests only the
@@ -41,16 +41,16 @@ free `lien_pappers` supplement on detail.
 1. Assess the full request and inspect the exact operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show fr/pappers/companies:search-companies
+   catalogue data assess "<complete question>" --json
+   catalogue data show fr/pappers/companies:search-companies
    ```
 
 2. Search a small page, compare candidates, then retrieve the chosen SIREN:
 
    ```bash
-   navigator query fr/pappers/companies --operation search-companies \
+   catalogue query fr/pappers/companies --operation search-companies \
      --input '{"q":"Danone","par_page":3,"page":1}'
-   navigator query fr/pappers/companies --operation get-company \
+   catalogue query fr/pappers/companies --operation get-company \
      --input '{"siren":"552032534"}'
    ```
 

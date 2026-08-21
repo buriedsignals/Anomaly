@@ -19,7 +19,7 @@ language. The official EDGAR API page identifies JSON APIs on `data.sec.gov`
 for company submissions and XBRL data. It does not document
 `https://efts.sec.gov/LATEST/search-index` as a supported, versioned public API.
 
-Navigator uses that live JSON route because it backs the SEC search experience
+catalogue uses that live JSON route because it backs the SEC search experience
 and is queryable, but labels it as an undocumented UI-backend integration. Its
 request parameters, response shape, paging, availability, and continued access
 can change without a published API contract.
@@ -37,12 +37,12 @@ EDGAR filings since 2001, including attachments. The FAQ documents:
   Boolean searches;
 - form and filing-date filters, with dates represented as `YYYY-MM-DD`.
 
-Navigator exposes `q`, comma-separated `forms`, and paired `startdt`/`enddt`.
+catalogue exposes `q`, comma-separated `forms`, and paired `startdt`/`enddt`.
 
 ## Empirically verified backend behavior
 
 Live probes on 2026-08-12 showed that the backend returned 100 hits even when a
-smaller apparent size value was sent. Navigator therefore requests once and
+smaller apparent size value was sent. catalogue therefore requests once and
 slices locally with `limit` (1–100). The observed `from` parameter changed the
 returned offset and is exposed as `offset` (0–9900). These observations are not
 official contracts and must be reverified after drift.
@@ -57,7 +57,7 @@ attachments—not a unique filing, filer, or company count.
 SEC guidance requires a User-Agent identifying the organization and contact and
 sets a current maximum automated-access rate of 10 requests per second across
 machines. It also asks clients to download only what they need. The adapter
-makes one request per query and can use a caller-supplied `NAVIGATOR_SEC_UA`.
+makes one request per query and can use a caller-supplied `catalogue_SEC_UA`.
 
 The SEC webmaster FAQ says Government-created sec.gov content and EDGAR public
 filing content are free to access and reuse. Confirm rights for any separately

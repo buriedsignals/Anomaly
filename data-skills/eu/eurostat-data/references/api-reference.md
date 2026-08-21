@@ -16,7 +16,7 @@ live dissemination service on 2026-08-12.
 
 Eurostat exposes SDMX data, dataflows, data structures, concepts, codelists,
 constraints, metadata, several output formats, and a separate asynchronous
-workflow for large results. Navigator releases:
+workflow for large results. catalogue releases:
 
 | Operation | Provider request | Adapter behavior |
 |---|---|---|
@@ -45,7 +45,7 @@ Path form:
 /data/dataflow/ESTAT/{dataset_code}/{version}/{key}
 ```
 
-| Navigator input | Provider form | Semantics |
+| catalogue input | Provider form | Semantics |
 |---|---|---|
 | `key` | path key | Dimension values in data-structure order; `*` wildcard and trailing omission supported. |
 | `filters.DIM` | `c[DIM]` | Order-independent component filter. |
@@ -82,7 +82,7 @@ confidential, break-in-series, or other status must travel with the value.
 Eurostat documentation says potentially large requests are delivered
 asynchronously. Provider guidance describes estimated 500,000–5,000,000-cell
 queries moving to asynchronous delivery and larger requests being rejected.
-Navigator does not implement that workflow. Its `limit` truncates normalized
+catalogue does not implement that workflow. Its `limit` truncates normalized
 output and cannot make a broad upstream request cheap.
 
 ## Reuse

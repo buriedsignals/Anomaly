@@ -54,7 +54,7 @@ notes: >-
   which the adapter normalizes to no results. An unknown user-history probe
   returned HTTP 500, and profile analysis was not called because it can create
   sensitive inferences and consume quota. Search terms and identifiers leave
-  Navigator for ThinkPol. Provider pages make differing statements about
+  catalogue for ThinkPol. Provider pages make differing statements about
   request-data retention; do not promise zero logging.
 
 examples:

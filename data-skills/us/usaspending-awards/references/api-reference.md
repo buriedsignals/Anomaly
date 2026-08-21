@@ -19,7 +19,7 @@ repository and defines the request/response fields used here.
 
 Required body objects are `filters` and `fields`. Optional controls include
 `limit` (default 10), `page`, `sort`, `order` (`asc`/`desc`), and `subawards`.
-Navigator fixes `subawards=false`, validates limit 1–100 locally, and exposes
+catalogue fixes `subawards=false`, validates limit 1–100 locally, and exposes
 page/sort/order. The response includes results, `page_metadata.hasNext`, and
 optional messages.
 
@@ -29,7 +29,7 @@ optional messages.
 - `award_type_codes`: required and mapped from the selected group.
 - `keywords`: broad award keyword search.
 - `recipient_search_text`: searches recipient name, UEI, and DUNS.
-- `award_ids`: Navigator surrounds the supplied ID with quotes because the
+- `award_ids`: catalogue surrounds the supplied ID with quotes because the
   provider documents quoted award IDs as exact rather than fuzzy matches.
 
 Provider-supported agency, geography, amount, program, NAICS, PSC, TAS, DEFC,
@@ -50,7 +50,7 @@ The compatibility group `other` combines direct-payment and other-assistance cod
 
 ## Type-compatible fields
 
-The API contract does not allow every field for every award type. Navigator
+The API contract does not allow every field for every award type. catalogue
 therefore requests a base set plus:
 
 - contracts/IDVs: Award Amount, Total Outlays, contract type, NAICS, PSC, and

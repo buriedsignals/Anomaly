@@ -23,7 +23,7 @@ auth:
   setup_url: https://aleph.occrp.org/settings
   setup_help: >-
     Sign in to Aleph, copy the API key from account settings, and run
-    `navigator keys set occrp-aleph`. Collection visibility is account-specific.
+    `catalogue keys set occrp-aleph`. Collection visibility is account-specific.
   test_request:
     input: {q: Putin, schema: Person, limit: 1}
 
@@ -41,7 +41,7 @@ license:
 last_tested: "2026-08-12"
 status: queryable
 notes: >-
-  The live OCCRP deployment requires authentication and may expose different
+  The live OCCRP publication requires authentication and may expose different
   collections to different accounts. Aleph's current source code documents
   `Authorization: ApiKey` for user API keys; `Token` denotes a session token.
   Search results and graph links are investigative leads, not verified facts.

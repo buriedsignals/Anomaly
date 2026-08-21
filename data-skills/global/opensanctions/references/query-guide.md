@@ -11,7 +11,7 @@
 6. Verify current status in the issuing authority's primary record.
 
 ```bash
-navigator query global/opensanctions --operation match-entity \
+catalogue query global/opensanctions --operation match-entity \
   --input '{"schema":"Person","properties":{"name":["Arkadii Rotenberg"],"birthDate":["1951"]},"dataset":"default","topics":["sanction"],"threshold":0.8,"algorithm":"logic-v2","limit":5}'
 ```
 
@@ -22,7 +22,7 @@ the review process.
 ## Use search only for discovery
 
 ```bash
-navigator query global/opensanctions --operation search-entities \
+catalogue query global/opensanctions --operation search-entities \
   --input '{"q":"\"Wagner Group\"","schema":"Organization","dataset":"default","limit":10,"offset":0,"filter_op":"AND"}'
 ```
 
@@ -49,7 +49,7 @@ A low/no score with sparse input remains inconclusive.
 ## Exact record and canonical IDs
 
 ```bash
-navigator query global/opensanctions --operation get-entity \
+catalogue query global/opensanctions --operation get-entity \
   --input '{"entity_id":"Q7747","nested":true}'
 ```
 

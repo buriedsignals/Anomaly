@@ -38,19 +38,19 @@ the rest of that window. Official search docs reserve 401 for unauthorized.
 
 ## `search-companies`
 
-| Navigator field | Provider parameter | Semantics |
+| catalogue field | Provider parameter | Semantics |
 |---|---|---|
 | `q` | `q` | Required search term. |
-| `items_per_page` | same | Navigator bounds 1–100. |
+| `items_per_page` | same | catalogue bounds 1–100. |
 | `start_index` | same | Zero-based first-result index. |
 
 Companies House also documents `restrictions`, including active/company-name-
-availability modes, but Navigator does not expose it. Search response includes
+availability modes, but catalogue does not expose it. Search response includes
 `items`, `items_per_page`, `start_index`, and `total_results`.
 
 ## `get-company`
 
-The provider path uses exact `company_number`. Navigator accepts 1–8
+The provider path uses exact `company_number`. catalogue accepts 1–8
 alphanumeric characters, uppercases letters, and preserves leading zeros. Do
 not parse the identifier as an integer. A 404 is a missing resource, not an
 empty search page.

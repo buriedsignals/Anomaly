@@ -18,7 +18,7 @@ live response establishes point-in-time behavior, not a maintained contract.
 
 ## Two API families must remain distinct
 
-| API family | Search route | Authentication | Navigator status |
+| API family | Search route | Authentication | catalogue status |
 |---|---|---|---|
 | Legacy ZefixREST | `POST /ZefixREST/api/v1/firm/search.json` | No key observed | Released name search |
 | Current ZefixPublicREST | `POST /ZefixPublicREST/api/v1/company/search` | HTTP Basic in current OpenAPI | Not wrapped |
@@ -36,7 +36,7 @@ for the released legacy adapter.
 {"name": "Nestlé", "languageKey": "fr"}
 ```
 
-| Navigator field | Legacy field | Contract |
+| catalogue field | Legacy field | Contract |
 |---|---|---|
 | `name` | `name` | Required non-empty string; matching algorithm is undocumented in current official material. |
 | `language` | `languageKey` | One of `de`, `en`, `fr`, or `it`; defaults to `en`. |

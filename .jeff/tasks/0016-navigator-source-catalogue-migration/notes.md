@@ -1,69 +1,68 @@
 # Notes
 
-- Captured after installing Jeff 6.3.4 and initializing colocated Jujutsu.
-- Baseline before task capture: `uv run --extra test pytest -q` — 628 passed.
-- Scope decision: include ThinkPol as a catalogue source; do not carry
-  Navigator's hosted-key/runtime model into Anomaly.
+- This is the sole `test-contract-repair` recovery episode after the first
+  review/audit round. Production files were not edited.
+- Required bundled skills read: Jeff `code-standards` 6.3.4 and `testing`
+  6.3.4. The brief's canonical project coding-rules path,
+  `/Users/tomvaillant/buried_signals/kit/coding-rules/SKILL.md`, is not
+  readable in this environment and was not fabricated.
+- Verified source facts: Navigator's
+  `tools/navigator/osint-navigator/data/skills/` contains 30 metadata files,
+  one of which is the `_template` example; its 29 non-template source package
+  metadata files include `global/arbiter/case-studies`; Anomaly's
+  `tools/anomaly/data-skills/` contains 28 metadata files, including the
+  valid two-segment id `global/opensanctions` and
+  `global/thinkpol/reddit-evidence`.
 
-## Plan
+## Revised plan
 
-- Approach: keep the existing source-package shape under `data-skills/`, add
-  the 27 remaining in-scope Navigator packages beside the already migrated
-  OpenParlData package, define one local adapter-result contract, and expose a
-  deterministic registry that walks packages in sorted order and imports an
-  adapter only after a source id is requested.
-- YAGNI boundary: reuse the existing Agent Skill package shape, `meta.yaml`,
-  `SKILL.md`, and `adapter.py`; do not add a service, CLI, hosted runtime,
-  membership, metering, MCP, deployment, or a generated static catalogue.
-- Complexity: complex. Audit required because discovery and on-demand loading
-  are dynamic execution and path-safety boundaries.
-- Refactor opportunity: harmonize the existing OpenParlData adapter metadata
-  and result envelope with the new shared contract while preserving its public
-  query behavior; do not duplicate source-specific routers in the registry.
+- Approach: repair the proof contract in `tests/test_source_catalogue.py`
+  around the authoritative Navigator inventory, one-to-one package migration,
+  shared result states for every real catalogue adapter, catalogue-wide
+  forbidden-surface absence, deterministic request-time loading, and registry
+  symlink/duplicate-id rejection. Keep the implementation boundary local,
+  networkless, and limited to tests plus plan records.
+- YAGNI boundary: reuse the existing package metadata, adapters, result
+  validator, registry, `tmp_path`, and import-loader seams. No production
+  adapter, registry, service, CLI, hosted runtime, membership, metering,
+  Navigator, web UI, deployment, or MCP implementation is added here.
+- Complexity: complex. Audit remains required because registry discovery and
+  dynamic adapter loading cross path-safety and dynamic-execution boundaries.
+- Refactor opportunity: harmonize all real adapter result construction behind
+  the shared result contract while preserving source-specific query behavior;
+  the registry must remain source-id driven and must not gain per-source
+  wiring.
 
 ## Acceptance dispositions
 
-1. `write`: `test_migration_has_exact_navigator_inventory_and_complete_packages`
-   observes exactly the 28 non-Arbiter ids, includes ThinkPol, recognizes
-   OpenParlData, excludes only Arbiter, and requires each package's skill and
-   adapter files. The sorted package walk and exact id set are the outcome seam.
-2. `write`: `test_source_result_contract_covers_success_and_unavailable_states`
-   observes metadata, licence, endpoint/operation, validation, normalized
-   records, source hash, provenance, and typed unavailable/error states. The
-   contract validator is the outcome seam.
-3. `write`: `test_registry_is_deterministic_safe_and_loads_adapter_only_on_request`
-   observes repeatable sorted discovery, no adapter import during discovery,
-   on-demand loading by source id, and adapter execution. The temporary
-   package, import marker, and repeated registry result are deterministic seams.
-4. `write`: `test_registry_rejects_malformed_or_unsafe_packages` observes
-   fail-closed rejection of an unsafe source id before loading or execution.
-   The registry exception is the deterministic safety seam.
-5. `write`: the inventory and metadata assertions represent ThinkPol through
-   the same ordinary local catalogue contract; no hosted-key or membership
-   field is accepted by the planned metadata contract. The shared contract and
-   package inventory are the consumer seams.
-6. `write`: the plan explicitly carries no Navigator CLI, service, web UI,
-   deployment, or MCP surfaces; repository-level wording checks belong in the
-   migration documentation/backlog update and its targeted test or static
-   assertion. The absence of those production surfaces is the verification seam.
-7. `write`: the source package documentation and PRD/backlog wording update are
-   part of the implementation slice, with tests remaining local and networkless.
-   Targeted package/inventory and static-text checks are the deterministic seam.
+1. `revise`: `test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations` derives the 29-package inventory from Navigator, excludes only Arbiter, and requires exactly one Anomaly metadata/skill/adapter package per remaining id. The derived id sets, counts, and package files are the consumer-observable seam.
+2. `revise`: `test_shared_result_contract_enforces_each_real_adapter_state` loads every real catalogue adapter and exercises the shared success, unavailable, and error result states through `validate_source_result`. The validator result and state-specific error envelope are the deterministic seam.
+3. `revise`: `test_registry_loads_real_adapters_only_after_request` checks repeatable source-id ordering and request-time loading for a real migrated source. Discovery order, module identity, and callable adapter are the consumer seam.
+4. `revise`: `test_registry_rejects_symlink_escape_before_loading` and `test_registry_rejects_duplicate_ids` require fail-closed registry behavior for a symlink-parent escape and duplicate source ids. The typed `ValueError` safety boundary is the deterministic seam.
+5. `revise`: `test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces` scans all catalogue files for the locked forbidden surfaces while allowing ordinary source-domain language such as data memberships. Catalogue-wide absence is the consumer seam.
+6. `reuse`: `test_prd_m3_language_describes_catalogue_only_migration` continues to verify the existing PRD M3 catalogue wording; no redundant backlog test is added.
 
 ## Ordered slices
 
-1. Define the source adapter result contract and validation/error envelope.
-2. Migrate the 27 remaining in-scope skill packages and normalize ThinkPol and
-   OpenParlData metadata to the catalogue-only contract.
-3. Implement sorted safe discovery and request-time adapter loading.
-4. Update PRD/backlog language to the catalogue-only M3 model.
-5. Run the targeted source tests, then hand off for implementation and the
-   required dynamic-loading audit.
+1. Establish the authoritative 29-to-28 inventory and one-to-one package
+   migration contract.
+2. Enforce the shared result contract's success/unavailable/error states for
+   the real adapter set without network access.
+3. Enforce catalogue-wide forbidden-surface absence and ThinkPol's ordinary
+   local catalogue representation.
+4. Enforce deterministic registry ordering, request-time loading, symlink
+   escape rejection, and duplicate-id rejection.
+5. Run only the targeted source-catalogue test and hand off RED to the
+   implementation stage, retaining the required audit.
 
 ## RED evidence
 
 - Command: `uv run --extra test pytest -q tests/test_source_catalogue.py`
-- Decisive RED: `ModuleNotFoundError: No module named 'anomaly.sources'` during
-  collection. The baseline remains `uv run --extra test pytest -q` — 628
-  passed before this task. The first sandbox attempt could not access the uv
-  cache; the approved retry reached pytest and produced the RED above.
+- The first sandbox attempt was blocked by uv cache permissions. The approved
+  retry of the revised targeted suite reached pytest and produced `7 failed,
+  2 passed`.
+- Decisive failures include: the current registry rejects
+  `global/opensanctions`; discovery does not reject a symlink-parent escape;
+  discovery does not reject duplicate ids; and the catalogue contains
+  `navigator cli` text. The inventory and adapter-state tests also remain red
+  until the registry accepts the locked inventory and real adapter contract.

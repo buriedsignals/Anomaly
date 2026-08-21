@@ -6,7 +6,7 @@ description: >-
   to company identity and current register checks; preserve leading zeros and
   do not infer directors, beneficial ownership, continuous trading, or
   historical status from the released fields.
-compatibility: Requires the Navigator CLI, Python 3.11+, a Companies House Live REST API key, and network access to api.company-information.service.gov.uk.
+compatibility: Requires the catalogue CLI, Python 3.11+, a Companies House Live REST API key, and network access to api.company-information.service.gov.uk.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 `meta.yaml` is the executable contract. Use only released operations.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -30,8 +30,8 @@ other sections in this playbook may document provider or unreleased adapter scop
 <!-- END GENERATED OPERATION STATUS -->
 ## Authentication and quota
 
-Create a Live REST API key and run `navigator keys set companies-house`.
-Navigator sends the key as the HTTP Basic username with an empty password and
+Create a Live REST API key and run `catalogue keys set companies-house`.
+catalogue sends the key as the HTTP Basic username with an empty password and
 keeps it out of prompts. Companies House publishes a limit of 600 requests per
 five minutes; exceeding it returns 429. A 401 means unauthorised, not quota.
 
@@ -40,16 +40,16 @@ five minutes; exceeding it returns 429. A 401 means unauthorised, not quota.
 1. Assess the full request and inspect the operation:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show gb/companies-house/companies:search-companies
+   catalogue data assess "<complete question>" --json
+   catalogue data show gb/companies-house/companies:search-companies
    ```
 
 2. Search candidates with a small page, then retrieve the exact number:
 
    ```bash
-   navigator query gb/companies-house/companies --operation search-companies \
+   catalogue query gb/companies-house/companies --operation search-companies \
      --input '{"q":"BP","items_per_page":5,"start_index":0}'
-   navigator query gb/companies-house/companies --operation get-company \
+   catalogue query gb/companies-house/companies --operation get-company \
      --input '{"company_number":"00102498"}'
    ```
 

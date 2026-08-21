@@ -51,7 +51,7 @@ def run(input: dict, ctx) -> dict:
     operation = input.get("operation")
     headers = {
         "api-key": ctx.get_key("pappers"),
-        "User-Agent": "BuriedSignals-Navigator/1.0",
+        "User-Agent": "BuriedSignals-catalogue/1.0",
     }
     with httpx.Client(headers=headers, timeout=30) as client:
         if operation == "get-company":

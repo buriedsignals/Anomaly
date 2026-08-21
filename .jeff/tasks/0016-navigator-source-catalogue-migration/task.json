@@ -13,28 +13,225 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T13:23:09Z",
+  "updatedAt": "2026-08-21T13:41:32Z",
   "agents": {
-    "implementer_agent_id": "01a02478-f17b-7f32-b5bc-e3c155c7460a",
-    "reviewer_agent_id": null,
-    "reviewer2_agent_id": null,
-    "audit_agent_id": null
+    "implementer_agent_id": "01a02488-f0f5-7800-818d-69915e8c17b1",
+    "reviewer_agent_id": "01a0247e-c8e2-7130-a8fd-1864bcfcdbc9",
+    "reviewer2_agent_id": "01a0247e-c935-74e2-8274-5ebd7fd908bf",
+    "audit_agent_id": "01a0247e-c991-7d53-a3c8-0e70a1e351c8"
   },
   "tests": {
-    "authored_by_agent_id": "01a0246c-7f4d-70f0-89a1-ebf781f985c1",
+    "authored_by_agent_id": "01a02484-6f39-72b2-9165-3d6e35eb589a",
     "green": false,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ]
   },
   "review": {
-    "verdict": null,
-    "reviewer_agent_id": null,
-    "evidence": []
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "01a0247e-c8e2-7130-a8fd-1864bcfcdbc9",
+    "findings": [
+      {
+        "file": "data-skills/global/thinkpol-reddit-evidence/adapter.py",
+        "line": 283,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Adapters do not implement the shared result contract.",
+        "why": "The validator requires metadata, provenance, status, normalized, and error fields, but migrated adapters return only source-specific data and no production path validates the envelope."
+      },
+      {
+        "file": "data-skills/gb/companies-house-companies/SKILL.md",
+        "line": 9,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Migrated skills retain Navigator CLI and hosted-key concepts.",
+        "why": "The locked scope forbids Navigator CLI, hosted keys/runtime, membership, metering, and related instructions."
+      },
+      {
+        "file": "src/anomaly/sources/registry.py",
+        "line": 42,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Registry follows symlinked package files during on-demand import.",
+        "why": "is_file follows symlinks, allowing adapter.py outside the catalogue root to be executed; duplicate source ids are also not rejected."
+      },
+      {
+        "file": "tests/test_source_catalogue.py",
+        "line": 14,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Inventory and contract tests do not prove the authoritative migration or every adapter.",
+        "why": "The hardcoded set and fake adapter do not verify the real 29-package accounting, one-to-one adapter contract, forbidden surfaces, or error states."
+      },
+      {
+        "file": "data-skills/global/opensanctions/meta.yaml",
+        "line": 1,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Real catalogue discovery rejects a required valid source id.",
+        "why": "The registry requires three id segments while global/opensanctions has two, so discovery cannot enumerate the full required inventory."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "UV_CACHE_DIR=/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
+        "output": "6 passed in 0.23s"
+      },
+      {
+        "command": "discover_sources real catalogue",
+        "output": "ValueError: unsafe source id: global/opensanctions"
+      },
+      {
+        "command": "catalogue surface scan",
+        "output": "24 of 28 skills retain Navigator CLI/key instructions; ThinkPol retains api_key, ctx.get_key, and quota surfaces"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC2",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      }
+    ]
   },
   "audit": {
     "required": true,
-    "verdict": "na",
-    "audit_agent_id": null,
-    "evidence": []
+    "verdict": "needs-work",
+    "audit_agent_id": "01a0247e-c991-7d53-a3c8-0e70a1e351c8",
+    "evidence": [
+      {
+        "command": "security scanner",
+        "output": "180 files scanned; 6 high, 0 critical, 0 medium, 0 low; 12 categories, 2 uncovered; recommendation REVIEW"
+      },
+      {
+        "command": "real catalogue discovery",
+        "output": "ValueError: unsafe source id: global/opensanctions"
+      },
+      {
+        "command": "registry symlink inspection",
+        "output": "adapter.py symlink is followed by is_file and executed by spec.loader.exec_module"
+      }
+    ],
+    "reportedVerdict": "needs-work",
+    "findings": [
+      {
+        "file": "src/anomaly/sources/registry.py",
+        "line": 13,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": null,
+        "kickTo": "implement",
+        "what": "Registry rejects the valid global/opensanctions source id.",
+        "why": "Discovery fails closed on a required two-segment id, so the full catalogue cannot load."
+      },
+      {
+        "file": "src/anomaly/sources/registry.py",
+        "line": 48,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": null,
+        "kickTo": "implement",
+        "what": "On-demand loading permits symlink path escape.",
+        "why": "adapter.py.is_file follows symlinks and the resolved file is executed outside the catalogue root."
+      }
+    ],
+    "scan": {
+      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-scope",
+      "recommendation": "REVIEW",
+      "reportPath": "/private/tmp/anomaly-security-audit-16-scope/security-audit-20260821-132412.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "not_covered"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_no_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [],
@@ -43,33 +240,144 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Define and validate the shared source-adapter contract.",
-      "Migrate the 27 remaining in-scope source packages and normalize ThinkPol metadata.",
-      "Implement deterministic safe discovery and request-time adapter loading.",
-      "Update PRD/backlog language to the catalogue-only M3 model."
+      "Establish authoritative 29-to-28 inventory and one-to-one migration proof.",
+      "Enforce shared success/unavailable/error contract states for real adapters.",
+      "Reject forbidden catalogue surfaces.",
+      "Verify deterministic loading, symlink safety, and duplicate-id rejection."
     ],
     "testFiles": [
-      "tests/test_source_catalogue.py"
+      "tools/anomaly/tests/test_source_catalogue.py"
     ],
     "redRun": {
       "command": "uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": " collection failed: ModuleNotFoundError: No module named 'anomaly.sources'"
+      "output": "7 failed, 2 passed; RED covers opensanctions id rejection, forbidden surfaces, symlink escapes, duplicate ids, and adapter contract paths. Canonical coding-rules path unavailable."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize the existing OpenParlData adapter with the shared source-result contract without duplicating source-specific routing."
+    "refactorOpportunity": "Harmonize all real adapter result construction behind the shared contract while preserving source-specific query behavior."
   },
   "implement": {
-    "agent_id": "01a02478-f17b-7f32-b5bc-e3c155c7460a",
+    "agent_id": "01a02488-f0f5-7800-818d-69915e8c17b1",
     "result": "green",
     "files": [
-      "PRD.md",
-      "src/anomaly/sources/contract.py",
       "src/anomaly/sources/registry.py",
-      "data-skills/"
+      "data-skills",
+      "PRD.md",
+      ".jeff/BACKLOG.md",
+      ".jeff/tasks/0016-navigator-source-catalogue-migration/context.md"
     ],
     "greenRun": {
-      "command": "uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "6 passed in 0.07s"
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
+      "output": "9 passed in 0.27s"
     }
+  },
+  "review2": {
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "01a0247e-c935-74e2-8274-5ebd7fd908bf",
+    "findings": [
+      {
+        "file": "data-skills/ch/zefix-companies/adapter.py",
+        "line": 65,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Adapters return incomplete contract envelopes.",
+        "why": "Representative adapters omit license, endpoint, source_hash, provenance, status, normalized, and error fields required by the shared contract."
+      },
+      {
+        "file": "src/anomaly/sources/registry.py",
+        "line": 42,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Dynamic loading lacks symlink and duplicate-id rejection.",
+        "why": "Symlinked adapter and metadata files are followed and duplicate ids remain ambiguous."
+      },
+      {
+        "file": "data-skills/global/thinkpol-reddit-evidence/meta.yaml",
+        "line": 24,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "ThinkPol retains forbidden hosted key, quota, and profile concepts.",
+        "why": "The scope requires ThinkPol to be an ordinary catalogue source without hosted keys, membership, or metering."
+      },
+      {
+        "file": "data-skills/gb/companies-house-companies/SKILL.md",
+        "line": 9,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Many migrated skills retain Navigator CLI and credential instructions.",
+        "why": "Those surfaces violate the explicit no-CLI and no-hosted-key/runtime boundary."
+      },
+      {
+        "file": ".jeff/BACKLOG.md",
+        "line": 16,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "capture",
+        "what": "Backlog still describes M3 as 29 packages.",
+        "why": "It conflicts with the captured 28 non-Arbiter package scope and must be reconciled."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "catalogue adapter field scan",
+        "output": "license: 0/28; endpoint: 0/28; source_hash: 0/28; provenance: 0/28"
+      },
+      {
+        "command": "catalogue forbidden-surface scan",
+        "output": "24 of 28 skills retain Navigator CLI/key instructions; ThinkPol retains api_key, ctx.get_key, and quota"
+      },
+      {
+        "command": "jj log -r 788f00ca",
+        "output": "task 16 implementation checkpoint is 788f00ca with parent 94394c11"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC3",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "write",
+        "rederived": "write",
+        "ok": false
+      }
+    ]
   }
 }

@@ -81,7 +81,7 @@ def run(input: dict, ctx) -> dict:
 
     request_kwargs = {
         "params": params,
-        "headers": {"User-Agent": "buriedsignals-navigator/1.0"},
+        "headers": {"User-Agent": "buriedsignals-catalogue/1.0"},
         "timeout": 30,
     }
     resp = httpx.get(ENDPOINT, **request_kwargs)

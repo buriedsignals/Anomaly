@@ -131,7 +131,7 @@ def run(input: dict, ctx) -> dict:
     url = _url(mode, input)
     limit = int(input.get("limit", 10))
     with httpx.Client(
-        headers={"Accept": "application/json", "User-Agent": "BuriedSignals-Navigator/1.0"},
+        headers={"Accept": "application/json", "User-Agent": "BuriedSignals-catalogue/1.0"},
         timeout=30,
     ) as client:
         response = client.get(url)

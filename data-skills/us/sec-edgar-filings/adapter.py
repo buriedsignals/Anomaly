@@ -16,7 +16,7 @@ import httpx
 
 ENDPOINT = "https://efts.sec.gov/LATEST/search-index"
 SOURCE_ID = "us/sec-edgar/filings"
-DEFAULT_UA = "Buried Signals navigator@buriedsignals.com"
+DEFAULT_UA = "Buried Signals catalogue@buriedsignals.com"
 
 
 def _integer(value: Any, field: str, *, minimum: int, maximum: int) -> int:
@@ -126,9 +126,9 @@ def run(input: dict, ctx) -> dict:
         params["startdt"] = start
         params["enddt"] = end
 
-    user_agent = os.getenv("NAVIGATOR_SEC_UA", DEFAULT_UA).strip()
+    user_agent = os.getenv("catalogue_SEC_UA", DEFAULT_UA).strip()
     if not user_agent:
-        raise ValueError("NAVIGATOR_SEC_UA must identify the requester and contact.")
+        raise ValueError("catalogue_SEC_UA must identify the requester and contact.")
     response = httpx.get(
         ENDPOINT,
         params=params,

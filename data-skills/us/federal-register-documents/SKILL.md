@@ -6,7 +6,7 @@ description: >-
   rules, proposed rules, notices, and presidential documents; verify material
   legal text against the linked govinfo PDF because FederalRegister.gov is an
   unofficial prototype edition.
-compatibility: Requires the Navigator CLI, Python 3.11+, and network access to www.federalregister.gov.
+compatibility: Requires the catalogue CLI, Python 3.11+, and network access to www.federalregister.gov.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -18,7 +18,7 @@ metadata:
 Use only released operations and treat `meta.yaml` as the executable contract.
 
 <!-- BEGIN GENERATED OPERATION STATUS -->
-## Current Navigator release status
+## Current catalogue release status
 
 `meta.yaml` is authoritative. Execute only operations listed as **Released** below;
 other sections in this playbook may document provider or unreleased adapter scope.
@@ -32,14 +32,14 @@ other sections in this playbook may document provider or unreleased adapter scop
 1. Assess the complete request and inspect the released contract:
 
    ```bash
-   navigator data assess "<complete question>" --json
-   navigator data show us/federal-register/documents:search-documents
+   catalogue data assess "<complete question>" --json
+   catalogue data show us/federal-register/documents:search-documents
    ```
 
 2. Search with explicit document codes and bounded pagination:
 
    ```bash
-   navigator query us/federal-register/documents --operation search-documents \
+   catalogue query us/federal-register/documents --operation search-documents \
      --input '{"q":"PFAS","type":"PRORULE","agency":"environmental-protection-agency","order":"newest","per_page":10,"page":1}'
    ```
 

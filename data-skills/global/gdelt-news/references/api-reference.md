@@ -19,13 +19,13 @@ against live responses whenever fields are changed.
 
 `GET https://api.gdeltproject.org/api/v2/doc/doc`
 
-Navigator fixes:
+catalogue fixes:
 
 - `mode=artlist`
 - `format=json`
 
 It releases article discovery only. Timeline, tone, gallery, image, RSS, and
-archive-feed modes remain provider scope, not Navigator capability.
+archive-feed modes remain provider scope, not catalogue capability.
 
 ## Query grammar
 
@@ -51,7 +51,7 @@ primary-source search.
 | `startdatetime` | `YYYYMMDDHHMMSS`; may be supplied without an end |
 | `enddatetime` | `YYYYMMDDHHMMSS`; may be supplied without a start |
 
-The provider documents a three-month default/window. Navigator intentionally
+The provider documents a three-month default/window. catalogue intentionally
 defaults to `1w`. A relative `timespan` cannot be combined with an exact
 boundary, and start must not follow end.
 
@@ -65,14 +65,14 @@ Allowed sort values:
 - `ToneAsc` — most negative first;
 - `HybridRel` — provider relevance/popularity model.
 
-ArticleList defaults to 75 provider results and accepts at most 250. Navigator
+ArticleList defaults to 75 provider results and accepts at most 250. catalogue
 defaults to 25 and exposes the same maximum. The response has no continuation
 cursor and no exhaustive hit count. A page therefore cannot prove absence or
 complete enumeration.
 
 ## Normalized mapping
 
-| Provider | Navigator | Caveat |
+| Provider | catalogue | Caveat |
 |---|---|---|
 | `title` | `name` | Third-party article title |
 | `url` | `url`, `source_url` | Publisher URL may change or disappear |

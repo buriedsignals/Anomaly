@@ -15,12 +15,12 @@ the live API on 2026-08-12.
 ## Provider and released scope
 
 Find a Tender publishes OCDS release packages and record packages plus daily
-notice XML. The released Navigator operation covers collection release packages
+notice XML. The released catalogue operation covers collection release packages
 only. Notice-ID/OCID detail and record-package history are roadmap items.
 
 `GET https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages`
 
-| Navigator field | Provider parameter | Contract |
+| catalogue field | Provider parameter | Contract |
 |---|---|---|
 | `limit` | `limit` | 1–100; provider default 100. When q is used the adapter fetches up to 100 before local filtering. |
 | `cursor` | `cursor` | Opaque 1–300-character provider token from `links.next`. |
@@ -35,7 +35,7 @@ unsupported stages before sending a request.
 ## Pagination and identifiers
 
 When more results exist, `links.next` supplies a URL containing the opaque next
-cursor and the scope fields. Navigator returns both `next_url` and extracted
+cursor and the scope fields. catalogue returns both `next_url` and extracted
 `next_cursor`. Preserve the same dates/stage and use only that token.
 
 - `ocid`: procurement process identifier, shared across its releases.
@@ -60,7 +60,7 @@ Do not join parties globally on a release-local ID.
 | `source_url` | `/ocdsReleasePackages/{release_id}` | Exact official API release resource. |
 
 The package also contains publisher, licence, extensions, publication policy,
-package publication date, and links. Navigator preserves the package date and
+package publication date, and links. catalogue preserves the package date and
 next link in page metadata.
 
 ## Licence and service errors
