@@ -6,12 +6,14 @@
   "title": "M2 detector registry, core detectors, and user template",
   "status": "in_progress",
   "category": "code",
-  "stage": "plan",
+  "stage": "implement",
   "priority": "p1",
-  "deps": [15],
+  "deps": [
+    15
+  ],
   "complexity": "complex",
   "createdAt": "2026-08-21T15:00:00Z",
-  "updatedAt": "2026-08-21T15:00:00Z",
+  "updatedAt": "2026-08-21T15:19:45Z",
   "agents": {
     "implementer_agent_id": null,
     "reviewer_agent_id": null,
@@ -19,7 +21,7 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": null,
+    "authored_by_agent_id": "01a024e4-ef63-7381-8c6a-408c8409469d",
     "green": false,
     "evidence": []
   },
@@ -37,5 +39,23 @@
   "commits": [],
   "kickbacks": [],
   "blockedReason": null,
-  "abandonReason": null
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Implement deterministic discovery and validation for exactly 20 core detector packages, including safe boundaries, duplicate rejection, and complete metadata.",
+      "Add the documented SQL detector template and validate user packages while rejecting mutation, external access, file relations, and multiple statements.",
+      "Integrate recommendation and execution through an explicit approval boundary capped at 10 detectors, with bounded read-only access and provenance-bearing lead outputs.",
+      "Add the 14 new detector packages with fixtures and deterministic behavior; preserve the six existing detectors and local-only forbidden-surface constraints."
+    ],
+    "testFiles": [
+      "tests/test_detector_registry.py"
+    ],
+    "redRun": {
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_detector_registry.py",
+      "output": "10 failed, 1 passed in 0.28s; anomaly.detectors.registry and detectors/_template are absent, and the exact 20-detector, validation, approval, execution, and provenance contract is red."
+    },
+    "escalation": null,
+    "refactorOpportunity": null
+  }
 }
