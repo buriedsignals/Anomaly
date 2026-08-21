@@ -6,12 +6,14 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "plan",
+  "stage": "implement",
   "priority": "p1",
-  "deps": [17],
+  "deps": [
+    17
+  ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T16:00:00Z",
+  "updatedAt": "2026-08-21T17:13:51Z",
   "agents": {
     "implementer_agent_id": null,
     "reviewer_agent_id": null,
@@ -19,7 +21,7 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": null,
+    "authored_by_agent_id": "01a0254c-af6e-77c3-b3df-c863cba5d1ab",
     "green": false,
     "evidence": []
   },
@@ -37,5 +39,23 @@
   "commits": [],
   "kickbacks": [],
   "blockedReason": null,
-  "abandonReason": null
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Add a separate twelve-detector GAIN catalogue with stable IDs and complete metadata.",
+      "Port D1-D12 SQL semantics, parameters, source hashes, local hashes, and deterministic parity fixtures.",
+      "Normalize GAIN results into provenance-bearing leads through bounded, approval-gated local execution.",
+      "Verify forbidden hosted, orchestration, service, UI, deployment, membership, metering, CLI, and MCP scope."
+    ],
+    "testFiles": [
+      "tests/test_gain_detectors.py"
+    ],
+    "redRun": {
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
+      "output": "14 failed, 3 passed in 0.13s; GAIN catalogue/packages/fixtures and normalize_detector_result are absent."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
+  }
 }

@@ -1,1 +1,2 @@
 {"seq":0,"at":"2026-08-21T17:09:27.472Z","event":"intent","stage":"plan","note":"Capture locked GAIN D1-D12 port from gain-2026 data-detective detector definitions and committed anomaly CSV/provenance parity artifacts; keep GAIN source family separate from 20 M2 core detectors and local-only scope."}
+{"seq":1,"at":"2026-08-21T17:13:51.126Z","event":"record","stage":"plan","agent":"01a0254c-af6e-77c3-b3df-c863cba5d1ab"}
