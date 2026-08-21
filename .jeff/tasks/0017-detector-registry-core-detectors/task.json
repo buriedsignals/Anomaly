@@ -13,7 +13,7 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T15:00:00Z",
-  "updatedAt": "2026-08-21T15:32:52Z",
+  "updatedAt": "2026-08-21T15:36:38Z",
   "agents": {
     "implementer_agent_id": "01a024e8-5773-7710-86d3-a9ba85b183c7",
     "reviewer_agent_id": null,
@@ -27,14 +27,22 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 2): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ],
     "gate": {
-      "hash": "5fc4feb600f93f90c92e39994f68fcfa12be81be",
+      "hash": "c46810ce3b5fb5ef05e783c3f9c0cb5b1020ae88",
       "clean": true,
       "green": true,
       "command": "uv run --extra test pytest tests/",
-      "at": "2026-08-21T15:26:02Z"
+      "at": "2026-08-21T15:36:38Z"
     }
   },
   "review": {

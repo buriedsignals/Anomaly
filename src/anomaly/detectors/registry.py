@@ -250,7 +250,7 @@ def execute_detectors(
                     detect.validate_read_only_sql(query)
                     with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
                         connection.execute("PRAGMA enable_external_access=false")
-                        connection.execute(f"PRAGMA threads={execution_limits['threads']}")
+                        connection.execute("SET threads = ?", [execution_limits["threads"]])
                         rows = detect._run_query(
                             connection, query, list(metadata.get("parameters", {}).values()),
                             execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
