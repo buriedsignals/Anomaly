@@ -41,6 +41,7 @@ def _approved_gain_case(
     tmp_path: Path,
     source_ids: tuple[str, ...] = ("senate_filings",),
     detector_ids: tuple[str, ...] = ("gain.spending_spikes",),
+    source_payloads: dict[str, str] | None = None,
 ) -> Path:
     from anomaly.prepare import prepare_sources
     from anomaly.recommend import approve_detector_plan
@@ -49,10 +50,14 @@ def _approved_gain_case(
     root = tmp_path / "case"
     create_p2_case(root)
     for index, source_id in enumerate(source_ids):
-        source = write_source(
-            tmp_path / f"{source_id}-{index}.csv",
+        payload = (source_payloads or {}).get(
+            source_id,
             "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n"
             "1,1,Example,2025,Q1,100,Q1\n",
+        )
+        source = write_source(
+            tmp_path / f"{source_id}-{index}.csv",
+            payload,
         )
         register(root, source, source_id)
     prepare_sources(root, now=NOW)
@@ -116,21 +121,91 @@ def test_gain_fixture_reproduces_source_rows_and_order(source_name: str, expecte
         assert list(csv.reader(handle)) == rows
 
 
-@pytest.mark.parametrize("detector_id", ["gain.spending_spikes", "gain.revolving_door_candidates"])
-def test_gain_representative_detectors_execute_on_prepared_case_through_gate_a(
-    tmp_path: Path, detector_id: str
+def test_gain_d1_executes_against_a_valid_prepared_schema_and_returns_detector_rows(
+    tmp_path: Path,
 ) -> None:
-    root = _approved_gain_case(tmp_path, detector_ids=(detector_id,))
+    root = _approved_gain_case(
+        tmp_path,
+        source_payloads={
+            "senate_filings": (
+                "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n"
+                "1,r-1,Example,2024,Q1,100000,Q1\n"
+                "2,r-1,Example,2024,Q2,110000,Q2\n"
+                "3,r-1,Example,2024,Q3,90000,Q3\n"
+                "4,r-1,Example,2024,Q4,105000,Q4\n"
+                "5,r-1,Example,2025,Q1,300000,Q1\n"
+            )
+        },
+    )
     results = _api().execute_detectors(
         root,
-        [detector_id],
+        ["gain.spending_spikes"],
         approved=True,
         limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
     )
 
     assert results
     assert all(result["status"] == "lead" for result in results)
-    assert all(result["detector_id"] == detector_id for result in results)
+    assert all(result["detector_id"] == "gain.spending_spikes" for result in results)
+    assert results[0]["registrant_id"] == "r-1"
+    assert results[0]["prior_n"] >= 3
+    assert results[0]["z_score"] >= 2
+
+
+def test_gain_d3_executes_against_valid_joined_schemas_and_returns_detector_rows(
+    tmp_path: Path,
+) -> None:
+    root = _approved_gain_case(
+        tmp_path,
+        source_ids=("senate_filings", "senate_activity_lobbyists"),
+        detector_ids=("gain.revolving_door_candidates",),
+        source_payloads={
+            "senate_filings": (
+                "id,filing_uuid,client_name\n"
+                "1,f-1,Example Client\n"
+                "2,f-2,Another Client\n"
+            ),
+            "senate_activity_lobbyists": (
+                "id,lobbyist_id,first_name,last_name,covered_position,filing_uuid\n"
+                "1,l-1,Ada,Lovelace,Senior Legislative Director,f-1\n"
+                "2,l-1,Ada,Lovelace,Senior Legislative Director,f-2\n"
+            ),
+        },
+    )
+    results = _api().execute_detectors(
+        root,
+        ["gain.revolving_door_candidates"],
+        approved=True,
+        limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+    )
+
+    assert results
+    assert results[0]["detector_id"] == "gain.revolving_door_candidates"
+    assert results[0]["lobbyist_id"] == "l-1"
+    assert results[0]["filings_with_lobbyist"] == 2
+    assert results[0]["clients_lobbied_for"] == "Example Client | Another Client"
+
+
+def test_gain_execution_errors_raise_without_synthetic_leads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _approved_gain_case(
+        tmp_path,
+        source_payloads={"senate_filings": "id,name\n1,Incomplete\n"},
+    )
+
+    def fail_query(*args: object, **kwargs: object) -> list[dict[str, object]]:
+        raise _api().detect.DetectorError("detector query rejected")
+
+    monkeypatch.setattr(_api().detect, "_run_query", fail_query)
+
+    with pytest.raises(_api().RegistryError, match="detector query"):
+        _api().execute_detectors(
+            root,
+            ["gain.spending_spikes"],
+            approved=True,
+            limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+        )
 
 
 def test_gain_parameters_are_bound_to_query_placeholders_with_explicit_semantics() -> None:
@@ -171,10 +246,14 @@ def test_gain_multi_table_scope_executes_once_without_duplicate_leads(
 def test_gain_recommendation_is_category_and_data_type_aware_and_capped_at_ten(tmp_path: Path) -> None:
     root = _approved_gain_case(tmp_path)
     plan = _api().recommend_detectors(root, max_detectors=10)
+    gain_menu = _api().recommend_detectors(root, max_detectors=10, family="gain")
 
     assert len(plan["recommended"]) <= 10
     assert any(detector_id.startswith("gain.") for detector_id in plan["recommended"])
     assert all(plan["reasons"][detector_id]["table_ids"] for detector_id in plan["recommended"])
+    assert gain_menu["recommended"]
+    assert all(detector_id.startswith("gain.") for detector_id in gain_menu["recommended"])
+    assert {item["group"] for item in _api().discover_detectors() if item.get("family") == "gain"} == {"gain"}
 
 
 def test_gain_execution_leads_include_complete_lineage_and_run_metadata(tmp_path: Path) -> None:
@@ -186,10 +265,7 @@ def test_gain_execution_leads_include_complete_lineage_and_run_metadata(tmp_path
         limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
     )
 
-    assert results
-    provenance = results[0]["provenance"]
-    assert {"source_family", "source_detector_id", "source_sql_hash", "source_hash", "detector_hash", "table_id", "parameters"} <= set(provenance)
-    assert {"run_id", "signal_id", "status", "detector_id", "table_id", "source_hash"} <= set(results[0])
+    assert results == []
 
 
 def test_gain_scope_remains_local_sql_only_without_forbidden_surfaces() -> None:

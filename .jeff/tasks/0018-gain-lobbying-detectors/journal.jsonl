@@ -26,3 +26,16 @@
 {"seq":25,"at":"2026-08-21T18:00:26.158Z","event":"gate","hash":"2d83ee49cde555eb4b1dacd49594000a81a451ad","green":true,"clean":true}
 {"seq":26,"at":"2026-08-21T18:06:00.575Z","event":"record","stage":"plan","agent":"01a0256d-5eea-76b0-b56b-1ba422c5d7b9"}
 {"seq":27,"at":"2026-08-21T18:10:23.691Z","event":"intent","stage":"implement","note":"Fresh production-only repair: dynamic menu selection, complete execution provenance, and shared registry integration."}
+{"seq":28,"at":"2026-08-21T18:10:38.679Z","event":"gate","hash":"82bc9d2a7971abf2941151e860275ecaf55dfec1","green":false,"clean":true}
+{"seq":29,"at":"2026-08-21T18:10:50.563Z","event":"gate","hash":"82bc9d2a7971abf2941151e860275ecaf55dfec1","green":true,"clean":true}
+{"seq":30,"at":"2026-08-21T18:11:30.456Z","event":"record","stage":"implement","agent":"01a02580-7300-7b43-b836-fda5d43d22f0"}
+{"seq":31,"at":"2026-08-21T18:11:45.448Z","event":"gate","hash":"82bc9d2a7971abf2941151e860275ecaf55dfec1","green":true,"clean":true}
+{"seq":32,"at":"2026-08-21T18:11:45.499Z","event":"intent","stage":"review","note":"Fresh dual reviews requested after scalable GAIN execution/provenance repair."}
+{"seq":33,"at":"2026-08-21T18:11:45.549Z","event":"intent","stage":"audit","note":"Fresh security audit requested after GAIN parameter/table-scope and metadata-driven menu repair."}
+{"seq":34,"at":"2026-08-21T18:15:00.894Z","event":"record","stage":"review","agent":"01a02585-ddcd-7a02-a88d-bcd051d4a52a"}
+{"seq":35,"at":"2026-08-21T18:15:00.948Z","event":"record","stage":"review","agent":"01a02585-de8b-7d82-807a-7dfab41cab6b"}
+{"seq":36,"at":"2026-08-21T18:15:01.003Z","event":"record","stage":"audit","agent":"01a02585-df6a-73b3-bb7d-d3dcdb705fec"}
+{"seq":37,"at":"2026-08-21T18:20:49.949Z","event":"record","stage":"plan","agent":"01a0258b-a493-7260-9137-bd56c5117544"}
+{"seq":38,"at":"2026-08-21T18:23:15.944Z","event":"intent","stage":"plan","note":"Production repair removed synthetic GAIN leads; fresh test-author must update the stale lineage assertion to expect empty results on an empty detector output while retaining valid D1/D3 lineage tests."}
+{"seq":39,"at":"2026-08-21T18:24:26.841Z","event":"record","stage":"plan","agent":"01a02590-3830-70e1-9cba-e8158145b8f1"}
+{"seq":40,"at":"2026-08-21T18:24:40.600Z","event":"record","stage":"implement","agent":"01a0258e-2199-7850-9857-0da32d5aaafa"}

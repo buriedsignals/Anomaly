@@ -360,17 +360,10 @@ def execute_detectors(
             with duckdb.connect(str(root / "data" / "index.duckdb"), read_only=True) as connection:
                 connection.execute("PRAGMA enable_external_access=false")
                 connection.execute("SET threads = ?", [execution_limits["threads"]])
-                try:
-                    rows = detect._run_query(
-                        connection, query, list(metadata.get("parameters", {}).values()),
-                        execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
-                    )
-                except detect.DetectorError:
-                    if metadata.get("family") != "gain":
-                        raise
-                    rows = [{"candidate_id": table["table_id"], "execution_note": "prepared source yielded no typed detector rows"}]
-                if not rows and metadata.get("family") == "gain":
-                    rows = [{"candidate_id": table["table_id"], "execution_note": "prepared source yielded no detector rows"}]
+                rows = detect._run_query(
+                    connection, query, list(metadata.get("parameters", {}).values()),
+                    execution_limits["timeout_seconds"], execution_limits["max_output_rows"],
+                )
             for row in rows:
                 candidate = str(row.get("candidate_id", "candidate"))
                 payload = normalize_detector_result(

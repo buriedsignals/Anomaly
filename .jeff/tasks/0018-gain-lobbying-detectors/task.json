@@ -6,23 +6,23 @@
   "title": "M4 port GAIN lobbying detectors",
   "status": "in_progress",
   "category": "code",
-  "stage": "implement",
+  "stage": "refactor",
   "priority": "p1",
   "deps": [
     17
   ],
   "complexity": "complex",
   "createdAt": "2026-08-21T16:00:00Z",
-  "updatedAt": "2026-08-21T18:06:00Z",
+  "updatedAt": "2026-08-21T18:24:40Z",
   "agents": {
-    "implementer_agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
+    "implementer_agent_id": "01a0258e-2199-7850-9857-0da32d5aaafa",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a0256d-5eea-76b0-b56b-1ba422c5d7b9",
-    "green": true,
+    "authored_by_agent_id": "01a02590-3830-70e1-9cba-e8158145b8f1",
+    "green": false,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
@@ -31,15 +31,20 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 2): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ],
-    "gate": {
-      "hash": "2d83ee49cde555eb4b1dacd49594000a81a451ad",
-      "clean": true,
-      "green": true,
-      "command": "uv run --extra test pytest tests/",
-      "at": "2026-08-21T18:00:26Z"
-    }
+    ]
   },
   "review": {
     "verdict": null,
@@ -48,67 +53,49 @@
     "findings": [
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 296,
+        "line": 366,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "GAIN metadata parameters are passed to SQL queries without bind placeholders.",
-        "why": "Approved execution can fail with parameter-count mismatches."
+        "what": "GAIN execution catches DetectorError and fabricates a candidate lead.",
+        "why": "Invalid SQL, missing schema, or parameter errors can appear as successful findings."
       },
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 292,
+        "line": 270,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "GAIN SQL uses hard-coded source tables instead of the prepared table contract.",
-        "why": "Valid prepared cases cannot reliably execute the ported queries."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 230,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Recommendation selects the first ten entries and excludes the GAIN family.",
-        "why": "GAIN detectors are not available through the ordinary scalable menu."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 284,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Wildcard required_tables causes multi-table GAIN queries to run once per prepared table.",
-        "why": "Results can duplicate and table provenance becomes misleading."
-      },
-      {
-        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
-        "line": 1,
-        "severity": "medium",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "GAIN metadata lacks explicit GAIN 2026 Challenge attribution and source repository.",
-        "why": "The requested visible attribution and traceability are absent."
+        "what": "Legacy recommendation can omit gain.* entries before metadata fallback.",
+        "why": "The GAIN family is not consistently integrated into the scalable menu."
       },
       {
         "file": "tests/test_gain_detectors.py",
-        "line": 55,
-        "severity": "medium",
+        "line": 119,
+        "severity": "high",
         "class": "blocking",
         "kickTo": "plan",
-        "what": "Tests validate static fixtures but do not execute queries against valid prepared data or compare rows to source artifacts.",
-        "why": "The suite cannot detect parameter, duplication, or real parity failures."
+        "what": "Representative execution uses incomplete schemas and therefore passes through synthetic fallback.",
+        "why": "It does not prove real D1/D3 semantics or normalized output."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 174,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "GAIN package grouping is rewritten to a family-specific value.",
+        "why": "Metadata-defined data-type grouping is lost for future scalable families."
       }
     ],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-        "output": "675 passed"
+        "output": "683 passed"
       },
       {
-        "command": "security scanner",
-        "output": "70 files scanned; 0 automated findings; PASS"
+        "command": "manual execution inspection",
+        "output": "Synthetic fallback remains reachable for GAIN errors and empty results."
       }
     ],
     "acLedger": [
@@ -116,7 +103,7 @@
         "ac": "AC1",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       },
       {
         "ac": "AC2",
@@ -128,7 +115,7 @@
         "ac": "AC3",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       },
       {
         "ac": "AC4",
@@ -166,56 +153,36 @@
         "output": "70 files scanned; zero automated findings; PASS"
       },
       {
-        "command": "manual security review",
-        "output": "Approved valid-case GAIN execution is not yet demonstrated and has parameter/table-scope integrity risks."
+        "command": "manual audit",
+        "output": "Synthetic fallback remains reachable and can misrepresent failed detector execution as a lead."
       }
     ],
     "findings": [
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 299,
+        "line": 368,
         "severity": "high",
         "class": "blocking",
-        "cwe": "CWE-20",
+        "cwe": "CWE-345",
         "kickTo": "implement",
-        "what": "GAIN queries have no bind placeholders while execution passes parameters.",
-        "why": "Approved real-case execution can fail or ignore caller-selected parameters."
+        "what": "GAIN execution fabricates leads when SQL errors or returns no rows.",
+        "why": "Approved execution can emit misleading findings without successful D1-D12 execution."
       },
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 284,
+        "line": 270,
         "severity": "high",
         "class": "blocking",
-        "cwe": "CWE-20",
+        "cwe": "CWE-841",
         "kickTo": "implement",
-        "what": "Wildcard table scope runs multi-table queries once per prepared table.",
-        "why": "Results can duplicate and provenance can be misleading."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 230,
-        "severity": "high",
-        "class": "blocking",
-        "cwe": "CWE-20",
-        "kickTo": "implement",
-        "what": "Default recommendation excludes GAIN entries.",
-        "why": "The intended scalable menu cannot select the new family."
-      },
-      {
-        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
-        "line": 1,
-        "severity": "medium",
-        "class": "blocking",
-        "cwe": "CWE-20",
-        "kickTo": "implement",
-        "what": "Source attribution is incomplete.",
-        "why": "Provenance cannot identify the GAIN Challenge/source repository."
+        "what": "Legacy recommendation can omit GAIN entries.",
+        "why": "The scalable menu does not reliably authorize the intended family."
       }
     ],
     "scan": {
-      "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py tests/test_gain_detectors.py tests/test_source_catalogue.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task18",
+      "command": "review-security.sh src/anomaly/detectors detectors tests/test_detector_registry.py tests/test_gain_detectors.py tests/test_source_catalogue.py PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-task18-final",
       "recommendation": "PASS",
-      "reportPath": "/private/tmp/anomaly-security-audit-task18/security-audit-20260821-173903.md"
+      "reportPath": "/private/tmp/anomaly-security-audit-task18-final/security-audit-20260821-181149.md"
     },
     "coverage": [
       {
@@ -278,32 +245,29 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Add valid prepared-case execution coverage for representative single- and multi-table GAIN detectors, including parameter and table-scope correctness.",
-      "Add category-aware menu/recommendation, complete provenance, source parity, and explicit GAIN attribution proof.",
-      "Keep the namespaced gain.* family scalable and separate from the 20 M2 core detectors."
+      "Remove synthetic lead fallback and propagate execution failures.",
+      "Update stale lineage assertion after fallback removal while preserving valid D1/D3 execution tests.",
+      "Re-run the full gate, then fresh review and audit."
     ],
     "testFiles": [
-      "tests/test_gain_detectors.py",
-      "tests/test_detector_registry.py"
+      "tests/test_gain_detectors.py"
     ],
     "redRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py tests/test_detector_registry.py",
-      "output": "44 passed after test-contract repair; original review round had 675 passed but lacked valid-case execution proof."
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py",
+      "output": "26 passed after stale lineage repair; production fallback removal is the implementation under test."
     },
     "escalation": null,
     "refactorOpportunity": "Harmonize the GAIN family with the existing registry and normalized result envelope; do not create a second execution engine."
   },
   "implement": {
-    "agent_id": "01a02575-4cd6-7253-9ad0-4d5f0c2be101",
+    "agent_id": "01a0258e-2199-7850-9857-0da32d5aaafa",
     "result": "green",
     "files": [
-      "src/anomaly/detectors/registry.py",
-      "detectors/gain/*/query.sql",
-      "detectors/gain/*/meta.yaml"
+      "src/anomaly/detectors/registry.py"
     ],
     "greenRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-      "output": "25 passed; 683 passed"
+      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_gain_detectors.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "26 passed; 684 passed"
     }
   },
   "refactor": {
@@ -326,67 +290,49 @@
     "findings": [
       {
         "file": "src/anomaly/detectors/registry.py",
-        "line": 299,
+        "line": 366,
         "severity": "high",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "GAIN queries contain no parameter placeholders while the executor passes parameter values.",
-        "why": "Real approved execution is not behaviorally executable."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 305,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Normalized provenance omits detector version, source provenance hash, source CSV hash, and complete run metadata.",
-        "why": "Leads cannot be fully replayed or tied to source artifacts."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 231,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "implement",
-        "what": "Default recommendation is positional and excludes all GAIN detectors.",
-        "why": "The scalable category menu is not implemented."
-      },
-      {
-        "file": "src/anomaly/detectors/registry.py",
-        "line": 34,
-        "severity": "medium",
-        "class": "blocking",
-        "kickTo": "plan",
-        "what": "GAIN ordering is hardcoded rather than derived from package metadata.",
-        "why": "Future detector additions require registry edits and lack generic category discovery."
+        "what": "Execution errors become fabricated lead-shaped output.",
+        "why": "The result contract is not tied to successful detector execution."
       },
       {
         "file": "tests/test_gain_detectors.py",
-        "line": 87,
-        "severity": "medium",
+        "line": 111,
+        "severity": "high",
         "class": "blocking",
         "kickTo": "plan",
-        "what": "No valid prepared-case execution or row-level source parity test exists.",
-        "why": "The green suite misses the consumer-visible execution seam."
+        "what": "D1/D3 fixtures lack the source schemas and fields required by their SQL.",
+        "why": "Tests cannot distinguish real execution from fallback."
       },
       {
-        "file": "detectors/gain/D1_spending_spikes/meta.yaml",
-        "line": 1,
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 230,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Recommendation is positional/legacy-first and can exclude GAIN.",
+        "why": "The scalable category menu is incomplete."
+      },
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 174,
         "severity": "medium",
         "class": "blocking",
         "kickTo": "implement",
-        "what": "Attribution and source repository are not visible in metadata.",
-        "why": "The package provenance contract is incomplete."
+        "what": "Registry rewrites package grouping instead of preserving metadata-defined categories.",
+        "why": "Future families cannot provide meaningful data-type menu grouping."
       }
     ],
     "evidence": [
       {
-        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-        "output": "675 passed"
+        "command": "focused tests",
+        "output": "44 passed"
       },
       {
-        "command": "registry inspection",
-        "output": "12 gain packages discoverable but not validly executable/recommended through the shared menu"
+        "command": "full tests",
+        "output": "683 passed"
       }
     ],
     "acLedger": [
@@ -394,7 +340,7 @@
         "ac": "AC1",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       },
       {
         "ac": "AC2",
@@ -406,7 +352,7 @@
         "ac": "AC3",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       },
       {
         "ac": "AC4",
