@@ -74,10 +74,12 @@ def _has_callable_run(tree: ast.Module) -> bool:
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "run":
             callable_run = True
-        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             if any(isinstance(target, ast.Name) and target.id == "run" for target in targets):
-                callable_run = isinstance(node.value, ast.Lambda)
+                callable_run = not isinstance(node, ast.AugAssign) and isinstance(
+                    node.value, ast.Lambda
+                )
         elif isinstance(node, ast.Delete) and any(
             isinstance(target, ast.Name) and target.id == "run" for target in node.targets
         ):
@@ -114,7 +116,7 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     except ModuleNotFoundError as exc:
         if exc.name != "httpx":
             raise
-        module.run = _unavailable_run(entry, exc)  # type: ignore[attr-defined]
+        module.run = _unavailable_run(entry)  # type: ignore[attr-defined]
     finally:
         sys.dont_write_bytecode = previous
     implementation = module.run
@@ -122,7 +124,7 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     return module
 
 
-def _unavailable_run(entry: SourceEntry, cause: ModuleNotFoundError):
+def _unavailable_run(entry: SourceEntry):
     """Return a typed local-unavailable result when an optional client is absent."""
     def run(input: dict[str, Any], ctx: Any) -> dict[str, Any]:
         return {
@@ -140,7 +142,10 @@ def _unavailable_run(entry: SourceEntry, cause: ModuleNotFoundError):
             "status": "unavailable",
             "records": [],
             "normalized": True,
-            "error": {"code": "adapter-dependency-unavailable", "message": str(cause)},
+            "error": {
+                "code": "adapter-dependency-unavailable",
+                "message": "adapter dependency is unavailable",
+            },
         }
     return run
 
@@ -165,19 +170,25 @@ def _contract_run(entry: SourceEntry, implementation):
         }
         try:
             raw = implementation(input, ctx)
-        except ValueError as exc:
+        except ValueError:
             return base | {
                 "status": "error",
                 "records": [],
                 "normalized": True,
-                "error": {"code": "invalid-source-request", "message": str(exc)},
+                "error": {
+                    "code": "invalid-source-request",
+                    "message": "source request is invalid",
+                },
             }
-        except Exception as exc:
+        except Exception:
             return base | {
                 "status": "unavailable",
                 "records": [],
                 "normalized": True,
-                "error": {"code": "upstream-unavailable", "message": str(exc)},
+                "error": {
+                    "code": "upstream-unavailable",
+                    "message": "source is unavailable",
+                },
             }
 
         if not isinstance(raw, dict):

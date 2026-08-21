@@ -261,6 +261,51 @@ def test_registry_rejects_adapter_without_callable_run(tmp_path: Path) -> None:
         discover_sources(tmp_path)
 
 
+def test_registry_rejects_adapter_rebound_with_augassign(tmp_path: Path) -> None:
+    package = tmp_path / "global" / "augassign"
+    package.mkdir(parents=True)
+    (package / "meta.yaml").write_text(
+        "id: global/augassign/source\ntitle: AugAssign\nlicense: CC0\n"
+        "endpoint: https://example.test\noperation: search\n",
+        encoding="utf-8",
+    )
+    (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
+    (package / "adapter.py").write_text(
+        "def run(input, ctx):\n    return {}\n\nrun += 1\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="callable run"):
+        discover_sources(tmp_path)
+
+
+def test_adapter_error_envelope_does_not_expose_raw_exception_text(tmp_path: Path) -> None:
+    package = tmp_path / "global" / "error-envelope"
+    package.mkdir(parents=True)
+    (package / "meta.yaml").write_text(
+        "id: global/error-envelope/source\ntitle: Error envelope\nlicense: CC0\n"
+        "endpoint: https://example.test\noperation: search\n",
+        encoding="utf-8",
+    )
+    (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
+    secret_url = "https://api.example.test/search?token=super-secret-token"
+    (package / "adapter.py").write_text(
+        "def run(input, ctx):\n"
+        f"    raise RuntimeError({secret_url!r})\n",
+        encoding="utf-8",
+    )
+
+    entries = discover_sources(tmp_path)
+    adapter = load_source_adapter(entries, "global/error-envelope/source")
+    result = adapter.run({"q": "test"}, _OfflineContext())
+
+    assert result["status"] == "unavailable"
+    assert result["error"]["code"] == "upstream-unavailable"
+    assert result["error"]["message"]
+    assert secret_url not in result["error"]["message"]
+    assert "super-secret-token" not in result["error"]["message"]
+
+
 def test_prd_and_backlog_m3_language_describes_catalogue_only_migration() -> None:
     prd = (ANOMALY_ROOT / "PRD.md").read_text(encoding="utf-8")
     m3_line = next(line for line in prd.splitlines() if "| M3 |" in line)

@@ -6,14 +6,14 @@
   "title": "M3 Navigator source catalogue migration",
   "status": "in_progress",
   "category": "code",
-  "stage": "review",
+  "stage": "implement",
   "priority": "p1",
   "deps": [
     15
   ],
-  "complexity": "simple",
+  "complexity": "complex",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T14:32:22Z",
+  "updatedAt": "2026-08-21T14:41:25Z",
   "agents": {
     "implementer_agent_id": "01a024bb-7385-7e43-b240-381bae3e8002",
     "reviewer_agent_id": null,
@@ -21,8 +21,8 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "01a024b9-4d28-7433-9875-a7ffc9a711d4",
-    "green": false,
+    "authored_by_agent_id": "01a024c2-d618-7b70-9605-34755037f590",
+    "green": true,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
@@ -43,32 +43,42 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ]
+    ],
+    "gate": {
+      "hash": "ff25bdafcadc9d13d9510d2891af7cdba956c821",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-21T14:32:27Z"
+    }
   },
   "review": {
     "verdict": null,
-    "reportedVerdict": null,
     "reviewer_agent_id": null,
     "findings": [
       {
-        "file": ".jeff/BACKLOG.md",
-        "line": 16,
+        "file": "src/anomaly/sources/registry.py",
+        "line": 71,
         "severity": "high",
         "class": "blocking",
         "kickTo": "plan",
-        "what": "Backlog wording lacks explicit catalogue-only/no-service scope and is not tested.",
-        "why": "AC7 requires both PRD and backlog language to describe the revised catalogue-only model; current test covers PRD only."
+        "what": "AST discovery accepts a callable run followed by top-level AugAssign rebinding.",
+        "why": "An adapter using run += 1 passes discovery and fails later during loading instead of being rejected at the malformed-package boundary."
       }
     ],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "9 passed in 0.36s"
+        "output": "9 passed in 0.48s"
       },
       {
-        "command": "backlog wording inspection",
-        "output": "M3 line lacks catalogue-only/no-service language."
+        "command": "malformed adapter probe",
+        "output": "def run(...); run += 1 is accepted by discovery."
       }
     ],
     "acLedger": [
@@ -88,7 +98,7 @@
         "ac": "AC3",
         "claimed": "revise",
         "rederived": "revise",
-        "ok": true
+        "ok": false
       },
       {
         "ac": "AC4",
@@ -104,15 +114,15 @@
       },
       {
         "ac": "AC6",
-        "claimed": "revise",
-        "rederived": "revise",
+        "claimed": "reuse",
+        "rederived": "reuse",
         "ok": true
       },
       {
         "ac": "AC7",
-        "claimed": "reuse",
+        "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       }
     ]
   },
@@ -122,24 +132,34 @@
     "audit_agent_id": null,
     "evidence": [
       {
-        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "9 passed in 0.38s"
+        "command": "security scanner",
+        "output": "180 files scanned; 6 high, 0 critical, 0 medium, 0 low, 12 categories, 2 uncovered; recommendation REVIEW"
       },
       {
-        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-        "output": "637 passed in 5.15s"
+        "command": "registry error path inspection",
+        "output": "registry.py returns message=str(exc) from adapter exceptions"
       },
       {
-        "command": "security report reachability review",
-        "output": "No reachable injection, path escape, secret, or code-execution exploit established."
+        "command": "adapter request inspection",
+        "output": "OpenCorporates and Congress adapters place credentials in request params/headers"
       }
     ],
-    "reportedVerdict": "pass",
-    "findings": [],
+    "findings": [
+      {
+        "file": "src/anomaly/sources/registry.py",
+        "line": 175,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-532",
+        "kickTo": "plan",
+        "what": "Raw exception text is persisted in the shared error envelope.",
+        "why": "HTTP exceptions can include URLs, query parameters, headers, or credentials from adapters; returning str(exc) can leak secrets or sensitive identifiers into receipts and reports."
+      }
+    ],
     "scan": {
-      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final3",
+      "command": "/Users/buriedsignals/.codex/plugins/cache/jeff/jeff/6.3.4/skills/security-auditor/scripts/review-security.sh src/anomaly data-skills PRD.md --skip-deps --report-dir /private/tmp/anomaly-security-audit-16-final4",
       "recommendation": "REVIEW",
-      "reportPath": "/private/tmp/anomaly-security-audit-16-final3/security-audit-20260821-142345.md"
+      "reportPath": "/private/tmp/anomaly-security-audit-16-final4/security-audit-20260821-143238.md"
     },
     "coverage": [
       {
@@ -195,14 +215,16 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Revise the PRD/backlog M3 wording contract and hand off deterministic RED."
+      "Extend AST discovery to reject any top-level AugAssign rebinding of callable run.",
+      "Sanitize adapter execution error messages so credential-bearing exception text is not returned in result envelopes.",
+      "Run focused regression tests and hand off to implementation."
     ],
     "testFiles": [
       "tests/test_source_catalogue.py"
     ],
     "redRun": {
       "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-      "output": "1 failed, 8 passed in 0.32s; missing explicit catalogue-only wording in the M3 backlog entry."
+      "output": "2 failed, 9 passed in 0.32s; failures are AugAssign rebinding not rejected and raw credential-bearing exception text exposed."
     },
     "escalation": null,
     "refactorOpportunity": null
@@ -222,25 +244,19 @@
     "verdict": null,
     "reportedVerdict": null,
     "reviewer_agent_id": null,
-    "findings": [
-      {
-        "file": "tests/test_source_catalogue.py",
-        "line": 260,
-        "severity": "high",
-        "class": "blocking",
-        "kickTo": "plan",
-        "what": "Documentation acceptance coverage omits the backlog.",
-        "why": "The backlog is consumer-visible and can drift independently from PRD; add a behavior assertion for its 28-package catalogue-only wording."
-      }
-    ],
+    "findings": [],
     "evidence": [
       {
         "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py",
-        "output": "9 passed in 0.49s"
+        "output": "9 passed in 0.34s"
       },
       {
-        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/",
-        "output": "637 passed in 5.01s"
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "637 passed in 4.81s"
+      },
+      {
+        "command": "inventory and package-shape check",
+        "output": "Navigator 29; Anomaly 28; Arbiter excluded exactly once"
       }
     ],
     "acLedger": [
@@ -276,15 +292,15 @@
       },
       {
         "ac": "AC6",
-        "claimed": "revise",
-        "rederived": "revise",
+        "claimed": "reuse",
+        "rederived": "reuse",
         "ok": true
       },
       {
         "ac": "AC7",
-        "claimed": "reuse",
+        "claimed": "revise",
         "rederived": "revise",
-        "ok": false
+        "ok": true
       }
     ]
   }

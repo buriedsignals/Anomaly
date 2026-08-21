@@ -130,3 +130,12 @@
   passed in 0.32s`. The deterministic failure is the missing explicit
   `catalogue-only` wording in the descriptive M3 backlog entry; PRD wording and
   all existing catalogue/registry tests passed.
+
+## Fresh plan/test-author pass: final blocker regressions
+
+- Added deterministic RED tests for top-level `run += 1` rebinding and for
+  sanitizing adapter exception text from the shared unavailable envelope.
+- Production scope is unchanged; the next implementer must update only the
+  registry's AST binding analysis and exception-envelope message handling.
+- Audit remains required because both fixes protect dynamic loading and
+  sensitive error propagation boundaries.
