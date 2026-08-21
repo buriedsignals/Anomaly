@@ -22,3 +22,14 @@
 {"seq":21,"at":"2026-08-21T14:00:12.420Z","event":"record","stage":"plan","agent":"01a0249b-5476-77d0-b3a1-c25b44221d2a"}
 {"seq":22,"at":"2026-08-21T14:00:17.887Z","event":"intent","stage":"implement","note":"Fresh implementer for real adapter offline error envelopes and remaining forbidden catalogue CLI surfaces."}
 {"seq":23,"at":"2026-08-21T14:04:36.468Z","event":"record","stage":"implement","agent":"01a0249f-8260-7363-8a4b-025b4993bc76"}
+{"seq":24,"at":"2026-08-21T14:04:51.662Z","event":"gate","hash":"46043062062c7ea20253e15fb936cb3469ea9eb6","green":true,"clean":true}
+{"seq":25,"at":"2026-08-21T14:05:04.622Z","event":"intent","stage":"review","note":"Fresh primary review against final repair checkpoint."}
+{"seq":26,"at":"2026-08-21T14:05:04.674Z","event":"intent","stage":"review","note":"Fresh secondary review against final repair checkpoint."}
+{"seq":27,"at":"2026-08-21T14:05:04.724Z","event":"intent","stage":"audit","note":"Fresh security audit against final repair checkpoint."}
+{"seq":28,"at":"2026-08-21T14:08:52.522Z","event":"record","stage":"review","agent":"01a024a3-f733-7b71-aafa-a350d965880a"}
+{"seq":29,"at":"2026-08-21T14:08:52.577Z","event":"record","stage":"review","agent":"01a024a3-f785-7580-9d59-6c9d746724e7"}
+{"seq":30,"at":"2026-08-21T14:08:52.633Z","event":"record","stage":"audit","agent":"01a024a3-f7e1-7d63-bf11-26734a145ae9"}
+{"seq":31,"at":"2026-08-21T14:09:20.348Z","event":"intent","stage":"plan","note":"Fresh plan/test-author pass for ThinkPol ordinary-source cleanup and malformed-adapter rejection proof."}
+{"seq":32,"at":"2026-08-21T14:11:18.631Z","event":"record","stage":"plan","agent":"01a024a7-ce85-7b40-b942-51d9d094a6a1"}
+{"seq":33,"at":"2026-08-21T14:11:18.732Z","event":"intent","stage":"implement","note":"Fresh implementer for ThinkPol ordinary-source cleanup and malformed adapter rejection."}
+{"seq":34,"at":"2026-08-21T14:14:23.129Z","event":"record","stage":"implement","agent":"01a024a9-94d5-7b82-8b56-2800a4396298"}

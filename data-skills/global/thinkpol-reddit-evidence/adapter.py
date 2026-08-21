@@ -12,24 +12,11 @@ import httpx
 API_ROOT = "https://api.think-pol.com"
 SEARCH_URL = f"{API_ROOT}/v2/search"
 SOURCE_ID = "global/thinkpol/reddit-evidence"
-PROFILE_MODELS = {
-    "x-ai/grok-4.3",
-    "google/gemini-2.5-flash",
-    "deepseek/deepseek-v4-pro",
-    "google/gemini-3.1-flash-lite",
-    "openai/gpt-5.4-nano",
-}
 
 
 def _operation(input: dict[str, Any]) -> str:
     operation = input.get("operation") or "search"
-    allowed = {
-        "analyze_profile",
-        "quota",
-        "search",
-        "subreddit_users",
-        "user_history",
-    }
+    allowed = {"search", "subreddit_users", "user_history"}
     if operation not in allowed:
         raise ValueError(f"operation must be one of: {', '.join(sorted(allowed))}.")
     return operation
@@ -208,88 +195,11 @@ def _subreddit_users(input: dict[str, Any], client: httpx.Client) -> dict[str, A
     }
 
 
-def _quota(client: httpx.Client) -> dict[str, Any]:
-    response = client.get(f"{API_ROOT}/quota")
-    response.raise_for_status()
-    remaining = response.json()
-    if not isinstance(remaining, int) or isinstance(remaining, bool):
-        raise ValueError("ThinkPol quota response must be an integer.")
-    return {
-        "source_id": SOURCE_ID,
-        "operation": "quota",
-        "records": [
-            {
-                "entity": "ApiQuota",
-                "remaining": remaining,
-                "source_url": f"{API_ROOT}/quota",
-            }
-        ],
-        "page": {},
-    }
-
-
-def _analyze_profile(input: dict[str, Any], client: httpx.Client) -> dict[str, Any]:
-    username = _required_string(input, "username")
-    params: dict[str, Any] = {}
-    model = input.get("model")
-    if model is not None:
-        if model not in PROFILE_MODELS:
-            raise ValueError("model is not one of ThinkPol's documented analysis models.")
-        params["model"] = model
-    for field in ("latest", "refresh", "sources"):
-        value = _boolean_param(input, field)
-        if value is not None:
-            params[field] = value
-    use_case = input.get("use_case")
-    if use_case is not None:
-        if use_case != "law_enforcement":
-            raise ValueError("use_case must be `law_enforcement` when supplied.")
-        params["use_case"] = use_case
-
-    response = client.get(
-        f"{API_ROOT}/analyze/{quote(username, safe='')}",
-        params=params or None,
-    )
-    response.raise_for_status()
-    profile = response.json()
-    if not isinstance(profile, dict):
-        raise ValueError("ThinkPol profile response must be a JSON object.")
-    canonical_username = profile.get("username") or username
-    record = {
-        "entity": "InferredRedditProfile",
-        "username": canonical_username,
-        "age": profile.get("age"),
-        "sex": profile.get("sex"),
-        "location": profile.get("location"),
-        "country": profile.get("country"),
-        "occupation": profile.get("occupation"),
-        "relationship": profile.get("relationship"),
-        "income_level": profile.get("income_level"),
-        "interests": profile.get("interests"),
-        "brand_mentions": profile.get("brand_mentions"),
-        "life_stage": profile.get("life_stage"),
-        "personality": profile.get("personality"),
-        "sources": profile.get("sources"),
-        "source_url": f"https://www.reddit.com/user/{quote(canonical_username, safe='')}/",
-    }
-    return {
-        "source_id": SOURCE_ID,
-        "operation": "analyze_profile",
-        "records": [record],
-        "page": {},
-    }
-
-
-def run(input: dict[str, Any], ctx) -> dict[str, Any]:
-    headers = {"Authorization": f"Bearer {ctx.get_key('thinkpol')}"}
-    with httpx.Client(headers=headers, timeout=90) as client:
+def run(input: dict[str, Any], _ctx) -> dict[str, Any]:
+    with httpx.Client(timeout=90) as client:
         operation = _operation(input)
         if operation == "user_history":
             return _user_history(input, client)
         if operation == "subreddit_users":
             return _subreddit_users(input, client)
-        if operation == "quota":
-            return _quota(client)
-        if operation == "analyze_profile":
-            return _analyze_profile(input, client)
         return _search(input, client)

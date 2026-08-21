@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import re
@@ -58,6 +59,15 @@ def _safe_package(root: Path, meta_path: Path) -> SourceEntry:
         raise ValueError(f"unsafe source id: {source_id}")
     if not (package / "SKILL.md").is_file() or not (package / "adapter.py").is_file():
         raise ValueError(f"incomplete source package: {package}")
+    try:
+        tree = ast.parse((package / "adapter.py").read_text(encoding="utf-8"))
+    except SyntaxError as exc:
+        raise ValueError(f"malformed adapter: {package}") from exc
+    if not any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "run"
+        for node in tree.body
+    ):
+        raise ValueError(f"adapter must define a callable run: {package}")
     return SourceEntry(source_id, package, metadata)
 
 

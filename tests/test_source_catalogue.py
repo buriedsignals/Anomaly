@@ -162,6 +162,23 @@ def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
         assert re.search(pattern, text) is None, pattern
 
 
+def test_thinkpol_catalogue_has_no_key_quota_or_profile_surfaces() -> None:
+    thinkpol_root = SOURCE_ROOT / "global" / "thinkpol-reddit-evidence"
+    text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in thinkpol_root.rglob("*")
+        if path.is_file()
+    ).lower()
+    forbidden = (
+        r"\bapi[_ -]?key\b",
+        r"\bctx\.get_key\b",
+        r"\bquota\b",
+        r"\b(?:analyze[_ -]?profile|profile[_ -]?analysis)\b",
+    )
+    for pattern in forbidden:
+        assert re.search(pattern, text) is None, pattern
+
+
 def test_registry_loads_real_adapters_only_after_request() -> None:
     source_ids = {entry.source_id for entry in discover_sources(SOURCE_ROOT)}
     module_names = {
@@ -214,6 +231,21 @@ def test_registry_rejects_duplicate_ids(tmp_path: Path) -> None:
         (package / "adapter.py").write_text("def run(input, ctx):\n    return {}\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="duplicate"):
+        discover_sources(tmp_path)
+
+
+def test_registry_rejects_adapter_without_callable_run(tmp_path: Path) -> None:
+    package = tmp_path / "global" / "malformed"
+    package.mkdir(parents=True)
+    (package / "meta.yaml").write_text(
+        "id: global/malformed/source\ntitle: Malformed\nlicense: CC0\n"
+        "endpoint: https://example.test\noperation: search\n",
+        encoding="utf-8",
+    )
+    (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
+    (package / "adapter.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="callable run"):
         discover_sources(tmp_path)
 
 

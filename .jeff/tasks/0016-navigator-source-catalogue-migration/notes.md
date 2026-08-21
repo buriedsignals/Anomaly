@@ -72,3 +72,22 @@
 - The suite also asserts that discovery does not add real adapter modules and
   that loading one requested adapter leaves a distinct unrequested adapter
   unloaded; those assertions are green against the current registry.
+
+## Fresh plan/test-author pass
+
+- This pass adds two proof obligations from the latest review: ThinkPol-specific
+  absence of API-key retrieval, quota, and profile-operation surfaces; and
+  deterministic discovery rejection when `adapter.py` has no callable `run`.
+- `test_thinkpol_catalogue_has_no_key_quota_or_profile_surfaces` scans the
+  ThinkPol package as the consumer-visible catalogue boundary.
+- `test_registry_rejects_adapter_without_callable_run` creates an isolated
+  malformed package and requires discovery to fail with a typed `ValueError`
+  before any request-time load.
+- Existing catalogue, registry, and PRD tests are reused; no production or
+  catalogue files are edited in this pass.
+- Complexity remains complex and audit remains required because the added
+  contracts cover source-content policy and dynamic adapter-discovery safety.
+- Fresh RED evidence: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run
+  --extra test pytest -q tests/test_source_catalogue.py` produced `2 failed, 7
+  passed`. The ThinkPol test failed on the existing `api_key` surface; the
+  malformed-package test failed because discovery did not raise `ValueError`.

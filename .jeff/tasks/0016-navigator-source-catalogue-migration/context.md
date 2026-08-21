@@ -16,3 +16,7 @@
 - Verified test facts: `tests/test_source_catalogue.py` invokes discovered adapters through an offline `httpx` module, validates returned envelopes, and checks adapter-module absence after discovery and for one unrequested source after a requested load.
 - Verified catalogue facts: `data-skills/global/opensanctions/meta.yaml` contains `catalogue keys set`; at least one catalogue file contains `catalogue cli`; PRD M3 and backlog language state the revised 28-package local catalogue scope.
 - Latest targeted result: `2 failed, 5 passed`; the first failure is an offline upstream exception from `openparldata-parliamentary-data/adapter.py`, and the second is the forbidden `catalogue cli` match.
+- `tools/anomaly/tests/test_source_catalogue.py:165` — ThinkPol-specific forbidden-surface test scans the local package files.
+- `tools/anomaly/tests/test_source_catalogue.py:236` — malformed adapter test creates an isolated package without callable `run`.
+- Targeted command: `env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q tests/test_source_catalogue.py`.
+- Latest targeted result: `2 failed, 7 passed`; the ThinkPol test reports an `api_key` match and the malformed-adapter test reports no discovery error.
