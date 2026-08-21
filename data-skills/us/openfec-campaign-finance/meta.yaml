@@ -1,0 +1,152 @@
+id: us/fec/campaign-finance
+title: OpenFEC — Candidates and Committees
+description: >-
+  Search federal candidate and committee entities by name with documented
+  OpenFEC filters, stable FEC identifiers, filing dates, election cycles, and
+  links to FEC profiles. These operations do not return transactions or totals.
+provider_scope: >-
+  OpenFEC publishes candidate, committee, report, receipt, disbursement,
+  independent-expenditure, electioneering, communication-cost, audit, legal,
+  and reference endpoints. This skill releases candidate and committee entity
+  search only.
+roadmap_scope:
+  - Receipts, individual contributors, disbursements, independent expenditures, reports, totals, and filings are not released.
+  - Candidate-to-committee and committee-to-candidate joins are not performed by these operations.
+category: campaign-finance
+jurisdiction: us
+runtime: local
+endpoint: https://api.open.fec.gov/v1
+auth:
+  type: api_key
+  key_name: openfec
+  shared_key: data_gov
+  scheme: query_param
+  setup_url: https://api.data.gov/signup/
+  setup_help: |
+    OpenFEC uses a free api.data.gov key:
+      1. Sign up at https://api.data.gov/signup/
+      2. Run: navigator keys set openfec
+    A configured shared `data_gov` key is used when no OpenFEC-specific key exists.
+  test_request:
+    input: {q: Warren, per_page: 1}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: FEC public data subject to FEC Terms of Service and Acceptable Use Policy
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Candidate IDs are office-specific and committee names are not unique.
+  OpenFEC says data are updated nightly. Current FEC terms and acceptable-use
+  restrictions apply, including restrictions on commercial use and individual
+  contributor information; this release does not return contributor records.
+examples:
+  - Find Senate candidates named Warren in Massachusetts
+  - Find committees named ActBlue and retain the committee ID
+  - Search active House candidates in one state and election cycle
+input_schema:
+  type: object
+  properties:
+    q: {type: string, minLength: 1, maxLength: 200}
+    mode: {type: string, enum: [candidate, committee]}
+    page: {type: integer, minimum: 1, default: 1}
+    per_page: {type: integer, minimum: 1, maximum: 100, default: 10}
+    state: {type: string, pattern: "^[A-Za-z]{2}$"}
+    party: {type: string, minLength: 1, maxLength: 3}
+    cycle: {type: integer, minimum: 1976, maximum: 2200}
+    sort: {type: string, minLength: 1, maxLength: 100}
+    office: {type: string, enum: [H, S, P]}
+    election_year: {type: integer, minimum: 1976, maximum: 2200}
+    candidate_status: {type: string, enum: [C, F, N, P]}
+    incumbent_challenge: {type: string, enum: [I, C, O]}
+    is_active_candidate: {type: boolean}
+    year: {type: integer, minimum: 1976, maximum: 2200}
+    committee_type: {type: string, enum: [C, D, E, H, I, N, O, P, Q, S, U, V, W, X, Y, Z]}
+    designation: {type: string, enum: [A, J, P, U, B, D]}
+    filing_frequency: {type: string, enum: [A, M, N, Q, T, W, -A, -T]}
+    treasurer: {type: string, minLength: 1, maxLength: 200}
+  required: [q]
+  additionalProperties: false
+output_schema:
+  entity: Candidate
+  fields: [entity, name, candidate_id, party, party_code, office, office_code, state, district, incumbent_challenge, incumbent_challenge_code, candidate_status, candidate_inactive, active_through, cycles, election_years, has_raised_funds, first_file_date, last_file_date, last_form2_date, principal_committee_ids, committee_id, committee_type, committee_type_code, designation, designation_code, organization_type, organization_type_code, filing_frequency, treasurer, candidate_ids, sponsor_candidate_ids, affiliated_committee_name, first_form1_date, last_form1_date, source_url]
+operations:
+  - id: search-candidates
+    title: Search federal candidates
+    description: Search candidate registrations by name and optional office, geography, party, cycle, status, activity, and pagination filters.
+    status: queryable
+    entities: [Candidate]
+    actions: [search]
+    input_fields: [q, state, party, cycle, office, election_year, candidate_status, incumbent_challenge, is_active_candidate, sort, page, per_page]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: candidate}
+    output_fields: [entity, name, candidate_id, party, party_code, office, office_code, state, district, incumbent_challenge, incumbent_challenge_code, candidate_status, candidate_inactive, active_through, cycles, election_years, has_raised_funds, first_file_date, last_file_date, last_form2_date, principal_committee_ids, source_url]
+    filters: [q, state, party, cycle, office, election_year, candidate_status, incumbent_challenge, is_active_candidate, sort, page, per_page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.open.fec.gov]
+      data_classes: [candidate name, office, geography, party, cycle, status, and paging filters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search Senate candidates named Warren in Massachusetts
+      - Search active House candidates named Smith in cycle 2026
+    counterexamples:
+      - query: This candidate name is a unique person identifier
+        reason_code: candidate_id_required
+      - query: Return the candidate's receipts and cash on hand
+        reason_code: financial_operation_unavailable
+    no_result_guidance:
+      - Relax one documented filter at a time and check office-specific candidate IDs and election cycles.
+      - A person running for different offices can have multiple candidate IDs.
+    retry_guidance:
+      - Preserve filters and page across transient retries.
+      - Do not silently substitute a different candidate ID or election cycle.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not claim financial totals or transaction activity from an entity-registration row.
+      - Follow current FEC terms and acceptable-use restrictions.
+  - id: search-committees
+    title: Search federal committees
+    description: Search committee registrations by name and optional type, designation, geography, party, cycle, filing frequency, treasurer, and pagination filters.
+    status: queryable
+    entities: [Committee]
+    actions: [search]
+    input_fields: [q, state, party, cycle, year, committee_type, designation, filing_frequency, treasurer, sort, page, per_page]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: committee}
+    output_fields: [entity, name, committee_id, committee_type, committee_type_code, designation, designation_code, organization_type, organization_type_code, filing_frequency, treasurer, state, party, party_code, cycles, candidate_ids, sponsor_candidate_ids, affiliated_committee_name, first_file_date, last_file_date, first_form1_date, last_form1_date, source_url]
+    filters: [q, state, party, cycle, year, committee_type, designation, filing_frequency, treasurer, sort, page, per_page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.open.fec.gov]
+      data_classes: [committee name, type, designation, geography, party, cycle, treasurer, and paging filters]
+      sensitive_inputs: [q, treasurer]
+      consent_required: false
+    examples:
+      - Search committees named ActBlue
+      - Find independent-expenditure-only committees in one state
+    counterexamples:
+      - query: This committee name uniquely identifies the organization
+        reason_code: committee_id_required
+      - query: Return this committee's receipts and disbursements
+        reason_code: financial_operation_unavailable
+    no_result_guidance:
+      - Check the latest committee name, committee type, designation, active year/cycle, and spelling.
+      - Committee names are not unique; resolve matches by committee_id and filing history.
+    retry_guidance:
+      - Preserve filters and page across transient retries.
+      - Do not silently substitute a similarly named committee.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not claim financial totals or transaction activity from an entity-registration row.
+      - Follow current FEC terms and acceptable-use restrictions.

@@ -1,0 +1,119 @@
+id: global/wikidata/entities
+title: Wikidata — Entity Search
+description: >-
+  Resolve labels, aliases, or entity IDs to Wikidata entities with stable IDs,
+  descriptions, match metadata, HTTPS entity links, and continuation offsets.
+  This operation is for candidate resolution, not statement retrieval.
+provider_scope: >-
+  Wikidata's Wikibase Action API supports entity search, entity/statement
+  retrieval and editing, claims, labels, descriptions, aliases, sitelinks,
+  lexemes, properties, and other structured-data operations.
+roadmap_scope:
+  - Statement and cross-database identifier retrieval via wbgetentities are not currently released.
+  - SPARQL querying, entity history, and write operations are outside this source skill.
+category: entities
+jurisdiction: global
+runtime: local
+endpoint: https://www.wikidata.org/w/api.php
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: CC0 1.0 for structured data in Wikidata main, property, and lexeme namespaces
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  wbsearchentities searches labels and aliases and can also match an entity ID.
+  `language` controls selection while Navigator also sets `uselang` to request
+  returned labels/descriptions in that language. Results are candidates:
+  descriptions and match metadata must be used to disambiguate, and the chosen
+  entity's statements should be checked separately before reporting facts.
+
+examples:
+  - Resolve OpenAI to candidate Wikidata QIDs in English
+  - Search Wikidata properties for the label "official website"
+
+input_schema:
+  type: object
+  properties:
+    q:
+      type: string
+      minLength: 1
+      description: Label, alias, term, or entity ID to search.
+    language:
+      type: string
+      minLength: 1
+      default: en
+      description: MediaWiki language code used for selection and returned display text.
+    type:
+      type: string
+      enum: [entity-schema, form, item, lexeme, property, sense]
+      default: item
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 50
+      default: 10
+    continue:
+      type: integer
+      minimum: 0
+      description: Search offset returned as next_continue by the prior page.
+    strictlanguage:
+      type: boolean
+      description: Disable provider language fallback when true.
+  required: [q]
+  additionalProperties: false
+
+output_schema:
+  entity: WikidataEntity
+  fields: [entity, name, id, description, match, match_type, match_language, source_url]
+
+operations:
+  - id: search-entities
+    title: Search Wikidata entities
+    description: Search labels, aliases, or IDs and return disambiguation metadata plus a continuation offset.
+    status: queryable
+    entities: [WikidataEntity]
+    actions: [search, resolve]
+    input_fields: [q, language, type, limit, continue, strictlanguage]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q, search: q}
+    adapter_input: {}
+    output_fields: [entity, name, id, description, match, match_type, match_language, source_url]
+    filters: [q, language, type, limit, continue, strictlanguage]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, quota_bucket: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.wikidata.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Resolve "Gazprom" to candidate item QIDs and compare descriptions
+      - Search properties for "official website" and follow next_continue if needed
+    counterexamples:
+      - query: Return the LEI and all ownership statements for this QID
+        reason_code: statement_retrieval_not_available
+      - query: Treat the first label match as confirmed identity
+        reason_code: disambiguation_required
+    no_result_guidance:
+      - Try the native-language label, a known alias, an entity ID, or relaxed language fallback.
+      - Confirm the requested entity type; items and properties use different searches.
+    retry_guidance:
+      - Retry transient 429 or 5xx responses with backoff and the same continuation only once.
+      - Do not invent continuation offsets or retry invalid language/type values unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not report descriptions, aliases, or entity selection as authoritative without checking cited statements and primary sources.

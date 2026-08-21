@@ -1,0 +1,25 @@
+{
+  "skill_name": "eurostat-data",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find a Eurostat dataset for youth unemployment, then give me the first plausible code.",
+      "expected_output": "The agent searches dataflows, presents candidate codes and labels, and does not choose a dataset without checking its dimensions, population, unit, and intended measure."
+    },
+    {
+      "id": 2,
+      "prompt": "Get DEMO_GIND POPTRT for France in 2021 and explain the number.",
+      "expected_output": "The agent issues an explicitly filtered observation query and interprets value only with dataset label, dimension codes and labels, unit, and any status flag."
+    },
+    {
+      "id": 3,
+      "prompt": "Download every observation in this giant Eurostat dataset; limit the output to ten so the API call stays small.",
+      "expected_output": "The agent explains that the local output limit does not bound the upstream cube, refuses an unfiltered large request, and asks for dimensions or an authorized asynchronous workflow."
+    },
+    {
+      "id": 4,
+      "prompt": "The latest API value proves Eurostat never revised this series.",
+      "expected_output": "The agent rejects the inference because the dissemination API exposes current values rather than a complete revision history and preserves the retrieval date."
+    }
+  ]
+}

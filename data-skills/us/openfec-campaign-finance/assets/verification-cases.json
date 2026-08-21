@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/fec/campaign-finance",
+  "cases": [
+    {
+      "id": "search-known-candidate",
+      "operation": "search-candidates",
+      "input": {"q": "Warren", "office": "S", "state": "MA", "per_page": 2},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 1, "required_fields": ["entity", "name", "candidate_id", "office", "state", "source_url"]}
+    },
+    {
+      "id": "search-known-committee",
+      "operation": "search-committees",
+      "input": {"q": "ACTBLUE", "per_page": 2},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 1, "required_fields": ["entity", "name", "committee_id", "committee_type", "cycles", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Find a Tender OCDS"
+  short_description: "Retrieve UK procurement release packages"
+  default_prompt: "Use $find-a-tender-notices to query a bounded update window and stage, preserve OCID and release ID, and state when term matching was only local to one page."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "SEC EDGAR Full-Text Search"
+  short_description: "Find text in filing documents"
+  default_prompt: "Use $sec-edgar-filings for bounded document-level discovery, open the filing for context, and disclose that the live EFTS JSON route is an undocumented UI backend."
+policy:
+  allow_implicit_invocation: true

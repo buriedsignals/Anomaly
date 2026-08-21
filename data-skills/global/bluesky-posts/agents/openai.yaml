@@ -1,0 +1,7 @@
+interface:
+  display_name: "Bluesky Profiles"
+  short_description: "Resolve public Bluesky profiles and stable DIDs"
+  default_prompt: "Use $bluesky-posts to resolve a public profile, preserve its DID and retrieval time, and do not use the currently blocked post-search operation."
+
+policy:
+  allow_implicit_invocation: true

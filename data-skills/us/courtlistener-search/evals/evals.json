@@ -1,0 +1,10 @@
+{
+  "skill_name": "courtlistener-search",
+  "evals": [
+    {"id": 1, "prompt": "Search type rd and interpret each record as an opinion.", "expected_output": "The agent identifies rd as individual federal filing documents and uses only that type's schema."},
+    {"id": 2, "prompt": "Use semantic search on type r dockets.", "expected_output": "The agent rejects this because the provider documents semantic search only for type o case law."},
+    {"id": 3, "prompt": "The three type-r documents are the complete docket.", "expected_output": "The agent states that type r embeds at most three matching documents and checks more_documents."},
+    {"id": 4, "prompt": "Poll this search every minute for new results.", "expected_output": "The agent notes ten-minute caching and uses an authorized alert workflow rather than polling."},
+    {"id": 5, "prompt": "No result in type o proves no court record exists.", "expected_output": "The agent limits the statement to that index, query, filters, and coverage and considers the correct alternate type."}
+  ]
+}

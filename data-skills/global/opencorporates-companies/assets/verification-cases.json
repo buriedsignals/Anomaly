@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/opencorporates/companies",
+  "cases": [
+    {
+      "id": "search-known-company",
+      "operation": "search-companies",
+      "input": {"q": "Barclays", "jurisdiction_code": "gb", "per_page": 2, "page": 1},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["entity", "name", "jurisdiction", "company_number", "source_url"]}
+    },
+    {
+      "id": "get-known-company",
+      "operation": "get-company",
+      "input": {"jurisdiction_code": "gb", "company_number": "00102498"},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["entity", "name", "jurisdiction", "company_number", "status", "source_url"]}
+    }
+  ]
+}

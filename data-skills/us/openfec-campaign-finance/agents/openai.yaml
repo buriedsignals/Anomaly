@@ -1,0 +1,6 @@
+interface:
+  display_name: "OpenFEC Candidates & Committees"
+  short_description: "Resolve federal election entities"
+  default_prompt: "Use $openfec-campaign-finance to resolve candidates and committees by stable FEC IDs; do not infer financial activity from registration rows and apply current FEC usage restrictions."
+policy:
+  allow_implicit_invocation: true

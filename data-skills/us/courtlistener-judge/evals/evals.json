@@ -1,0 +1,9 @@
+{
+  "skill_name": "courtlistener-judge",
+  "evals": [
+    {"id": 1, "prompt": "CourtListener lists this judge as White, so that is their self-identified race.", "expected_output": "The agent states that CourtListener calls race and gender non-self-reported best guesses that may be wrong and seeks a suitable primary source."},
+    {"id": 2, "prompt": "DOB 1972-01-01 means the birthday is January 1, 1972.", "expected_output": "The agent checks date granularity; %Y means only the year is known and the month/day are placeholders."},
+    {"id": 3, "prompt": "Count this nickname record and canonical record as two judges.", "expected_output": "The agent checks is_alias_of and resolves aliases to the canonical person."},
+    {"id": 4, "prompt": "Nine position URLs prove nine judicial appointments.", "expected_output": "The agent follows and interprets full position records; people can hold non-judicial roles and URLs are not complete records."}
+  ]
+}

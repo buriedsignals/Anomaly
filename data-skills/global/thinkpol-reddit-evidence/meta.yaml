@@ -1,0 +1,283 @@
+id: global/thinkpol/reddit-evidence
+title: ThinkPol — Reddit Evidence
+description: >-
+  Search ThinkPol's documented Reddit submission and comment archive. The
+  official API also documents user-history export, subreddit-user lookup,
+  quota inspection, and AI-generated profile analysis; those operations remain
+  unreleased where response verification or policy review is incomplete.
+provider_scope: >-
+  ThinkPol's OpenAPI 3.0.3 document describes five GET endpoints: profile
+  analysis, remaining quota, user comment history, users associated with a
+  subreddit, and hydrated Reddit submission/comment search. ThinkPol's website
+  separately advertises a broader 30-billion-record grey-web platform and v3
+  search features, but the public OpenAPI does not define those v3 parameters.
+roadmap_scope:
+  - Obtain a record-bearing user-history response before considering that operation for release.
+  - Reconcile the website's v3 search, cursor, phrase-mode, and popularity claims with a current machine-readable provider contract.
+  - Define a defensible bound and association meaning for subreddit-user enumeration before considering release.
+  - Keep inferred profile analysis unavailable until its lawful-use, consent, quota, and editorial safeguards are approved.
+category: social
+jurisdiction: global
+runtime: local
+endpoint: https://api.think-pol.com/v2/search
+
+auth:
+  type: api_key
+  key_name: thinkpol
+  scheme: bearer
+  setup_url: https://think-pol.com/contact
+  setup_help: ThinkPol is an ordinary catalogue source. Configure its documented credential locally when access is authorized.
+  test_request:
+    input: {q: verification, content_type: comment}
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Proprietary ThinkPol terms; redistribution or resale requires authorization, and third-party content rights still apply
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-08-12"
+status: queryable
+partner: true
+explicit_only_operations: [analyze-profile]
+notes: >-
+  Firecrawl retrieved ThinkPol's official Swagger UI and OpenAPI document on
+  2026-08-12. With an authorized token, the adapter received a valid integer
+  quota response, a zero-result search, and 50 normalized comments for a
+  one-day disinformation search. A live subreddit probe returned an
+  unpaginated 4,215-name array; unknown subreddits returned HTTP 200 JSON null,
+  which the adapter normalizes to no results. An unknown user-history probe
+  returned HTTP 500, and profile analysis was not called because it can create
+  sensitive inferences and consume quota. Search terms and identifiers leave
+  Navigator for ThinkPol. Provider pages make differing statements about
+  request-data retention; do not promise zero logging.
+
+examples:
+  - Find archived Reddit comments containing disinformation
+  - Search archived Reddit submissions for both election and integrity
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [search, user_history, subreddit_users, quota, analyze_profile]
+    q:
+      type: string
+      minLength: 1
+    terms:
+      type: array
+      minItems: 1
+      items: {type: string, minLength: 1}
+    content_type:
+      type: string
+      enum: [comment, submission]
+    from:
+      type: integer
+      minimum: 0
+    to:
+      type: integer
+      minimum: 0
+    username:
+      type: string
+      minLength: 1
+    subreddit_name:
+      type: string
+      minLength: 1
+    latest:
+      type: boolean
+    model:
+      type: string
+      enum:
+        - x-ai/grok-4.3
+        - google/gemini-2.5-flash
+        - deepseek/deepseek-v4-pro
+        - google/gemini-3.1-flash-lite
+        - openai/gpt-5.4-nano
+    refresh:
+      type: boolean
+    sources:
+      type: boolean
+    use_case:
+      type: string
+      enum: [law_enforcement]
+  additionalProperties: false
+
+output_schema:
+  entity: RedditSubmission | RedditComment | RedditAuthor | ApiQuota | InferredRedditProfile
+  fields:
+    - entity
+    - id
+    - title
+    - text
+    - author
+    - username
+    - subreddit
+    - created_at
+    - score
+    - submission_id
+    - parent_id
+    - num_comments
+    - content_type
+    - remaining
+    - age
+    - sex
+    - location
+    - country
+    - occupation
+    - relationship
+    - income_level
+    - interests
+    - brand_mentions
+    - life_stage
+    - personality
+    - sources
+    - source_url
+
+operations:
+  - id: search-content
+    title: Search archived Reddit content
+    description: Search ThinkPol's hydrated Reddit submissions and comments using one or more case-insensitive AND terms.
+    status: queryable
+    entities: [RedditSubmission, RedditComment]
+    actions: [search]
+    input_fields: [q, terms, content_type, from, to]
+    required: []
+    any_of_required: [[q], [terms]]
+    aliases: {}
+    adapter_input: {operation: search}
+    output_fields: [entity, id, title, text, author, subreddit, created_at, score, submission_id, parent_id, num_comments, content_type, source_url]
+    filters: [q, terms, content_type, from, to]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.think-pol.com]
+      data_classes: [search terms, content-type filter, timestamp bounds]
+      sensitive_inputs: [q, terms]
+      consent_required: false
+    examples:
+      - Search archived Reddit comments for disinformation
+      - Search submissions containing both election and integrity
+    counterexamples:
+      - query: Search an exact phrase and paginate with the website's v3 cursor
+        reason_code: not_in_public_openapi_contract
+      - query: Prove that no Reddit post ever used this phrase
+        reason_code: archive_completeness_not_independently_established
+    no_result_guidance:
+      - Check spelling, content type, timestamp bounds, and whether multiple terms made the documented AND query too narrow.
+      - Record the bounded query; an empty response does not prove absence from Reddit or from deleted or unindexed content.
+    retry_guidance:
+      - Retry only after a transient upstream or rate-limit failure.
+      - Do not retry unchanged authorization, validation, or unsupported v3-parameter failures.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not send confidential leads or target terms unless disclosure to ThinkPol is justified.
+      - Do not treat indexed content as independently verified authorship, identity, or fact.
+
+  - id: list-user-history
+    title: Retrieve a user's archived history
+    description: Retrieve ThinkPol's documented semicolon-separated user-history export and normalize its four columns.
+    status: unavailable
+    entities: [RedditSubmission, RedditComment]
+    actions: [list]
+    input_fields: [username, latest]
+    required: [username]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: user_history}
+    output_fields: [entity, id, text, author, subreddit, created_at, content_type, source_url]
+    filters: [username, latest]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure: {destinations: [api.think-pol.com], data_classes: [public account identifier, latest-content flag], sensitive_inputs: [username], consent_required: false}
+    examples: [Retrieve the documented archived history for one known Reddit username]
+    counterexamples: [{query: Treat the export as a complete current account history, reason_code: completeness_not_documented}]
+    no_result_guidance: [Check exact username spelling and whether the account falls within provider coverage.]
+    retry_guidance: [Retry only after an authorized live verification establishes the response contract.]
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: A credential-backed unknown-user probe returned HTTP 500, so no record-bearing CSV response has been live-verified.
+    prohibited_uses: [Do not infer identity, intent, or complete activity history from an archived username export.]
+
+  - id: list-subreddit-users
+    title: List users associated with a subreddit
+    description: Retrieve ThinkPol's documented username list for one subreddit name.
+    status: unavailable
+    entities: [RedditAuthor]
+    actions: [list]
+    input_fields: [subreddit_name]
+    required: [subreddit_name]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: subreddit_users}
+    output_fields: [entity, username, subreddit, source_url]
+    filters: [subreddit_name]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure: {destinations: [api.think-pol.com], data_classes: [public subreddit identifier], sensitive_inputs: [subreddit_name], consent_required: false}
+    examples: [List usernames ThinkPol associates with a known subreddit]
+    counterexamples: [{query: Treat every returned username as a current member or endorser, reason_code: association_semantics_not_documented}]
+    no_result_guidance: [Check the subreddit name and report provider coverage as unknown rather than inferring no users.]
+    retry_guidance: [Do not retry broad enumeration; keep this operation unavailable until a defensible bound and association meaning are established.]
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: Live-verified but not released because the endpoint returned 4,215 unpaginated associations for one small subreddit and the provider does not define association semantics or a result bound.
+    prohibited_uses: [Do not equate provider association with endorsement, identity, or wrongdoing.]
+
+  - id: get-quota
+    title: Get remaining API quota
+    description: Retrieve the documented integer remaining quota for the authenticated ThinkPol account.
+    status: unavailable
+    entities: [ApiQuota]
+    actions: [get]
+    input_fields: []
+    required: []
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: quota}
+    output_fields: [entity, remaining, source_url]
+    filters: []
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure: {destinations: [api.think-pol.com], data_classes: [authenticated account request], sensitive_inputs: [], consent_required: false}
+    examples: [Check the remaining ThinkPol API quota]
+    counterexamples: [{query: Convert the quota integer into a billing amount, reason_code: quota_unit_not_documented}]
+    no_result_guidance: [Treat a missing or non-integer response as contract drift, not zero quota.]
+    retry_guidance: [Retry only after a transient upstream failure; do not expose the value as public-record evidence.]
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: Live-verified but not released because it exposes shared provider-account operational quota rather than public-record evidence.
+    prohibited_uses: [Do not infer price, renewal time, or query capacity because the public contract does not define the quota unit.]
+
+  - id: analyze-profile
+    title: Analyze a Reddit user profile
+    description: Request ThinkPol's AI-generated profile attributes for one username with documented model and refresh controls.
+    status: unavailable
+    entities: [InferredRedditProfile]
+    actions: [analyze]
+    input_fields: [username, model, latest, refresh, sources, use_case]
+    required: [username]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: analyze_profile}
+    output_fields: [entity, username, age, sex, location, country, occupation, relationship, income_level, interests, brand_mentions, life_stage, personality, sources, source_url]
+    filters: [username, model, latest, refresh, sources, use_case]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: upstream_write}
+    disclosure: {destinations: [api.think-pol.com], data_classes: [public account identifier, model choice, analysis controls, stated use case], sensitive_inputs: [username, use_case], consent_required: true}
+    examples: [Request a sourced profile for an authorized investigation after explicit approval]
+    counterexamples:
+      - query: State the inferred age, sex, location, income, or personality as verified fact
+        reason_code: model_generated_inference
+      - query: Profile a person for harassment, discrimination, or an unstated purpose
+        reason_code: prohibited_profile_use
+    no_result_guidance: [Do not switch usernames, models, or use cases to evade a refusal or missing result.]
+    retry_guidance: [Do not run or retry until live contract, quota effects, consent, and lawful-use safeguards are approved.]
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: Publicly documented but not released pending credential-backed verification and privacy, lawful-use, consent, quota, and editorial review.
+    prohibited_uses:
+      - Never present inferred demographic, economic, psychological, relationship, location, or identity attributes as established facts.
+      - Never use the operation for unauthorized surveillance, harassment, discrimination, re-identification, or automated adverse decisions.

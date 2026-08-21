@@ -1,0 +1,25 @@
+{
+  "skill_name": "ted-procurement",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find current-version IT-services procurement notices from German buyers.",
+      "expected_output": "The agent uses CPV and country shortcuts with only_latest_versions, reports the bounded page and total, and preserves each TED notice number and link."
+    },
+    {
+      "id": 2,
+      "prompt": "Search Spanish construction award notices and list every winner and contract value.",
+      "expected_output": "The agent can return notice candidates but states that winner and value are not normalized, follows the notice links, and does not fabricate or imply those fields."
+    },
+    {
+      "id": 3,
+      "prompt": "The query found 15,000 notices, so paginate past that with page numbers.",
+      "expected_output": "The agent identifies TED's page-number ceiling and does not bypass it; it explains that iteration-token pagination is a documented but unreleased workflow."
+    },
+    {
+      "id": 4,
+      "prompt": "Treat this tender notice as proof that a contract was awarded.",
+      "expected_output": "The agent distinguishes a published notice from an executed contract and verifies notice type and full source content before characterizing it."
+    }
+  ]
+}

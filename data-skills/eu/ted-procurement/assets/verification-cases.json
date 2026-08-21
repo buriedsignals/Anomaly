@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "eu/ted/notices",
+  "cases": [
+    {
+      "id": "search-it-notices-in-germany",
+      "operation": "search-notices",
+      "input": {"cpv": "72000000", "country": "DE", "scope": "ALL", "only_latest_versions": true, "limit": 2, "page": 1},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "publication_number", "buyer_country", "publication_date", "source_url"]}
+    },
+    {
+      "id": "search-construction-notices-expert-query",
+      "operation": "search-notices",
+      "input": {"query": "classification-cpv=45000000 AND buyer-country=ESP", "scope": "ALL", "limit": 2, "page": 1},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "publication_number", "source_url"]}
+    }
+  ]
+}

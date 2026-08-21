@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/courtlistener/search",
+  "cases": [
+    {
+      "id": "search-opinions",
+      "operation": "search-court-records",
+      "input": {"q": "qualified immunity", "type": "o", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "record_type", "provider_id", "name", "source_url"]}
+    },
+    {
+      "id": "search-filing-documents",
+      "operation": "search-court-records",
+      "input": {"q": "Purdue Pharma", "type": "rd", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "record_type", "document_id", "docket_id", "source_url"]}
+    },
+    {
+      "id": "search-judicial-people",
+      "operation": "search-court-records",
+      "input": {"q": "Ruth Bader Ginsburg", "type": "p", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "record_type", "person_id", "name", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "CourtListener Judicial People"
+  short_description: "Resolve judges and judicial people"
+  default_prompt: "Use $courtlistener-judge to resolve a judicial person, preserve aliases and date granularity, and treat provider-coded race and gender as uncertain and not self-reported."
+policy:
+  allow_implicit_invocation: true

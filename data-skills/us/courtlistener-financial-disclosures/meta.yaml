@@ -1,0 +1,90 @@
+id: us/courtlistener/financial-disclosures
+title: CourtListener — Judicial Financial Disclosures
+description: >-
+  List CourtListener financial-disclosure reports for one federal judicial
+  person ID, including the source PDF and extracted investments, gifts, debts,
+  reimbursements, agreements, positions, and income records.
+provider_scope: >-
+  CourtListener publishes separate disclosure, investment, position, agreement,
+  income, reimbursement, gift, and debt endpoints. This skill releases the main
+  disclosure endpoint with selected nested fields.
+roadmap_scope:
+  - Cross-judge investment, gift, or transaction search is not released.
+  - OCR correction and document extraction operations are not released.
+category: court
+jurisdiction: us
+runtime: local
+endpoint: https://www.courtlistener.com/api/rest/v4/financial-disclosures/
+auth:
+  type: none
+  optional: true
+  key_name: courtlistener
+  setup_url: https://www.courtlistener.com/profile/api-token/
+  setup_help: >-
+    Public experimentation can work without a token. CourtListener asks deployed
+    API clients to authenticate. Create an account, copy the profile API token,
+    and run `navigator keys set courtlistener`; access limits depend on account tier.
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Government disclosure records with CourtListener extraction; inspect source-document and embedded-content rights
+  cache_permitted: false
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The endpoint accepts person but rejects year as an unknown filter. Value codes
+  are ranges, some values are inferred from form layout, and redacted rows require
+  special care. Returned extraction is not a substitute for the linked PDF.
+examples:
+  - Financial disclosures for CourtListener person 2738
+  - Review inferred and redacted investment rows for a known judge ID
+input_schema:
+  type: object
+  properties:
+    person_id: {type: integer, minimum: 1, description: CourtListener person ID, obtainable from the judge skill.}
+    limit: {type: integer, minimum: 1, maximum: 20, default: 10}
+  required: [person_id]
+  additionalProperties: false
+output_schema:
+  entity: FinancialDisclosure
+  fields: [entity, id, person_id, year, report_type, is_amended, page_count, has_been_extracted, investments, agreements, positions, debts, gifts, non_investment_incomes, reimbursements, spouse_incomes, pdf_url, thumbnail_url, sha1, source_url]
+operations:
+  - id: list-financial-disclosures
+    title: List one person's disclosures
+    description: Return bounded disclosure reports and selected nested extracted rows for an exact CourtListener person ID.
+    status: queryable
+    entities: [FinancialDisclosure]
+    actions: [list]
+    input_fields: [person_id, limit]
+    required: [person_id]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {}
+    output_fields: [entity, id, person_id, year, report_type, is_amended, page_count, has_been_extracted, investments, agreements, positions, debts, gifts, non_investment_incomes, reimbursements, spouse_incomes, pdf_url, thumbnail_url, sha1, source_url]
+    filters: [person_id, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [judicial person identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - List disclosures for person ID 2738 and inspect the original PDFs
+      - Review inferred and redacted investment rows for a known judge ID
+    counterexamples:
+      - query: Filter disclosure reports by year using a year query parameter
+        reason_code: provider_rejects_year_filter
+      - query: Treat inferred value rows as exact disclosed amounts
+        reason_code: range_or_inferred_value
+    no_result_guidance:
+      - Confirm the CourtListener person ID and provider coverage; do not substitute a name.
+      - Absence from the extraction does not prove that no report or interest exists.
+    retry_guidance:
+      - Retry transient failures only and respect the documented account throttle.
+      - Do not retry unsupported year filters or rotate accounts.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not publish an extracted row without checking redactions, inferred flags, value-code range, and source PDF.
+      - Do not use CourtListener data for a prohibited FCRA purpose.

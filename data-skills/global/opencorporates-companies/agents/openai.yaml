@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenCorporates Companies"
+  short_description: "Resolve companies with registry provenance"
+  default_prompt: "Use $opencorporates-companies to resolve company candidates or exact identifiers, preserve status and provenance fields, and corroborate consequential facts in the current official register."
+
+policy:
+  allow_implicit_invocation: true

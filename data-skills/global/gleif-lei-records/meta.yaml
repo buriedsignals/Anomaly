@@ -1,0 +1,111 @@
+id: global/gleif/lei-records
+title: GLEIF — LEI Records
+description: >-
+  Search Global Legal Entity Identifier records by full text, legal name, or
+  exact LEI, with an optional legal-jurisdiction filter and explicit pagination.
+provider_scope: >-
+  The GLEIF API documents Level 1 identity data, Level 2 ownership relations,
+  fuzzy completions, field-specific filters, pagination, and mappings including
+  BIC and ISIN for the global LEI data pool.
+roadmap_scope:
+  - Direct and ultimate parent relationship traversal
+  - BIC, ISIN, and other identifier mappings
+  - Provider fuzzy-completion endpoints with their documented limitations
+category: companies
+jurisdiction: global
+runtime: local
+endpoint: https://api.gleif.org/api/v1/lei-records
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: GLEIF LEI Data Terms of Use
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  GLEIF records cover entities with an LEI, not every legal entity. Entity
+  status and LEI registration status are separate fields. Full-text results
+  are candidates; exact LEI and field-specific legal-name modes narrow the
+  provider filter but do not independently verify identity.
+
+examples:
+  - Search LEI records mentioning Equinor
+  - Retrieve the current GLEIF record for LEI OW6OFBNCKXC4US5C7523
+
+input_schema:
+  type: object
+  required: [q]
+  properties:
+    q:
+      type: string
+      description: Search value interpreted according to search_field.
+    search_field:
+      type: string
+      enum: [fulltext, legal_name, lei]
+      default: fulltext
+    jurisdiction:
+      type: string
+      pattern: '^[A-Za-z]{2}$'
+      description: Optional two-letter legal-jurisdiction country code.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    page:
+      type: integer
+      minimum: 1
+      default: 1
+  additionalProperties: false
+
+output_schema:
+  entity: LegalEntity
+  fields: [name, jurisdiction, lei, registered_as, category, legal_form, status, registration_status, next_renewal_date, corroboration_level, address, source_url, entity]
+
+operations:
+  - id: search-lei-records
+    title: Search LEI records
+    description: Search LEI records by documented full-text, legal-name, or exact-LEI filters with bounded pagination.
+    status: queryable
+    entities: [LegalEntity]
+    actions: [search, get]
+    input_fields: [q, search_field, jurisdiction, limit, page]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q, name: q}
+    adapter_input: {}
+    output_fields: [name, jurisdiction, lei, registered_as, category, legal_form, status, registration_status, next_renewal_date, corroboration_level, address, source_url, entity]
+    filters: [q, search_field, jurisdiction, limit, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.gleif.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search legal-name records for EQUINOR ASA in jurisdiction NO
+      - Retrieve LEI OW6OFBNCKXC4US5C7523 with exact LEI mode
+    counterexamples:
+      - query: Prove a company does not exist because GLEIF returned no LEI
+        reason_code: source_coverage_not_universal
+    no_result_guidance:
+      - Confirm whether the entity is expected to have an LEI and check spelling, legal suffix, and jurisdiction.
+      - Move from legal_name to fulltext only when broader candidate matching is appropriate; record the changed scope.
+    retry_guidance:
+      - Respect the published per-user request limit and retry only after transient failures.
+      - Do not retry malformed LEIs or unsupported filters unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not equate LAPSED registration with a dissolved legal entity.

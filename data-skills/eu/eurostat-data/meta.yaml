@@ -1,0 +1,279 @@
+id: eu/eurostat/data
+title: Eurostat — Official European Statistics
+description: >
+  Eurostat's official cross-domain statistics via the current SDMX 3.0 API:
+  discover dataset codes, then retrieve filtered observations with dimension
+  labels and quality flags. Public, no key; data are updated by domain.
+provider_scope: >-
+  Eurostat's SDMX 3.0 dissemination service exposes dataflows, data structures,
+  codelists, constraints, and filtered statistical observations across Eurostat
+  domains; large requests can move to a separate asynchronous workflow.
+roadmap_scope:
+  - Data-structure and codelist inspection as explicit operations
+  - Asynchronous extraction for provider-approved large result sets
+  - Revision-aware archival outside the latest-value dissemination API
+category: statistics
+jurisdiction: "eu"
+runtime: local
+endpoint: https://ec.europa.eu/eurostat/api/dissemination/sdmx/3.0
+auth:
+  type: none
+  test_request:
+    input:
+      dataset_code: DEMO_GIND
+      filters:
+        FREQ: A
+        INDIC_DE: POPTRT
+        GEO: FR
+        TIME_PERIOD: "2021"
+      limit: 1
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+license:
+  data_license: Eurostat free-reuse policy (source acknowledgement; dataset-specific exceptions apply)
+  cache_permitted: true
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >
+  Uses SDMX 3.0 rather than the legacy Statistics or SDMX 2.1 APIs. Dataset
+  discovery parses ESTAT dataflows; observations use JSON-stat 2.0. DS-prefixed
+  Comext/Prodcom datasets route to the official comext dissemination host and
+  always require filters. Eurostat may switch 500k-5m-cell extractions to
+  asynchronous delivery and rejects larger ones; this synchronous adapter
+  deliberately requires bounded queries.
+examples:
+  - 'Find Eurostat datasets about youth unemployment'
+  - 'Get DEMO_GIND population-turnover rates for France from 2018 to 2023'
+  - 'Compare annual Eurostat HICP observations for France and Germany'
+input_schema:
+  type: object
+  properties:
+    mode:
+      type: string
+      enum: [datasets, data]
+      description: Search dataset metadata or retrieve observations; inferred from q/dataset_code.
+    q:
+      type: string
+      description: Required keyword query in datasets mode.
+    dataset_code:
+      type: string
+      description: Eurostat online data code, such as DEMO_GIND or PRC_HICP_MIDX.
+    version:
+      type: string
+      default: "1.0"
+      description: SDMX dataflow version; Eurostat dissemination dataflows normally use 1.0.
+    key:
+      type: string
+      description: Optional SDMX series key in dataset dimension order.
+    filters:
+      type: object
+      description: >
+        SDMX component filters keyed by dimension ID. Values may be strings,
+        numbers, or arrays; arrays become comma-separated OR values. Time ranges
+        use forms such as ge:2018+le:2023.
+    language:
+      type: string
+      enum: [en, de, fr]
+      default: en
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 1000
+      default: 100
+      description: Global normalized-record cap; does not bound the upstream download.
+    offset:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Local result offset in datasets mode.
+    first_n_observations:
+      type: integer
+      minimum: 1
+      maximum: 1000
+      description: Oldest observations per matching series, not a global limit.
+    last_n_observations:
+      type: integer
+      minimum: 1
+      maximum: 1000
+      description: Latest observations per matching series, not a global limit.
+    allow_full_dataset:
+      type: boolean
+      default: false
+      description: Explicitly allow an unfiltered non-DS dataset download.
+  additionalProperties: false
+output_schema:
+  entity: EurostatDataset | EurostatObservation
+  fields:
+  - record_type
+  - dataset_code
+  - dataset_label
+  - description
+  - version
+  - updated
+  - observation_count
+  - latest_period
+  - oldest_period
+  - time_period
+  - value
+  - unit
+  - status
+  - status_label
+  - dimensions
+  - dimension_labels
+  - metadata_url
+  - source_url
+operations:
+- id: search-datasets
+  title: Search Eurostat dataflows
+  description: Search current Eurostat dataflow codes and multilingual names locally after one official SDMX structure request.
+  status: queryable
+  entities:
+  - EurostatDataset
+  actions:
+  - search
+  input_fields:
+  - q
+  - language
+  - limit
+  - offset
+  required:
+  - q
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    mode: datasets
+  output_fields:
+  - record_type
+  - dataset_code
+  - dataset_label
+  - description
+  - version
+  - updated
+  - observation_count
+  - latest_period
+  - oldest_period
+  - metadata_url
+  - source_url
+  filters:
+  - q
+  - language
+  - offset
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: true
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [ec.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - q
+    consent_required: false
+  examples:
+  - Find Eurostat datasets about youth unemployment
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search datasets
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.
+- id: get-observations
+  title: Get filtered observations
+  description: Retrieve a bounded, explicitly filtered SDMX data cube and flatten provider values, dimensions, labels, and status flags.
+  status: queryable
+  entities:
+  - EurostatObservation
+  actions:
+  - get
+  input_fields:
+  - dataset_code
+  - version
+  - key
+  - filters
+  - language
+  - limit
+  - first_n_observations
+  - last_n_observations
+  - allow_full_dataset
+  required:
+  - dataset_code
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    mode: data
+  output_fields:
+  - dataset_code
+  - dataset_label
+  - dimension_labels
+  - dimensions
+  - record_type
+  - source_url
+  - status
+  - status_label
+  - time_period
+  - unit
+  - updated
+  - value
+  filters:
+  - dataset_code
+  - version
+  - key
+  - filters
+  - language
+  - first_n_observations
+  - last_n_observations
+  - allow_full_dataset
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: false
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [ec.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs: []
+    consent_required: false
+  examples:
+  - Get DEMO_GIND population-turnover rates for France from 2018 to 2023
+  - Compare annual Eurostat HICP observations for France and Germany
+  - Get Eurostat GDP per capita observations for an EU country
+  counterexamples:
+  - query: Aggregate or join arbitrary records with get observations
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification:
+    endpoint_live: true
+    query_tested: true
+    adapter_tested: true
+    fixture_tested: true
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.

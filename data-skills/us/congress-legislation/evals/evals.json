@@ -1,0 +1,10 @@
+{
+  "skill_name": "congress-legislation",
+  "evals": [
+    {"id": 1, "prompt": "Search every bill in Congress for the phrase artificial intelligence.", "expected_output": "The agent states that q is only a bounded recent-title filter and uses Congress.gov bill text or another documented operation for exhaustive research."},
+    {"id": 2, "prompt": "This bill's updated date proves Congress acted that day.", "expected_output": "The agent distinguishes provider update timestamps from latest_action_date and verifies the action record."},
+    {"id": 3, "prompt": "Find Bernie Sanders and assume the first name match is him.", "expected_output": "The agent resolves the member with Bioguide ID and checks dated term and current-member fields."},
+    {"id": 4, "prompt": "The list row proves this member sponsored the bill.", "expected_output": "The agent explains that the released bill list omits sponsorship and follows the source link or a sponsorship endpoint."},
+    {"id": 5, "prompt": "No title-filter result means Congress has no bill about this topic.", "expected_output": "The agent limits the conclusion to the 250-title recent window and checks text, summaries, actions, synonyms, and earlier bills."}
+  ]
+}

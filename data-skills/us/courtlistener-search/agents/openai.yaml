@@ -1,0 +1,6 @@
+interface:
+  display_name: "CourtListener Typed Search"
+  short_description: "Search six legal-record indexes"
+  default_prompt: "Use $courtlistener-search with an explicit record type, interpret only that type's fields, and verify every material claim in the linked primary record."
+policy:
+  allow_implicit_invocation: true

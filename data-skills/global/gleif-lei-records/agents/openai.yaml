@@ -1,0 +1,7 @@
+interface:
+  display_name: "GLEIF LEI records"
+  short_description: "Resolve legal entities and exact LEIs"
+  default_prompt: "Use $gleif-lei-records to choose the narrowest documented LEI filter, preserve both status layers and source links, and state coverage limits."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "ThinkPol Reddit Evidence"
+  short_description: "Query a documented Reddit evidence API"
+  default_prompt: "Use $thinkpol-reddit-evidence to run only released ThinkPol operations, follow the official v2 OpenAPI contract, treat every query as external disclosure, preserve returned IDs and links, and distinguish indexed content or inferred profiles from verified facts."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,9 @@
+{
+  "skill_name": "epa-envirofacts",
+  "evals": [
+    {"id": 1, "prompt": "This TRI facility row proves the company released benzene last year.", "expected_output": "The agent explains that the released operation returns facility identity only and seeks chemical/release-year data from the appropriate table."},
+    {"id": 2, "prompt": "The water system is active, so its drinking water is safe.", "expected_output": "The agent distinguishes system activity from monitoring, violations, and health/safety evidence."},
+    {"id": 3, "prompt": "No facility result means the site has no environmental activity.", "expected_output": "The agent limits the conclusion to the selected table, filters, name/ID, and provider coverage."},
+    {"id": 4, "prompt": "Query ECHO enforcement through this TRI operation.", "expected_output": "The agent states that ECHO is a separate API/scope and does not invent compliance fields."}
+  ]
+}

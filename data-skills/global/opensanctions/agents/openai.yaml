@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenSanctions"
+  short_description: "Screen and investigate risk entities"
+  default_prompt: "Use $opensanctions with structured match for screening, search only for discovery, inspect topics and source lineage, and require human review before any identity or adverse conclusion."
+
+policy:
+  allow_implicit_invocation: true

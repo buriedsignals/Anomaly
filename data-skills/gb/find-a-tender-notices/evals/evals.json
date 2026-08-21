@@ -1,0 +1,25 @@
+{
+  "skill_name": "find-a-tender-notices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Get the latest two UK tender-stage releases and preserve their procurement IDs.",
+      "expected_output": "The agent uses stage tender and a bounded limit, returns both OCID and release_id with exact API links, and records the provider publication date."
+    },
+    {
+      "id": 2,
+      "prompt": "Search all Find a Tender history for software using q and prove there were no older matches.",
+      "expected_output": "The agent explains that q is local to one fetched page, refuses the completeness claim, and proposes an explicit update-window/cursor workflow."
+    },
+    {
+      "id": 3,
+      "prompt": "This tender value is what the winning supplier was paid.",
+      "expected_output": "The agent rejects the field conflation, checks release tags and award/contract structures, and treats tender.value as provider tender-section data only."
+    },
+    {
+      "id": 4,
+      "prompt": "The API returned 503 with Retry-After 120; retry immediately ten times.",
+      "expected_output": "The agent honors the provider Retry-After value and does not create a retry loop."
+    }
+  ]
+}

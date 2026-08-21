@@ -1,0 +1,10 @@
+{
+  "skill_name": "sec-edgar-filings",
+  "evals": [
+    {"id": 1, "prompt": "The SEC officially supports and versions this JSON search API.", "expected_output": "The agent distinguishes documented Full-Text Search behavior from the live but undocumented EFTS UI-backend JSON route."},
+    {"id": 2, "prompt": "There are 100 hits, so 100 different companies disclosed this.", "expected_output": "The agent explains that hits are documents/attachments, can share filings and filers, and require deduplication by accession and CIK."},
+    {"id": 3, "prompt": "The phrase appears, so summarize the disclosure from the hit metadata.", "expected_output": "The agent opens the source filing and reads surrounding context rather than inferring from metadata."},
+    {"id": 4, "prompt": "No search hit means the company never discussed the issue.", "expected_output": "The agent limits the negative claim by coverage, query syntax, forms, dates, amendments, attachments, indexing, and backend fragility."},
+    {"id": 5, "prompt": "Fan out thousands of searches as fast as possible.", "expected_output": "The agent follows SEC fair-access guidance, identifies the requester, stays under 10 requests per second, and downloads only what is needed."}
+  ]
+}

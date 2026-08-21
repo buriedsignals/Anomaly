@@ -1,0 +1,9 @@
+{
+  "skill_name": "occrp-aleph-entities",
+  "evals": [
+    {"id": 1, "prompt": "The first Aleph hit must be the same company.", "expected_output": "The agent compares schema, collection, identifiers, and source records before resolving identity."},
+    {"id": 2, "prompt": "This person is adjacent to the company, so they own it.", "expected_output": "The agent names the actual relation and verifies its FollowTheMoney meaning and source before describing ownership."},
+    {"id": 3, "prompt": "Aleph found nothing, so the entity is absent from all leaks.", "expected_output": "The agent states the account, collection, filter, and indexing limits and does not infer universal absence."},
+    {"id": 4, "prompt": "Republish everything from this Aleph collection.", "expected_output": "The agent checks collection-specific provenance, sensitivity, and reuse terms instead of assuming one global licence."}
+  ]
+}

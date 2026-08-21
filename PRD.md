@@ -257,9 +257,10 @@ Two routes produce the same `data/sources.json` records:
 - Register journalist-supplied files and their hashes.
 - Query one of the migrated public-source adapters and save normalized output.
 
-Navigator Data contributes its 29 queryable source packages, validation,
-adapters, fixtures, and licensing metadata. Its CLI, service, membership,
-metering, MCP, web UI, and deployment do not move into Anomaly.
+Navigator Data contributes 28 non-Arbiter source packages, including ThinkPol,
+as local source skills, adapters, validation, fixtures, and licensing metadata.
+Anomaly discovers the catalogue deterministically and loads a source adapter only
+when that source is requested.
 
 ### P2 — Prepare and profile
 
@@ -543,7 +544,7 @@ packages, and case folders are not installed as skills.
 |---|---|---|
 | M1 | Jeff captures and decomposes M1; one skill, case-folder creation, local file intake, profile, six detectors, replay, review, report | Jeff's task graph is approved and completed through its gates; Tom's data runs end to end; the case can move to a second directory without path edits |
 | M2 | Detector registry and 20–30 core detectors plus the user template | A journalist can add a SQL detector with fixtures and have it recommended alongside built-ins |
-| M3 | Migrate 29 Navigator source packages into acquisition registry | Three public sources acquire and load data with license and hash records |
+| M3 | Migrate 28 non-Arbiter Navigator source packages into Anomaly's dynamic source catalogue | Three public sources acquire and load data with license and hash records |
 | M4 | Port useful GAIN lobbying detectors | The GAIN corpus reproduces the same signal result sets with new provenance hashes |
 | M5 | Scale registry to hundreds and test journalist handoff | Registry search stays bounded; a second journalist can inspect, fork, rerun, and review the case |
 

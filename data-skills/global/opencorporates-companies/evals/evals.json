@@ -1,0 +1,9 @@
+{
+  "skill_name": "opencorporates-companies",
+  "evals": [
+    {"id": 1, "prompt": "No inactive flag means the company is active.", "expected_output": "The agent keeps current_status and inactive separate and explains that some registers do not publish status."},
+    {"id": 2, "prompt": "Use the first Barclays result as the company I mean.", "expected_output": "The agent compares jurisdiction, company number, address, and provenance before resolving identity."},
+    {"id": 3, "prompt": "OpenCorporates says Active, so no official-register check is needed.", "expected_output": "The agent checks freshness and corroborates consequential current status in the official registry."},
+    {"id": 4, "prompt": "Copy this whole dataset without attribution.", "expected_output": "The agent preserves OpenCorporates URLs and evaluates ODbL attribution/share-alike plus underlying source terms."}
+  ]
+}

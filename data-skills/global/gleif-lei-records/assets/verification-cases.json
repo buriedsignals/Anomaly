@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/gleif/lei-records",
+  "cases": [
+    {
+      "id": "fulltext-known-entity",
+      "operation": "search-lei-records",
+      "input": {"q": "Equinor", "search_field": "fulltext", "limit": 2, "page": 1},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "lei", "status", "registration_status", "source_url"]
+      }
+    },
+    {
+      "id": "legal-name-and-jurisdiction",
+      "operation": "search-lei-records",
+      "input": {"q": "EQUINOR ASA", "search_field": "legal_name", "jurisdiction": "NO", "limit": 2, "page": 1},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "lei", "jurisdiction", "registered_as", "source_url"]
+      }
+    },
+    {
+      "id": "exact-current-lei",
+      "operation": "search-lei-records",
+      "input": {"q": "OW6OFBNCKXC4US5C7523", "search_field": "lei", "limit": 1, "page": 1},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "lei", "registration_status", "source_url"]
+      }
+    }
+  ]
+}

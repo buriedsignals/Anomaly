@@ -1,0 +1,156 @@
+id: gb/companies-house/companies
+title: UK Companies House — Companies
+description: >-
+  Search Companies House company summaries and retrieve one basic company
+  profile by exact company number using a member-provided REST API key.
+provider_scope: >-
+  Companies House Public Data API documents company search and profile,
+  registered office, officers, filing history, charges, insolvency, registers,
+  UK establishments, disqualifications, and persons with significant control.
+roadmap_scope:
+  - Officers and officer appointments
+  - Filing history, charges, insolvency, and registered-office operations
+  - Persons-with-significant-control operations with suppression-safe handling
+category: companies
+jurisdiction: "gb"
+runtime: local
+endpoint: https://api.company-information.service.gov.uk/search/companies
+
+auth:
+  type: api_key
+  key_name: companies-house
+  scheme: basic
+  setup_url: https://developer.company-information.service.gov.uk/get-started
+  setup_help: |
+    Create a Companies House application and Live REST API key, then run:
+      navigator keys set companies-house
+    Navigator sends the key as the HTTP Basic username with an empty password
+    and never places the secret in the prompt or query parameters.
+  test_request:
+    input: {q: BP, items_per_page: 1}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Open Government Licence v3.0, subject to Companies House terms
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The production endpoints returned the documented 401 without a key on
+  2026-08-12. No Companies House key is configured, so successful live cases
+  remain credential-pending and both operations use official-shape fixtures.
+  The official rate limit is 600 requests per five minutes and exhaustion
+  returns 429, not 401.
+
+examples:
+  - Search UK companies named Revolut
+  - Retrieve company number 00102498
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [search-companies, get-company]
+      description: Internal operation discriminator supplied by the registry.
+    q:
+      type: string
+      description: Required term for company-summary search.
+    company_number:
+      type: string
+      pattern: '^[A-Za-z0-9]{1,8}$'
+      description: Exact Companies House number; preserve leading zeros and letter prefixes.
+    items_per_page:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+    start_index:
+      type: integer
+      minimum: 0
+      default: 0
+  additionalProperties: false
+
+output_schema:
+  entity: Company
+  fields: [name, jurisdiction, company_number, status, company_type, incorporation_date, cessation_date, registered_address, source_url, entity]
+
+operations:
+  - id: search-companies
+    title: Search company summaries
+    description: Search official Companies House company summaries by term with offset pagination.
+    status: queryable
+    entities: [Company]
+    actions: [search]
+    input_fields: [q, items_per_page, start_index]
+    required: [q]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: search-companies}
+    output_fields: [name, jurisdiction, company_number, status, company_type, incorporation_date, cessation_date, registered_address, source_url, entity]
+    filters: [q, items_per_page, start_index]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search UK companies named Revolut
+    counterexamples:
+      - query: Return this company's directors and beneficial owners
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Try the exact registered name, a distinctive fragment, or a known company number.
+      - Treat search as candidate discovery; empty results do not prove the entity never existed.
+    retry_guidance:
+      - Respect 429 and the five-minute rate window; do not misdiagnose it as an invalid key.
+      - Do not retry 401, validation, or unsupported-capability failures unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not drop leading zeros or resolve identity from name alone.
+
+  - id: get-company
+    title: Get one basic company profile
+    description: Retrieve official basic company information by exact Companies House company number.
+    status: queryable
+    entities: [Company]
+    actions: [get]
+    input_fields: [company_number]
+    required: [company_number]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: get-company}
+    output_fields: [name, jurisdiction, company_number, status, company_type, incorporation_date, cessation_date, registered_address, source_url, entity]
+    filters: [company_number]
+    semantics: {enumeration: none, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve company number 00102498
+    counterexamples:
+      - query: Treat an active profile as proof the company traded on a historical date
+        reason_code: historical_state_not_available
+    no_result_guidance:
+      - Confirm the exact company number including any prefix and leading zeros.
+      - Re-resolve from search; a 404 is not proof that a similarly named enterprise never existed.
+    retry_guidance:
+      - Retry only after a transient error or the documented 429 window.
+      - Do not retry a confirmed 404 or 401 unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer ownership, directors, or current trading activity from the basic profile.

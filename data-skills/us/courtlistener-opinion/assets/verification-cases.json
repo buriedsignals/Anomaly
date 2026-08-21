@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/courtlistener/opinion",
+  "cases": [
+    {
+      "id": "search-known-topic",
+      "operation": "search-opinions",
+      "input": {"q": "qualified immunity", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "name", "court", "cluster_id", "opinions", "source_url"]}
+    },
+    {
+      "id": "get-known-cluster",
+      "operation": "search-opinions",
+      "input": {"cluster_id": 4448997, "limit": 1},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "cluster_id", "status", "source_url"]}
+    }
+  ]
+}

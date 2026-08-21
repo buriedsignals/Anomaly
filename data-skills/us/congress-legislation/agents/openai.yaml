@@ -1,0 +1,6 @@
+interface:
+  display_name: "Congress.gov Bills & Members"
+  short_description: "Query recent bills and member records"
+  default_prompt: "Use $congress-legislation for bounded Congress.gov bill monitoring or member lookup; distinguish title filtering from full-text search and update timestamps from legislative actions."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,181 @@
+id: global/bluesky/posts
+title: Bluesky — Profiles and Post Search (experimental)
+description: >-
+  Resolve a public Bluesky profile through the official AppView. The same
+  adapter implements the documented post-search contract, but that operation
+  is not released because the public AppView currently returns HTTP 403 to
+  unauthenticated requests from Navigator's egress.
+provider_scope: >-
+  Bluesky's AppView exposes actor profiles, feeds, posts, search, graph data,
+  labels, and other public application views through AT Protocol XRPC lexicons.
+  Individual service providers may impose different authentication and rate
+  limits even when a lexicon is shared.
+roadmap_scope:
+  - Re-enable post search only after an unauthenticated live probe succeeds or a supported authentication flow is added.
+  - Multi-profile lookup, author feeds, post-thread retrieval, and post detail are not currently released.
+category: social
+jurisdiction: global
+runtime: local
+endpoint: https://public.api.bsky.app/xrpc
+
+auth:
+  type: none
+  test_request:
+    input: {actor: bsky.app}
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: User-generated Bluesky content and profile data; no open-content licence is granted by the API contract
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The official getProfile lexicon says the operation does not require
+  authentication. The searchPosts lexicon says authentication may be required
+  by some providers. A direct public-AppView probe on 2026-08-12 returned a
+  CDN-level 403 for searchPosts and 200 for getProfile. The blocked operation
+  remains fixture-tested so its parser and complete documented filter mapping
+  do not silently drift.
+
+examples:
+  - Resolve the Bluesky profile for bsky.app
+  - Find the stable DID for a public Bluesky handle
+
+input_schema:
+  type: object
+  properties:
+    mode:
+      type: string
+      enum: [profile, search]
+      description: Adapter mode supplied by the selected operation.
+    actor:
+      type: string
+      minLength: 1
+      description: Bluesky handle or DID for profile lookup.
+    q:
+      type: string
+      minLength: 1
+      description: Post-search string; provider syntax is deliberately unspecified and Lucene syntax is only recommended.
+    sort:
+      type: string
+      enum: [top, latest]
+      default: latest
+    since:
+      type: string
+      description: Inclusive ISO datetime or date over the provider's sortAt timestamp.
+    until:
+      type: string
+      description: Exclusive ISO datetime or date over the provider's sortAt timestamp.
+    mentions:
+      type: string
+      description: Handle or DID mentioned through a rich-text facet.
+    author:
+      type: string
+      description: Handle or DID of the post author.
+    lang:
+      type: string
+      description: Post-language code.
+    domain:
+      type: string
+      description: Hostname linked by a facet or embed.
+    url:
+      type: string
+      description: URL linked by a facet or embed.
+    tag:
+      type: array
+      minItems: 1
+      items: {type: string, minLength: 1}
+      description: Hashtags without #; multiple tags are ANDed.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    cursor:
+      type: string
+      description: Opaque provider cursor; it may not traverse every reported hit.
+  additionalProperties: false
+
+output_schema:
+  entity: Post | Profile
+  fields: [entity, text, handle, display_name, did, created_at, indexed_at, likes, reposts, replies, uri, followers, follows, posts, source_url]
+
+operations:
+  - id: get-profile
+    title: Get a Bluesky profile
+    description: Resolve one public Bluesky handle or DID through app.bsky.actor.getProfile.
+    status: queryable
+    entities: [Profile]
+    actions: [get, resolve]
+    input_fields: [actor]
+    required: [actor]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {mode: profile}
+    output_fields: [entity, text, handle, display_name, did, created_at, indexed_at, followers, follows, posts, source_url]
+    filters: [actor]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, quota_bucket: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [public.api.bsky.app]
+      data_classes: [public account identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Resolve the profile and stable DID for bsky.app
+    counterexamples:
+      - query: Treat a mutable handle as a permanent account identifier
+        reason_code: handle_is_mutable
+      - query: Infer that profile claims are independently verified
+        reason_code: user_generated_profile
+    no_result_guidance:
+      - Check the handle spelling or query the stable DID if one is already known.
+      - A renamed, deleted, moderated, or unavailable account may no longer resolve.
+    retry_guidance:
+      - Retry only transient 429 or 5xx responses with provider-directed backoff.
+      - Do not retry an invalid handle or DID unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present profile text, display name, or follower counts as independently verified facts.
+
+  - id: search-posts
+    title: Search Bluesky posts
+    description: Search the AppView's post index with the filters declared by app.bsky.feed.searchPosts.
+    status: unavailable
+    entities: [Post]
+    actions: [search]
+    input_fields: [q, sort, since, until, mentions, author, lang, domain, url, tag, limit, cursor]
+    required: [q]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {mode: search}
+    output_fields: [entity, text, handle, display_name, did, created_at, indexed_at, likes, reposts, replies, uri, source_url]
+    filters: [q, sort, since, until, mentions, author, lang, domain, url, tag, limit, cursor]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, quota_bucket: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [public.api.bsky.app]
+      data_classes: [query parameters, public account identifiers]
+      sensitive_inputs: [q, mentions, author, domain, url, tag]
+      consent_required: false
+    examples:
+      - Search recent public posts authored by a known handle
+    counterexamples:
+      - query: Prove that no Bluesky post matched by exhausting hitsTotal
+        reason_code: full_enumeration_not_guaranteed
+    no_result_guidance:
+      - Do not interpret a blocked or truncated search as absence of posts.
+    retry_guidance:
+      - Do not retry the current 403 in a loop; use a supported authenticated service or wait for provider access to change.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: Public AppView searchPosts returned HTTP 403 from Navigator's egress on 2026-08-12; the lexicon permits providers to require authentication.
+    prohibited_uses:
+      - Do not treat search ranking, hitsTotal, or cursors as a complete archive of the network.

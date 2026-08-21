@@ -1,0 +1,93 @@
+id: us/usaspending/awards
+title: USAspending.gov — Federal Awards
+description: >-
+  Search prime federal contracts, grants, loans, IDVs, direct payments, and
+  other assistance by a bounded time window plus keyword, recipient text, or
+  exact award ID, returning award-level amounts, agencies, dates, and identifiers.
+provider_scope: >-
+  USAspending exposes awards, transactions, subawards, recipients, accounts,
+  categories, geography, downloads, and reference data. This skill releases
+  prime-award search only.
+roadmap_scope:
+  - Transaction, subaward, account, and aggregate-spending operations are not released.
+  - NAICS, PSC, location, agency, and program filters are provider capabilities not yet released here.
+category: procurement
+jurisdiction: us
+runtime: local
+endpoint: https://api.usaspending.gov/api/v2/search/spending_by_award/
+auth: {type: none}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: US federal spending data published under the DATA Act; public US government data
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Fiscal year is October 1 through September 30. Award Amount is not the same
+  as a single transaction obligation, payment, or outlay. Recipient text searches
+  name, UEI, and DUNS; an award_id is quoted for exact matching.
+examples:
+  - Federal contracts for Boeing in fiscal year 2025
+  - Grants to a recipient containing Harvard during a fixed date range
+  - Retrieve a known prime award ID within its likely time window
+input_schema:
+  type: object
+  properties:
+    keyword: {type: string, minLength: 1, maxLength: 500}
+    recipient: {type: string, minLength: 1, maxLength: 500}
+    award_id: {type: string, minLength: 1, maxLength: 500}
+    fiscal_year: {type: integer, minimum: 1950, maximum: 2200}
+    start_date: {type: string, format: date}
+    end_date: {type: string, format: date}
+    award_type: {type: string, enum: [contracts, grants, loans, idvs, direct_payments, other_assistance, other], default: contracts}
+    limit: {type: integer, minimum: 1, maximum: 100, default: 10}
+    page: {type: integer, minimum: 1, default: 1}
+    sort: {type: string, enum: [amount, recipient, date], default: amount}
+    order: {type: string, enum: [asc, desc], default: desc}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: FederalAward
+  fields: [entity, name, award_id, award_group, award_type, recipient, recipient_uei, amount, total_outlays, subsidy_cost, description, awarding_agency, awarding_subagency, funding_agency, funding_subagency, start_or_issued_date, end_date, base_obligation_date, last_modified_date, cfda_number, assistance_listings, naics, psc, internal_id, generated_internal_id, source_url]
+operations:
+  - id: search-awards
+    title: Search prime federal awards
+    description: Search one award-type group over an explicit date range or federal fiscal year with bounded, type-compatible fields and pagination.
+    status: queryable
+    entities: [FederalAward]
+    actions: [search]
+    input_fields: [keyword, recipient, award_id, fiscal_year, start_date, end_date, award_type, limit, page, sort, order]
+    required: []
+    any_of_required: []
+    aliases: {q: keyword}
+    adapter_input: {}
+    output_fields: [entity, name, award_id, award_group, award_type, recipient, recipient_uei, amount, total_outlays, subsidy_cost, description, awarding_agency, awarding_subagency, funding_agency, funding_subagency, start_or_issued_date, end_date, base_obligation_date, last_modified_date, cfda_number, assistance_listings, naics, psc, internal_id, generated_internal_id, source_url]
+    filters: [keyword, recipient, award_id, fiscal_year, start_date, end_date, award_type, limit, page, sort, order]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.usaspending.gov]
+      data_classes: [award, recipient, keyword, type, and time filters]
+      sensitive_inputs: [keyword, recipient]
+      consent_required: false
+    examples:
+      - Search fiscal-year 2025 contracts for recipient Boeing
+      - Search grants in a fixed date range for a known award description
+      - Retrieve a known prime award ID within its likely time window
+    counterexamples:
+      - query: Award Amount is the cash paid to the recipient during this window
+        reason_code: award_amount_not_payment_or_transaction
+      - query: Return subawards and individual transactions
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Check award group, federal fiscal-year boundaries, recipient spelling/UEI, and exact award ID quoting.
+      - A no-result prime-award query does not exclude transactions, subawards, corrections, or records outside the window.
+    retry_guidance:
+      - Preserve filters, page, sort, and time window across transient retries.
+      - Do not silently substitute an award type or expand the date window to force a result.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not conflate award amount, obligation, outlay, payment, and transaction values.
+      - Do not treat a recipient-name match as entity resolution without checking UEI and award identifiers.

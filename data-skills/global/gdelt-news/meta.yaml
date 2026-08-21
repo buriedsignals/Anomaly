@@ -1,0 +1,125 @@
+id: global/gdelt/news
+title: GDELT — Global News (DOC 2.0)
+description: >-
+  Retrieve one bounded GDELT DOC 2.0 ArticleList page for a documented full-text
+  query, time window, and sort order. Use it to discover and compare worldwide
+  coverage, not to establish that an article's claims are true.
+provider_scope: >-
+  The DOC 2.0 API searches GDELT-monitored news across machine-translated
+  languages and supports ArticleList, timelines, tone analyses, image modes,
+  query operators, relative or exact time windows, and several output formats.
+roadmap_scope:
+  - Coverage-volume and tone timelines are documented by the provider but not released by Navigator.
+  - Image search, galleries, RSS feeds, and archive feeds are not currently released.
+  - ArticleList does not expose a continuation cursor or an exhaustive result count.
+category: news
+jurisdiction: global
+runtime: local
+endpoint: https://api.gdeltproject.org/api/v2/doc/doc
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: GDELT datasets permit unrestricted reuse with GDELT citation; linked third-party articles and images retain their own rights
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Navigator deliberately defaults to a one-week window instead of the
+  provider's three-month default. ArticleList returns at most 250 ranked
+  records and no continuation cursor, so it cannot prove complete coverage.
+  Query operators belong inside `query`; they are not separate URL fields.
+  The adapter makes one request and surfaces non-JSON provider error text as a
+  bounded upstream error. A live 429 on 2026-08-12 explicitly instructed one
+  request per five seconds; the adapter waits at least 5.5 seconds and retries
+  that response once.
+
+examples:
+  - Find worldwide reporting mentioning "OpenAI" in the last day
+  - Compare recent coverage of a named company using sourcecountry and sourcelang operators
+
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      minLength: 1
+      description: GDELT DOC query with phrases, uppercase OR blocks, exclusions, and documented operators.
+    maxrecords:
+      type: integer
+      minimum: 1
+      maximum: 250
+      default: 25
+    timespan:
+      type: string
+      pattern: '^[0-9]+(min|h|hours|d|days|w|weeks|m|months)$'
+      description: Relative window; minimum 15 minutes. Do not combine with exact boundaries.
+    startdatetime:
+      type: string
+      pattern: '^[0-9]{14}$'
+      description: Inclusive lower boundary in YYYYMMDDHHMMSS; may be supplied without enddatetime.
+    enddatetime:
+      type: string
+      pattern: '^[0-9]{14}$'
+      description: Exclusive upper boundary in YYYYMMDDHHMMSS; may be supplied without startdatetime.
+    sort:
+      type: string
+      enum: [DateDesc, DateAsc, ToneDesc, ToneAsc, HybridRel]
+      default: DateDesc
+  required: [query]
+  additionalProperties: false
+
+output_schema:
+  entity: Article
+  fields: [entity, name, url, domain, language, source_country, seen_date, social_image, source_url]
+
+operations:
+  - id: search-news
+    title: Search GDELT news coverage
+    description: Retrieve up to 250 ranked ArticleList records for a documented GDELT query and bounded time scope.
+    status: queryable
+    entities: [Article]
+    actions: [search, list]
+    input_fields: [query, maxrecords, timespan, startdatetime, enddatetime, sort]
+    required: [query]
+    any_of_required: []
+    aliases: {q: query, size: maxrecords}
+    adapter_input: {}
+    output_fields: [entity, name, url, domain, language, source_country, seen_date, social_image, source_url]
+    filters: [query, maxrecords, timespan, startdatetime, enddatetime, sort]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, quota_bucket: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.gdeltproject.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [query]
+      consent_required: false
+    examples:
+      - Find worldwide reporting mentioning "OpenAI" in the last day
+      - Compare recent coverage of a named company using sourcecountry and sourcelang operators
+      - Search for the exact phrase "climate change" during the last three days
+      - Retrieve the oldest matching coverage in an exact timestamp range
+    counterexamples:
+      - query: Prove that these are every article published about the subject
+        reason_code: bounded_ranked_result_set
+      - query: Treat the returned article list as confirmation that its claims are true
+        reason_code: coverage_is_not_verification
+    no_result_guidance:
+      - Check phrase quoting, uppercase OR syntax, exclusions, source-country/language operators, and the selected window.
+      - A zero-result ranked page is not proof that no unmonitored or unindexed reporting exists.
+    retry_guidance:
+      - For HTTP 429, the adapter honors a bounded Retry-After or waits at least 5.5 seconds and retries once; schedule a later attempt if throttling persists.
+      - Do not retry malformed syntax, impossible timestamp ranges, or provider plain-text validation errors unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not represent GDELT monitoring, translation, ranking, source-country assignment, or seen_date as a complete primary record.

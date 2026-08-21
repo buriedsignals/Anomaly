@@ -1,0 +1,7 @@
+interface:
+  display_name: "TED procurement notices"
+  short_description: "Search published EU procurement notices"
+  default_prompt: "Use $ted-procurement to construct a bounded TED expert query, preserve notice numbers and official links, and avoid inferring winners or award values from search metadata."
+
+policy:
+  allow_implicit_invocation: true

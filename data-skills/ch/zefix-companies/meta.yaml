@@ -1,0 +1,98 @@
+id: ch/zefix/companies
+title: Zefix — Swiss Company Register
+description: >-
+  Name search over the live legacy public Zefix endpoint, returning Swiss
+  commercial-register identifiers, legal seat, status, and register links.
+provider_scope: >-
+  The current published ZefixPublicREST API documents company search and
+  detail, SOGC publications, cantonal registries, legal forms, and communities.
+  It uses HTTP Basic authentication and is distinct from this working legacy
+  public route.
+roadmap_scope:
+  - Migrate to the documented ZefixPublicREST company search and detail routes when credentials are available
+  - Expose company detail and SOGC publication retrieval after authenticated verification
+category: companies
+jurisdiction: ch
+runtime: local
+endpoint: https://www.zefix.ch/ZefixREST/api/v1/firm/search.json
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Swiss Open Government Data terms of use; source attribution required
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The released route is live but absent from the current published Swagger
+  specification. Search matching is broad in observed responses and the
+  provider returns at most a bounded first page; do not call it exact, fuzzy,
+  exhaustive, or stable without new provider evidence.
+
+examples:
+  - Find Swiss register candidates whose names match Nestlé
+  - Resolve Glencore candidates to Swiss UID values
+
+input_schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Required company-name query sent to the legacy Zefix search route.
+    language:
+      type: string
+      enum: [de, en, fr, it]
+      default: en
+      description: Response language key.
+  required: [name]
+  additionalProperties: false
+
+output_schema:
+  entity: Company
+  fields: [name, jurisdiction, uid, chid, legal_seat, status, shab_date, registry_url, source_url, entity]
+
+operations:
+  - id: search-companies
+    title: Search company-name candidates
+    description: Search the live legacy public Zefix route by company name and return its bounded first response page.
+    status: queryable
+    entities: [Company]
+    actions: [search]
+    input_fields: [name, language]
+    required: [name]
+    any_of_required: []
+    aliases: {q: name, query: name}
+    adapter_input: {}
+    output_fields: [name, jurisdiction, uid, chid, legal_seat, status, shab_date, registry_url, source_url, entity]
+    filters: [name, language]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.zefix.ch]
+      data_classes: [query parameters]
+      sensitive_inputs: [name]
+      consent_required: false
+    examples:
+      - Find Swiss register candidates whose names match Nestlé
+    counterexamples:
+      - query: Prove that every Swiss company matching this name has been returned
+        reason_code: exhaustive_enumeration_not_available
+    no_result_guidance:
+      - Check spelling, accents, and legal suffixes, then broaden one name variant at a time.
+      - Treat an empty legacy response as a bounded search result, not proof that the company is absent from the register.
+    retry_guidance:
+      - Retry only after a transient upstream failure.
+      - Do not bypass the released route with the authenticated successor API unless credentials and an operation are configured.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not resolve a company from name alone; confirm UID and the cantonal excerpt.

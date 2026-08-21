@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/courtlistener/financial-disclosures",
+  "cases": [
+    {
+      "id": "list-known-person",
+      "operation": "list-financial-disclosures",
+      "input": {"person_id": 2738, "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "id", "person_id", "year", "investments", "pdf_url", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "eu/eurostat/data",
+  "cases": [
+    {
+      "id": "discover-youth-unemployment-dataflows",
+      "operation": "search-datasets",
+      "input": {"q": "youth unemployment", "language": "en", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["record_type", "dataset_code", "dataset_label", "source_url"]}
+    },
+    {
+      "id": "get-known-filtered-observation",
+      "operation": "get-observations",
+      "input": {"dataset_code": "DEMO_GIND", "filters": {"FREQ": "A", "INDIC_DE": "POPTRT", "GEO": "FR", "TIME_PERIOD": "2021"}, "language": "en", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["record_type", "dataset_code", "time_period", "value", "dimensions", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+id: us/courtlistener/judge
+title: CourtListener — Judicial People
+description: >-
+  Search CourtListener's judicial-person index by free text or exact first/last
+  name, and retrieve one exact person record. Results expose biography,
+  affiliations, education, ratings, and position links with provenance caveats.
+provider_scope: >-
+  CourtListener's judge database includes people, positions, appointers,
+  political affiliations, education, ABA ratings, retention events, and sources.
+  This skill releases people search and exact person retrieval only.
+roadmap_scope:
+  - Full position, retention-event, and underlying source retrieval are not released.
+  - Cross-person demographic aggregation is not released.
+category: court
+jurisdiction: us
+runtime: local
+endpoint: https://www.courtlistener.com/api/rest/v4/people/
+auth:
+  type: none
+  optional: true
+  key_name: courtlistener
+  setup_url: https://www.courtlistener.com/profile/api-token/
+  setup_help: >-
+    Public experimentation can work without a token. CourtListener asks deployed
+    API clients to authenticate. Create an account, copy the profile API token,
+    and run `navigator keys set courtlistener`; access limits depend on account tier.
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Free Law Project judicial-person compilation with linked public records; inspect source-specific rights
+  cache_permitted: false
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  CourtListener says race and gender are not self-reported and may be wrong.
+  Date granularity must be preserved: a January 1 date may mean only the year is
+  known. Alias records have is_alias_of set. Positions in the people endpoint are
+  links, not complete records.
+examples:
+  - Search the judge index for Ruth Bader Ginsburg
+  - Find people whose first name is John and last name is Roberts
+  - Retrieve CourtListener person 2738
+input_schema:
+  type: object
+  properties:
+    mode: {type: string, enum: [search, get]}
+    q: {type: string, minLength: 1, maxLength: 1000, description: Free-text judge-index search.}
+    name_first: {type: string, minLength: 1, maxLength: 120, description: Database filter on first name.}
+    name_last: {type: string, minLength: 1, maxLength: 120, description: Database filter on last name.}
+    person_id: {type: integer, minimum: 1, description: Exact CourtListener person ID.}
+    limit: {type: integer, minimum: 1, maximum: 20, default: 10}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: JudicialPerson
+  fields: [entity, id, name, name_first, name_middle, name_last, name_suffix, slug, date_dob, date_dob_granularity, dob_city, dob_state, dob_country, date_dod, date_dod_granularity, gender, race, races, religion, political_affiliations, aba_ratings, educations, position_urls, positions, positions_count, has_photo, fjc_id, is_alias_of, relevance_score, source_url]
+operations:
+  - id: search-judges
+    title: Search judicial people
+    description: Use free-text type=p search or database first/last-name filters and return a bounded set of judicial-person records.
+    status: queryable
+    entities: [JudicialPerson]
+    actions: [search]
+    input_fields: [q, name_first, name_last, limit]
+    required: []
+    any_of_required: [[q], [name_first], [name_last]]
+    aliases: {query: q}
+    adapter_input: {mode: search}
+    output_fields: [entity, id, name, name_first, name_middle, name_last, name_suffix, slug, date_dob, date_dob_granularity, dob_city, dob_state, dob_country, date_dod, date_dod_granularity, gender, race, races, religion, political_affiliations, aba_ratings, educations, position_urls, positions, positions_count, has_photo, fjc_id, is_alias_of, relevance_score, source_url]
+    filters: [q, name_first, name_last, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [person-name search terms]
+      sensitive_inputs: [q, name_first, name_last]
+      consent_required: false
+    examples:
+      - Search the judge index for Ruth Bader Ginsburg
+      - Search for Ruth Bader Ginsburg with the judge index
+      - Filter the people endpoint for first name John and last name Roberts
+    counterexamples:
+      - query: Treat race or gender as self-reported verified demographic data
+        reason_code: inferred_demographic_field
+      - query: Interpret 1972-01-01 as a known birthday when granularity is only %Y
+        reason_code: date_granularity_lost
+    no_result_guidance:
+      - Try exact name components, aliases, and the free-text index while preserving which method was used.
+      - No result does not establish that the person never served in a judicial role.
+    retry_guidance:
+      - Retry transient failures within the account throttle; do not rotate credentials.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not publish inferred demographic fields without source-level verification and context.
+      - Do not use CourtListener data for a prohibited FCRA purpose.
+  - id: get-judge
+    title: Retrieve one judicial person
+    description: Retrieve the database record for an exact CourtListener person ID, including nested education and affiliation summaries plus position URLs.
+    status: queryable
+    entities: [JudicialPerson]
+    actions: [get]
+    input_fields: [person_id]
+    required: [person_id]
+    any_of_required: []
+    aliases: {id: person_id}
+    adapter_input: {mode: get}
+    output_fields: [entity, id, name, name_first, name_middle, name_last, name_suffix, slug, date_dob, date_dob_granularity, dob_city, dob_state, dob_country, date_dod, date_dod_granularity, gender, race, religion, political_affiliations, aba_ratings, educations, position_urls, positions_count, has_photo, fjc_id, is_alias_of, source_url]
+    filters: [person_id]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [judicial person identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve CourtListener person ID 2738 and inspect date granularity
+    counterexamples:
+      - query: The position URLs are complete position records
+        reason_code: linked_records_not_expanded
+    no_result_guidance:
+      - Confirm that the identifier is a CourtListener person ID and inspect alias relationships.
+    retry_guidance:
+      - Retry transient failures only; do not poll an unchanged missing ID.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat provider-inferred race or gender as self-reported fact.

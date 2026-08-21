@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/usaspending/awards",
+  "cases": [
+    {
+      "id": "search-known-contractor",
+      "operation": "search-awards",
+      "input": {"recipient": "Boeing", "award_type": "contracts", "fiscal_year": 2025, "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "award_id", "award_group", "recipient", "amount", "generated_internal_id", "source_url"]}
+    },
+    {
+      "id": "search-known-grantee",
+      "operation": "search-awards",
+      "input": {"recipient": "President and Fellows of Harvard College", "award_type": "grants", "fiscal_year": 2024, "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "award_id", "award_group", "recipient", "amount", "source_url"]}
+    }
+  ]
+}

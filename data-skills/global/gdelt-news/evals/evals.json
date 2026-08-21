@@ -1,0 +1,20 @@
+{
+  "skill_name": "gdelt-news",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find ten articles using the exact phrase climate change from the past three days, newest first.",
+      "expected_output": "The agent quotes the phrase, sets timespan 3d, DateDesc, and maxrecords 10, and labels the list bounded."
+    },
+    {
+      "id": 2,
+      "prompt": "These are all stories worldwide on the subject, so the absent claim was never reported.",
+      "expected_output": "The agent rejects completeness because ArticleList is ranked, capped at 250, not cursor-paginated, and limited to GDELT-monitored/indexed sources."
+    },
+    {
+      "id": 3,
+      "prompt": "GDELT returned an article, so the allegations in it are confirmed.",
+      "expected_output": "The agent distinguishes coverage discovery from verification and opens the article and primary evidence before reporting the allegation as fact."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "source_id": "ch/zefix/companies",
+  "cases": [
+    {
+      "id": "search-known-swiss-name",
+      "operation": "search-companies",
+      "input": {"name": "Nestlé", "language": "fr"},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "uid", "legal_seat", "registry_url", "source_url"]
+      }
+    }
+  ]
+}

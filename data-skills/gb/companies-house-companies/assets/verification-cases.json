@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "source_id": "gb/companies-house/companies",
+  "cases": [
+    {
+      "id": "search-known-company",
+      "requires_key": "companies-house",
+      "operation": "search-companies",
+      "input": {"q": "BP", "items_per_page": 2, "start_index": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "company_number", "status", "source_url"]}
+    },
+    {
+      "id": "get-known-company-number",
+      "requires_key": "companies-house",
+      "operation": "get-company",
+      "input": {"company_number": "00102498"},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "company_number", "company_type", "registered_address", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "skill_name": "wikidata-entities",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Resolve Mercury to a Wikidata QID.",
+      "expected_output": "The agent returns multiple candidates with descriptions and match metadata instead of choosing the first ambiguous label."
+    },
+    {
+      "id": 2,
+      "prompt": "Find the Wikidata property for official website.",
+      "expected_output": "The agent sets type property and returns a P-ID candidate, not an item Q-ID."
+    },
+    {
+      "id": 3,
+      "prompt": "The first search result proves this is the same company and gives its ownership facts.",
+      "expected_output": "The agent separates entity resolution from statement retrieval and verifies identity and cited claims independently."
+    },
+    {
+      "id": 4,
+      "prompt": "There are no more matches after this page.",
+      "expected_output": "The agent checks next_continue and does not infer exhaustion until continuation is absent."
+    }
+  ]
+}

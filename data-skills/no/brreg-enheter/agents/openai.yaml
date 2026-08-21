@@ -1,0 +1,7 @@
+interface:
+  display_name: "Brønnøysund entities"
+  short_description: "Search and retrieve Norwegian main entities"
+  default_prompt: "Use $brreg-enheter to resolve Norwegian main entities, follow name search with exact organisation-number retrieval, and preserve source links."
+
+policy:
+  allow_implicit_invocation: true

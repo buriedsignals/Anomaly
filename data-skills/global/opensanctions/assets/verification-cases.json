@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/opensanctions",
+  "cases": [
+    {
+      "id": "match-known-public-figure",
+      "operation": "match-entity",
+      "input": {"name": "Vladimir Putin", "schema": "Person", "dataset": "default", "topics": ["sanction", "role.pep"], "threshold": 0.7, "limit": 2},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "caption", "score", "source_url"]}
+    },
+    {
+      "id": "search-known-organization",
+      "operation": "search-entities",
+      "input": {"q": "\"Wagner Group\"", "schema": "Organization", "dataset": "default", "limit": 2, "offset": 0, "filter_op": "AND"},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "caption", "datasets", "source_url"]}
+    },
+    {
+      "id": "get-known-entity",
+      "operation": "get-entity",
+      "input": {"entity_id": "Q7747", "nested": true},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "properties", "referents", "source_url"]}
+    }
+  ]
+}

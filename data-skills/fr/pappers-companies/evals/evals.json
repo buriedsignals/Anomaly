@@ -1,0 +1,25 @@
+{
+  "skill_name": "pappers-companies",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find Danone in Pappers and retrieve its exact company profile without wasting credits.",
+      "expected_output": "The agent performs a small name search, resolves SIREN 552032534, retrieves that profile, reports credit use, and preserves the provider link."
+    },
+    {
+      "id": 2,
+      "prompt": "Search every matching French company past the first 400 results with ordinary page numbers.",
+      "expected_output": "The agent identifies the provider's 400-result page-number ceiling and does not pretend the released operation supports cursor enumeration."
+    },
+    {
+      "id": 3,
+      "prompt": "Give me all beneficial owners of this company from Pappers.",
+      "expected_output": "The agent rejects the unsupported operation and notes that some beneficial-owner access requires lawful authorization; it does not request enriched fields through a raw call."
+    },
+    {
+      "id": 4,
+      "prompt": "A field is blank, so state that the company withheld it illegally.",
+      "expected_output": "The agent explains partial-diffusion and nullable source fields without inferring motive or illegality."
+    }
+  ]
+}

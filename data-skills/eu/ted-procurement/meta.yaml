@@ -1,0 +1,159 @@
+id: eu/ted/notices
+title: TED — EU Public Procurement Notices
+description: >
+  Tenders Electronic Daily — the EU's official procurement journal. Search
+  tender and award notices across all member states by CPV category, buyer
+  country, or expert query, with links to the official notice. The normalized
+  records do not reliably expose award winners or award values.
+provider_scope: >
+  TED API v3 supports published-notice expert search, selected-field retrieval,
+  page-number and iteration pagination, and XML bulk download. Other TED APIs
+  validate, submit, manage, and render unpublished notices and require keys.
+roadmap_scope:
+  - Iteration-token pagination for authorized searches beyond 15,000 notices
+  - Notice XML retrieval and source-faithful award/winner extraction
+  - Explicit date, notice-form, buyer, NUTS, and procedure shortcuts
+category: procurement
+jurisdiction: "eu"
+runtime: local
+endpoint: https://api.ted.europa.eu/v3/notices/search
+auth:
+  type: none
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >
+  TED Search API v3 (POST, no key). `query` takes TED expert syntax
+  (e.g. classification-cpv=72000000 AND buyer-country=DEU); `cpv` and `country`
+  are shortcuts that build the query for you. Text fields are multilingual dicts
+  — the adapter prefers English and falls back. source_url is the human notice
+  page. buyer-country uses 3-letter codes (DEU, FRA, ...).
+examples:
+  - 'IT-services tenders (cpv 72000000) in Germany'
+  - 'Award notices in France (country=FRA)'
+  - 'Expert query: classification-cpv=45000000 AND buyer-country=ESP'
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: TED expert-syntax query (advanced; overrides cpv/country)
+    cpv:
+      type: string
+      pattern: '^[0-9]{8}(-[0-9])?$'
+      description: 'Eight-digit CPV shortcut, optionally with check digit, e.g. 72000000-5'
+    country:
+      type: string
+      description: 'Supported alpha-2 shortcut or alpha-3 buyer country, e.g. DE or DEU'
+    limit:
+      type: integer
+      description: Results per page, max 100 (default 10)
+    page:
+      type: integer
+      minimum: 1
+      description: Result page, default 1
+    scope:
+      type: string
+      enum: [LATEST, ACTIVE, ALL]
+      default: ALL
+      description: Provider search scope.
+    only_latest_versions:
+      type: boolean
+      default: false
+      description: Ask TED to include only the latest notice versions.
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: TenderNotice
+  fields:
+  - name
+  - publication_number
+  - buyer
+  - buyer_country
+  - publication_date
+  - source_url
+  - entity
+license:
+  data_license: "EU open data (© European Union, reuse permitted with attribution)"
+  cache_permitted: true
+  redistribution_permitted: true
+operations:
+- id: search-notices
+  title: Search published procurement notices
+  description: Run a bounded TED expert query, optionally constructed from validated CPV and buyer-country shortcuts.
+  status: queryable
+  entities:
+  - TenderNotice
+  actions:
+  - search
+  input_fields:
+  - query
+  - cpv
+  - country
+  - limit
+  - page
+  - scope
+  - only_latest_versions
+  required: []
+  any_of_required: [[query], [cpv], [country]]
+  aliases:
+    q: query
+  adapter_input: {}
+  output_fields:
+  - buyer
+  - buyer_country
+  - entity
+  - name
+  - publication_date
+  - publication_number
+  - source_url
+  filters:
+  - query
+  - cpv
+  - country
+  - scope
+  - only_latest_versions
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: true
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [api.ted.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - query
+    consent_required: false
+  examples:
+  - IT-services tenders (cpv 72000000) in Germany
+  - Award notices in France (country=FRA)
+  - 'Expert query: classification-cpv=45000000 AND buyer-country=ESP'
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search notices
+    reason_code: aggregation_or_join_not_available
+  - query: Notice search cannot identify winning suppliers or enforce an award-value threshold.
+    reason_code: operation_unavailable
+  no_result_guidance:
+  - Broaden the query, CPV, or buyer-country filter.
+  - Review the official notice link for fields not normalized by this operation.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification:
+    endpoint_live: true
+    query_tested: true
+    adapter_tested: true
+    fixture_tested: true
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.

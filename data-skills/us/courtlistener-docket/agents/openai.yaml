@@ -1,0 +1,6 @@
+interface:
+  display_name: "CourtListener RECAP Dockets"
+  short_description: "Search federal docket records carefully"
+  default_prompt: "Use $courtlistener-docket to search or retrieve a RECAP docket, treat embedded documents as at most three matches, and verify claims in the linked court record."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/federal-register/documents",
+  "cases": [
+    {
+      "id": "search-proposed-rules",
+      "operation": "search-documents",
+      "input": {"q": "PFAS", "type": "PRORULE", "order": "newest", "per_page": 2, "page": 1},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "document_number", "type", "publication_date", "source_url", "official_pdf_url"]
+      }
+    },
+    {
+      "id": "search-agency-page-two",
+      "operation": "search-documents",
+      "input": {"q": "PFAS", "agency": "environmental-protection-agency", "order": "newest", "per_page": 2, "page": 2},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "document_number", "agencies", "official_pdf_url"]
+      }
+    }
+  ]
+}

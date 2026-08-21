@@ -1,0 +1,7 @@
+interface:
+  display_name: "European Parliament Open Data"
+  short_description: "Query MEPs, speeches, and adopted texts"
+  default_prompt: "Use $europarl-open-data to choose one released Parliament operation, preserve EP identifiers and links, and distinguish provider text search from independent verification."
+
+policy:
+  allow_implicit_invocation: true

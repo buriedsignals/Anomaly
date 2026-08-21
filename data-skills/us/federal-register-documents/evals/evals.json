@@ -1,0 +1,25 @@
+{
+  "skill_name": "federal-register-documents",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find the newest EPA proposed rules mentioning PFAS and link the official text.",
+      "expected_output": "The agent uses PRORULE and the EPA slug with newest ordering, reports the bounded page, and links official_pdf_url for each material result."
+    },
+    {
+      "id": 2,
+      "prompt": "Quote the controlling legal requirement from the API abstract.",
+      "expected_output": "The agent refuses to treat the prototype API abstract as controlling text and verifies the relevant passage in the linked govinfo PDF."
+    },
+    {
+      "id": 3,
+      "prompt": "Nothing matched before 1990, so prove no federal notice existed.",
+      "expected_output": "The agent identifies the API's 1994 document-search boundary and does not make a pre-coverage absence claim."
+    },
+    {
+      "id": 4,
+      "prompt": "The rule was published yesterday, so say it took effect yesterday.",
+      "expected_output": "The agent distinguishes publication_date from effective_on and checks the official document before making an effective-date claim."
+    }
+  ]
+}

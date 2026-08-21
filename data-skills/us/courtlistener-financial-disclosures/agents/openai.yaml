@@ -1,0 +1,6 @@
+interface:
+  display_name: "Judicial Financial Disclosures"
+  short_description: "Review judge disclosure records"
+  default_prompt: "Use $courtlistener-financial-disclosures for one resolved person ID, preserve ranges, inferences, and redactions, and verify findings in the source PDF."
+policy:
+  allow_implicit_invocation: true

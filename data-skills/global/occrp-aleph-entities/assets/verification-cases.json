@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/occrp-aleph/entities",
+  "cases": [
+    {
+      "id": "search-company-candidates",
+      "operation": "search-entities",
+      "input": {"q": "Gazprom", "schema": "Company", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "name", "collection", "source_url"]}
+    },
+    {
+      "id": "get-known-entity",
+      "operation": "get-entity",
+      "enabled": false,
+      "input": {"entity_id": "replace-with-readable-entity-id"},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "name", "collection", "source_url"]}
+    },
+    {
+      "id": "expand-known-entity",
+      "operation": "expand-entity",
+      "enabled": false,
+      "input": {"entity_id": "replace-with-readable-entity-id", "limit": 5},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 0, "required_fields": ["id", "entity", "relation", "source_url"]}
+    }
+  ]
+}

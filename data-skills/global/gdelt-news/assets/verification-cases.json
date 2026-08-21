@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/gdelt/news",
+  "cases": [
+    {
+      "id": "recent-exact-phrase",
+      "operation": "search-news",
+      "input": {"query": "\"OpenAI\"", "timespan": "1d", "sort": "DateDesc", "maxrecords": 2},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "url", "domain", "language", "source_country", "seen_date", "source_url"]
+      }
+    },
+    {
+      "id": "country-filtered-coverage",
+      "operation": "search-news",
+      "enabled": false,
+      "disabled_reason": "Run explicitly with --case after a cooldown; GDELT enforces a shared-egress request interval.",
+      "input": {"query": "climate sourcecountry:unitedstates", "timespan": "3d", "sort": "HybridRel", "maxrecords": 2},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "source_country", "source_url"]
+      }
+    }
+  ]
+}

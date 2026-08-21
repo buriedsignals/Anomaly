@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/congress/legislation",
+  "cases": [
+    {
+      "id": "list-current-congress-bills",
+      "operation": "search-bills",
+      "input": {"congress": 119, "limit": 2},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 1, "required_fields": ["entity", "name", "bill_type", "bill_number", "congress", "latest_action_date", "source_url"]}
+    },
+    {
+      "id": "get-known-member",
+      "operation": "list-members",
+      "input": {"bioguide_id": "S000033", "limit": 1},
+      "expect": {"statuses": ["ok", "auth_required"], "min_records": 1, "required_fields": ["entity", "name", "bioguide_id", "party", "terms", "source_url"]}
+    }
+  ]
+}

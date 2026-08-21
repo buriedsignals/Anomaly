@@ -4,22 +4,24 @@
   "id": 16,
   "slug": "navigator-source-catalogue-migration",
   "title": "M3 Navigator source catalogue migration",
-  "status": "pending",
+  "status": "in_progress",
   "category": "code",
-  "stage": "capture",
+  "stage": "refactor",
   "priority": "p1",
-  "deps": [15],
+  "deps": [
+    15
+  ],
   "complexity": "complex",
   "createdAt": "2026-08-21T13:00:00Z",
-  "updatedAt": "2026-08-21T13:00:00Z",
+  "updatedAt": "2026-08-21T13:23:09Z",
   "agents": {
-    "implementer_agent_id": null,
+    "implementer_agent_id": "01a02478-f17b-7f32-b5bc-e3c155c7460a",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": null,
+    "authored_by_agent_id": "01a0246c-7f4d-70f0-89a1-ebf781f985c1",
     "green": false,
     "evidence": []
   },
@@ -29,7 +31,7 @@
     "evidence": []
   },
   "audit": {
-    "required": false,
+    "required": true,
     "verdict": "na",
     "audit_agent_id": null,
     "evidence": []
@@ -37,5 +39,37 @@
   "commits": [],
   "kickbacks": [],
   "blockedReason": null,
-  "abandonReason": null
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Define and validate the shared source-adapter contract.",
+      "Migrate the 27 remaining in-scope source packages and normalize ThinkPol metadata.",
+      "Implement deterministic safe discovery and request-time adapter loading.",
+      "Update PRD/backlog language to the catalogue-only M3 model."
+    ],
+    "testFiles": [
+      "tests/test_source_catalogue.py"
+    ],
+    "redRun": {
+      "command": "uv run --extra test pytest -q tests/test_source_catalogue.py",
+      "output": " collection failed: ModuleNotFoundError: No module named 'anomaly.sources'"
+    },
+    "escalation": null,
+    "refactorOpportunity": "Harmonize the existing OpenParlData adapter with the shared source-result contract without duplicating source-specific routing."
+  },
+  "implement": {
+    "agent_id": "01a02478-f17b-7f32-b5bc-e3c155c7460a",
+    "result": "green",
+    "files": [
+      "PRD.md",
+      "src/anomaly/sources/contract.py",
+      "src/anomaly/sources/registry.py",
+      "data-skills/"
+    ],
+    "greenRun": {
+      "command": "uv run --extra test pytest -q tests/test_source_catalogue.py",
+      "output": "6 passed in 0.07s"
+    }
+  }
 }

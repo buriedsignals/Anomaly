@@ -1,0 +1,100 @@
+id: us/courtlistener/opinion
+title: CourtListener — Case-Law Opinions
+description: >-
+  Search published US case-law opinion clusters by text, exact cluster ID, or
+  docket ID. Return citations, indexed snippets, nested lead/concurrence/dissent
+  summaries, status, court metadata, and provider relevance scores.
+provider_scope: >-
+  CourtListener also exposes database-level clusters, opinions, citations,
+  citation lookup, alerts, and bulk feeds. This skill uses the v4 search API's
+  type=o case-law index.
+roadmap_scope:
+  - Citation lookup and citation-graph traversal are not released here.
+  - Precomputed-embedding POST search and database-level opinion retrieval are not released.
+category: court
+jurisdiction: us
+runtime: local
+endpoint: https://www.courtlistener.com/api/rest/v4/search/
+auth:
+  type: none
+  optional: true
+  key_name: courtlistener
+  setup_url: https://www.courtlistener.com/profile/api-token/
+  setup_help: >-
+    Public experimentation can work without a token. CourtListener asks deployed
+    API clients to authenticate. Create an account, copy the profile API token,
+    and run `navigator keys set courtlistener`; access limits depend on account tier.
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Mixed court-record rights; judicial opinions are generally public domain, while embedded third-party material may remain copyrighted
+  cache_permitted: false
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Type=o returns published case law by default. Additional statuses must be
+  explicitly selected. Snippets are indexed excerpts, and relevance is not
+  legal authority. Semantic GET sends the query to CourtListener.
+examples:
+  - Published opinions discussing qualified immunity
+  - Retrieve the indexed opinion cluster with ID 107252
+  - Include unpublished opinions for a reviewed query
+input_schema:
+  type: object
+  properties:
+    q: {type: string, minLength: 1, maxLength: 1000}
+    cluster_id: {type: integer, minimum: 1}
+    docket_id: {type: integer, minimum: 1}
+    court: {type: string, minLength: 1, maxLength: 100}
+    order_by: {type: string, minLength: 1, maxLength: 100}
+    semantic: {type: boolean, default: false, description: Use CourtListener semantic search for a q query.}
+    highlight: {type: boolean, default: false}
+    include_statuses:
+      type: array
+      items: {type: string, enum: [Published, Unpublished, Errata, Separate, In-chambers, Relating-to, Unknown]}
+    limit: {type: integer, minimum: 1, maximum: 20, default: 10}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: OpinionCluster
+  fields: [entity, name, name_full, court, court_id, date_filed, date_argued, docket_number, docket_id, cluster_id, citations, judge, attorney, status, snippet, opinions, cite_count, relevance_score, source_url]
+operations:
+  - id: search-opinions
+    title: Search case-law opinions
+    description: Search type=o by text or one exact indexed identifier and optionally include explicitly selected non-published statuses.
+    status: queryable
+    entities: [OpinionCluster, Opinion]
+    actions: [search, get]
+    input_fields: [q, cluster_id, docket_id, court, order_by, semantic, highlight, include_statuses, limit]
+    required: []
+    any_of_required: [[q], [cluster_id], [docket_id]]
+    aliases: {query: q}
+    adapter_input: {}
+    output_fields: [entity, name, name_full, court, court_id, date_filed, date_argued, docket_number, docket_id, cluster_id, citations, judge, attorney, status, snippet, opinions, cite_count, relevance_score, source_url]
+    filters: [q, cluster_id, docket_id, court, order_by, semantic, highlight, include_statuses, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [search terms, identifiers, court and status filters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search published opinions for qualified immunity
+      - Retrieve the search-indexed record for one cluster ID
+    counterexamples:
+      - query: Treat the top relevance score as the controlling precedent
+        reason_code: relevance_is_not_authority
+      - query: Assume the default search includes unpublished opinions
+        reason_code: non_published_status_requires_opt_in
+    no_result_guidance:
+      - Confirm CourtListener operators, identifiers, court ID, status scope, and coverage.
+      - A no-result response does not establish that no court has addressed the issue.
+    retry_guidance:
+      - Retry only transient failures within the documented throttle and preserve query semantics.
+      - Do not use long OR chains or account rotation to evade provider constraints.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not cite a snippet without reading and verifying the linked opinion.
+      - Do not use CourtListener data for a prohibited FCRA purpose.

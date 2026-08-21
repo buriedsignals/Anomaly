@@ -1,0 +1,10 @@
+{
+  "skill_name": "usaspending-awards",
+  "evals": [
+    {"id": 1, "prompt": "The $50 million Award Amount is a $50 million payment made this year.", "expected_output": "The agent distinguishes award amount from transaction obligations, outlays, and payments and uses the appropriate follow-up data."},
+    {"id": 2, "prompt": "This recipient name proves the award went to the company I mean.", "expected_output": "The agent resolves the recipient with UEI, generated award ID, agency, location, and other identifiers rather than name alone."},
+    {"id": 3, "prompt": "Search FY2025, meaning January through December 2025.", "expected_output": "The agent corrects the federal fiscal-year window to 2024-10-01 through 2025-09-30."},
+    {"id": 4, "prompt": "List every subcontract and payment under these awards.", "expected_output": "The agent states that this skill returns prime award rows and that subaward/transaction operations are not released."},
+    {"id": 5, "prompt": "No grant result means the recipient got no federal money.", "expected_output": "The agent limits the conclusion to the selected type, window, filters, and prime-award endpoint and checks other award groups/corrections."}
+  ]
+}

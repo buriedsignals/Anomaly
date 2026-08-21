@@ -1,0 +1,113 @@
+id: us/federal-register/documents
+title: FederalRegister.gov — Documents
+description: >-
+  Search FederalRegister.gov documents since 1994 by term, document type, and
+  agency, with explicit ordering and pagination plus links to official PDFs.
+provider_scope: >-
+  The API documents document search and detail, facets, agencies, issues,
+  public-inspection documents, images, and suggested searches. The website API
+  is a prototype and is not the official legal edition of the Federal Register.
+roadmap_scope:
+  - Document detail and multiple-document retrieval
+  - Facets, issues, agencies, and public-inspection operations
+  - Publication and effective-date range filters
+category: regulations
+jurisdiction: us
+runtime: local
+endpoint: https://www.federalregister.gov/api/v1/documents.json
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: United States government works; verify third-party material separately
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  FederalRegister.gov is an unofficial prototype edition. Use search results for
+  discovery and follow official_pdf_url to the govinfo PDF before relying on
+  legal text, dates, or effect. Publication date and effective date are not
+  interchangeable.
+
+examples:
+  - Find recent proposed rules mentioning PFAS
+  - Search EPA notices about per- and polyfluoroalkyl substances
+
+input_schema:
+  type: object
+  properties:
+    q:
+      type: string
+      description: Full-text search term.
+    type:
+      type: string
+      enum: [RULE, PRORULE, NOTICE, PRESDOCU]
+    agency:
+      type: string
+      description: Provider agency slug such as environmental-protection-agency.
+    per_page:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    page:
+      type: integer
+      minimum: 1
+      default: 1
+    order:
+      type: string
+      enum: [relevance, newest, oldest, executive_order_number]
+      default: newest
+  required: [q]
+  additionalProperties: false
+
+output_schema:
+  entity: Document
+  fields: [name, document_number, type, agencies, publication_date, effective_on, abstract, source_url, official_pdf_url, entity]
+
+operations:
+  - id: search-documents
+    title: Search FederalRegister.gov documents
+    description: Search documents by term with optional documented type and agency filters, ordering, and page controls.
+    status: queryable
+    entities: [Document]
+    actions: [search]
+    input_fields: [q, type, agency, per_page, page, order]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q, term: q}
+    adapter_input: {}
+    output_fields: [name, document_number, type, agencies, publication_date, effective_on, abstract, source_url, official_pdf_url, entity]
+    filters: [q, type, agency, per_page, page, order]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.federalregister.gov]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Find recent proposed rules mentioning PFAS
+      - Search EPA notices mentioning PFAS on page two
+    counterexamples:
+      - query: Quote controlling legal text from the FederalRegister.gov JSON summary
+        reason_code: official_edition_verification_required
+    no_result_guidance:
+      - Remove type or agency filters one at a time and record each changed scope.
+      - Check terminology and the 1994 coverage boundary before treating the result as negative evidence.
+    retry_guidance:
+      - Retry only after a transient upstream or rate-limit failure.
+      - Do not retry invalid document codes, agency slugs, or page values unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat FederalRegister.gov as the official legal edition; verify against the linked govinfo PDF.

@@ -1,0 +1,116 @@
+id: gb/find-a-tender/notices
+title: UK Find a Tender — OCDS Notices
+description: >-
+  Retrieve Find a Tender OCDS 1.1.5 release packages by update window and
+  contracting stage, with optional transparent local term filtering.
+provider_scope: >-
+  Find a Tender publishes OCDS release and record packages, daily XML downloads,
+  and notice-submission interfaces. The release API supports notice/OCID detail,
+  update windows, stage filtering, and cursor pagination.
+roadmap_scope:
+  - Exact notice-ID and OCID retrieval
+  - OCDS record packages for complete procurement-process histories
+  - Supplier and award normalization from stage-specific release structures
+category: procurement
+jurisdiction: "gb"
+runtime: local
+endpoint: https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Open Government Licence v3.0; TED-derived material attribution also applies where stated
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The provider offers update-window and stage filtering, not keyword search.
+  `q` is an explicitly local filter over at most 100 releases from one page and
+  can miss matches elsewhere. Follow `next_cursor` to continue the same
+  provider scope. Normalized tender value is a tender-section value, not
+  necessarily an award or paid amount.
+
+examples:
+  - Retrieve recent UK tender-stage releases
+  - Filter one recent release page for software in tender or buyer text
+
+input_schema:
+  type: object
+  properties:
+    q:
+      type: string
+      description: Optional local term filter over one retrieved release page.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    updatedFrom:
+      type: string
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+      description: Earliest update timestamp in provider format YYYY-MM-DDTHH:MM:SS.
+    updatedTo:
+      type: string
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+      description: Latest update timestamp in provider format YYYY-MM-DDTHH:MM:SS.
+    stage:
+      type: string
+      enum: [planning, tender, award]
+    cursor:
+      type: string
+      pattern: '^[A-Za-z0-9=]{1,300}$'
+      description: Opaque cursor returned by the previous response for the same scope.
+  additionalProperties: false
+
+output_schema:
+  entity: TenderNotice
+  fields: [name, jurisdiction, ocid, release_id, buyer, description, value_amount, value_currency, status, date, source_url, entity, tags]
+
+operations:
+  - id: search-notices
+    title: Retrieve and filter OCDS releases
+    description: Retrieve one bounded Find a Tender release page by update window, stage, and cursor, then optionally filter that page locally by term.
+    status: queryable
+    entities: [TenderNotice]
+    actions: [search, list]
+    input_fields: [q, limit, updatedFrom, updatedTo, stage, cursor]
+    required: []
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {}
+    output_fields: [name, jurisdiction, ocid, release_id, buyer, description, value_amount, value_currency, status, date, source_url, entity, tags]
+    filters: [q, updatedFrom, updatedTo, stage, cursor, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.find-tender.service.gov.uk]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Retrieve two recent UK tender-stage releases
+      - Filter a dated release page for software
+    counterexamples:
+      - query: Search the complete Find a Tender history for this keyword in one call
+        reason_code: upstream_keyword_search_not_available
+      - query: Treat tender.value as the final amount paid to the winner
+        reason_code: award_value_not_established
+    no_result_guidance:
+      - For local q filtering, continue or widen the documented update window before treating the term as absent.
+      - Confirm stage, timestamp format, cursor continuity, and whether a record-package history is needed.
+    retry_guidance:
+      - For 429 or 503, wait at least the provider Retry-After value.
+      - Do not retry invalid dates, cursors, stages, or unsupported full-history keyword requests unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not call a release an award without inspecting tags, stage-specific fields, and the full notice.

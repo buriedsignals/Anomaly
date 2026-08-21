@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/bluesky/posts",
+  "cases": [
+    {
+      "id": "resolve-official-profile",
+      "operation": "get-profile",
+      "input": {"actor": "bsky.app"},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["entity", "handle", "did", "source_url"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "skill_name": "brreg-enheter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find Equinor in Norway's company register and retrieve the exact record.",
+      "expected_output": "The agent searches candidates, selects only after matching the nine-digit organisation number, calls get-company, and preserves the provider URL and observation date."
+    },
+    {
+      "id": 2,
+      "prompt": "No main entity matched this branch name, so report that the branch is unregistered.",
+      "expected_output": "The agent rejects the inference, notes that released scope excludes sub-entities, and reports the bounded main-entity search."
+    },
+    {
+      "id": 3,
+      "prompt": "Use today's employee count to state how many people the company employed in 2020.",
+      "expected_output": "The agent identifies that only the current mutable provider observation was returned and does not infer a historical employee count."
+    }
+  ]
+}

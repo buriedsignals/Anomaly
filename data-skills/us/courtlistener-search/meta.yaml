@@ -1,0 +1,99 @@
+id: us/courtlistener/search
+title: CourtListener — Typed Legal Search
+description: >-
+  Search one documented CourtListener v4 index at a time: case-law opinion
+  clusters, RECAP dockets, individual federal filing documents, docket metadata,
+  judicial people, or oral-argument audio. Output is normalized by selected type.
+provider_scope: >-
+  CourtListener exposes many database and workflow APIs beyond search. This
+  skill wraps the six documented v4 search types o, r, rd, d, p, and oa.
+roadmap_scope:
+  - Alert creation, citation lookup, and database-level record enumeration are not released.
+  - Semantic POST using a locally generated 768-dimensional embedding is not released.
+category: court
+jurisdiction: us
+runtime: local
+endpoint: https://www.courtlistener.com/api/rest/v4/search/
+auth:
+  type: none
+  optional: true
+  key_name: courtlistener
+  setup_url: https://www.courtlistener.com/profile/api-token/
+  setup_help: >-
+    Public experimentation can work without a token. CourtListener asks deployed
+    API clients to authenticate. Create an account, copy the profile API token,
+    and run `navigator keys set courtlistener`; access limits depend on account tier.
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Mixed court-record and Free Law Project compilation rights; embedded third-party works may remain copyrighted
+  cache_permitted: false
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Every request must name or accept one search type. Type r embeds at most three
+  documents per docket. Counts for r and d are approximate within about ±6%
+  above 2,000. Semantic search is available only for type=o and GET discloses q.
+examples:
+  - Search case law about qualified immunity with type o
+  - Search individual RECAP filing documents with type rd
+  - Search oral argument audio with type oa
+input_schema:
+  type: object
+  properties:
+    q: {type: string, minLength: 1, maxLength: 1000}
+    type: {type: string, enum: [o, r, rd, d, p, oa], default: o}
+    court: {type: string, minLength: 1, maxLength: 100}
+    order_by: {type: string, minLength: 1, maxLength: 100}
+    semantic: {type: boolean, default: false, description: Semantic GET search, only for type=o.}
+    highlight: {type: boolean, default: false}
+    limit: {type: integer, minimum: 1, maximum: 20, default: 10}
+  required: [q]
+  additionalProperties: false
+output_schema:
+  entity: CourtRecord
+  fields: [entity, record_type, provider_id, relevance_score, source_url, name, court, court_id, date, docket_number, docket_id, cluster_id, citations, judge, status, snippet, parties, documents, more_documents, document_id, docket_entry_id, document_number, description, is_available, person_id, gender, races, positions, audio_id, download_url, duration_seconds]
+operations:
+  - id: search-court-records
+    title: Search a CourtListener index
+    description: Search exactly one documented index and normalize the result shape according to the selected type code.
+    status: queryable
+    entities: [OpinionCluster, Docket, RECAPDocument, JudicialPerson, OralArgument]
+    actions: [search]
+    input_fields: [q, type, court, order_by, semantic, highlight, limit]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {}
+    output_fields: [entity, record_type, provider_id, relevance_score, source_url, name, court, court_id, date, docket_number, docket_id, cluster_id, citations, judge, status, snippet, parties, documents, more_documents, document_id, docket_entry_id, document_number, description, is_available, person_id, gender, races, positions, audio_id, download_url, duration_seconds]
+    filters: [q, type, court, order_by, semantic, highlight, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [search terms, selected index and filters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search case law about qualified immunity with type o
+      - Search individual RECAP filing documents with type rd
+      - Search CourtListener oral argument audio for qualified immunity
+      - Search opinion clusters for qualified immunity with type o
+      - Search federal filing documents for Purdue Pharma with type rd
+      - Search the judicial-person index for Ruth Bader Ginsburg with type p
+    counterexamples:
+      - query: Treat every type as an opinion record
+        reason_code: type_specific_schema_required
+      - query: Use semantic=true for a docket or oral-argument search
+        reason_code: semantic_only_for_case_law
+    no_result_guidance:
+      - Confirm the selected type, CourtListener operator syntax, court ID, and coverage before broadening.
+      - A no-result search is not proof that the legal record or filing does not exist.
+    retry_guidance:
+      - Retry transient failures within the provider throttle and preserve type and query semantics.
+      - Avoid long OR chains and never rotate accounts to evade limits.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat relevance ranking as legal authority or verification.
+      - Do not use CourtListener data for a prohibited FCRA purpose.

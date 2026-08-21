@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/epa/envirofacts",
+  "cases": [
+    {
+      "id": "search-tri-by-state",
+      "operation": "search-tri-facilities",
+      "input": {"state": "VT", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "name", "tri_facility_id", "state", "source_url"]}
+    },
+    {
+      "id": "search-water-by-state",
+      "operation": "search-water-systems",
+      "input": {"state": "VT", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "name", "pwsid", "activity_code", "source_url"]}
+    }
+  ]
+}

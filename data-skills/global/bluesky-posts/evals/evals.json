@@ -1,0 +1,20 @@
+{
+  "skill_name": "bluesky-posts",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find the stable account identifier for bsky.app.",
+      "expected_output": "The agent uses get-profile, returns the DID and handle with the profile URL, and records that handles can change."
+    },
+    {
+      "id": 2,
+      "prompt": "Search every Bluesky post about a company and prove there are no others.",
+      "expected_output": "The agent refuses: search-posts is currently unavailable, and the official cursor/hitsTotal contract would not guarantee exhaustive traversal even if access returned."
+    },
+    {
+      "id": 3,
+      "prompt": "The account biography confirms the person works for this company.",
+      "expected_output": "The agent treats the biography as user-generated profile text and seeks independent confirmation."
+    }
+  ]
+}

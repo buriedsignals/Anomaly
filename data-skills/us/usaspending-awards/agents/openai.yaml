@@ -1,0 +1,6 @@
+interface:
+  display_name: "USAspending Awards"
+  short_description: "Search prime federal awards"
+  default_prompt: "Use $usaspending-awards with an explicit award group and time window, resolve recipients by UEI/award ID, and keep award amounts distinct from transactions, obligations, outlays, and payments."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,147 @@
+id: no/brreg/enheter
+title: Brønnøysund Register Centre — Main Entities
+description: >-
+  Search Norway's Register of Business Enterprises and retrieve a main entity
+  by its exact nine-digit organisation number through the open public API.
+provider_scope: >-
+  The Register of Business Enterprises API documents main-entity and
+  sub-entity search and detail, organisation forms, roles, group structure,
+  change feeds, nonprofit information, and bulk downloads in several formats.
+roadmap_scope:
+  - Sub-entity search and detail
+  - Roles and group-structure traversal where access terms permit
+  - Bulk downloads and update feeds for authorized enumeration workflows
+category: companies
+jurisdiction: "no"
+runtime: local
+endpoint: https://data.brreg.no/enhetsregisteret/api/enheter
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Norwegian Licence for Open Government Data (NLOD) 2.0
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Released scope covers main entities only. Name search is paged and may return
+  many candidates; exact organisation-number retrieval is the identity-safe
+  follow-up. Provider values such as employee count and bankruptcy state are
+  mutable observations.
+
+examples:
+  - Search Norwegian main entities named Equinor
+  - Retrieve Norwegian organisation number 923609016
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [search-companies, get-company]
+      description: Internal operation discriminator supplied by the registry.
+    navn:
+      type: string
+      default: Equinor
+      description: Company-name query for the provider's main-entity search.
+    organisasjonsnummer:
+      type: string
+      pattern: '^[0-9]{9}$'
+      description: Exact nine-digit Norwegian organisation number.
+    size:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    page:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Zero-based provider page number for name search.
+  additionalProperties: false
+
+output_schema:
+  entity: Company
+  fields: [name, jurisdiction, company_number, legal_form, incorporation_date, employees, industry_code, industry_description, address, bankrupt, website, source_url, entity]
+
+operations:
+  - id: search-companies
+    title: Search main entities
+    description: Search Norwegian main entities by provider name semantics with explicit page and page size.
+    status: queryable
+    entities: [Company]
+    actions: [search]
+    input_fields: [navn, size, page]
+    required: [navn]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: search-companies}
+    output_fields: [name, jurisdiction, company_number, legal_form, incorporation_date, employees, industry_code, industry_description, address, bankrupt, website, source_url, entity]
+    filters: [navn, size, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.brreg.no]
+      data_classes: [query parameters]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Search Norwegian main entities named Equinor
+    counterexamples:
+      - query: Select the correct Equinor entity from name alone
+        reason_code: ambiguous_identity
+    no_result_guidance:
+      - Try a shorter registered-name fragment or known historical name and record the changed scope.
+      - Check whether the target is a sub-entity, which this released operation does not search.
+    retry_guidance:
+      - Retry only after a transient upstream or rate-limit failure.
+      - Do not treat a validation error or empty page as a reason to enumerate without bounds.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not resolve a legal entity from name alone.
+
+  - id: get-company
+    title: Get one main entity
+    description: Retrieve one Norwegian main entity by its exact nine-digit organisation number.
+    status: queryable
+    entities: [Company]
+    actions: [get]
+    input_fields: [organisasjonsnummer]
+    required: [organisasjonsnummer]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: get-company}
+    output_fields: [name, jurisdiction, company_number, legal_form, incorporation_date, employees, industry_code, industry_description, address, bankrupt, website, source_url, entity]
+    filters: [organisasjonsnummer]
+    semantics: {enumeration: none, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.brreg.no]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve Norwegian organisation number 923609016
+    counterexamples:
+      - query: Treat the current register record as proof of historical status
+        reason_code: historical_state_not_available
+    no_result_guidance:
+      - Confirm all nine digits without spaces and re-resolve the identifier from a provider search.
+      - A 404 is provider-scope evidence, not proof the organisation never existed.
+    retry_guidance:
+      - Retry only after a transient upstream failure.
+      - Do not retry a confirmed 404 unchanged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not describe mutable fields as current without an observation date.

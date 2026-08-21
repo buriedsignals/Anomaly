@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/sec-edgar/filings",
+  "cases": [
+    {
+      "id": "search-exact-phrase",
+      "operation": "search-filings",
+      "input": {"q": "\"material weakness\"", "forms": "10-K", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "form", "root_forms", "filer", "cik", "accession", "filed_date", "document_filename", "source_url"]}
+    },
+    {
+      "id": "search-fixed-date-range",
+      "operation": "search-filings",
+      "input": {"q": "supply chain", "forms": "10-K", "startdt": "2024-01-01", "enddt": "2025-12-31", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "form", "filer", "accession", "filed_date", "source_url"]}
+    }
+  ]
+}

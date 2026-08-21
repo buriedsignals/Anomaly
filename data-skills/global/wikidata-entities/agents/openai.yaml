@@ -1,0 +1,7 @@
+interface:
+  display_name: "Wikidata Entity Search"
+  short_description: "Resolve labels and aliases to Wikidata IDs"
+  default_prompt: "Use $wikidata-entities to return candidate IDs with descriptions and match metadata, follow next_continue when needed, and verify the selected identity and statements separately."
+
+policy:
+  allow_implicit_invocation: true

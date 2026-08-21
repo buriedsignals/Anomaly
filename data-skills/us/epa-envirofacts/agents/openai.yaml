@@ -1,0 +1,6 @@
+interface:
+  display_name: "EPA Envirofacts"
+  short_description: "Resolve TRI and water-system records"
+  default_prompt: "Use $epa-envirofacts to resolve a TRI facility or public water system, and do not infer releases, violations, compliance, or safety from an identity row."
+policy:
+  allow_implicit_invocation: true

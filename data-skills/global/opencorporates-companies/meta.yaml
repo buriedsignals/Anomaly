@@ -1,0 +1,150 @@
+id: global/opencorporates/companies
+title: OpenCorporates — Companies
+description: >-
+  Search company records across OpenCorporates jurisdictions or retrieve one
+  exact company by jurisdiction and registry number, with source provenance,
+  freshness timestamps, status, and attribution links.
+provider_scope: >-
+  OpenCorporates also exposes officers, filings, statements, events, corporate
+  groupings, and other company-linked data. This skill releases only company
+  search and exact company lookup.
+roadmap_scope:
+  - Officer, filing, statement, event, and network operations are not released.
+category: companies
+jurisdiction: global
+runtime: local
+endpoint: https://api.opencorporates.com/v0.4
+
+auth:
+  type: api_key
+  key_name: opencorporates
+  scheme: query_param
+  setup_url: https://api.opencorporates.com/documentation/API-Reference#api-accounts
+  setup_help: >-
+    Obtain an API account appropriate to the intended use, then run
+    `navigator keys set opencorporates`. The provider documents open-data and
+    public-benefit access as well as account-specific limits; verify current
+    eligibility directly rather than relying on a fixed price in this skill.
+  test_request:
+    input: {q: barclays, per_page: 1}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Open Database Licence (ODbL) attribution and share-alike; underlying source terms can also apply
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Every API call requires an api_token. Usage limits depend on the account;
+  check GET /account_status. `inactive` is an OpenCorporates mapping and is not
+  the same field as `current_status`; absence of inactive=true does not prove a
+  company is active because some registers do not publish status.
+
+examples:
+  - Search companies named Barclays in the GB jurisdiction
+  - Look up GB company number 00102498
+
+input_schema:
+  type: object
+  properties:
+    mode: {type: string, enum: [search, entity]}
+    q: {type: string, minLength: 1, maxLength: 500}
+    jurisdiction_code:
+      type: string
+      description: OpenCorporates jurisdiction code, for example gb, ch, or us_de.
+    company_number:
+      type: string
+      description: Registry company number; preserve leading zeroes.
+    per_page: {type: integer, minimum: 1, maximum: 100, default: 10}
+    page: {type: integer, minimum: 1, maximum: 100, default: 1}
+    inactive:
+      type: boolean
+      description: true only inactive; false excludes inactive; omitted does not filter.
+  required: []
+  additionalProperties: false
+
+output_schema:
+  entity: Company
+  fields: [entity, name, jurisdiction, company_number, company_type, status, inactive, incorporation_date, dissolution_date, registered_address, previous_names, created_at, updated_at, source_retrieved_at, source_publisher, source_registry_url, source_terms, registry_url, source_url]
+
+operations:
+  - id: search-companies
+    title: Search OpenCorporates companies
+    description: Search company records with bounded pagination and optional jurisdiction and inactive-state filters.
+    status: queryable
+    entities: [Company]
+    actions: [search]
+    input_fields: [q, jurisdiction_code, per_page, page, inactive]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q, size: per_page}
+    adapter_input: {mode: search}
+    output_fields: [entity, name, jurisdiction, company_number, company_type, status, inactive, incorporation_date, dissolution_date, registered_address, previous_names, created_at, updated_at, source_retrieved_at, source_publisher, source_registry_url, source_terms, registry_url, source_url]
+    filters: [q, jurisdiction_code, per_page, page, inactive]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.opencorporates.com]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search Barclays in jurisdiction gb with ten results
+      - Search inactive companies named Acme without claiming every inactive company is dissolved
+    counterexamples:
+      - query: Return the beneficial owners and full officer network
+        reason_code: ownership_and_officers_not_available
+      - query: No inactive flag means this company is active
+        reason_code: status_inference_not_supported
+    no_result_guidance:
+      - Try the registered name, remove a jurisdiction filter, or use an exact company number.
+      - Preserve leading zeroes and confirm the provider's jurisdiction code.
+    retry_guidance:
+      - Inspect account_status after a quota response and retry only when the account allows it.
+      - Do not retry bad tokens, invalid pages, or unsupported filters unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer ownership, solvency, current activity, or legal status beyond the returned source fields.
+
+  - id: get-company
+    title: Get one OpenCorporates company
+    description: Retrieve an exact company record using its OpenCorporates jurisdiction code and registry number.
+    status: queryable
+    entities: [Company]
+    actions: [get]
+    input_fields: [jurisdiction_code, company_number]
+    required: [jurisdiction_code, company_number]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {mode: entity}
+    output_fields: [entity, name, jurisdiction, company_number, company_type, status, inactive, incorporation_date, dissolution_date, registered_address, previous_names, created_at, updated_at, source_retrieved_at, source_publisher, source_registry_url, source_terms, registry_url, source_url]
+    filters: [jurisdiction_code, company_number]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.opencorporates.com]
+      data_classes: [company identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve GB company 00102498 and preserve source freshness and attribution
+      - Look up GB company number 00102498
+    counterexamples:
+      - query: Retrieve every officer and subsidiary of GB company 00102498
+        reason_code: linked_records_not_available
+    no_result_guidance:
+      - Check jurisdiction code, leading zeroes, and registry number against the official register.
+    retry_guidance:
+      - Retry only transient upstream errors; do not substitute a name search result for an exact identifier silently.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat OpenCorporates aggregation as a substitute for the current official registry record.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Zefix companies"
+  short_description: "Resolve Swiss company candidates and register IDs"
+  default_prompt: "Use $zefix-companies to run a bounded Swiss company-name search, preserve UID and register links, and state the legacy-endpoint limitation."
+
+policy:
+  allow_implicit_invocation: true

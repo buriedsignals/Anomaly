@@ -1,0 +1,407 @@
+id: eu/europarl/open-data
+title: European Parliament — Open Data API
+description: >
+  Official European Parliament API v2 for MEPs, declarations, bodies,
+  procedures, meetings, speeches, votes, questions, and parliamentary
+  documents. Public JSON-LD API, no key; 500 requests per endpoint per 5 min.
+provider_scope: >-
+  API v2 documents MEP lists and detail, MEP declarations, corporate bodies,
+  meetings, events, speeches, procedures, votes, questions, adopted texts, and
+  several parliamentary-document collections plus feed endpoints.
+roadmap_scope:
+  - MEP declarations and institutional bodies
+  - Procedures, meetings, plenary votes, questions, and remaining document collections
+  - Provider feed endpoints for bounded update monitoring
+category: parliamentary
+jurisdiction: "eu"
+runtime: local
+endpoint: https://data.europarl.europa.eu/api/v2
+auth:
+  type: none
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+license:
+  data_license: CC BY 4.0
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >
+  The upstream endpoint matrix is heterogeneous. The adapter exposes a
+  controlled resource router and maps common aliases to endpoint-specific
+  hyphenated filters. The API has no MEP-name filter, so name lookup fetches
+  the current filtered roster once (limit 1000) and filters it locally.
+examples:
+  - 'Find current French MEPs named Keller'
+  - 'Search European Parliament speeches about artificial intelligence'
+  - 'Find adopted European Parliament texts about climate policy'
+input_schema:
+  type: object
+  properties:
+    resource:
+      type: string
+      enum: [meps, meps_current, meps_incoming, meps_outgoing, meps_declarations, corporate_bodies, meetings, events, speeches, procedures, documents, plenary_documents, parliamentary_questions, plenary_session_documents, plenary_session_items, adopted_texts, committee_documents, external_documents, vote_results]
+      description: Upstream collection; inferred for MEP, sitting, and free-text speech queries.
+    q:
+      type: string
+      description: Full-text query; defaults to speeches. Supported by speeches, adopted_texts, plenary_session_items, and meps_declarations.
+    name:
+      type: string
+      description: Case-insensitive MEP name substring, applied locally to the current filtered roster.
+    id:
+      type: string
+      description: Resource identifier for an item-detail request.
+    mep_id:
+      type: string
+      description: MEP identifier shorthand; defaults resource to meps.
+    sitting_id:
+      type: string
+      description: Plenary sitting ID; defaults resource to vote_results.
+    country:
+      type: string
+      description: ISO 3166-1 alpha-2 country code for MEP queries.
+    political_group:
+      type: string
+      description: European Parliament political-group code.
+    parliamentary_term:
+      type: integer
+      minimum: 0
+      maximum: 10
+    mandate_date:
+      type: string
+      description: Active-mandate date, YYYY-MM-DD, for meps_current.
+    gender:
+      type: string
+    year:
+      type: integer
+    process_type:
+      type: string
+      description: Procedure code such as COD, CNS, INI, or NLE.
+    person_id:
+      type: string
+      description: MEP filter on resources that support it, notably speeches and declarations.
+    activity_type:
+      type: string
+    work_type:
+      type: string
+    sitting_date_start:
+      type: string
+    sitting_date_end:
+      type: string
+    title:
+      type: string
+    search_language:
+      type: string
+    language:
+      type: string
+      default: en
+    sort_by:
+      type: string
+    filters:
+      type: object
+      description: Additional documented upstream filters using their hyphenated names.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 50
+      default: 10
+    offset:
+      type: integer
+      minimum: 0
+      default: 0
+    include_raw:
+      type: boolean
+      default: false
+      description: Include the complete upstream JSON-LD object.
+  additionalProperties: false
+output_schema:
+  entity: EuropeanParliamentRecord
+  fields:
+  - resource
+  - id
+  - entity
+  - name
+  - title
+  - country
+  - political_group
+  - mandate_start
+  - email
+  - procedure_id
+  - activity_type
+  - person_ids
+  - date
+  - files
+  - source_url
+  - raw
+  - birth_date
+  - current_memberships
+  - first_name
+  - gender
+  - homepage
+  - image_url
+  - last_name
+  - start_date
+  - end_date
+  - parliamentary_term
+operations:
+- id: search-meps
+  title: Search current MEPs
+  description: Filter the current MEP roster by documented country, group, term, and gender fields, with optional transparent local name matching.
+  status: queryable
+  entities:
+  - EuropeanParliamentRecord
+  actions:
+  - search
+  input_fields:
+  - name
+  - country
+  - political_group
+  - parliamentary_term
+  - gender
+  - language
+  - limit
+  - offset
+  required: []
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    resource: meps_current
+  output_fields:
+  - birth_date
+  - country
+  - current_memberships
+  - email
+  - entity
+  - first_name
+  - gender
+  - homepage
+  - id
+  - image_url
+  - last_name
+  - mandate_start
+  - name
+  - political_group
+  - resource
+  - source_url
+  filters:
+  - name
+  - country
+  - political_group
+  - parliamentary_term
+  - gender
+  - language
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: false
+    pagination: true
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - name
+    consent_required: false
+  examples:
+  - Find current French MEPs named Keller
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search meps
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification:
+    endpoint_live: true
+    query_tested: true
+    adapter_tested: true
+    fixture_tested: true
+  availability_reason: null
+  prohibited_uses:
+  - Do not resolve a person from name alone or treat current roster membership as historical status.
+
+- id: get-mep
+  title: Get one MEP
+  description: Retrieve one MEP record from the official person detail endpoint by European Parliament identifier.
+  status: queryable
+  entities: [EuropeanParliamentPerson]
+  actions: [get]
+  input_fields: [mep_id, language, include_raw]
+  required: [mep_id]
+  any_of_required: []
+  aliases: {}
+  adapter_input: {resource: meps}
+  output_fields: [resource, id, entity, name, first_name, last_name, country, political_group, mandate_start, birth_date, gender, email, homepage, image_url, current_memberships, source_url, raw]
+  filters: [mep_id, language]
+  semantics: {enumeration: none, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: source, cost: free, side_effects: none}
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes: [record identifier]
+    sensitive_inputs: []
+    consent_required: false
+  examples:
+    - Get European Parliament person 22858
+  counterexamples:
+    - query: Prove this record is the person I meant from the identifier alone
+      reason_code: independent_identity_verification_required
+  no_result_guidance:
+    - Re-resolve the identifier from the current MEP roster or official Parliament profile.
+    - Treat a missing identifier as provider-scope evidence, not proof the person never served.
+  retry_guidance:
+    - Retry only after a transient provider or rate-limit failure.
+    - Do not retry a confirmed missing identifier unchanged.
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+    - Do not collapse current and historical memberships.
+- id: search-speeches
+  title: Search plenary speeches
+  description: Search plenary speech and speech-related activities using the provider's text and documented participant/date filters.
+  status: queryable
+  entities:
+  - EuropeanParliamentRecord
+  actions:
+  - search
+  input_fields:
+  - q
+  - sitting_id
+  - person_id
+  - sitting_date_start
+  - sitting_date_end
+  - language
+  - limit
+  - offset
+  required: [q]
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    resource: speeches
+  output_fields:
+  - resource
+  - id
+  - entity
+  - title
+  - activity_type
+  - person_ids
+  - date
+  - start_date
+  - end_date
+  - source_url
+  - raw
+  filters:
+  - q
+  - sitting_id
+  - person_id
+  - sitting_date_start
+  - sitting_date_end
+  - language
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: true
+    pagination: true
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - q
+    consent_required: false
+  examples:
+  - Search European Parliament speeches about artificial intelligence
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search speeches
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.
+- id: search-adopted-texts
+  title: Search adopted texts
+  description: Search adopted European Parliament texts using provider full text with optional year and procedure-type filters.
+  status: queryable
+  entities:
+  - EuropeanParliamentRecord
+  actions:
+  - search
+  input_fields:
+  - q
+  - year
+  - process_type
+  - language
+  - limit
+  - offset
+  required: [q]
+  any_of_required: []
+  aliases: {}
+  adapter_input:
+    resource: adopted_texts
+  output_fields:
+  - resource
+  - id
+  - entity
+  - title
+  - date
+  - parliamentary_term
+  - files
+  - source_url
+  - raw
+  filters:
+  - q
+  - year
+  - process_type
+  - language
+  semantics:
+    enumeration: bounded
+    aggregation: false
+    temporal: true
+    pagination: true
+    joins: none
+  access:
+    auth: source
+    cost: free
+    side_effects: none
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes:
+    - query parameters
+    sensitive_inputs:
+    - q
+    consent_required: false
+  examples:
+  - Find adopted European Parliament texts about climate policy
+  counterexamples:
+  - query: Aggregate or join arbitrary records with search adopted texts
+    reason_code: aggregation_or_join_not_available
+  no_result_guidance:
+  - Broaden or simplify supported filters, then retry the same operation.
+  - Confirm identifiers and jurisdiction against the operation schema.
+  retry_guidance:
+  - Retry only for a transient upstream or availability error.
+  - Do not retry validation, authorization, or unsupported-capability failures unchanged.
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Do not treat returned records as independently verified facts.

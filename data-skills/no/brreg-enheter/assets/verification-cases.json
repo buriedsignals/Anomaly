@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "no/brreg/enheter",
+  "cases": [
+    {
+      "id": "search-known-main-entity",
+      "operation": "search-companies",
+      "input": {"navn": "Equinor", "size": 2, "page": 0},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "company_number", "legal_form", "source_url"]
+      }
+    },
+    {
+      "id": "get-known-main-entity",
+      "operation": "get-company",
+      "input": {"organisasjonsnummer": "923609016"},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["name", "company_number", "industry_code", "source_url"]
+      }
+    }
+  ]
+}

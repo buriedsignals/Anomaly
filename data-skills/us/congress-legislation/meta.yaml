@@ -1,0 +1,150 @@
+id: us/congress/legislation
+title: Congress.gov — Bills and Members
+description: >-
+  List recently acted-on US federal bills and resolutions, optionally applying
+  a bounded client-side title filter, or retrieve congressional member records
+  by Bioguide ID, state, name, or Congress through the official Library of
+  Congress API.
+provider_scope: >-
+  The Congress.gov API publishes bills, laws, amendments, summaries, members,
+  committees, committee reports and meetings, hearings, nominations, treaties,
+  congressional records, and House communications and votes. This skill
+  releases bill-list and member-record operations only.
+roadmap_scope:
+  - Bill actions, sponsors, cosponsors, text, summaries, subjects, and related-bill operations are not released.
+  - House vote, committee, nomination, treaty, and Congressional Record operations are not released.
+category: legislation
+jurisdiction: us
+runtime: local
+endpoint: https://api.congress.gov/v3
+auth:
+  type: api_key
+  key_name: congress
+  shared_key: data_gov
+  scheme: query_param
+  setup_url: https://api.congress.gov/sign-up/
+  setup_help: |
+    Congress.gov uses a free api.data.gov key:
+      1. Request a key at https://api.congress.gov/sign-up/
+      2. Run: navigator keys set congress
+    A configured shared `data_gov` key is used when no congress-specific key exists.
+  test_request:
+    input: {congress: 119, limit: 1}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Public US legislative and member data; consult Congress.gov legal notices for linked material
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The API has no server-side bill full-text or member-name search. `q` scans
+  only the 250 most recently returned bill titles; member names are filtered
+  over one Congress. `updated` can reflect data processing, while
+  `latest_action_date` reflects legislative activity.
+examples:
+  - List recently acted-on bills in the 119th Congress
+  - Find current members from Vermont
+  - Retrieve member S000033 by Bioguide ID
+input_schema:
+  type: object
+  properties:
+    q: {type: string, minLength: 1, maxLength: 500}
+    congress: {type: integer, minimum: 1}
+    limit: {type: integer, minimum: 1, maximum: 250, default: 10}
+    mode: {type: string, enum: [bills, members]}
+    bioguide_id: {type: string, pattern: "^[A-Za-z][0-9]{6}$"}
+    state: {type: string, pattern: "^[A-Za-z]{2}$"}
+    name: {type: string, minLength: 1, maxLength: 200}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: Bill
+  fields: [entity, name, bill, bill_type, bill_number, congress, chamber, latest_action_date, latest_action, updated, updated_including_text, bioguide_id, party, state, district, current_member, birth_year, death_year, official_website, terms, source_url]
+operations:
+  - id: search-bills
+    title: List recent bills and filter titles
+    description: >-
+      List bills sorted by the provider's latest-action order, optionally
+      scoped to a Congress and filtered client-side over at most 250 returned
+      titles. This is not exhaustive full-text search.
+    status: queryable
+    entities: [Bill]
+    actions: [list, search]
+    input_fields: [q, congress, limit]
+    required: []
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: bills}
+    output_fields: [entity, name, bill, bill_type, bill_number, congress, chamber, latest_action_date, latest_action, updated, updated_including_text, source_url]
+    filters: [q, congress, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.congress.gov]
+      data_classes: [bill title, Congress number, and limit filters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - List five recently acted-on bills in the 119th Congress
+      - Search the 250-title recent window for fentanyl
+    counterexamples:
+      - query: Search every bill text for this phrase
+        reason_code: exhaustive_full_text_search_unavailable
+      - query: The updated date proves Congress acted that day
+        reason_code: update_date_not_legislative_action
+    no_result_guidance:
+      - A title-filter miss applies only to the bounded recent-title window, not the full corpus or bill text.
+      - Use a known Congress, bill type, and number on Congress.gov for exact bill research.
+    retry_guidance:
+      - Preserve Congress, limit, and title filter across transient retries.
+      - Do not silently describe a bounded title filter as exhaustive search.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer sponsorship, passage, enactment, or current movement from a title-list row alone.
+  - id: list-members
+    title: Retrieve congressional members
+    description: >-
+      Retrieve an exact member by Bioguide ID, current members by state, or a
+      bounded member list for one Congress and optionally filter it by name or state.
+    status: queryable
+    entities: [Member]
+    actions: [get, list, search]
+    input_fields: [bioguide_id, state, name, congress, limit]
+    required: []
+    any_of_required:
+      - [bioguide_id]
+      - [state]
+      - [name]
+      - [congress]
+    aliases: {}
+    adapter_input: {mode: members}
+    output_fields: [entity, name, bioguide_id, party, state, district, chamber, current_member, birth_year, death_year, official_website, terms, updated, source_url]
+    filters: [bioguide_id, state, name, congress, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.congress.gov]
+      data_classes: [member identifier, state, name, and Congress filters]
+      sensitive_inputs: [name]
+      consent_required: false
+    examples:
+      - Retrieve Bioguide member S000033
+      - List current members from Vermont
+      - Find members named Welch in the current Congress
+    counterexamples:
+      - query: This name match proves two records describe the same person
+        reason_code: identity_resolution_required
+      - query: List every historical member named Smith without a Congress
+        reason_code: bounded_current_congress_name_search
+    no_result_guidance:
+      - Check the Bioguide ID, two-letter state code, spelling, and Congress number.
+      - Name search is client-side over one Congress; use Bioguide for exact historical identity.
+    retry_guidance:
+      - Preserve identifier, state, name, Congress, and limit across transient retries.
+      - Do not substitute a similarly named member for an exact Bioguide miss.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer current office, party, or district without checking current_member and the dated term history.

@@ -1,0 +1,127 @@
+id: us/courtlistener/docket
+title: CourtListener — RECAP Federal Dockets
+description: >-
+  Search federal RECAP docket records or retrieve the exact search-index record
+  for a CourtListener docket ID. A type=r result embeds at most three matching
+  filing documents; it is not a complete docket sheet.
+provider_scope: >-
+  CourtListener's PACER and RECAP APIs include dockets, entries, documents,
+  parties, attorneys, RECAP Fetch, and other services. This skill uses only the
+  public v4 search endpoint with type=r.
+roadmap_scope:
+  - Full docket-entry pagination is not released by this skill.
+  - RECAP Fetch and paid PACER retrieval are not released.
+category: court
+jurisdiction: us
+runtime: local
+endpoint: https://www.courtlistener.com/api/rest/v4/search/
+auth:
+  type: none
+  optional: true
+  key_name: courtlistener
+  setup_url: https://www.courtlistener.com/profile/api-token/
+  setup_help: >-
+    Public experimentation can work without a token. CourtListener asks deployed
+    API clients to authenticate. Create an account, copy the profile API token,
+    and run `navigator keys set courtlistener`; access limits depend on account tier.
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Mixed court-record rights; judicial opinions and many filings are generally public domain, but embedded third-party works may remain copyrighted
+  cache_permitted: false
+  redistribution_permitted: false
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Search counts for type=r are approximate within about ±6% above 2,000 results.
+  The embedded documents are only the first three matches; more_documents marks
+  when additional matching filings exist. Verify legal claims in the underlying record.
+examples:
+  - Federal RECAP dockets mentioning Purdue Pharma in nysb
+  - Retrieve CourtListener docket 16199029 by its exact ID
+input_schema:
+  type: object
+  properties:
+    mode: {type: string, enum: [search, get]}
+    q: {type: string, minLength: 1, maxLength: 1000, description: Keyword query or supported advanced-search expression.}
+    docket_id: {type: integer, minimum: 1, description: Exact CourtListener docket identifier.}
+    court: {type: string, minLength: 1, maxLength: 100, description: Court ID such as nysb or ca9.}
+    order_by: {type: string, minLength: 1, maxLength: 100, description: Search ordering copied from a CourtListener search URL.}
+    highlight: {type: boolean, default: false, description: Request highlighted snippets.}
+    limit: {type: integer, minimum: 1, maximum: 20, default: 10, description: Records retained from the current search page.}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: Docket
+  fields: [entity, name, name_full, court, court_id, date_filed, date_terminated, docket_number, docket_id, pacer_case_id, judge, judge_id, referred_to, referred_to_id, cause, chapter, jury_demand, suit_nature, parties, attorneys, firms, documents, more_documents, relevance_score, source_url]
+operations:
+  - id: search-dockets
+    title: Search RECAP dockets
+    description: Search the RECAP index and return docket metadata plus no more than three matching filing-document summaries per docket.
+    status: queryable
+    entities: [Docket]
+    actions: [search]
+    input_fields: [q, court, order_by, highlight, limit]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: search}
+    output_fields: [entity, name, name_full, court, court_id, date_filed, date_terminated, docket_number, docket_id, pacer_case_id, judge, judge_id, referred_to, referred_to_id, cause, chapter, jury_demand, suit_nature, parties, attorneys, firms, documents, more_documents, relevance_score, source_url]
+    filters: [q, court, order_by, highlight, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [search terms, court filter]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Federal RECAP dockets mentioning Purdue Pharma in nysb
+      - Search Purdue Pharma in the Southern District of New York bankruptcy court
+    counterexamples:
+      - query: Return the complete docket sheet from the embedded documents array
+        reason_code: embedded_documents_are_truncated
+    no_result_guidance:
+      - Check CourtListener advanced-search syntax and court ID, then broaden only with a stated rationale.
+      - Absence from RECAP search is not proof that a PACER filing or case does not exist.
+    retry_guidance:
+      - Retry transient failures within the documented throttle; preserve the query and ordering.
+      - Do not evade limits with extra accounts or token rotation.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not represent the three embedded matches as a complete docket sheet.
+      - Do not use CourtListener data for a prohibited FCRA purpose.
+  - id: get-docket
+    title: Retrieve a docket search record by ID
+    description: Run an exact docket_id search and return the matching indexed docket record, still subject to the three-document embedding limit.
+    status: queryable
+    entities: [Docket]
+    actions: [get]
+    input_fields: [docket_id, limit]
+    required: [docket_id]
+    any_of_required: []
+    aliases: {id: docket_id}
+    adapter_input: {mode: get}
+    output_fields: [entity, name, name_full, court, court_id, date_filed, date_terminated, docket_number, docket_id, pacer_case_id, judge, judge_id, referred_to, referred_to_id, cause, chapter, jury_demand, suit_nature, parties, attorneys, firms, documents, more_documents, relevance_score, source_url]
+    filters: [docket_id, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [docket identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve CourtListener docket ID 16199029
+    counterexamples:
+      - query: Download every filing on docket 16199029
+        reason_code: full_docket_pagination_not_available
+    no_result_guidance:
+      - Confirm the identifier is a CourtListener docket ID rather than a court docket number or PACER case ID.
+      - Check the linked CourtListener site and court system if the indexed record is absent.
+    retry_guidance:
+      - Retry transient failures only; an unchanged missing ID should not be polled repeatedly.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not represent embedded matching documents as the complete docket.

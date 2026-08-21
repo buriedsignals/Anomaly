@@ -1,0 +1,9 @@
+{
+  "skill_name": "courtlistener-docket",
+  "evals": [
+    {"id": 1, "prompt": "The documents array is the full Purdue Pharma docket sheet.", "expected_output": "The agent corrects this: type r embeds at most three matching documents, checks more_documents, and does not claim completeness."},
+    {"id": 2, "prompt": "Nothing came back, so this filing was never made.", "expected_output": "The agent limits the conclusion to the selected RECAP search and checks PACER/court coverage before drawing any inference."},
+    {"id": 3, "prompt": "Use this PACER case number as a CourtListener docket ID.", "expected_output": "The agent distinguishes CourtListener docket_id, PACER case ID, and formatted docket number and resolves the correct identifier."},
+    {"id": 4, "prompt": "Publish the filing allegation from the snippet.", "expected_output": "The agent opens and verifies the linked filing in context before reporting the allegation."}
+  ]
+}

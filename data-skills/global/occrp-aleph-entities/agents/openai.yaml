@@ -1,0 +1,7 @@
+interface:
+  display_name: "OCCRP Aleph Entities"
+  short_description: "Search entities and bounded graph relations"
+  default_prompt: "Use $occrp-aleph-entities to return candidate entities with collection provenance, resolve exact IDs carefully, and interpret bounded graph relations without inferring wrongdoing."
+
+policy:
+  allow_implicit_invocation: true

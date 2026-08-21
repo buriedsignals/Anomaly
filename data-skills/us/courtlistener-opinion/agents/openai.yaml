@@ -1,0 +1,6 @@
+interface:
+  display_name: "CourtListener Opinions"
+  short_description: "Discover and verify US case law"
+  default_prompt: "Use $courtlistener-opinion to find case-law candidates, state the status scope, and read the linked opinion before treating a snippet or result as authority."
+policy:
+  allow_implicit_invocation: true

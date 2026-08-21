@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "gb/find-a-tender/notices",
+  "cases": [
+    {
+      "id": "list-current-tender-releases",
+      "operation": "search-notices",
+      "input": {"stage": "tender", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["ocid", "release_id", "name", "buyer", "date", "source_url"]}
+    },
+    {
+      "id": "list-current-award-releases",
+      "operation": "search-notices",
+      "input": {"stage": "award", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["ocid", "release_id", "tags", "date", "source_url"]}
+    }
+  ]
+}

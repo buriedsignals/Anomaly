@@ -1,0 +1,7 @@
+interface:
+  display_name: "Federal Register documents"
+  short_description: "Search US rules, notices, and presidential documents"
+  default_prompt: "Use $federal-register-documents for bounded discovery, preserve document numbers and official PDF links, and verify legal text against govinfo."
+
+policy:
+  allow_implicit_invocation: true

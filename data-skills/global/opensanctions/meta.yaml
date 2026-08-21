@@ -1,0 +1,207 @@
+id: global/opensanctions
+title: OpenSanctions — Sanctions, PEPs, and Watchlists
+description: >-
+  Screen a described person or organization with query-by-example matching,
+  run investigative full-text discovery, or retrieve one complete nested
+  OpenSanctions entity. Candidates and scores require human review.
+provider_scope: >-
+  OpenSanctions also exposes statements, adjacent-entity pagination, datasets,
+  OpenRefine reconciliation, bulk downloads, monitoring, and on-premise yente.
+  This skill releases match, search, and entity retrieval only.
+roadmap_scope:
+  - Statement provenance and adjacent-relation pagination are not released.
+  - Bulk download, monitoring, and reconciliation operations are outside this skill.
+category: sanctions
+jurisdiction: global
+runtime: local
+endpoint: https://api.opensanctions.org
+
+auth:
+  type: api_key
+  key_name: opensanctions
+  setup_url: https://www.opensanctions.org/account/
+  setup_help: >-
+    Obtain an API key and run `navigator keys set opensanctions`. The provider
+    documents free keys for qualifying public-interest journalism, civil society,
+    and academic work; commercial use requires the applicable licence.
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Creative Commons Attribution-NonCommercial 4.0 for non-commercial data use; commercial licence required
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Use match, not search, for screening. Search ranking expresses text-search
+  relevance rather than match quality and GET query strings can be logged.
+  Match scores are decision support, not proof of identity or sanctions status.
+
+examples:
+  - Screen a person by name, birth date, and nationality
+  - Investigatively search OpenSanctions for Wagner Group
+  - Retrieve one known OpenSanctions entity ID with nested relationships
+
+input_schema:
+  type: object
+  properties:
+    mode: {type: string, enum: [match, search, entity]}
+    name: {type: string, minLength: 1, maxLength: 500}
+    schema:
+      type: string
+      description: FollowTheMoney schema such as Person, Company, LegalEntity, or Vessel.
+    properties:
+      type: object
+      description: FollowTheMoney query-by-example properties, each containing one or more string values.
+    q: {type: string, minLength: 1, maxLength: 500}
+    entity_id: {type: string, minLength: 1, maxLength: 500}
+    dataset: {type: string, default: default}
+    limit: {type: integer, minimum: 1, maximum: 50}
+    offset: {type: integer, minimum: 0, maximum: 9499, default: 0}
+    threshold: {type: number, minimum: 0, maximum: 1}
+    algorithm:
+      type: string
+      enum: [best, logic-v2, ofac, name-based, name-qualified, logic-v1, regression-v1]
+    topics: {type: array, items: {type: string}}
+    include_dataset: {type: array, items: {type: string}}
+    exclude_dataset: {type: array, items: {type: string}}
+    exclude_schema: {type: array, items: {type: string}}
+    exclude_entity_ids: {type: array, maxItems: 50, items: {type: string}}
+    changed_since: {type: string}
+    countries: {type: array, items: {type: string}}
+    datasets: {type: array, items: {type: string}}
+    property_filters: {type: array, items: {type: string}, description: Search field:value filters.}
+    sort: {type: array, items: {type: string}}
+    simple: {type: boolean}
+    fuzzy: {type: boolean}
+    filter_op: {type: string, enum: [AND, OR], default: AND}
+    nested: {type: boolean, default: true}
+  required: []
+  additionalProperties: false
+
+output_schema:
+  entity: RiskEntity
+  fields: [entity, id, caption, topics, datasets, countries, target, first_seen, last_seen, last_change, score, match, properties, referents, source_url]
+
+operations:
+  - id: match-entity
+    title: Match an entity for screening
+    description: Rank candidates for a structured query-by-example using explicit dataset, topic, algorithm, and threshold controls.
+    status: queryable
+    entities: [RiskEntity]
+    actions: [match, screen]
+    input_fields: [name, schema, properties, dataset, limit, threshold, algorithm, topics, include_dataset, exclude_dataset, exclude_schema, exclude_entity_ids, changed_since]
+    required: []
+    any_of_required: [[name], [properties]]
+    aliases: {}
+    adapter_input: {mode: match}
+    output_fields: [entity, id, caption, topics, datasets, countries, target, first_seen, last_seen, last_change, score, match, source_url]
+    filters: [name, schema, properties, dataset, limit, threshold, algorithm, topics, include_dataset, exclude_dataset, exclude_schema, exclude_entity_ids, changed_since]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.opensanctions.org]
+      data_classes: [identity attributes, matching controls]
+      sensitive_inputs: [name, properties]
+      consent_required: false
+    examples:
+      - Screen a person by name, birth date, and nationality
+      - Screen Viktor Yanukovych against sanctions and PEP lists
+      - Screen a Person using name, birthDate, and nationality with an explicit threshold
+      - Limit candidate scope with sanction topics rather than assuming every sanctions-dataset entity is targeted
+    counterexamples:
+      - query: A score above the threshold proves this is the same person
+        reason_code: human_review_required
+      - query: Use full-text search as an automated screening decision
+        reason_code: wrong_operation_for_screening
+    no_result_guidance:
+      - Check schema and identifiers, then adjust a documented threshold or scope only with a stated rationale.
+      - Do not convert no candidate into proof that the subject is not sanctioned or politically exposed.
+    retry_guidance:
+      - Retry rate limits according to provider guidance; do not change identity attributes merely to force a match.
+      - Do not retry invalid properties, bad keys, or licence failures unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not make adverse decisions or publish identity conclusions from automated scoring alone.
+
+  - id: search-entities
+    title: Search OpenSanctions entities
+    description: Search the OpenSanctions sanctions, PEP, and watchlist entity index with bounded pagination, facets, filters, and explicit search syntax controls.
+    status: queryable
+    entities: [RiskEntity]
+    actions: [search, discover]
+    input_fields: [q, schema, dataset, limit, offset, include_dataset, exclude_dataset, exclude_schema, changed_since, countries, topics, datasets, property_filters, sort, simple, fuzzy, filter_op]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: search}
+    output_fields: [entity, id, caption, topics, datasets, countries, target, first_seen, last_seen, last_change, source_url]
+    filters: [q, schema, dataset, limit, offset, include_dataset, exclude_dataset, exclude_schema, changed_since, countries, topics, datasets, property_filters, sort, simple, fuzzy, filter_op]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.opensanctions.org]
+      data_classes: [URL query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Check whether Rosneft appears on a sanctions list
+      - Search for Wagner Group and inspect facets and candidate IDs
+      - Find recently changed Company entities within a reviewed dataset scope
+    counterexamples:
+      - query: Search relevance is a sanctions-match score
+        reason_code: search_score_not_match_score
+      - query: Search this confidential source name without disclosing it upstream
+        reason_code: query_string_disclosure
+    no_result_guidance:
+      - Review exact-phrase, fuzzy, field, schema, dataset, and pagination choices.
+      - Use match for screening a known subject; do not weaken discovery syntax until something appears.
+    retry_guidance:
+      - Preserve the same offset and filters across a transient retry.
+      - Do not exceed the documented maximum offset or retry authorization failures unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not use search ranking to make compliance or identity decisions.
+
+  - id: get-entity
+    title: Get one OpenSanctions entity
+    description: Retrieve one exact entity ID, optionally including nested adjacent entities and canonical referents.
+    status: queryable
+    entities: [RiskEntity]
+    actions: [get]
+    input_fields: [entity_id, nested]
+    required: [entity_id]
+    any_of_required: []
+    aliases: {id: entity_id}
+    adapter_input: {mode: entity}
+    output_fields: [entity, id, caption, topics, datasets, countries, target, first_seen, last_seen, last_change, properties, referents, source_url]
+    filters: [entity_id, nested]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.opensanctions.org]
+      data_classes: [entity identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve Q7747 with nested relationships and inspect datasets, referents, and timestamps
+    counterexamples:
+      - query: A stored ID can never change
+        reason_code: canonical_id_can_redirect
+    no_result_guidance:
+      - Follow a provider 308 redirect to the current canonical ID and update stored references.
+      - A later 404 can mean the old referent expired; preserve the lookup date and uncertainty.
+    retry_guidance:
+      - Retry transient errors only; do not poll unchanged IDs more frequently than the provider recommends.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer that every related or sanctions-dataset entity is itself a sanctions target; inspect topics and nested designations.

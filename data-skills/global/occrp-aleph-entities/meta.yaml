@@ -1,0 +1,201 @@
+id: global/occrp-aleph/entities
+title: OCCRP Aleph — Entities and Documents
+description: >-
+  Search FollowTheMoney-shaped entities in OCCRP Aleph collections available
+  to the supplied account, retrieve one known entity, or expand its adjacent
+  graph relations. Access and reuse rights vary by collection.
+provider_scope: >-
+  Aleph also supports document search, facets, exports, entity matching,
+  collection management, ingestion, reconciliation, statements, and write
+  operations. This skill exposes only read-only entity search, detail, and
+  bounded graph expansion.
+roadmap_scope:
+  - Document search, exports, match/reconcile, and collection browsing are not released here.
+  - Entity writes, ingestion, bookmarks, and other account mutations are out of scope.
+category: entities
+jurisdiction: global
+runtime: local
+endpoint: https://aleph.occrp.org/api/2
+
+auth:
+  type: api_key
+  key_name: occrp-aleph
+  setup_url: https://aleph.occrp.org/settings
+  setup_help: >-
+    Sign in to Aleph, copy the API key from account settings, and run
+    `navigator keys set occrp-aleph`. Collection visibility is account-specific.
+  test_request:
+    input: {q: Putin, schema: Person, limit: 1}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Per collection; inspect the source collection and underlying record terms
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The live OCCRP deployment requires authentication and may expose different
+  collections to different accounts. Aleph's current source code documents
+  `Authorization: ApiKey` for user API keys; `Token` denotes a session token.
+  Search results and graph links are investigative leads, not verified facts.
+
+examples:
+  - Search Aleph for companies named Gazprom
+  - Retrieve a known Aleph entity ID
+  - Expand adjacent entities for a known Aleph entity
+
+input_schema:
+  type: object
+  properties:
+    mode:
+      type: string
+      enum: [search, entity, expand]
+    q:
+      type: string
+      minLength: 1
+      maxLength: 500
+    schema:
+      type: string
+      description: FollowTheMoney schema filter, for example Person or Company.
+    entity_id:
+      type: string
+      minLength: 1
+      maxLength: 500
+    collection_id:
+      type: string
+      description: Restrict search to one readable Aleph collection.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 50
+      default: 10
+    offset:
+      type: integer
+      minimum: 0
+      maximum: 10000
+      default: 0
+    properties:
+      type: array
+      items: {type: string}
+      description: Expansion relation/property names to include.
+  required: []
+  additionalProperties: false
+
+output_schema:
+  entity: AlephEntity
+  fields: [entity, id, name, collection, collection_id, countries, relation, relation_count, source_url]
+
+operations:
+  - id: search-entities
+    title: Search Aleph entities
+    description: Search readable Aleph entities with optional schema, collection, limit, and offset filters.
+    status: queryable
+    entities: [AlephEntity]
+    actions: [search]
+    input_fields: [q, schema, collection_id, limit, offset]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {mode: search}
+    output_fields: [entity, id, name, collection, collection_id, countries, source_url]
+    filters: [q, schema, collection_id, limit, offset]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [aleph.occrp.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search companies named Gazprom in readable collections
+      - Search Person entities and retain collection provenance
+    counterexamples:
+      - query: Search documents and export every matching file
+        reason_code: document_export_not_available
+      - query: Treat the first name match as a confirmed identity
+        reason_code: disambiguation_required
+    no_result_guidance:
+      - Check spelling and remove an overly narrow schema or collection filter.
+      - Confirm that the account can read the expected collection.
+    retry_guidance:
+      - Retry transient 429 or 5xx responses with bounded backoff.
+      - Do not retry authorization, collection-permission, or invalid-filter failures unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer guilt, ownership, or identity from a search hit alone.
+
+  - id: get-entity
+    title: Get one Aleph entity
+    description: Retrieve one entity by its exact Aleph ID within the account's readable scope.
+    status: queryable
+    entities: [AlephEntity]
+    actions: [get]
+    input_fields: [entity_id]
+    required: [entity_id]
+    any_of_required: []
+    aliases: {id: entity_id}
+    adapter_input: {mode: entity}
+    output_fields: [entity, id, name, collection, collection_id, countries, source_url]
+    filters: [entity_id]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [aleph.occrp.org]
+      data_classes: [entity identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve a known Aleph entity ID and preserve its collection
+    counterexamples:
+      - query: Retrieve an entity hidden from this account
+        reason_code: collection_permission_required
+    no_result_guidance:
+      - Check the exact ID and account collection access; do not substitute a name match silently.
+    retry_guidance:
+      - Retry only transient upstream failures; do not retry a 404 or permission failure unchanged.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat the entity profile as independent confirmation of its claims.
+
+  - id: expand-entity
+    title: Expand Aleph entity relations
+    description: Retrieve a bounded, property-grouped set of entities adjacent to one exact entity ID.
+    status: queryable
+    entities: [AlephEntity]
+    actions: [expand]
+    input_fields: [entity_id, limit, properties]
+    required: [entity_id]
+    any_of_required: []
+    aliases: {id: entity_id}
+    adapter_input: {mode: expand}
+    output_fields: [entity, id, name, collection, collection_id, countries, relation, relation_count, source_url]
+    filters: [entity_id, limit, properties]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [aleph.occrp.org]
+      data_classes: [entity identifier, relation filters]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Expand up to ten adjacent entities grouped by Aleph relation property
+    counterexamples:
+      - query: Return the complete corporate network with no depth or size bound
+        reason_code: unbounded_graph_not_available
+    no_result_guidance:
+      - Remove a property filter or confirm that the source entity has readable adjacent relations.
+    retry_guidance:
+      - Retry only transient upstream failures; do not recursively expand without a reviewed bound.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not describe adjacency as ownership or control unless the relation and source establish it.

@@ -1,0 +1,159 @@
+id: fr/pappers/companies
+title: Pappers — French Companies
+description: >-
+  Search French company candidates by name and retrieve one company by exact
+  nine-digit SIREN through Pappers API v2, using a member-provided API key.
+provider_scope: >-
+  Pappers documents company and association profiles, company/officer/
+  beneficial-owner/document/publication search, accounts, corporate graphs,
+  downloads, monitoring, and webhooks over integrated French public-register data.
+roadmap_scope:
+  - Explicit establishment, officer, and BODACC publication operations
+  - Beneficial-owner access only where the member has lawful authorization
+  - Cursor-based search for authorized enumeration beyond the first 400 results
+category: companies
+jurisdiction: "fr"
+runtime: local
+endpoint: https://api.pappers.fr/v2/recherche
+
+auth:
+  type: api_key
+  key_name: pappers
+  setup_url: https://www.pappers.fr/api
+  setup_help: |
+    Pappers API v2 accepts the member key in the `api-key` header.
+    Create and activate an API account at https://www.pappers.fr/api, then run:
+      navigator keys set pappers
+    Calls consume Pappers credits; the released adapter requests no paid
+    supplementary fields except the documented free company-page link.
+  test_request:
+    input: {q: Danone, par_page: 1}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Pappers API terms and underlying French source-data conditions
+  cache_permitted: true
+  redistribution_permitted: false
+
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  The public endpoint and authentication boundary returned the documented 401
+  without a key on 2026-08-12. No Pappers key is configured in this workspace,
+  so successful live cases remain credential-pending; both operations are
+  verified offline against documented response shapes. Search page-number mode
+  covers only the first 400 results and consumes 0.1 credit per result under the
+  checked pricing page; a company profile consumes one credit.
+
+examples:
+  - Search French companies named Danone
+  - Retrieve SIREN 552032534
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [search-companies, get-company]
+      description: Internal operation discriminator supplied by the registry.
+    q:
+      type: string
+      description: Company denomination or person-name text for Pappers company search.
+    siren:
+      type: string
+      pattern: '^[0-9]{9}$'
+      description: Exact nine-digit SIREN for company detail.
+    par_page:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+    page:
+      type: integer
+      minimum: 1
+      default: 1
+  additionalProperties: false
+
+output_schema:
+  entity: Company
+  fields: [name, jurisdiction, siren, legal_form, naf_code, naf_label, incorporation_date, cessation_date, status, registered_address, employees_range, employee_band_code, source_url, entity]
+
+operations:
+  - id: search-companies
+    title: Search French company candidates
+    description: Search Pappers company records by denomination text using page-number mode within the provider's first-400-result ceiling.
+    status: queryable
+    entities: [Company]
+    actions: [search]
+    input_fields: [q, par_page, page]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q, limit: par_page}
+    adapter_input: {operation: search-companies}
+    output_fields: [name, jurisdiction, siren, legal_form, naf_code, naf_label, incorporation_date, cessation_date, status, registered_address, employees_range, employee_band_code, source_url, entity]
+    filters: [q, par_page, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: source, cost: credits, side_effects: none}
+    disclosure:
+      destinations: [api.pappers.fr]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search French companies named Danone
+    counterexamples:
+      - query: List every matching company by continuing page-number pagination beyond 400 results
+        reason_code: provider_page_ceiling
+      - query: Return officers or beneficial owners from company search
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Check denomination spelling, legal suffix, and whether an exact SIREN is known.
+      - Treat a 404 or empty result as bounded provider evidence; diffusion restrictions and source coverage can make fields or records unavailable.
+    retry_guidance:
+      - Do not retry invalid credentials, exhausted credits, validation failures, or a 404 unchanged.
+      - Retry only transient 5xx or network failures with bounded delay.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not resolve a company from name alone or ignore partial-diffusion fields.
+
+  - id: get-company
+    title: Get one company by SIREN
+    description: Retrieve the Pappers company profile for one exact nine-digit SIREN without paid enriched fields.
+    status: queryable
+    entities: [Company]
+    actions: [get]
+    input_fields: [siren]
+    required: [siren]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: get-company}
+    output_fields: [name, jurisdiction, siren, legal_form, naf_code, naf_label, incorporation_date, cessation_date, status, registered_address, employees_range, employee_band_code, source_url, entity]
+    filters: [siren]
+    semantics: {enumeration: none, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: credits, side_effects: none}
+    disclosure:
+      destinations: [api.pappers.fr]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve SIREN 552032534
+    counterexamples:
+      - query: Retrieve the beneficial-owner register for SIREN 552032534
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Confirm all nine SIREN digits and re-resolve from company search or a French primary register.
+      - A missing Pappers profile is not proof that the entity never existed or is unregistered.
+    retry_guidance:
+      - Do not retry a confirmed 404, invalid key, or exhausted-credit response unchanged.
+      - Retry only transient upstream failures.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not expose the API key or request credit-consuming supplementary fields outside the contract.

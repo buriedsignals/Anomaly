@@ -1,0 +1,7 @@
+interface:
+  display_name: "Eurostat SDMX data"
+  short_description: "Discover datasets and query filtered observations"
+  default_prompt: "Use $eurostat-data to discover a dataflow when needed, query a bounded SDMX slice, preserve dimensions and status flags, and cite the datacode with access date."
+
+policy:
+  allow_implicit_invocation: true

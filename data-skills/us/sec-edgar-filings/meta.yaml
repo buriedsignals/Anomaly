@@ -1,0 +1,92 @@
+id: us/sec-edgar/filings
+title: SEC EDGAR — Full-Text Filing Search
+description: >-
+  Run bounded full-text discovery across electronically submitted EDGAR filing
+  documents since 2001, with exact/Boolean query semantics, form and date
+  filters, normalized filer/document metadata, and direct archive links.
+provider_scope: >-
+  SEC EDGAR provides full-text web search, filing archives and indexes, company
+  submissions, extracted XBRL APIs, feeds, and bulk datasets. This skill
+  integrates only the live Full-Text Search web backend.
+roadmap_scope:
+  - Company submissions, XBRL facts, filing indexes, ownership data, and bulk downloads are not released here.
+  - Filing contents are not downloaded, parsed, or summarized by this operation.
+category: filings
+jurisdiction: us
+runtime: local
+endpoint: https://efts.sec.gov/LATEST/search-index
+auth: {type: none}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: SEC says Government-created sec.gov content and EDGAR public filing content are free to access and reuse
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  SEC documents Full-Text Search behavior but does not list this efts.sec.gov
+  JSON route among its supported public REST APIs; the route is therefore a
+  monitored, potentially unstable UI backend. It returns document/attachment
+  hits, not one row per filing, and the adapter locally limits up to 100 hits.
+examples:
+  - Find 10-K documents containing the exact phrase material weakness
+  - Search 8-K documents for a named executive in a fixed date range
+  - Search filings for two terms using the documented implied-AND semantics
+input_schema:
+  type: object
+  properties:
+    q: {type: string, minLength: 1, maxLength: 1000}
+    forms: {type: string, minLength: 1, maxLength: 500}
+    startdt: {type: string, format: date}
+    enddt: {type: string, format: date}
+    limit: {type: integer, minimum: 1, maximum: 100, default: 10}
+    offset: {type: integer, minimum: 0, maximum: 9900, default: 0}
+  required: [q]
+  additionalProperties: false
+output_schema:
+  entity: FilingDocument
+  fields: [entity, name, form, root_forms, filer, filers, cik, ciks, accession, filed_date, period, location, locations, business_states, incorporation_states, sic_codes, file_numbers, film_numbers, items, sequence, document_filename, file_type, file_description, relevance_score, source_url]
+operations:
+  - id: search-filings
+    title: Search EDGAR filing documents
+    description: >-
+      Search the full text of EDGAR filing documents and attachments since 2001
+      with optional root-form and paired date filters, returning a bounded local
+      slice of the live Full-Text Search backend response.
+    status: queryable
+    entities: [FilingDocument]
+    actions: [search]
+    input_fields: [q, forms, startdt, enddt, limit, offset]
+    required: [q]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {}
+    output_fields: [entity, name, form, root_forms, filer, filers, cik, ciks, accession, filed_date, period, location, locations, business_states, incorporation_states, sic_codes, file_numbers, film_numbers, items, sequence, document_filename, file_type, file_description, relevance_score, source_url]
+    filters: [q, forms, startdt, enddt, limit, offset]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [efts.sec.gov]
+      data_classes: [full-text terms, form filters, date filters, and offset]
+      sensitive_inputs: [q]
+      consent_required: false
+    examples:
+      - Search 10-K documents for the exact phrase material weakness
+      - Search one fixed year of 8-K documents for a named executive
+    counterexamples:
+      - query: One hit equals one unique filing
+        reason_code: document_hits_can_share_filing
+      - query: No hit proves the filer never disclosed the matter
+        reason_code: bounded_index_search_not_proof_of_absence
+    no_result_guidance:
+      - Check exact-phrase, implied-AND, Boolean, wildcard, form, and date semantics against the official Full-Text Search UI.
+      - A miss can reflect attachments, amendments, OCR/indexing, date/form filters, corrections, or the undocumented backend.
+    retry_guidance:
+      - Preserve query, forms, paired dates, limit, and offset across transient retries.
+      - Respect SEC fair-access guidance and do not fan out retries or exceed 10 requests per second.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a search snippet or hit as sufficient context; open the filing document.
+      - Do not claim this UI backend is a supported or versioned SEC public JSON API.
+      - Do not infer a unique filing count from document-hit totals.

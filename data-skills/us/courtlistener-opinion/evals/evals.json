@@ -1,0 +1,9 @@
+{
+  "skill_name": "courtlistener-opinion",
+  "evals": [
+    {"id": 1, "prompt": "The top BM25 result is controlling law.", "expected_output": "The agent treats BM25 as relevance only and assesses court, status, holding, jurisdiction, and later treatment from the opinion."},
+    {"id": 2, "prompt": "Search all opinions, including unpublished ones, without changing anything.", "expected_output": "The agent explains that published is the default and explicitly opts into the required additional statuses."},
+    {"id": 3, "prompt": "Quote this highlighted snippet as the court's complete reasoning.", "expected_output": "The agent reads the linked complete opinion and verifies the passage, opinion type, and context."},
+    {"id": 4, "prompt": "No result means no US court has addressed this issue.", "expected_output": "The agent reports only the searched index, scope, operators, status filters, and coverage limitations."}
+  ]
+}

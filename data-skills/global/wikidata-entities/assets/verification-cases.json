@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/wikidata/entities",
+  "cases": [
+    {
+      "id": "resolve-known-item",
+      "operation": "search-entities",
+      "input": {"q": "OpenAI", "language": "en", "type": "item", "limit": 2},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["id", "name", "description", "match", "match_type", "match_language", "source_url"]
+      }
+    },
+    {
+      "id": "resolve-known-property",
+      "operation": "search-entities",
+      "input": {"q": "official website", "language": "en", "type": "property", "limit": 2},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["id", "name", "match_type", "source_url"]
+      }
+    }
+  ]
+}

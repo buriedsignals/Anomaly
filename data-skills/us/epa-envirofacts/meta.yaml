@@ -1,0 +1,126 @@
+id: us/epa/envirofacts
+title: EPA Envirofacts — TRI Facilities and Water Systems
+description: >-
+  Query the EPA's current Envirofacts DMAP service for Toxics Release Inventory
+  facility identities and SDWIS public-water-system identities, locations,
+  activity, ownership, population, and source metadata.
+provider_scope: >-
+  Envirofacts aggregates nearly 20 EPA programs and supports arbitrary tables,
+  operators, joins, sorting, and exports. This skill releases two schema-qualified
+  identity tables without arbitrary joins.
+roadmap_scope:
+  - TRI chemical release quantities and reporting-year facts are not released.
+  - SDWIS violations, samples, and enforcement are not released.
+  - ECHO compliance and enforcement querying is a separate API and skill scope.
+category: environment
+jurisdiction: us
+runtime: local
+endpoint: https://data.epa.gov/dmapservice
+auth:
+  type: none
+  test_request:
+    input: {mode: tri, state: RI, limit: 1}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: US federal government data; check incorporated state/program metadata and EPA reuse guidance
+  cache_permitted: true
+  redistribution_permitted: true
+last_tested: "2026-08-12"
+status: queryable
+notes: >-
+  Uses the current documented /dmapservice grammar, not the legacy /efservice
+  route. Filters are case-insensitive for text. Results identify reporting
+  facilities/systems; they do not establish current pollution, violations, or safety.
+examples:
+  - TRI facilities in Rhode Island containing chemical in the facility name
+  - Look up one TRI facility ID
+  - Public water systems in Vermont containing Springfield in the name
+input_schema:
+  type: object
+  properties:
+    mode: {type: string, enum: [tri, water]}
+    state: {type: string, minLength: 2, maxLength: 2}
+    name: {type: string, minLength: 1, maxLength: 200}
+    city: {type: string, minLength: 1, maxLength: 200}
+    id: {type: string, minLength: 1, maxLength: 100}
+    tri_facility_id: {type: string, minLength: 1, maxLength: 100}
+    pwsid: {type: string, minLength: 1, maxLength: 100}
+    limit: {type: integer, minimum: 1, maximum: 100, default: 10}
+  required: []
+  additionalProperties: false
+output_schema:
+  entity: EnvironmentalFacility
+  fields: [entity, name, tri_facility_id, epa_registry_id, street_address, city, county, state, zip, parent_company, foreign_parent_company, latitude, longitude, closed, pwsid, system_type, active, activity_code, deactivation_date, population_served, service_connections, primary_source, owner_type, source_url]
+operations:
+  - id: search-tri-facilities
+    title: Search TRI facilities
+    description: Query tri.tri_facility by exact identifier/state and case-insensitive name/city containment with bounded rows.
+    status: queryable
+    entities: [TRIFacility]
+    actions: [search, get]
+    input_fields: [state, name, city, id, tri_facility_id, limit]
+    required: []
+    any_of_required: [[state], [name], [city], [id], [tri_facility_id]]
+    aliases: {}
+    adapter_input: {mode: tri}
+    output_fields: [entity, name, tri_facility_id, epa_registry_id, street_address, city, county, state, zip, parent_company, foreign_parent_company, latitude, longitude, closed, source_url]
+    filters: [state, name, city, id, tri_facility_id, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.epa.gov]
+      data_classes: [facility identifiers and geographic/name filters]
+      sensitive_inputs: [name]
+      consent_required: false
+    examples:
+      - Search TRI facilities in Rhode Island
+      - Retrieve TRI facility 02816CLCHM592AR
+    counterexamples:
+      - query: How many pounds of benzene did this facility release in 2025?
+        reason_code: release_quantity_not_available
+      - query: This facility is currently polluting because it appears in TRI
+        reason_code: identity_record_not_release_finding
+    no_result_guidance:
+      - Check the program identifier, state, spelling, and historical facility name.
+      - Search absence is not proof that no facility, report, or environmental activity exists.
+    retry_guidance:
+      - Retry transient errors with the same bounded filter; large requests should be paged.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer a pollutant, release quantity, compliance status, or current operation from the facility row alone.
+  - id: search-water-systems
+    title: Search public water systems
+    description: Query sdwis.water_system by exact PWSID/state and case-insensitive name/city containment with bounded rows.
+    status: queryable
+    entities: [WaterSystem]
+    actions: [search, get]
+    input_fields: [state, name, city, id, pwsid, limit]
+    required: []
+    any_of_required: [[state], [name], [city], [id], [pwsid]]
+    aliases: {}
+    adapter_input: {mode: water}
+    output_fields: [entity, name, pwsid, system_type, active, activity_code, deactivation_date, population_served, service_connections, primary_source, owner_type, city, state, zip, source_url]
+    filters: [state, name, city, id, pwsid, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.epa.gov]
+      data_classes: [water-system identifiers and geographic/name filters]
+      sensitive_inputs: [name]
+      consent_required: false
+    examples:
+      - Search water systems in Vermont containing Springfield
+      - Retrieve one exact PWSID
+    counterexamples:
+      - query: Is this drinking water currently safe?
+        reason_code: violations_and_samples_not_available
+    no_result_guidance:
+      - Confirm the PWSID, system name, primacy/state mapping, and provider coverage.
+      - No row is not proof that a water system or violation does not exist.
+    retry_guidance:
+      - Retry transient errors only and keep the request bounded.
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer water safety, compliance, or violation status from the system identity row.

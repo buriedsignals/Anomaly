@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "source_id": "eu/europarl/open-data",
+  "cases": [
+    {
+      "id": "search-current-french-mep",
+      "operation": "search-meps",
+      "input": {"name": "Keller", "country": "FR", "language": "en", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["id", "name", "country", "source_url"]}
+    },
+    {
+      "id": "get-known-mep",
+      "operation": "get-mep",
+      "input": {"mep_id": "22858", "language": "en"},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["id", "name", "current_memberships", "source_url"]}
+    },
+    {
+      "id": "search-ai-speeches",
+      "operation": "search-speeches",
+      "input": {"q": "artificial intelligence", "language": "en", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["id", "title", "date", "activity_type", "source_url"]}
+    },
+    {
+      "id": "search-ai-adopted-texts",
+      "operation": "search-adopted-texts",
+      "input": {"q": "artificial intelligence", "language": "en", "limit": 2, "offset": 0},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["id", "title", "date", "files", "source_url"]}
+    }
+  ]
+}

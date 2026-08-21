@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pappers companies"
+  short_description: "Search French companies and retrieve a SIREN"
+  default_prompt: "Use $pappers-companies with the smallest credit-consuming query, resolve names through exact SIREN, preserve Pappers links, and respect diffusion and ownership limits."
+
+policy:
+  allow_implicit_invocation: true

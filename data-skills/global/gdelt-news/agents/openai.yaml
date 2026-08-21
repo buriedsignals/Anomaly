@@ -1,0 +1,7 @@
+interface:
+  display_name: "GDELT News Search"
+  short_description: "Discover bounded worldwide news coverage"
+  default_prompt: "Use $gdelt-news with an explicit query, time scope, sort, and record limit; describe results as GDELT-monitored coverage rather than verified facts or an exhaustive archive."
+
+policy:
+  allow_implicit_invocation: true

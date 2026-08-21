@@ -1,0 +1,7 @@
+interface:
+  display_name: "Companies House companies"
+  short_description: "Search and retrieve UK company profiles"
+  default_prompt: "Use $companies-house-companies to resolve a UK company through its exact number, preserve leading zeros and official links, and respect the API-key and rate boundaries."
+
+policy:
+  allow_implicit_invocation: true

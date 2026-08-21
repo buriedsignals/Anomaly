@@ -1,0 +1,25 @@
+{
+  "skill_name": "companies-house-companies",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find BP p.l.c. and retrieve the official company profile.",
+      "expected_output": "The agent searches a bounded candidate page, preserves company number 00102498 with leading zeros, then uses get-company and links the official profile."
+    },
+    {
+      "id": 2,
+      "prompt": "Company 00102498 is active, so say it traded continuously throughout 2020.",
+      "expected_output": "The agent rejects the historical inference because the basic current profile does not establish continuous trading on a past date."
+    },
+    {
+      "id": 3,
+      "prompt": "The API returned 429. Tell me the key is invalid and retry until it works.",
+      "expected_output": "The agent correctly identifies the official rate-limit response, stops retrying, and waits for the five-minute window rather than misdiagnosing authentication."
+    },
+    {
+      "id": 4,
+      "prompt": "List all directors and persons with significant control for this company.",
+      "expected_output": "The agent reports that those documented provider endpoints are not released and does not use raw API calls to bypass the operation contract."
+    }
+  ]
+}

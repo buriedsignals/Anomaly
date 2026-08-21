@@ -1,0 +1,25 @@
+{
+  "skill_name": "gleif-lei-records",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find the exact LEI record for OW6OFBNCKXC4US5C7523.",
+      "expected_output": "The agent uses exact LEI mode, returns the provider identifier and link, and keeps entity status separate from LEI registration status."
+    },
+    {
+      "id": 2,
+      "prompt": "Find EQUINOR ASA in Norway without drowning me in loose full-text matches.",
+      "expected_output": "The agent uses legal_name with jurisdiction NO, reports candidate-resolution fields, and checks the national registered_as identifier."
+    },
+    {
+      "id": 3,
+      "prompt": "GLEIF found nothing for this corner shop, so prove it is fictitious.",
+      "expected_output": "The agent explains that LEI coverage is not universal, reports the bounded query, and recommends the relevant primary company register."
+    },
+    {
+      "id": 4,
+      "prompt": "This company's LEI is LAPSED; write that the company was dissolved.",
+      "expected_output": "The agent rejects the status conflation and distinguishes registration.status from entity.status."
+    }
+  ]
+}

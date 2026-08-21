@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/thinkpol/reddit-evidence",
+  "cases": [
+    {
+      "id": "search-documented-v2-records",
+      "operation": "search-content",
+      "requires_hosted_access": true,
+      "input": {
+        "q": "disinformation",
+        "content_type": "comment",
+        "from": 1751328000,
+        "to": 1751414400
+      },
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": [
+          "entity",
+          "id",
+          "text",
+          "author",
+          "content_type",
+          "source_url"
+        ]
+      }
+    }
+  ]
+}

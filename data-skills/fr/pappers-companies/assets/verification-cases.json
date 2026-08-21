@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "source_id": "fr/pappers/companies",
+  "cases": [
+    {
+      "id": "search-known-company",
+      "requires_key": "pappers",
+      "operation": "search-companies",
+      "input": {"q": "Danone", "par_page": 2, "page": 1},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "siren", "legal_form", "source_url"]}
+    },
+    {
+      "id": "get-known-siren",
+      "requires_key": "pappers",
+      "operation": "get-company",
+      "input": {"siren": "552032534"},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["name", "siren", "status", "registered_address", "source_url"]}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/courtlistener/judge",
+  "cases": [
+    {
+      "id": "search-known-person",
+      "operation": "search-judges",
+      "input": {"q": "Ruth Bader Ginsburg", "limit": 2},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "id", "name", "positions", "source_url"]}
+    },
+    {
+      "id": "get-known-person",
+      "operation": "get-judge",
+      "input": {"person_id": 2738},
+      "expect": {"statuses": ["ok"], "min_records": 1, "required_fields": ["entity", "id", "name", "date_dob_granularity", "educations", "position_urls", "source_url"]}
+    }
+  ]
+}
