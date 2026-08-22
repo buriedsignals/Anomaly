@@ -6,12 +6,14 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "capture",
+  "stage": "implement",
   "priority": "p1",
-  "deps": [18],
+  "deps": [
+    18
+  ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:13:36Z",
+  "updatedAt": "2026-08-22T00:17:34Z",
   "agents": {
     "implementer_agent_id": null,
     "reviewer_agent_id": null,
@@ -19,7 +21,7 @@
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": null,
+    "authored_by_agent_id": "01a026d1-7c95-7063-b2d0-63b7b0f03b96",
     "green": false,
     "evidence": []
   },
@@ -37,5 +39,29 @@
   "commits": [],
   "kickbacks": [],
   "blockedReason": null,
-  "abandonReason": null
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Add bounded metadata-driven search/filtering over hundreds of detectors with deterministic ordering and a maximum of 10 recommendations/runs.",
+      "Support user detector origin, version, implementation hash, provenance, and the shared lead signal contract without family-specific branches.",
+      "Validate approved case structure, relative paths, hashes, traversal, links, and executable detector artifacts at import/fork boundaries.",
+      "Fork with new case identity, parent case/content-hash provenance, selected-phase reset, parent isolation, and no automatic merge.",
+      "Record replay-unavailable explicitly when dependencies are absent and invalidate downstream runs/review/Gate B after data, methodology, mappings, detector, or parameter changes.",
+      "Keep the implementation local-only with no hosted runtime, service, UI, deployment, MCP, membership, metering, acquisition, publication, or external-sharing surface."
+    ],
+    "testFiles": [
+      "tests/test_m5_handoff.py",
+      "tests/test_detector_registry.py",
+      "tests/test_case.py",
+      "tests/test_review.py",
+      "tests/test_workflow.py"
+    ],
+    "redRun": {
+      "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py",
+      "output": "6 failed; failures correspond to the intended missing M5 contracts."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Unify registry discovery, filtering, validation, hashing, and recommendation around one metadata index."
+  }
 }
