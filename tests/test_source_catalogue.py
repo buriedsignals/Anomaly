@@ -15,9 +15,20 @@ from anomaly.sources.registry import discover_sources, load_source_adapter
 
 ANOMALY_ROOT = Path(__file__).parents[1]
 SOURCE_ROOT = ANOMALY_ROOT / "data-skills"
-NAVIGATOR_ROOT = ANOMALY_ROOT.parent / "navigator" / "osint-navigator" / "data" / "skills"
+NAVIGATOR_ROOT = ANOMALY_ROOT.parent / "navigator" / "data" / "skills"
 ARBITER_ID = "global/arbiter/case-studies"
 SOURCE_ID_PATTERN = re.compile(r"^id:\s*(.+?)\s*$", re.MULTILINE)
+TEXT_RESOURCE_SUFFIXES = frozenset({".json", ".md", ".py", ".yaml", ".yml"})
+
+
+def _text_files(root: Path) -> list[Path]:
+    return sorted(
+        path
+        for path in root.rglob("*")
+        if path.is_file()
+        and not path.name.startswith(".")
+        and path.suffix.lower() in TEXT_RESOURCE_SUFFIXES
+    )
 
 
 def _source_id(meta_path: Path) -> str:
@@ -106,6 +117,7 @@ def _offline_input(source_id: str) -> dict:
 
 
 def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations() -> None:
+    assert NAVIGATOR_ROOT.is_dir()
     navigator_ids = _ids(NAVIGATOR_ROOT)
     anomaly_meta = sorted(SOURCE_ROOT.rglob("meta.yaml"))
     anomaly_ids = [_source_id(path) for path in anomaly_meta]
@@ -115,6 +127,7 @@ def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migration
     expected_ids = set(navigator_ids) - {ARBITER_ID}
     assert len(expected_ids) == 28
     assert len(anomaly_ids) == 28
+    assert ARBITER_ID not in anomaly_ids
     assert set(anomaly_ids) == expected_ids
     assert anomaly_ids.count("global/opensanctions") == 1
     assert anomaly_ids.count("global/thinkpol/reddit-evidence") == 1
@@ -163,9 +176,7 @@ def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
         r"\bdeployment\b",
     )
     text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in SOURCE_ROOT.rglob("*")
-        if path.is_file()
+        path.read_text(encoding="utf-8") for path in _text_files(SOURCE_ROOT)
     ).lower()
     for pattern in forbidden:
         assert re.search(pattern, text) is None, pattern
@@ -174,9 +185,7 @@ def test_catalogue_contains_no_forbidden_hosted_or_navigator_surfaces() -> None:
 def test_thinkpol_catalogue_has_no_key_quota_or_profile_surfaces() -> None:
     thinkpol_root = SOURCE_ROOT / "global" / "thinkpol-reddit-evidence"
     text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in thinkpol_root.rglob("*")
-        if path.is_file()
+        path.read_text(encoding="utf-8") for path in _text_files(thinkpol_root)
     ).lower()
     forbidden = (
         r"\bapi[_ -]?key\b",

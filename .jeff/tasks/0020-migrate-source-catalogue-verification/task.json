@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 20,
+  "externalRef": "https://github.com/tomvaillant/Anomaly/issues/1",
+  "slug": "migrate-source-catalogue-verification",
+  "title": "Repair migrated source catalogue verification after Navigator move",
+  "status": "in_progress",
+  "stage": "review",
+  "category": "code",
+  "priority": "p1",
+  "deps": [],
+  "complexity": "simple",
+  "createdAt": "2026-08-22T08:40:00Z",
+  "updatedAt": "2026-08-22T09:50:00Z",
+  "agents": {
+    "implementer_agent_id": "AnomalyCatalogueImplement",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": "AnomalyCataloguePlan",
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": false,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Resolve and assert the current sibling Navigator source root, then verify 29 Navigator packages map one-to-one to Anomaly's 28 non-Arbiter packages.",
+      "Scan only intended checked-in text/resource suffixes in stable order while ignoring hidden filesystem metadata such as .DS_Store.",
+      "Reuse the offline adapter result-contract, forbidden-surface, ThinkPol-specific, lazy-loading, registry-safety, and explicit no-Arbiter checks.",
+      "Run only the targeted source catalogue test file and record pre-update RED plus post-update targeted evidence."
+    ],
+    "testFiles": ["tests/test_source_catalogue.py"],
+    "redRun": {
+      "command": "uv run pytest tests/test_source_catalogue.py -q",
+      "output": "Pre-update: 2 failed, 9 passed because the test used the removed navigator/osint-navigator/data/skills path and attempted to decode .DS_Store. After the test contract update: 11 passed."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Consolidate duplicated catalogue text traversal into the metadata-safe _text_files helper while preserving existing forbidden-surface and ThinkPol scan behavior."
+  },
+  "implement": {
+    "agent_id": "AnomalyCatalogueImplement",
+    "result": "green",
+    "files": [],
+    "greenRun": {
+      "command": "uv run pytest tests/test_source_catalogue.py -q",
+      "output": "11 passed in 0.26s; no production or test files edited by implementer because plan-authored test contract was already green."
+    }
+  }
+}
