@@ -6,14 +6,14 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "review",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T01:45:37Z",
+  "updatedAt": "2026-08-22T01:55:59Z",
   "agents": {
     "implementer_agent_id": "01a02720-68fd-7e63-9968-38801a7c5afb",
     "reviewer_agent_id": "01a0271d-5721-75e1-abd5-bf0a1da8f77f",
@@ -152,23 +152,23 @@
     }
   },
   "refactor": {
-    "agent_id": "01a02716-377a-7ba2-ac53-87afba5adecc",
+    "agent_id": "01a02728-1369-7a00-8860-694aae063f24",
     "result": "refactored",
     "files": [
-      "src/anomaly/detectors/registry.py",
+      "src/anomaly/case.py",
       "src/anomaly/review.py",
-      "tests/test_detector_registry.py",
-      "tests/test_gain_detectors.py",
-      "tests/test_review.py"
+      "tests/test_case.py",
+      "tests/test_m5_handoff.py",
+      "tests/test_acquire.py"
     ],
     "outsideDiff": [],
     "greenRun": {
       "command": ".venv/bin/pytest -q",
-      "output": "focused 43 passed; full 705 passed; scoped security scan PASS, 0 findings"
+      "output": "focused 165 passed; full 710 passed; scoped security scan PASS, 0 findings"
     },
     "summary": [
-      "Bound all registry discovery limits to the safe maximum.",
-      "Require live detector identity for legacy replay and reject symlinked packages."
+      "Invalidate stale source-backed replay before Gate B.",
+      "Record parent case hash and reset replay artifacts for every fork."
     ]
   },
   "review": {

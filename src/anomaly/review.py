@@ -484,8 +484,22 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
     else:
         replay = _read_json(replay_path)
     receipt = _read_json(receipt_path)
+    sources = _source_records(root)
+    _verify_source_bytes(root, sources)
+    current_source_hashes = sorted(
+        {record["content_hash"] for record in sources if record["included"]}
+    )
     replay_hash = receipt.get("replay_hash") if isinstance(receipt, dict) else None
     valid_hash = isinstance(replay_hash, str) and replay_hash == _hash_json(replay)
+    receipt_source_hashes = receipt.get("source_hashes") if isinstance(receipt, dict) else None
+    valid_source_hashes = (
+        isinstance(receipt_source_hashes, list)
+        and sorted(receipt_source_hashes) == current_source_hashes
+        and all(
+            isinstance(item, str) and _SHA256.fullmatch(item)
+            for item in receipt_source_hashes
+        )
+    )
     if (
         not isinstance(replay, dict)
         or replay.get("status") != "replayed"
@@ -493,8 +507,9 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
         or receipt.get("kind") != "replay"
         or receipt.get("status") != "replayed"
         or not valid_hash
+        or not valid_source_hashes
     ):
-        raise ReviewError("invalid or tampered replay artifact")
+        raise ReviewError("invalid, stale, or tampered replay artifact")
     return replay
 
 

@@ -250,6 +250,28 @@ def test_gate_b_requires_new_run_review_after_methodology_changes(tmp_path: Path
         accept_findings(root, ["claim-accepted"])
 
 
+def test_gate_b_rejects_replay_after_source_mutation(tmp_path: Path) -> None:
+    from test_review import _seed_case
+
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+    replay_signals(root)
+    source = root / "data" / "raw" / "payments" / "payments.csv"
+    source.write_text(
+        source.read_text(encoding="utf-8") + "Gamma,99,1,super-secret-token\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Exception, match=r"(?i)(source|stale|replay|hash)"):
+        accept_findings(root, ["claim-accepted"])
+    assert not (root / "findings" / "findings.json").exists()
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [

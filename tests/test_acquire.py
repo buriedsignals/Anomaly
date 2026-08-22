@@ -996,9 +996,13 @@ def test_shared_receipt_store_accepts_portable_non_source_receipt_kinds(
     else:
         child = tmp_path / "child"
         fork_case(root, child, case_id="child-case", now=NOW)
-        assert (
-            child / ".anomaly" / "receipts" / f"{kind}.json"
-        ).read_bytes() == receipt_path.read_bytes()
+        if kind == "replay":
+            assert not (child / ".anomaly" / "receipts" / "replay.json").exists()
+            assert json.loads((child / "evidence" / "replay.json").read_text())["status"] == "unavailable"
+        else:
+            assert (
+                child / ".anomaly" / "receipts" / f"{kind}.json"
+            ).read_bytes() == receipt_path.read_bytes()
 
 
 @pytest.mark.parametrize("operation", ["acquire", "fork"])
@@ -1041,9 +1045,13 @@ def test_recognized_non_source_kind_takes_precedence_over_filename_collision(
             / "archive"
             / f"{kind.upper()}.JSON"
         ).read_bytes() == archived_source_receipt.read_bytes()
-        assert (
-            child / ".anomaly" / "receipts" / f"{kind}.json"
-        ).read_bytes() == non_source_receipt.read_bytes()
+        if kind == "replay":
+            assert not (child / ".anomaly" / "receipts" / "replay.json").exists()
+            assert json.loads((child / "evidence" / "replay.json").read_text())["status"] == "unavailable"
+        else:
+            assert (
+                child / ".anomaly" / "receipts" / f"{kind}.json"
+            ).read_bytes() == non_source_receipt.read_bytes()
 
 
 @pytest.mark.parametrize(
@@ -1207,7 +1215,8 @@ def test_safe_recursive_metadata_remains_portable_for_acquisition_and_fork(
     assert _sources(child) == [record, second_record]
     assert _read_receipt(child, "existing-source")["provenance"] == provenance
     assert forked.record.case_id == "child-case"
-    assert forked.record.derived_from == "case-001"
+    assert forked.record.derived_from["case_id"] == "case-001"
+    assert forked.record.derived_from["case_hash"].startswith("sha256:")
     assert _document_snapshot(root) == parent_before
 
 

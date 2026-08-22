@@ -180,16 +180,11 @@ def fork_case(
         "updated_at": _stamp(now or datetime.now().astimezone()),
         "status": parent.record.status,
         "workflow_version": parent.record.workflow_version,
-        # Preserve the legacy record shape for callers that did not request a
-        # phase reset; explicit M5 forks carry verifiable parent content lineage.
-        "derived_from": (
-            {"case_id": parent.record.case_id, "case_hash": parent_hash}
-            if reset_phase is not None
-            else parent.record.case_id
-        ),
+        "derived_from": {"case_id": parent.record.case_id, "case_hash": parent_hash},
     }
     _write_json(dest, "case.json", payload)
     _write_json(dest, ".anomaly/state.json", {"phase": selected_phase, "status": "active"})
+    _reset_fork_artifacts(dest)
     return _load_case(dest)
 
 
@@ -328,6 +323,33 @@ def _verify_included_source_hashes(
         actual = f"sha256:{digest}"
         if actual != record["content_hash"]:
             raise UnsafeCasePathError(f"source hash mismatch: {record['source_id']}")
+
+
+def _reset_fork_artifacts(root: Path) -> None:
+    """Prevent a fork from presenting copied replay or promotion state as current."""
+    for relative in (
+        "evidence/replay.json",
+        ".anomaly/receipts/replay.json",
+        ".anomaly/receipts/gate-b.json",
+        "findings/draft.json",
+        "findings/review.json",
+        "findings/findings.json",
+    ):
+        path = _under_root(root, relative)
+        if path.is_file() and not path.is_symlink():
+            path.unlink()
+    _write_json(
+        root,
+        "evidence/replay.json",
+        {
+            "schema_version": 1,
+            "status": "unavailable",
+            "reason": "forked case requires a new replay",
+            "replay_possible": False,
+            "runs": [],
+            "claims": [],
+        },
+    )
 
 
 def _under_root(root: Path, relative: str) -> Path:

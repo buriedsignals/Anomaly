@@ -396,13 +396,40 @@ def test_fork_case_sets_new_id_and_derived_from_pointer(tmp_path: Path) -> None:
     parent = json.loads((source / "case.json").read_text(encoding="utf-8"))
 
     assert forked.record.case_id == "child-1"
-    assert forked.record.derived_from == "parent-1"
+    assert forked.record.derived_from["case_id"] == "parent-1"
+    assert forked.record.derived_from["case_hash"].startswith("sha256:")
     assert child["case_id"] == "child-1"
-    assert child["derived_from"] == "parent-1"
+    assert child["derived_from"] == forked.record.derived_from
     assert parent["case_id"] == "parent-1"
     assert parent["derived_from"] is None
     assert (source / "case.json").read_text(encoding="utf-8") == parent_before
     assert (dest / "AGENTS.md").read_bytes() == (source / "AGENTS.md").read_bytes()
+
+
+def test_fork_resets_copied_replay_and_promotion_artifacts(tmp_path: Path) -> None:
+    source = tmp_path / "parent"
+    dest = tmp_path / "child"
+    _create(source, case_id="parent-1")
+    for relative in (
+        "evidence/replay.json",
+        ".anomaly/receipts/replay.json",
+        "findings/draft.json",
+        "findings/review.json",
+        "findings/findings.json",
+    ):
+        path = source / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"kind": "replay", "status": "replayed"} if "receipts" in path.parts else {}
+        path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    fork_case(source, dest, case_id="child-1", now=NOW)
+
+    replay = json.loads((dest / "evidence/replay.json").read_text(encoding="utf-8"))
+    assert replay["status"] == "unavailable"
+    assert replay["replay_possible"] is False
+    assert not (dest / ".anomaly/receipts/replay.json").exists()
+    assert not (dest / ".anomaly/receipts/gate-b.json").exists()
+    assert not (dest / "findings/findings.json").exists()
 
 
 def test_copied_case_resumes_without_path_edits(tmp_path: Path) -> None:
@@ -590,9 +617,10 @@ def test_credential_shaped_case_and_lineage_identities_remain_exact(
     payload = _case_payload(child)
 
     assert forked.record.case_id == case_id
-    assert forked.record.derived_from == lineage_id
+    assert forked.record.derived_from["case_id"] == lineage_id
+    assert forked.record.derived_from["case_hash"].startswith("sha256:")
     assert payload["case_id"] == case_id
-    assert payload["derived_from"] == lineage_id
+    assert payload["derived_from"] == forked.record.derived_from
     assert resume_case(child) == forked
 
 
@@ -761,4 +789,5 @@ def test_valid_normalized_unicode_identity_and_distinct_lineage_are_deterministi
     assert resume_case(first_child) == resume_case(second_child)
     assert _case_payload(first_child) == _case_payload(second_child)
     assert first.record.case_id == "Analyse-ß"
-    assert first.record.derived_from == "Café-東京"
+    assert first.record.derived_from["case_id"] == "Café-東京"
+    assert first.record.derived_from["case_hash"].startswith("sha256:")
