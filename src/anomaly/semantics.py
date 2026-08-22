@@ -114,12 +114,18 @@ def validate_case_record(payload: object) -> dict[str, Any]:
     if "derived_from" not in payload:
         raise UnsafeCasePathError("missing case field: derived_from")
     derived_from = payload["derived_from"]
-    if derived_from is not None and not isinstance(derived_from, str):
+    if derived_from is not None and not isinstance(derived_from, (str, dict)):
         raise UnsafeCasePathError("invalid case field: derived_from")
     validate_portable_component(payload["case_id"])
-    if derived_from is not None:
+    if isinstance(derived_from, str):
         validate_portable_component(derived_from)
         if canonical_key(payload["case_id"]) == canonical_key(derived_from):
+            raise UnsafeCasePathError("case lineage identities must be distinct")
+    elif isinstance(derived_from, dict):
+        if set(derived_from) != {"case_id", "case_hash"} or not isinstance(derived_from["case_id"], str) or not isinstance(derived_from["case_hash"], str) or not _SHA256.fullmatch(derived_from["case_hash"]):
+            raise UnsafeCasePathError("invalid case lineage")
+        validate_portable_component(derived_from["case_id"])
+        if canonical_key(payload["case_id"]) == canonical_key(derived_from["case_id"]):
             raise UnsafeCasePathError("case lineage identities must be distinct")
     _validate_timestamp(payload["created_at"], "created_at")
     _validate_timestamp(payload["updated_at"], "updated_at")

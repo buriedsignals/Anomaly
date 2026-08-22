@@ -55,11 +55,17 @@ def replay_signals(root: Path) -> dict[str, Any]:
     root = _root(root)
     sources = _source_records(root)
     source_hashes = {record["source_id"]: record["content_hash"] for record in sources if record["included"]}
+    included = [record for record in sources if record["included"]]
+    if any(not _owned(root, record["path"]).is_file() for record in included):
+        return {"schema_version": 1, "status": "unavailable", "reason": "required source data is missing", "replay_possible": False, "runs": [], "claims": []}
     _verify_source_bytes(root, sources)
+    runs_root = _owned(root, "evidence/runs")
+    if not included or not runs_root.is_dir() or not any(path.is_dir() for path in runs_root.iterdir()):
+        result = {"schema_version": 1, "status": "unavailable", "reason": "required source data or detector runs are missing", "replay_possible": False, "runs": [], "claims": []}
+        return result
 
     replayed: list[dict[str, Any]] = []
     runs: list[dict[str, Any]] = []
-    runs_root = _owned(root, "evidence/runs")
     if not runs_root.is_dir() or runs_root.is_symlink():
         raise ReviewError("evidence runs are missing")
     for run_dir in sorted(path for path in runs_root.iterdir() if path.is_dir()):
@@ -277,6 +283,7 @@ def record_review(
         "independent": independent,
         "availability": "available" if reviewer else "unavailable",
         "draft_hash": draft_hash,
+        "review_basis_hash": _review_basis_hash(root),
         "verdicts": _sanitize(normalized),
         **context_fields,
         "recorded_at": _now(),
@@ -348,6 +355,8 @@ def accept_findings(
     unavailable = review.get("status") != "recorded" or review.get("availability") != "available"
     if review.get("draft_hash") != _hash_json(draft):
         raise ReviewError("draft changed after review")
+    if review.get("review_basis_hash") and review["review_basis_hash"] != _review_basis_hash(root):
+        raise ReviewError("review is invalidated; rerun review after methodology or case inputs changed")
     if strict:
         attestation = review.get("independent_attestation")
         reviewer = review.get("reviewer_id")
@@ -433,6 +442,23 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
     ):
         raise ReviewError("invalid or tampered replay artifact")
     return replay
+
+
+def _review_basis_hash(root: Path) -> str:
+    paths = (
+        "instructions/methodology.md",
+        "instructions/context.md",
+        "instructions/data-dictionary.md",
+        "instructions/handling.md",
+        "data/sources.json",
+        "detectors/plan.json",
+    )
+    digest = hashlib.sha256()
+    for relative in paths:
+        path = _owned(root, relative)
+        digest.update(relative.encode())
+        digest.update(path.read_bytes() if path.is_file() else b"<missing>")
+    return "sha256:" + digest.hexdigest()
 
 
 def _verify_prepared_generation(root: Path, provenance: dict[str, Any]) -> None:

@@ -6,16 +6,16 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "implement",
+  "stage": "refactor",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:17:34Z",
+  "updatedAt": "2026-08-22T00:20:44Z",
   "agents": {
-    "implementer_agent_id": null,
+    "implementer_agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
@@ -63,5 +63,19 @@
     },
     "escalation": null,
     "refactorOpportunity": "Unify registry discovery, filtering, validation, hashing, and recommendation around one metadata index."
+  },
+  "implement": {
+    "agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
+    "result": "green",
+    "files": [
+      "src/anomaly/case.py",
+      "src/anomaly/detectors/registry.py",
+      "src/anomaly/review.py",
+      "src/anomaly/semantics.py"
+    ],
+    "greenRun": {
+      "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+      "output": "focused 6 passed; full 694 passed; security PASS"
+    }
   }
 }

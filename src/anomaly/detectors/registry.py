@@ -157,6 +157,8 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
         if attribution not in str(normalized.get("description", "")):
             normalized["description"] = f"{normalized['description']} {attribution}; source repository: {repository}"
     normalized["package"] = str(package)
+    normalized["origin"] = "core" if package.is_relative_to(_ROOT.resolve()) else "user"
+    normalized["signal_contract"] = "lead"
     normalized["implementation_hash"] = _hash_package(package)
     return normalized
 
@@ -170,8 +172,19 @@ def _hash_package(package: Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
-def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> list[dict[str, Any]]:
-    """Discover local package metadata in stable ID order."""
+def discover_detectors(
+    roots: list[Path] | tuple[Path, ...] | None = None,
+    *,
+    search: str | None = None,
+    group: str | None = None,
+    family: str | None = None,
+    signal_category: str | None = None,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    """Discover a deterministic, bounded metadata slice of the local registry."""
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+        raise RegistryError("limit must be a positive integer")
+    needle = search.casefold().strip() if isinstance(search, str) else None
     roots = tuple(Path(root) for root in roots) if roots is not None else (_ROOT,)
     packages: list[Path] = []
     for root in roots:
@@ -185,13 +198,31 @@ def discover_detectors(roots: list[Path] | tuple[Path, ...] | None = None) -> li
     seen: set[str] = set()
     result: list[dict[str, Any]] = []
     for package in sorted(packages, key=lambda path: path.as_posix()):
+        # Read only enough metadata to discard irrelevant packages. Full validation
+        # remains mandatory for every package that crosses the requested boundary.
+        try:
+            hint = _yaml(package / "meta.yaml")
+        except RegistryError:
+            if any(value is not None for value in (needle, group, family, signal_category)):
+                continue
+            raise
+        searchable = " ".join(str(hint.get(field, "")) for field in ("id", "title", "description")).casefold()
+        if needle and needle not in searchable:
+            continue
+        if group is not None and hint.get("group") != group:
+            continue
+        if family is not None and hint.get("family", "core") != family:
+            continue
+        if signal_category is not None and hint.get("signal_category") != signal_category:
+            continue
         metadata = validate_detector_package(package, allowed_root=package.parents[1])
         detector_id = metadata["id"]
         if detector_id in seen:
             raise RegistryError("duplicate detector id")
         seen.add(detector_id)
         result.append(metadata)
-    return sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
+    result = sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
+    return result[: min(limit, 10)] if limit is not None else result
 
 
 def _table_matches(table: dict[str, Any], requirement: Any) -> bool:
@@ -424,11 +455,15 @@ def execute_detectors(
                         "summary": metadata["title"],
                         "evidence_refs": evidence_refs,
                         "warnings": [],
+                        "origin": metadata["origin"],
+                        "signal_contract": metadata["signal_contract"],
                     }
                 )
                 payload["provenance"]["parameters"] = metadata.get("parameters", {})
                 payload["provenance"].update(
                     {
+                        "origin": metadata["origin"],
+                        "signal_contract": metadata["signal_contract"],
                         "detector_version": metadata["version"],
                         "source_provenance_hash": metadata.get("source_provenance_hash"),
                         "source_csv_hash": metadata.get("source_csv_hash"),

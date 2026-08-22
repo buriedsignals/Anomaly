@@ -66,7 +66,7 @@ class CaseRecord:
     updated_at: str
     status: str
     workflow_version: str
-    derived_from: str | None
+    derived_from: str | dict[str, str] | None
 
 
 @dataclass(frozen=True)
@@ -150,28 +150,46 @@ def resume_case(root: Path) -> Case:
     return _load_case(root)
 
 
-def fork_case(source: Path, dest: Path, *, case_id: str, now: datetime) -> Case:
+def fork_case(
+    source: Path,
+    dest: Path,
+    *,
+    case_id: str,
+    now: datetime | None = None,
+    reset_phase: str | None = None,
+) -> Case:
     source = Path(source)
     dest = Path(dest).resolve()
     _scan_case_tree(source)
     source = Path(os.path.abspath(os.fspath(source)))
     parent = resume_case(source)
+    selected_phase = reset_phase or "P0"
+    if selected_phase not in {f"P{index}" for index in range(8)}:
+        raise UnsafeCasePathError("invalid fork reset phase")
     validate_portable_component(case_id)
     if canonical_key(case_id) == canonical_key(parent.record.case_id):
         raise UnsafeCasePathError("child identity must differ from parent")
     records, _ = validate_case_documents(source)
     _verify_included_source_hashes(source, records)
+    parent_hash = "sha256:" + hashlib.sha256((source / "case.json").read_bytes()).hexdigest()
     shutil.copytree(source, dest)
     payload = {
         "case_id": case_id,
         "title": parent.record.title,
-        "created_at": _stamp(now),
-        "updated_at": _stamp(now),
+        "created_at": _stamp(now or datetime.now().astimezone()),
+        "updated_at": _stamp(now or datetime.now().astimezone()),
         "status": parent.record.status,
         "workflow_version": parent.record.workflow_version,
-        "derived_from": parent.record.case_id,
+        # Preserve the legacy record shape for callers that did not request a
+        # phase reset; explicit M5 forks carry verifiable parent content lineage.
+        "derived_from": (
+            {"case_id": parent.record.case_id, "case_hash": parent_hash}
+            if reset_phase is not None
+            else parent.record.case_id
+        ),
     }
     _write_json(dest, "case.json", payload)
+    _write_json(dest, ".anomaly/state.json", {"phase": selected_phase, "status": "active"})
     return _load_case(dest)
 
 
@@ -280,6 +298,8 @@ def _scan_case_tree(root: Path) -> None:
                 pending.append(path)
             elif not stat.S_ISREG(mode):
                 raise UnsafeCasePathError(f"non-regular case artifact: {path}")
+            elif mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+                raise UnsafeCasePathError(f"executable case artifact: {path}")
 
 
 def _verify_included_source_hashes(
