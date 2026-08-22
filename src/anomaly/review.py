@@ -8,6 +8,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from anomaly import detect
 from anomaly.semantics import UnsafeCasePathError, redact_credentials, validate_case_documents
 
 
@@ -153,6 +154,7 @@ def _is_detector_dependency_failure(error: ReviewError) -> bool:
         for marker in (
             "detector provenance snapshot is missing",
             "incomplete detector provenance",
+            "detector dependency is unavailable",
         )
     )
 
@@ -513,6 +515,9 @@ def _review_basis_hash(root: Path) -> str:
                 continue
             digest.update(path.relative_to(root).as_posix().encode())
             digest.update(path.read_bytes())
+            detector_id = path.stem.replace("__", ".")
+            digest.update(detector_id.encode())
+            digest.update(_live_detector_fingerprint(detector_id))
     return "sha256:" + digest.hexdigest()
 
 
@@ -756,7 +761,10 @@ def _verify_provenance(
         ):
             raise ReviewError("detector snapshot does not match provenance")
         query_path = _detector_query_path(detector_id)
-        if not query_path.is_file() or _sha256_bytes(query_path.read_bytes()) != query_hash:
+        current = _current_detector_identity(detector_id)
+        if current is None:
+            raise ReviewError("detector dependency is unavailable")
+        if current["query_hash"] != query_hash or current["implementation_hash"] != detector_hash:
             raise ReviewError("detector query does not match provenance")
     elif source_list and any(item not in source_hashes.values() for item in source_list):
         raise ReviewError("source provenance hash is not registered")
@@ -773,6 +781,42 @@ def _verify_provenance(
 
 def _detector_query_path(detector_id: str) -> Path:
     return Path(__file__).resolve().parents[2] / "detectors" / Path(*detector_id.split(".")) / "query.sql"
+
+
+def _detector_package_path(detector_id: str) -> Path:
+    return _detector_query_path(detector_id).parent
+
+
+def _current_detector_identity(detector_id: str) -> dict[str, str] | None:
+    package = _detector_package_path(detector_id)
+    metadata_path = package / "meta.yaml"
+    query_path = package / "query.sql"
+    if any(path.is_symlink() or not path.is_file() for path in (metadata_path, query_path)):
+        return None
+    try:
+        metadata = detect._parse_restricted_yaml(metadata_path.read_text(encoding="utf-8"))
+        metadata_bytes = metadata_path.read_bytes()
+        query_bytes = query_path.read_bytes()
+    except (OSError, UnicodeError, ValueError, TypeError):
+        return None
+    if not isinstance(metadata, dict) or metadata.get("id") != detector_id:
+        return None
+    version = metadata.get("version")
+    if not isinstance(version, str) or not version:
+        return None
+    return {
+        "version": version,
+        "query_hash": _sha256_bytes(query_bytes),
+        "metadata_hash": _sha256_bytes(metadata_bytes),
+        "implementation_hash": _sha256_bytes(query_bytes + metadata_bytes),
+    }
+
+
+def _live_detector_fingerprint(detector_id: str) -> bytes:
+    identity = _current_detector_identity(detector_id)
+    if identity is None:
+        return b"<detector-unavailable>"
+    return json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def _sha256_bytes(payload: bytes) -> str:

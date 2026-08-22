@@ -33,6 +33,22 @@ def _api():
     return importlib.import_module("anomaly.detectors.registry")
 
 
+@pytest.fixture(autouse=True)
+def _use_explicit_full_catalog_for_gain_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    api = _api()
+    discover = api.discover_detectors
+
+    def discover_all(roots=None, **kwargs):
+        kwargs.setdefault("limit", 100)
+        return discover(roots, **kwargs)
+
+    monkeypatch.setattr(api, "discover_detectors", discover_all)
+
+
+def _all_detectors() -> list[dict[str, object]]:
+    return _api().discover_detectors(limit=100)
+
+
 def _gain_packages() -> list[Path]:
     return sorted((Path(__file__).parents[1] / "detectors" / "gain").glob("*"))
 
@@ -105,7 +121,7 @@ def _approved_gain_case(
     api = _api()
     plan = api.recommend_detectors(root, max_detectors=10)
     plan["recommended"] = list(detector_ids)
-    plan["parameters"] = {detector_id: next(item["parameters"] for item in api.discover_detectors() if item["id"] == detector_id) for detector_id in detector_ids}
+    plan["parameters"] = {detector_id: next(item["parameters"] for item in _all_detectors() if item["id"] == detector_id) for detector_id in detector_ids}
     table_ids = [
         table["table_id"]
         for table in json.loads(
@@ -121,7 +137,7 @@ def _approved_gain_case(
 
 
 def test_gain_catalogue_is_a_separate_twelve_detector_family() -> None:
-    gain = [item for item in _api().discover_detectors() if item.get("family") == "gain"]
+    gain = [item for item in _all_detectors() if item.get("family") == "gain"]
 
     assert [item["source_detector_id"] for item in gain] == [f"D{i}" for i in range(1, 13)]
     assert len(gain) == 12
@@ -129,7 +145,7 @@ def test_gain_catalogue_is_a_separate_twelve_detector_family() -> None:
 
 
 def test_gain_metadata_records_source_and_local_hashes() -> None:
-    gain = [item for item in _api().discover_detectors() if item.get("family") == "gain"]
+    gain = [item for item in _all_detectors() if item.get("family") == "gain"]
 
     for item in gain:
         expected = GAIN_MANIFEST[item["source_name"]]
@@ -140,7 +156,7 @@ def test_gain_metadata_records_source_and_local_hashes() -> None:
 
 
 def test_gain_metadata_exposes_challenge_attribution_and_source_repository() -> None:
-    gain = [item for item in _api().discover_detectors() if item.get("family") == "gain"]
+    gain = [item for item in _all_detectors() if item.get("family") == "gain"]
 
     assert all("GAIN 2026 Challenge" in item["description"] for item in gain)
     assert {item["source_repository"] for item in gain} == {SOURCE_REPOSITORY}
@@ -346,7 +362,7 @@ def test_gain_execution_rejects_memory_limits_above_package_bound(tmp_path: Path
             )
         },
     )
-    metadata = next(item for item in _api().discover_detectors() if item["id"] == "gain.spending_spikes")
+    metadata = next(item for item in _all_detectors() if item["id"] == "gain.spending_spikes")
     declared = metadata["resource_limits"]["memory_mb"]
 
     with pytest.raises(_api().RegistryError, match=r"(?i)memory"):
@@ -368,7 +384,7 @@ def test_gain_recommendation_is_category_and_data_type_aware_and_capped_at_ten(t
     assert all(plan["reasons"][detector_id]["table_ids"] for detector_id in plan["recommended"])
     assert gain_menu["recommended"]
     assert all(detector_id.startswith("gain.") for detector_id in gain_menu["recommended"])
-    assert {item["group"] for item in _api().discover_detectors() if item.get("family") == "gain"} == {"domain"}
+    assert {item["group"] for item in _all_detectors() if item.get("family") == "gain"} == {"domain"}
 
 
 def test_gain_recommendation_excludes_multi_table_detector_from_sparse_case(tmp_path: Path) -> None:

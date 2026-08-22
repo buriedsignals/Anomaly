@@ -223,7 +223,7 @@ def discover_detectors(
         seen.add(detector_id)
         result.append(metadata)
     result = sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
-    if limit is None and len(roots) == 1 and roots != (_ROOT,):
+    if limit is None:
         limit = _DEFAULT_DISCOVERY_LIMIT
     return result[:limit] if limit is not None else result
 
