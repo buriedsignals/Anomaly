@@ -1,12 +1,15 @@
 # BACKLOG
 
-Next free id: 19
+Next free id: 20
 
 ## NOW
 
-- M5 scale registry and journalist handoff (task 19)
 
 ## NEXT
 
 
 ## TODO
+
+## DONE
+
+- M5 scale registry and journalist handoff (task 19)
