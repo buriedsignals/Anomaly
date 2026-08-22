@@ -4,11 +4,9 @@ Next free id: 19
 
 ## NOW
 
-- M4 port useful GAIN lobbying detectors (task 18)
+- M5 scale registry and journalist handoff (task 19)
 
 ## NEXT
 
 
 ## TODO
-
-- M5 scale registry and journalist handoff
