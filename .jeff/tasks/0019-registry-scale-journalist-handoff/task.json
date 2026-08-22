@@ -6,36 +6,29 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "implement",
+  "stage": "refactor",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:29:33Z",
+  "updatedAt": "2026-08-22T00:36:49Z",
   "agents": {
-    "implementer_agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
+    "implementer_agent_id": "01a026df-9436-7763-a6d8-564970825e62",
     "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
     "reviewer2_agent_id": "01a026d7-c5cd-7eb1-9174-16f06088144e",
     "audit_agent_id": "01a026d7-c631-7881-b7e6-6843d0c0a18e"
   },
   "tests": {
     "authored_by_agent_id": "01a026dc-660f-70e3-9681-e933bf3b9621",
-    "green": true,
+    "green": false,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ],
-    "gate": {
-      "hash": "78181b0c2cee4d70cf7e87a0ad7de949a21b32f1",
-      "clean": true,
-      "green": true,
-      "command": "uv run --extra test pytest tests/",
-      "at": "2026-08-22T00:20:59Z"
-    }
+    ]
   },
   "review": {
     "verdict": "needs-work",
@@ -222,17 +215,15 @@
     "refactorOpportunity": "Unify detector identity fingerprinting across replay, review, and Gate B validation."
   },
   "implement": {
-    "agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
+    "agent_id": "01a026df-9436-7763-a6d8-564970825e62",
     "result": "green",
     "files": [
-      "src/anomaly/case.py",
       "src/anomaly/detectors/registry.py",
-      "src/anomaly/review.py",
-      "src/anomaly/semantics.py"
+      "src/anomaly/review.py"
     ],
     "greenRun": {
       "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-      "output": "focused 6 passed; full 694 passed; security PASS"
+      "output": "focused 11 passed; full 699 passed in chunks; security PASS; diff check PASS"
     }
   },
   "review2": {

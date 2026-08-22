@@ -53,6 +53,9 @@ _SIGNAL_FIELDS = {
 def replay_signals(root: Path) -> dict[str, Any]:
     """Revalidate source/provenance bindings and recompute signal calculations."""
     root = _root(root)
+    basis_status = _replay_basis_status(root)
+    if basis_status is not None:
+        return basis_status
     sources = _source_records(root)
     source_hashes = {record["source_id"]: record["content_hash"] for record in sources if record["included"]}
     included = [record for record in sources if record["included"]]
@@ -82,7 +85,12 @@ def replay_signals(root: Path) -> dict[str, Any]:
         provenance = _read_json(provenance_path)
         if not isinstance(preview, list) or not isinstance(provenance, dict):
             raise ReviewError(f"invalid replay inputs for {run_dir.name}")
-        strict = _verify_provenance(run_dir.name, provenance, source_hashes, root)
+        try:
+            strict = _verify_provenance(run_dir.name, provenance, source_hashes, root)
+        except ReviewError as error:
+            if _is_detector_dependency_failure(error):
+                return _unavailable_replay(str(error), status="replay-unavailable")
+            raise
         if strict:
             _verify_prepared_generation(root, provenance)
             if not output_path.is_file():
@@ -125,6 +133,42 @@ def replay_signals(root: Path) -> dict[str, Any]:
         },
     )
     return payload
+
+
+def _unavailable_replay(reason: str, *, status: str = "unavailable") -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "status": status,
+        "reason": reason,
+        "replay_possible": False,
+        "runs": [],
+        "claims": [],
+    }
+
+
+def _is_detector_dependency_failure(error: ReviewError) -> bool:
+    message = str(error).casefold()
+    return any(
+        marker in message
+        for marker in (
+            "detector provenance snapshot is missing",
+            "incomplete detector provenance",
+        )
+    )
+
+
+def _replay_basis_status(root: Path) -> dict[str, Any] | None:
+    review_path = _owned(root, "findings/review.json")
+    if not review_path.is_file() or review_path.is_symlink():
+        return None
+    review = _read_json(review_path)
+    expected = review.get("review_basis_hash") if isinstance(review, dict) else None
+    if isinstance(expected, str) and expected != _review_basis_hash(root):
+        return _unavailable_replay(
+            "detector metadata, version, implementation hash, or review inputs changed; rerun detector and review",
+            status="replay-unavailable",
+        )
+    return None
 
 
 def draft_findings(root: Path) -> dict[str, Any]:
@@ -427,6 +471,10 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
         if strict:
             raise ReviewError("replay artifact/status is required before Gate B")
         replay = replay_signals(root)
+        if replay.get("status") != "replayed":
+            raise ReviewError(
+                replay.get("reason", "replay is unavailable; rerun detectors and review")
+            )
     else:
         replay = _read_json(replay_path)
     receipt = _read_json(receipt_path)
@@ -458,6 +506,13 @@ def _review_basis_hash(root: Path) -> str:
         path = _owned(root, relative)
         digest.update(relative.encode())
         digest.update(path.read_bytes() if path.is_file() else b"<missing>")
+    snapshots = _owned(root, "detectors/used")
+    if snapshots.is_dir() and not snapshots.is_symlink():
+        for path in sorted(snapshots.glob("*.json")):
+            if path.is_symlink():
+                continue
+            digest.update(path.relative_to(root).as_posix().encode())
+            digest.update(path.read_bytes())
     return "sha256:" + digest.hexdigest()
 
 

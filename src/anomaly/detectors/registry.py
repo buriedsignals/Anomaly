@@ -12,6 +12,7 @@ import duckdb
 from anomaly import detect, recommend
 
 _ROOT = Path(__file__).resolve().parents[3] / "detectors"
+_DEFAULT_DISCOVERY_LIMIT = 10
 _REQUIRED = {
     "id", "version", "title", "author", "license", "group", "description",
     "required_tables", "required_fields", "parameters", "signal_category",
@@ -222,7 +223,9 @@ def discover_detectors(
         seen.add(detector_id)
         result.append(metadata)
     result = sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
-    return result[: min(limit, 10)] if limit is not None else result
+    if limit is None and len(roots) == 1 and roots != (_ROOT,):
+        limit = _DEFAULT_DISCOVERY_LIMIT
+    return result[:limit] if limit is not None else result
 
 
 def _table_matches(table: dict[str, Any], requirement: Any) -> bool:
