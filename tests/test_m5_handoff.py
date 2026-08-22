@@ -83,6 +83,12 @@ def test_registry_discovery_without_limit_is_bounded_to_safe_maximum(tmp_path: P
     assert [item["id"] for item in results] == sorted(item["id"] for item in results)
 
 
+def test_registry_discovery_with_default_roots_is_bounded_to_safe_maximum() -> None:
+    results = discover_detectors()
+
+    assert len(results) <= 10
+
+
 def test_user_detector_metadata_preserves_origin_version_hash_and_signal_contract(
     tmp_path: Path,
 ) -> None:
@@ -238,3 +244,52 @@ def test_detector_identity_changes_invalidate_replay_review_and_gate_b_without_q
     assert replay["replay_possible"] is False
     with pytest.raises(Exception, match=r"(?i)(rerun|review|detector|invalidat)"):
         accept_findings(root, ["claim-accepted"])
+
+
+@pytest.mark.parametrize(
+    ("metadata_field", "metadata_value"),
+    [
+        ("version", "9.9.9"),
+        ("title", "Changed live detector metadata"),
+    ],
+)
+def test_live_detector_package_metadata_change_invalidates_replay_and_review_without_query_change(
+    tmp_path: Path, metadata_field: str, metadata_value: str
+) -> None:
+    from test_review import _seed_case
+
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+
+    package = Path(__file__).parents[1] / "detectors" / "numeric" / "zscore_outliers"
+    metadata_path = package / "meta.yaml"
+    query_path = package / "query.sql"
+    metadata_before = metadata_path.read_text(encoding="utf-8")
+    query_before = query_path.read_bytes()
+    lines = metadata_before.splitlines(keepends=True)
+    prefix = f"{metadata_field}:"
+    changed = False
+    for index, line in enumerate(lines):
+        if line.startswith(prefix):
+            newline = "\n" if line.endswith("\n") else ""
+            lines[index] = f"{prefix} {metadata_value}{newline}"
+            changed = True
+            break
+    assert changed, metadata_field
+
+    try:
+        metadata_path.write_text("".join(lines), encoding="utf-8")
+        assert query_path.read_bytes() == query_before
+
+        replay = replay_signals(root)
+        assert replay["status"] == "replay-unavailable"
+        assert replay["replay_possible"] is False
+        with pytest.raises(Exception, match=r"(?i)(rerun|review|detector|invalidat)"):
+            accept_findings(root, ["claim-accepted"])
+    finally:
+        metadata_path.write_text(metadata_before, encoding="utf-8")

@@ -46,3 +46,18 @@
   failures are the intended new contracts, with no collection or fixture
   errors. A passing implementation must preserve the existing 10-detector cap
   and all prior handoff behavior.
+
+## Repair / strict RED authoring update
+
+- This repair authoring pass adds only two requested RED contracts: the
+  no-argument `discover_detectors()` path is bounded to at most 10 results,
+  and replay/Gate B invalidates a case when the live detector package's
+  `meta.yaml` changes (including version/implementation identity) while its
+  `query.sql` bytes remain unchanged.
+- The live-package test temporarily edits the built-in detector metadata and
+  restores the exact original bytes in `finally`; it does not edit production
+  code or persist fixture changes. The query bytes are asserted unchanged.
+- Targeted test file remains `tests/test_m5_handoff.py`; expected RED is the
+  missing live-package freshness behavior plus the unbounded default-root
+  path. Missing-dependency behavior is an existing review finding, not a new
+  test slice in this authoring request.

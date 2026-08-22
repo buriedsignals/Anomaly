@@ -6,14 +6,14 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "implement",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:36:49Z",
+  "updatedAt": "2026-08-22T00:43:37Z",
   "agents": {
     "implementer_agent_id": "01a026df-9436-7763-a6d8-564970825e62",
     "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
@@ -21,14 +21,25 @@
     "audit_agent_id": "01a026d7-c631-7881-b7e6-6843d0c0a18e"
   },
   "tests": {
-    "authored_by_agent_id": "01a026dc-660f-70e3-9681-e933bf3b9621",
-    "green": false,
+    "authored_by_agent_id": "01a026e9-8d47-7ad0-b8c1-864c33f68b85",
+    "green": true,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ]
+    ],
+    "gate": {
+      "hash": "356796ba4da22b5c4484e1c12950088c79412df6",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-22T00:37:01Z"
+    }
   },
   "review": {
     "verdict": "needs-work",
@@ -200,19 +211,18 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Bound default registry discovery to a safe maximum of 10.",
-      "Return explicit replay-unavailable status when detector dependencies are missing.",
-      "Invalidate replay, review, and Gate B when detector metadata, version, or implementation hash changes without query.sql changes."
+      "Bound discover_detectors() with roots=None to at most 10 results.",
+      "Invalidate replay and Gate B when live meta.yaml metadata/version changes while query.sql remains unchanged."
     ],
     "testFiles": [
       "tests/test_m5_handoff.py"
     ],
     "redRun": {
       "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py",
-      "output": "5 failed, 6 passed; failures are the intended RED contracts."
+      "output": "3 failed, 11 passed; failures are the intended RED contracts."
     },
     "escalation": null,
-    "refactorOpportunity": "Unify detector identity fingerprinting across replay, review, and Gate B validation."
+    "refactorOpportunity": "Unify live detector package identity fingerprinting across replay, review, and Gate B."
   },
   "implement": {
     "agent_id": "01a026df-9436-7763-a6d8-564970825e62",
