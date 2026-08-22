@@ -5,14 +5,14 @@
   "externalRef": "https://github.com/tomvaillant/Anomaly/issues/1",
   "slug": "migrate-source-catalogue-verification",
   "title": "Repair migrated source catalogue verification after Navigator move",
-  "status": "in_progress",
-  "stage": "review",
+  "status": "blocked",
+  "stage": "implement",
   "category": "code",
   "priority": "p1",
   "deps": [],
   "complexity": "simple",
   "createdAt": "2026-08-22T08:40:00Z",
-  "updatedAt": "2026-08-22T09:50:00Z",
+  "updatedAt": "2026-08-22T10:02:00Z",
   "agents": {
     "implementer_agent_id": "AnomalyCatalogueImplement",
     "reviewer_agent_id": null,
@@ -22,7 +22,17 @@
   "tests": {
     "authored_by_agent_id": "AnomalyCataloguePlan",
     "green": false,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "12 pre-existing GAIN fixture tests fail with FileNotFoundError: /private/tmp/gain-2026-work/case-trace/data-detective/anomalies/D1..D12*.csv; 698 passed. The expected external fixture root does not exist."
+      }
+    ],
+    "gate": {
+      "hash": "f33c5f64",
+      "green": false,
+      "clean": true
+    }
   },
   "review": {
     "verdict": null,
@@ -36,8 +46,15 @@
     "evidence": []
   },
   "commits": [],
-  "kickbacks": [],
-  "blockedReason": null,
+  "kickbacks": [
+    {
+      "from": "gate",
+      "to": "operator",
+      "reason": "Known-green baseline cannot be established: the full suite requires the absent external gain-2026 fixture root. Do not repair unrelated GAIN fixtures under this migration task.",
+      "at": "2026-08-22T10:02:00Z"
+    }
+  ],
+  "blockedReason": "Full-suite gate cannot establish a known-green baseline because /private/tmp/gain-2026-work/case-trace/data-detective/anomalies/ is absent; targeted migration tests pass, but the task cannot proceed to review until the external GAIN fixture prerequisite is restored or the baseline is independently resolved.",
   "abandonReason": null,
   "plan": {
     "result": "red",

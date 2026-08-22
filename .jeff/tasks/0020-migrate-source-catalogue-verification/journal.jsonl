@@ -2,3 +2,5 @@
 {"seq":1,"at":"2026-08-22T08:55:00Z","event":"record","stage":"plan","agent":"AnomalyCataloguePlan"}
 {"seq":2,"at":"2026-08-22T08:55:00Z","event":"intent","stage":"implement","note":"Dispatch implementer to verify the plan-authored migration test contract without editing tests"}
 {"seq":3,"at":"2026-08-22T09:50:00Z","event":"record","stage":"implement","agent":"AnomalyCatalogueImplement"}
+{"seq":4,"at":"2026-08-22T09:58:00Z","event":"gate","hash":"f33c5f64","green":false,"clean":true}
+{"seq":5,"at":"2026-08-22T10:02:00Z","event":"record","stage":"blocked","agent":"Main","note":"Blocked: absent external GAIN fixture root prevents known-green full-suite baseline; targeted migration tests pass"}
