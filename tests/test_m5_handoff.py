@@ -7,9 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from anomaly.acquire import register_local_source
 from anomaly.case import UnsafeCasePathError, create_case, fork_case
-from anomaly.detectors.registry import validate_detector_package
-from anomaly.review import replay_signals
+from anomaly.detectors.registry import discover_detectors, validate_detector_package
+from anomaly.review import accept_findings, draft_findings, record_review, replay_signals
 
 
 NOW = "2026-08-22T12:00:00+00:00"
@@ -70,6 +71,16 @@ def test_registry_search_filters_metadata_before_validating_irrelevant_packages(
     results = discover_detectors([tmp_path], group="numeric", limit=10)
 
     assert [item["id"] for item in results] == ["numeric.selected"]
+
+
+def test_registry_discovery_without_limit_is_bounded_to_safe_maximum(tmp_path: Path) -> None:
+    for index in range(12):
+        _user_package(tmp_path, f"numeric.detector_{index:02d}")
+
+    results = discover_detectors([tmp_path])
+
+    assert len(results) <= 10
+    assert [item["id"] for item in results] == sorted(item["id"] for item in results)
 
 
 def test_user_detector_metadata_preserves_origin_version_hash_and_signal_contract(
@@ -134,6 +145,47 @@ def test_replay_without_required_inputs_returns_explicit_unavailable_status(
     assert result["replay_possible"] is False
 
 
+def test_replay_with_missing_detector_dependency_returns_replay_unavailable(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    _create_case(root)
+    source_file = tmp_path / "observations.csv"
+    source_file.write_text("id,amount\n1,10\n", encoding="utf-8")
+    source_record = register_local_source(
+        root,
+        source_file,
+        source_id="observations",
+        now=datetime.fromisoformat(NOW),
+        license="internal",
+        sensitivity="restricted",
+        redistribution="no",
+        reacquisition="Copy from the newsroom drive.",
+        included=True,
+    )
+    digest = source_record["content_hash"]
+    run = root / "evidence" / "runs" / "run-missing-detector"
+    run.mkdir(parents=True)
+    (run / "preview.json").write_text("[]", encoding="utf-8")
+    (run / "provenance.json").write_text(
+        json.dumps(
+            {
+                "run_id": run.name,
+                "detector_id": "missing.detector",
+                "detector_hash": "sha256:" + ("b" * 64),
+                "source_hashes": [digest],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = replay_signals(root)
+
+    assert result["status"] == "replay-unavailable"
+    assert result["replay_possible"] is False
+    assert "detector" in result["reason"].lower()
+
+
 def test_gate_b_requires_new_run_review_after_methodology_changes(tmp_path: Path) -> None:
     from test_review import _seed_case
     from anomaly.review import accept_findings, draft_findings, record_review
@@ -150,4 +202,39 @@ def test_gate_b_requires_new_run_review_after_methodology_changes(tmp_path: Path
     )
 
     with pytest.raises(Exception, match=r"(?i)(rerun|review|methodolog|invalidat)"):
+        accept_findings(root, ["claim-accepted"])
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("version", "2"),
+        ("title", "Changed detector metadata"),
+        ("implementation_hash", "sha256:" + ("e" * 64)),
+    ],
+)
+def test_detector_identity_changes_invalidate_replay_review_and_gate_b_without_query_change(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    from test_review import _seed_case
+
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+    query = Path(__file__).parents[1] / "detectors" / "numeric" / "zscore_outliers" / "query.sql"
+    query_before = query.read_bytes()
+    snapshot = root / "detectors" / "used" / "numeric__zscore_outliers.json"
+    metadata = json.loads(snapshot.read_text(encoding="utf-8"))
+    metadata[field] = value
+    snapshot.write_text(json.dumps(metadata) + "\n", encoding="utf-8")
+
+    assert query.read_bytes() == query_before
+    replay = replay_signals(root)
+    assert replay["status"] == "replay-unavailable"
+    assert replay["replay_possible"] is False
+    with pytest.raises(Exception, match=r"(?i)(rerun|review|detector|invalidat)"):
         accept_findings(root, ["claim-accepted"])

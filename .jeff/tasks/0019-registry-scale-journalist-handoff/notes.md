@@ -31,3 +31,18 @@
   collection errors: filtered search API, user metadata fields, fork lineage
   and reset, executable fork rejection, unavailable replay status, and Gate B
   invalidation after methodology drift.
+
+## Repair / test-author scope
+
+- Production code remains untouched. Task state remains untouched; this note is
+  context for the repair handoff only.
+- Add strict RED coverage for the three review/audit blockers: default registry
+  discovery must remain bounded to the safe ten-detector maximum; missing
+  detector dependencies must return explicit `replay-unavailable` status; and
+  detector metadata, version, or implementation-hash drift must invalidate
+  replay, review, and Gate B even when `query.sql` is unchanged.
+- The focused RED command is `./.venv/bin/pytest -q tests/test_m5_handoff.py`.
+  Strict evidence on 2026-08-22: exit 1, `5 failed, 6 passed`; all five
+  failures are the intended new contracts, with no collection or fixture
+  errors. A passing implementation must preserve the existing 10-detector cap
+  and all prior handoff behavior.

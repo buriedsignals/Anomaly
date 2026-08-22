@@ -6,35 +6,199 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "implement",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:20:44Z",
+  "updatedAt": "2026-08-22T00:29:33Z",
   "agents": {
     "implementer_agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
-    "reviewer_agent_id": null,
-    "reviewer2_agent_id": null,
-    "audit_agent_id": null
+    "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
+    "reviewer2_agent_id": "01a026d7-c5cd-7eb1-9174-16f06088144e",
+    "audit_agent_id": "01a026d7-c631-7881-b7e6-6843d0c0a18e"
   },
   "tests": {
-    "authored_by_agent_id": "01a026d1-7c95-7063-b2d0-63b7b0f03b96",
-    "green": false,
-    "evidence": []
+    "authored_by_agent_id": "01a026dc-660f-70e3-9681-e933bf3b9621",
+    "green": true,
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ],
+    "gate": {
+      "hash": "78181b0c2cee4d70cf7e87a0ad7de949a21b32f1",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-22T00:20:59Z"
+    }
   },
   "review": {
-    "verdict": null,
-    "reviewer_agent_id": null,
-    "evidence": []
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
+    "findings": [
+      {
+        "file": "src/anomaly/detectors/registry.py",
+        "line": 175,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "discover_detectors returns all matching packages when limit is omitted.",
+        "why": "Default registry search is unbounded for a catalogue expected to scale to hundreds."
+      },
+      {
+        "file": "src/anomaly/review.py",
+        "line": 53,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Missing detector dependencies raise instead of returning explicit replay-unavailable status.",
+        "why": "Portable handoff cannot honestly represent unavailable replay."
+      },
+      {
+        "file": "src/anomaly/review.py",
+        "line": 697,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "Replay/Gate B checks query content but not current detector metadata or implementation hash.",
+        "why": "Detector version or metadata changes can leave prior review artifacts apparently valid."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "694 passed"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
+    ]
   },
   "audit": {
     "required": true,
-    "verdict": "na",
-    "audit_agent_id": null,
-    "evidence": []
+    "verdict": "needs-work",
+    "audit_agent_id": "01a026d7-c631-7881-b7e6-6843d0c0a18e",
+    "evidence": [
+      {
+        "command": "security scanner (broad repository scope)",
+        "output": "13 findings including pre-existing test placeholders and SQL interpolation patterns; no dependency failures"
+      },
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "694 passed"
+      }
+    ],
+    "reportedVerdict": "needs-work",
+    "findings": [
+      {
+        "file": "src/anomaly/review.py",
+        "line": 697,
+        "severity": "high",
+        "class": "blocking",
+        "cwe": "CWE-345",
+        "kickTo": "implement",
+        "what": "Replay/Gate B does not fingerprint current detector metadata/implementation hash.",
+        "why": "A changed detector version can leave prior review artifacts apparently valid."
+      }
+    ],
+    "scan": {
+      "command": "review-security.sh src/anomaly/case.py src/anomaly/detectors/registry.py src/anomaly/review.py src/anomaly/semantics.py tests/test_m5_handoff.py --skip-deps",
+      "recommendation": "PASS",
+      "reportPath": "/private/tmp/anomaly-security-audit-m5-scope/security-audit-m5.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "not_covered"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_no_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [],
@@ -43,26 +207,19 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Add bounded metadata-driven search/filtering over hundreds of detectors with deterministic ordering and a maximum of 10 recommendations/runs.",
-      "Support user detector origin, version, implementation hash, provenance, and the shared lead signal contract without family-specific branches.",
-      "Validate approved case structure, relative paths, hashes, traversal, links, and executable detector artifacts at import/fork boundaries.",
-      "Fork with new case identity, parent case/content-hash provenance, selected-phase reset, parent isolation, and no automatic merge.",
-      "Record replay-unavailable explicitly when dependencies are absent and invalidate downstream runs/review/Gate B after data, methodology, mappings, detector, or parameter changes.",
-      "Keep the implementation local-only with no hosted runtime, service, UI, deployment, MCP, membership, metering, acquisition, publication, or external-sharing surface."
+      "Bound default registry discovery to a safe maximum of 10.",
+      "Return explicit replay-unavailable status when detector dependencies are missing.",
+      "Invalidate replay, review, and Gate B when detector metadata, version, or implementation hash changes without query.sql changes."
     ],
     "testFiles": [
-      "tests/test_m5_handoff.py",
-      "tests/test_detector_registry.py",
-      "tests/test_case.py",
-      "tests/test_review.py",
-      "tests/test_workflow.py"
+      "tests/test_m5_handoff.py"
     ],
     "redRun": {
       "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py",
-      "output": "6 failed; failures correspond to the intended missing M5 contracts."
+      "output": "5 failed, 6 passed; failures are the intended RED contracts."
     },
     "escalation": null,
-    "refactorOpportunity": "Unify registry discovery, filtering, validation, hashing, and recommendation around one metadata index."
+    "refactorOpportunity": "Unify detector identity fingerprinting across replay, review, and Gate B validation."
   },
   "implement": {
     "agent_id": "01a026d4-a3fb-7341-898f-5c3717a2dd15",
@@ -77,5 +234,65 @@
       "command": "./.venv/bin/pytest -q tests/test_m5_handoff.py && env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
       "output": "focused 6 passed; full 694 passed; security PASS"
     }
+  },
+  "review2": {
+    "verdict": "pass",
+    "reportedVerdict": "pass",
+    "reviewer_agent_id": "01a026d7-c5cd-7eb1-9174-16f06088144e",
+    "findings": [],
+    "evidence": [
+      {
+        "command": "500-package catalogue probe",
+        "output": "10 results in 0.185s"
+      },
+      {
+        "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
+        "output": "694 passed"
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      }
+    ]
   }
 }

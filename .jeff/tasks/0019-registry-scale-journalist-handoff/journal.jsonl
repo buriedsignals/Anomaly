@@ -1,2 +1,7 @@
 {"seq":0,"at":"2026-08-22T00:17:34.896Z","event":"record","stage":"plan","agent":"01a026d1-7c95-7063-b2d0-63b7b0f03b96"}
 {"seq":1,"at":"2026-08-22T00:20:44.421Z","event":"record","stage":"implement","agent":"01a026d4-a3fb-7341-898f-5c3717a2dd15"}
+{"seq":2,"at":"2026-08-22T00:20:59.959Z","event":"gate","hash":"78181b0c2cee4d70cf7e87a0ad7de949a21b32f1","green":true,"clean":true}
+{"seq":3,"at":"2026-08-22T00:26:02.190Z","event":"record","stage":"review","agent":"01a026d7-c576-70c3-8466-8be1d5880384"}
+{"seq":4,"at":"2026-08-22T00:26:02.244Z","event":"record","stage":"review","agent":"01a026d7-c5cd-7eb1-9174-16f06088144e"}
+{"seq":5,"at":"2026-08-22T00:26:02.300Z","event":"record","stage":"audit","agent":"01a026d7-c631-7881-b7e6-6843d0c0a18e"}
+{"seq":6,"at":"2026-08-22T00:29:33.245Z","event":"record","stage":"plan","agent":"01a026dc-660f-70e3-9681-e933bf3b9621"}
