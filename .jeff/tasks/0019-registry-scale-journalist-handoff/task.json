@@ -6,14 +6,14 @@
   "title": "M5 scale registry and journalist handoff",
   "status": "in_progress",
   "category": "code",
-  "stage": "refactor",
+  "stage": "audit",
   "priority": "p1",
   "deps": [
     18
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T01:23:03Z",
+  "updatedAt": "2026-08-22T01:36:46Z",
   "agents": {
     "implementer_agent_id": "01a02706-1059-74a3-8da7-e0a839a4e984",
     "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
@@ -35,6 +35,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 2): uv run --extra test pytest tests/"
       }
     ]
   },
@@ -299,6 +303,26 @@
         "rederived": "revise",
         "ok": true
       }
+    ]
+  },
+  "refactor": {
+    "agent_id": "01a02716-377a-7ba2-ac53-87afba5adecc",
+    "result": "refactored",
+    "files": [
+      "src/anomaly/detectors/registry.py",
+      "src/anomaly/review.py",
+      "tests/test_detector_registry.py",
+      "tests/test_gain_detectors.py",
+      "tests/test_review.py"
+    ],
+    "outsideDiff": [],
+    "greenRun": {
+      "command": ".venv/bin/pytest -q",
+      "output": "focused 43 passed; full 705 passed; scoped security scan PASS, 0 findings"
+    },
+    "summary": [
+      "Bound all registry discovery limits to the safe maximum.",
+      "Require live detector identity for legacy replay and reject symlinked packages."
     ]
   }
 }

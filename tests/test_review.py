@@ -17,10 +17,13 @@ from anomaly.review import (
     replay_signals,
     write_report,
 )
+from anomaly.detectors.registry import package_implementation_hash
 
 
 NOW = datetime(2026, 8, 21, 12, 0, tzinfo=timezone.utc)
-DETECTOR_HASH = "sha256:" + ("d" * 64)
+DETECTOR_HASH = package_implementation_hash(
+    Path(__file__).parents[1] / "detectors" / "numeric" / "zscore_outliers"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -164,6 +167,7 @@ def _seed_case(tmp_path: Path, *, categories_same_source: bool = False) -> Path:
                 "schema_version": 1,
                 "run_id": "run-007",
                 "detector_id": "numeric.zscore_outliers",
+                "detector_version": "1.0.0",
                 "detector_hash": DETECTOR_HASH,
                 "source_hashes": [source_hash],
             },
@@ -193,7 +197,7 @@ def _seed_case(tmp_path: Path, *, categories_same_source: bool = False) -> Path:
         encoding="utf-8",
     )
     (root / "detectors" / "used" / "numeric__zscore_outliers.json").write_text(
-        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1"}) + "\n",
+        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1.0.0"}) + "\n",
         encoding="utf-8",
     )
     return root
@@ -241,8 +245,9 @@ def test_replay_recomputes_calculations_and_rejects_source_or_detector_tampering
     payload = _json(provenance)
     payload["detector_hash"] = "sha256:" + ("e" * 64)
     provenance.write_text(json.dumps(payload) + "\n", encoding="utf-8")
-    with pytest.raises(Exception, match=r"(?i)(hash|tamper|detector)"):
-        replay_signals(root)
+    unavailable = replay_signals(root)
+    assert unavailable["status"] == "replay-unavailable"
+    assert unavailable["replay_possible"] is False
 
 
 def test_unavailable_reviewer_is_explicit_and_cannot_claim_independent_review(

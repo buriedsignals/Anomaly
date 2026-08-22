@@ -46,7 +46,22 @@ def _use_explicit_full_catalog_for_gain_tests(monkeypatch: pytest.MonkeyPatch) -
 
 
 def _all_detectors() -> list[dict[str, object]]:
-    return _api().discover_detectors(limit=100)
+    root = Path(__file__).parents[1] / "detectors"
+    detectors = [
+        _api().validate_detector_package(path.parent)
+        for path in sorted(root.rglob("meta.yaml"))
+        if "_template" not in path.parts
+    ]
+    return sorted(
+        detectors,
+        key=lambda item: (
+            int(str(item["source_detector_id"])[1:])
+            if str(item.get("source_detector_id", "")).startswith("D")
+            and str(item["source_detector_id"])[1:].isdigit()
+            else 10**9,
+            item["id"],
+        ),
+    )
 
 
 def _gain_packages() -> list[Path]:

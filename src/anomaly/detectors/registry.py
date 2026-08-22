@@ -166,9 +166,14 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
 
 def package_implementation_hash(package: Path) -> str:
     """Return the canonical hash for every file in a detector package."""
+    package = Path(package)
+    if package.is_symlink() or not package.is_dir():
+        raise RegistryError("detector package boundary is unsafe")
     digest = hashlib.sha256()
     for path in sorted(package.rglob("*")):
-        if path.is_file() and not path.is_symlink():
+        if path.is_symlink():
+            raise RegistryError("detector package contains a symlink")
+        if path.is_file():
             digest.update(path.relative_to(package).as_posix().encode())
             digest.update(path.read_bytes())
     return "sha256:" + digest.hexdigest()
@@ -186,6 +191,7 @@ def discover_detectors(
     """Discover a deterministic, bounded metadata slice of the local registry."""
     if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
         raise RegistryError("limit must be a positive integer")
+    discovery_limit = min(limit if limit is not None else _DEFAULT_DISCOVERY_LIMIT, _DEFAULT_DISCOVERY_LIMIT)
     needle = search.casefold().strip() if isinstance(search, str) else None
     roots = tuple(Path(root) for root in roots) if roots is not None else (_ROOT,)
     packages: list[Path] = []
@@ -222,11 +228,20 @@ def discover_detectors(
         if detector_id in seen:
             raise RegistryError("duplicate detector id")
         seen.add(detector_id)
-        result.append(metadata)
-    result = sorted(result, key=lambda item: (item.get("menu_order", 0), item["id"]))
-    if limit is None:
-        limit = _DEFAULT_DISCOVERY_LIMIT
-    return result[:limit] if limit is not None else result
+        sort_key = (metadata.get("menu_order", 0), metadata["id"])
+        if len(result) >= discovery_limit:
+            last_key = (result[-1].get("menu_order", 0), result[-1]["id"])
+            if sort_key >= last_key:
+                continue
+        insert_at = next(
+            (index for index, item in enumerate(result)
+             if sort_key < (item.get("menu_order", 0), item["id"])),
+            len(result),
+        )
+        result.insert(insert_at, metadata)
+        if len(result) > discovery_limit:
+            result.pop()
+    return result
 
 
 def _table_matches(table: dict[str, Any], requirement: Any) -> bool:
@@ -319,7 +334,14 @@ def recommend_detectors(
         raise RegistryError("category and signal_category must agree")
     signal_category = signal_category or category
     root = Path(root)
-    metadata = discover_detectors(detector_roots) if detector_roots is not None else discover_detectors()
+    if detector_roots is not None:
+        metadata = discover_detectors(detector_roots, family=family)
+    elif family is not None:
+        metadata = discover_detectors(family=family)
+    else:
+        # Keep each public discovery call bounded while allowing the default
+        # recommendation menu to consider both catalog families.
+        metadata = discover_detectors(family="core") + discover_detectors(family="gain")
     filtered = _menu_selection(metadata, limit=len(metadata), group=group, family=family, signal_category=signal_category)
     case_ready = detector_roots is None and root.is_dir() and (root / "data" / "index.duckdb").is_file()
     eligible: list[dict[str, Any]] = []

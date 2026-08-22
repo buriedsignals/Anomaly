@@ -769,14 +769,28 @@ def _verify_provenance(
             raise ReviewError("detector query does not match provenance")
     elif source_list and any(item not in source_hashes.values() for item in source_list):
         raise ReviewError("source provenance hash is not registered")
+    # Legacy provenance remains readable, but never weakens the live detector
+    # identity gate. Without a complete identity, replay is unavailable.
     detector_id = provenance.get("detector_id")
-    if isinstance(detector_id, str):
-        snapshot = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
-        if not snapshot.is_file() or snapshot.is_symlink():
-            raise ReviewError("detector provenance snapshot is missing")
-        snapshot_payload = _read_json(snapshot)
-        if not isinstance(snapshot_payload, dict) or snapshot_payload.get("implementation_hash") != detector_hash:
-            raise ReviewError("detector hash does not match provenance snapshot")
+    if not isinstance(detector_id, str) or _DETECTOR_ID.fullmatch(detector_id) is None:
+        raise ReviewError("detector identity is unavailable")
+    snapshot = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
+    if not snapshot.is_file() or snapshot.is_symlink():
+        raise ReviewError("detector provenance snapshot is missing")
+    snapshot_payload = _read_json(snapshot)
+    if (
+        not isinstance(snapshot_payload, dict)
+        or snapshot_payload.get("implementation_hash") != detector_hash
+        or not isinstance(snapshot_payload.get("version"), str)
+        or provenance.get("detector_version", snapshot_payload.get("version"))
+        != snapshot_payload.get("version")
+    ):
+        raise ReviewError("incomplete detector provenance")
+    current = _current_detector_identity(detector_id)
+    if current is None:
+        raise ReviewError("detector dependency is unavailable")
+    if current["implementation_hash"] != detector_hash or current["version"] != snapshot_payload["version"]:
+        raise ReviewError("detector identity does not match live implementation")
     return strict
 
 
@@ -798,7 +812,7 @@ def _current_detector_identity(detector_id: str) -> dict[str, str] | None:
         metadata = detect._parse_restricted_yaml(metadata_path.read_text(encoding="utf-8"))
         metadata_bytes = metadata_path.read_bytes()
         query_bytes = query_path.read_bytes()
-    except (OSError, UnicodeError, ValueError, TypeError):
+    except (OSError, UnicodeError, ValueError, TypeError, detect.DetectorError):
         return None
     if not isinstance(metadata, dict) or metadata.get("id") != detector_id:
         return None

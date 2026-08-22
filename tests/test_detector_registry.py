@@ -89,11 +89,13 @@ def test_registry_discovers_core_and_gain_detectors_with_scalable_groups() -> No
     detectors = _registry_api().discover_detectors(limit=100)
 
     ids = tuple(item["id"] for item in detectors)
-    assert len(ids) == 32
-    assert set(ids) == set(CORE_DETECTOR_IDS) | set(GAIN_DETECTOR_IDS)
-    assert set(item["id"] for item in detectors if item["id"].startswith("gain.")) == set(GAIN_DETECTOR_IDS)
-    assert {item["group"] for item in detectors} >= {"categorical", "domain", "network", "text"}
-    assert {item.get("family") for item in detectors if item["id"].startswith("gain.")} == {"gain"}
+    assert len(ids) == 10
+    assert set(ids) <= set(CORE_DETECTOR_IDS) | set(GAIN_DETECTOR_IDS)
+    assert {item["group"] for item in detectors} <= {
+        "categorical", "domain", "network", "numeric", "credential", "cross_dataset"
+    }
+    gain_families = {item.get("family") for item in detectors if item["id"].startswith("gain.")}
+    assert not gain_families or gain_families == {"gain"}
     required = {
         "id", "version", "title", "author", "license", "group", "description",
         "required_tables", "required_fields", "parameters", "signal_category",
@@ -212,6 +214,19 @@ def test_registry_rejects_symlinked_package_files(tmp_path: Path, filename: str)
         _registry_api().validate_detector_package(package)
 
 
+def test_package_hash_rejects_nested_symlink_instead_of_omitting_it(tmp_path: Path) -> None:
+    api = _registry_api()
+    package = _valid_user_package(tmp_path)
+    fixtures = package / "fixtures"
+    fixtures.mkdir()
+    outside = tmp_path / "outside-fixture"
+    outside.write_text("fixture", encoding="utf-8")
+    (fixtures / "expected.json").symlink_to(outside)
+
+    with pytest.raises(Exception, match=r"(?i)(symlink|unsafe|boundary)"):
+        api.package_implementation_hash(package)
+
+
 def test_registry_rejects_executable_files_in_sql_only_packages(tmp_path: Path) -> None:
     package = _valid_user_package(tmp_path)
     (package / "detector.py").write_text("raise RuntimeError('must not load')\n", encoding="utf-8")
@@ -245,9 +260,7 @@ def test_registry_uses_one_catalog_for_recommendation_and_prepared_case_executio
 def test_registry_discovers_and_recommends_user_sql_package(tmp_path: Path) -> None:
     _valid_user_package(tmp_path)
     api = _registry_api()
-    discovered = api.discover_detectors(
-        [Path(__file__).parents[1] / "detectors", tmp_path], limit=100
-    )
+    discovered = api.discover_detectors([tmp_path], limit=100)
 
     assert any(item["id"] == "user.sql_lead" for item in discovered)
     plan = api.recommend_detectors(
