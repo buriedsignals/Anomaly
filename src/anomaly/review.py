@@ -402,7 +402,10 @@ def accept_findings(
     unavailable = review.get("status") != "recorded" or review.get("availability") != "available"
     if review.get("draft_hash") != _hash_json(draft):
         raise ReviewError("draft changed after review")
-    if review.get("review_basis_hash") and review["review_basis_hash"] != _review_basis_hash(root):
+    review_basis_hash = review.get("review_basis_hash")
+    if not isinstance(review_basis_hash, str) or review_basis_hash != _review_basis_hash(root):
+        if not isinstance(review_basis_hash, str):
+            raise ReviewError("review basis hash is required; review is unavailable")
         raise ReviewError("review is invalidated; rerun review after methodology or case inputs changed")
     if strict:
         attestation = review.get("independent_attestation")
@@ -482,7 +485,7 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
         replay = _read_json(replay_path)
     receipt = _read_json(receipt_path)
     replay_hash = receipt.get("replay_hash") if isinstance(receipt, dict) else None
-    valid_hash = replay_hash == _hash_json(replay) if strict else replay_hash in {None, _hash_json(replay)}
+    valid_hash = isinstance(replay_hash, str) and replay_hash == _hash_json(replay)
     if (
         not isinstance(replay, dict)
         or replay.get("status") != "replayed"

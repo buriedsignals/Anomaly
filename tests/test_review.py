@@ -11,6 +11,7 @@ import pytest
 from anomaly.acquire import register_local_source
 from anomaly.case import create_case
 from anomaly.review import (
+    ReviewError,
     accept_findings,
     draft_findings,
     record_review,
@@ -283,6 +284,47 @@ def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: P
     assert [claim["claim_id"] for claim in _claims(root)] == ["claim-accepted"]
     gate_b = _json(root / ".anomaly" / "receipts" / "gate-b.json")
     assert gate_b["accepted_claim_ids"] == ["claim-accepted"]
+
+
+@pytest.mark.parametrize("replay_hash", [None, "sha256:" + ("f" * 64)])
+def test_legacy_gate_b_rejects_replay_without_valid_hash(tmp_path: Path, replay_hash: str | None) -> None:
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+    replay_signals(root)
+    receipt_path = root / ".anomaly" / "receipts" / "replay.json"
+    receipt = _json(receipt_path)
+    if replay_hash is None:
+        del receipt["replay_hash"]
+    else:
+        receipt["replay_hash"] = replay_hash
+    receipt_path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+
+    with pytest.raises(ReviewError, match=r"(?i)(replay|hash|tamper)"):
+        accept_findings(root, ["claim-accepted"])
+    assert not (root / "findings" / "findings.json").exists()
+
+
+def test_legacy_gate_b_rejects_review_without_basis_hash(tmp_path: Path) -> None:
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+    review_path = root / "findings" / "review.json"
+    review = _json(review_path)
+    del review["review_basis_hash"]
+    review_path.write_text(json.dumps(review) + "\n", encoding="utf-8")
+
+    with pytest.raises(ReviewError, match=r"(?i)(basis|unavailable|review)"):
+        accept_findings(root, ["claim-accepted"])
+    assert not (root / "findings" / "findings.json").exists()
 
 
 def test_same_evidence_in_different_categories_is_not_corroboration(tmp_path: Path) -> None:
