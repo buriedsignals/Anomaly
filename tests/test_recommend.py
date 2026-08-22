@@ -194,7 +194,7 @@ def test_recommend_never_executes_sql_or_writes_findings(
     before = {
         path.relative_to(root): path.read_bytes()
         for path in root.rglob("*")
-        if path.is_file() and path.name != "plan.json"
+        if path.is_file() and path.name not in {"plan.json", "events.jsonl"}
     }
 
     _recommend_api().recommend_detectors(root, now=NOW)
@@ -202,8 +202,9 @@ def test_recommend_never_executes_sql_or_writes_findings(
     after = {
         path.relative_to(root): path.read_bytes()
         for path in root.rglob("*")
-        if path.is_file() and path.name != "plan.json"
+        if path.is_file() and path.name not in {"plan.json", "events.jsonl"}
     }
+
     assert after == before
     assert not (root / "findings" / "findings.json").exists()
     assert not (root / "evidence" / "signals.jsonl").exists()
@@ -247,6 +248,23 @@ def test_approval_records_gate_a_and_approved_subset_with_identity_and_time(
     state = read_json(root / ".anomaly" / "state.json")
     assert state["phase"] == "P4"
     assert state["gate"] == "A"
+
+
+def test_approval_refuses_empty_plan_without_sealing_gate_a(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Audit A4: Gate A must never seal with an empty approved subset."""
+    root = _prepared_case(tmp_path)
+    _patch_metadata(monkeypatch, _metadata())
+    api = _recommend_api()
+    api.recommend_detectors(root, now=NOW)
+
+    with pytest.raises(Exception, match=r"(?i)(empty|at least one|approved)"):
+        api.approve_detector_plan(root, [], approved_by="journalist", now=NOW)
+
+    assert not (root / ".anomaly" / "receipts" / "gate-a.json").exists()
+    state = read_json(root / ".anomaly" / "state.json")
+    assert state.get("gate") != "A"
 
 
 def test_execution_is_refused_until_gate_a_approval(tmp_path: Path) -> None:

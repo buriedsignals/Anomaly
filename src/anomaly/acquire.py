@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from anomaly.case import resume_case
+from anomaly.events import phase_event
 from anomaly.semantics import (
     FORMAT_BY_EXTENSION,
     UnsafeCasePathError,
@@ -24,6 +25,7 @@ class UnsupportedLocalSourceError(Exception):
     pass
 
 
+@phase_event("P1", "register_local_source")
 def register_local_source(
     root: Path,
     source: Path | str,

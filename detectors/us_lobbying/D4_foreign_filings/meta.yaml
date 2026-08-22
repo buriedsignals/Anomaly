@@ -1,0 +1,31 @@
+id: us_lobbying.foreign_filings
+version: 1.0.0
+title: Foreign filings
+author: gain-2026
+license: internal
+group: domain
+family: us_lobbying
+data_type: lobbying
+menu_order: 4
+attribution: Built during the GAIN 2026 Challenge
+source_repository: https://github.com/buriedsignals/gain-2026
+source_detector_id: D4
+source_name: D4_foreign_filings
+source_sql_hash: f7c962b62d2393b1
+source_provenance_hash: sha256:fc19ac379a874b2cf95d03344b4b0cfbe3903b4e71793295090644430b4eaff0
+source_csv_hash: sha256:8dd54b56a623504230c2fed212a03ad3ee285fb96e5d5774199331b142e4a157
+source_row_count: 500
+source_columns: [filing_uuid, filing_year, filing_period, registrant_name, client_name, client_country, client_ppb_country, foreign_entity_name, foreign_entity_country, foreign_entity_ppb, income, url]
+description: Senate filings carrying foreign entity records.
+required_tables: [senate_filings, senate_foreign_entities]
+required_fields: [id]
+parameters:
+  limit: 500
+signal_category: lobbying
+severity: medium
+expected_output: [filing_uuid, filing_year, filing_period, registrant_name, client_name, client_country, client_ppb_country, foreign_entity_name, foreign_entity_country, foreign_entity_ppb, income, url]
+assumptions: [Prepared local tables use the GAIN source schema.]
+false_positives: [Legitimate activity can produce the observed pattern.]
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

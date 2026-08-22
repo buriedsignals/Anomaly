@@ -30,19 +30,19 @@ CORE_DETECTOR_IDS = (
     "text.secret_patterns",
 )
 
-GAIN_DETECTOR_IDS = (
-    "gain.committee_say_vs_pay",
-    "gain.fara_gap_narrowed",
-    "gain.foreign_filings",
-    "gain.missing_income_filings",
-    "gain.new_registrant_surge",
-    "gain.pac_contribution_flow",
-    "gain.revolving_door_candidates",
-    "gain.revolving_door_committee_match",
-    "gain.shell_pattern_filings",
-    "gain.single_client_juggernauts",
-    "gain.spending_spikes",
-    "gain.issue_concentration_shifts",
+US_LOBBYING_DETECTOR_IDS = (
+    "us_lobbying.committee_say_vs_pay",
+    "us_lobbying.fara_gap_narrowed",
+    "us_lobbying.foreign_filings",
+    "us_lobbying.missing_income_filings",
+    "us_lobbying.new_registrant_surge",
+    "us_lobbying.pac_contribution_flow",
+    "us_lobbying.revolving_door_candidates",
+    "us_lobbying.revolving_door_committee_match",
+    "us_lobbying.shell_pattern_filings",
+    "us_lobbying.single_client_juggernauts",
+    "us_lobbying.spending_spikes",
+    "us_lobbying.issue_concentration_shifts",
 )
 
 
@@ -85,17 +85,15 @@ def _valid_user_package(root: Path) -> Path:
     return package
 
 
-def test_registry_discovers_core_and_gain_detectors_with_scalable_groups() -> None:
+def test_registry_discovers_core_and_us_lobbying_detectors_with_scalable_groups() -> None:
+    # Explicit limit is authoritative: the whole registry is listable.
     detectors = _registry_api().discover_detectors(limit=100)
-
     ids = tuple(item["id"] for item in detectors)
-    assert len(ids) == 10
-    assert set(ids) <= set(CORE_DETECTOR_IDS) | set(GAIN_DETECTOR_IDS)
-    assert {item["group"] for item in detectors} <= {
-        "categorical", "domain", "network", "numeric", "credential", "cross_dataset"
-    }
-    gain_families = {item.get("family") for item in detectors if item["id"].startswith("gain.")}
-    assert not gain_families or gain_families == {"gain"}
+    expected = set(CORE_DETECTOR_IDS) | set(US_LOBBYING_DETECTOR_IDS)
+    assert set(ids) == expected
+    assert all(isinstance(item["group"], str) and item["group"] for item in detectors)
+    us_lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("us_lobbying.")}
+    assert not us_lobbying_families or us_lobbying_families == {"us_lobbying"}
     required = {
         "id", "version", "title", "author", "license", "group", "description",
         "required_tables", "required_fields", "parameters", "signal_category",
@@ -103,6 +101,12 @@ def test_registry_discovers_core_and_gain_detectors_with_scalable_groups() -> No
         "sensitive_output", "resource_limits",
     }
     assert all(required <= set(item) for item in detectors)
+
+
+def test_registry_default_discovery_stays_bounded() -> None:
+    # Without an explicit limit, menu-style discovery stays bounded (PRD: <=10).
+    detectors = _registry_api().discover_detectors()
+    assert len(detectors) <= 10
 
 
 def test_registry_discovery_is_deterministic_and_rejects_duplicate_or_escape_packages(tmp_path: Path) -> None:

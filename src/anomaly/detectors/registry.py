@@ -166,17 +166,10 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
 
 def package_implementation_hash(package: Path) -> str:
     """Return the canonical hash for every file in a detector package."""
-    package = Path(package)
-    if package.is_symlink() or not package.is_dir():
-        raise RegistryError("detector package boundary is unsafe")
-    digest = hashlib.sha256()
-    for path in sorted(package.rglob("*")):
-        if path.is_symlink():
-            raise RegistryError("detector package contains a symlink")
-        if path.is_file():
-            digest.update(path.relative_to(package).as_posix().encode())
-            digest.update(path.read_bytes())
-    return "sha256:" + digest.hexdigest()
+    try:
+        return detect.package_implementation_hash(package)
+    except detect.DetectorError as error:
+        raise RegistryError(str(error)) from error
 
 
 def discover_detectors(
@@ -191,7 +184,9 @@ def discover_detectors(
     """Discover a deterministic, bounded metadata slice of the local registry."""
     if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
         raise RegistryError("limit must be a positive integer")
-    discovery_limit = min(limit if limit is not None else _DEFAULT_DISCOVERY_LIMIT, _DEFAULT_DISCOVERY_LIMIT)
+    # An explicit limit is authoritative: a family listing may legitimately
+    # exceed the default slice. The default keeps unbounded menu calls bounded.
+    discovery_limit = limit if limit is not None else _DEFAULT_DISCOVERY_LIMIT
     needle = search.casefold().strip() if isinstance(search, str) else None
     roots = tuple(Path(root) for root in roots) if roots is not None else (_ROOT,)
     packages: list[Path] = []
@@ -341,7 +336,7 @@ def recommend_detectors(
     else:
         # Keep each public discovery call bounded while allowing the default
         # recommendation menu to consider both catalog families.
-        metadata = discover_detectors(family="core") + discover_detectors(family="gain")
+        metadata = discover_detectors(family="core") + discover_detectors(family="us_lobbying")
     filtered = _menu_selection(metadata, limit=len(metadata), group=group, family=family, signal_category=signal_category)
     case_ready = detector_roots is None and root.is_dir() and (root / "data" / "index.duckdb").is_file()
     eligible: list[dict[str, Any]] = []

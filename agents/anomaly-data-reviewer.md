@@ -5,11 +5,31 @@ iteration_limit: 20
 allowed_verbs:
   - read-file
   - list-files
-  - return-review
+  - search
 disallowed_verbs:
-  - write-draft
-  - promote-finding
-  - alter-case-state
+  - write-file        # read-only: nothing is written outside its returned attestation
+  - execute-shell     # never bound
+  - fetch             # never bound
+  - invoke-skill      # never bound
+  - spawn-agent       # never bound
+  - wait-agent        # never bound
+return_contract:
+  reviewer_id: reviewer identity string
+  draft_hash: exact hash of the inspected immutable draft
+  attestation:
+    isolated: true
+    attested_by: reviewer identity string
+    draft_hash: exact hash of the inspected immutable draft
+    statement: non-empty description of what was inspected
+  verdicts:
+    "<claim_id>":
+      verdict: accepted | rejected | unresolved
+      notes: concise notes naming the passed or failed checks
+      signal_ids: exact signal ids supplied with the claim
+  unavailable_inputs: list of inputs that could not be inspected
+  replay_gaps: list of replay steps that could not be completed
+  unresolved_questions: list of open questions
+  alternatives: list of plausible alternative explanations
 ---
 
 # Anomaly data reviewer

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 24,
+  "slug": "rename-gain-family",
+  "title": "Archived terminal record (implemented in commit 89b18d68999e)",
+  "status": "done",
+  "stage": "done",
+  "category": "code",
+  "implement": {
+    "agent_id": "RenameDetectors",
+    "result": "green"
+  },
+  "tests": {
+    "green": true,
+    "authored_by_agent_id": "Main",
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/ -q --ignore=tests/test_gain_detectors.py",
+        "output": "700 passed"
+      }
+    ],
+    "gate": {
+      "hash": "89b18d68999eb7c32a9e8ad8a7f3e39ad8da0554",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/ -q --ignore=tests/test_gain_detectors.py",
+      "at": "2026-08-22T18:05:00Z"
+    }
+  },
+  "review": {
+    "verdict": "pass",
+    "reportedVerdict": "needs-work->pass",
+    "reviewer_agent_id": "RevAnomaly",
+    "findings": [],
+    "note": "blocking finding resolved by Main: test expectation corrected to match normalize_detector_result (registry.py:75-79)"
+  },
+  "audit": {
+    "required": false,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  }
+}

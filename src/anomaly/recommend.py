@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from anomaly import detect
+from anomaly.events import phase_event
 from anomaly.semantics import UnsafeCasePathError
 
 _MAX_DETECTORS = 10
@@ -252,6 +253,7 @@ def _rank_key(item: dict[str, Any]) -> tuple[Any, ...]:
     return (-total, -scores["relevance"], -scores["data_fit"], -scores["utility"], scores["cost"], scores["false_positive_risk"], item["id"])
 
 
+@phase_event("P3", "recommend_detectors")
 def recommend_detectors(root: Path, *, now: datetime, max_detectors: int = _MAX_DETECTORS) -> dict[str, Any]:
     """Recommend compatible built-in detectors without executing any detector code or SQL."""
     root = Path(root)
@@ -329,6 +331,7 @@ def recommend_detectors(root: Path, *, now: datetime, max_detectors: int = _MAX_
     return plan
 
 
+@phase_event("P3", "approve_detector_plan")
 def approve_detector_plan(
     root: Path, approved_ids: list[str] | tuple[str, ...], *, approved_by: str, now: datetime
 ) -> dict[str, Any]:
@@ -341,6 +344,10 @@ def approve_detector_plan(
     if not isinstance(approved_ids, (list, tuple)):
         raise RecommendationError("approved detector ids must be a list")
     approved = list(approved_ids)
+    if not approved:
+        raise RecommendationError(
+            "at least one detector must be approved before Gate A closes"
+        )
     if len(approved) > _MAX_DETECTORS:
         raise RecommendationError("maximum of 10 detectors may be approved")
     if any(not isinstance(item, str) or "/" in item or "\\" in item for item in approved):

@@ -18,6 +18,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.parquet as parquet
 
+from anomaly.events import phase_event
 from anomaly.semantics import UnsafeCasePathError, redact_credentials, validate_case_documents
 
 _BUILTIN_IDS = (
@@ -53,6 +54,26 @@ class DetectorError(RuntimeError):
     """A detector request or execution crossed a trusted boundary."""
 def _detector_root() -> Path:
     return Path(__file__).resolve().parents[2] / "detectors"
+
+def package_implementation_hash(package: Path) -> str:
+    """Return the canonical registry hash over every file in a detector package.
+
+    This is the same identity ``anomaly.detectors.registry`` publishes and
+    ``anomaly.review._current_detector_identity`` verifies; run provenance must
+    stamp it so strict replay of a real run can match the live package.
+    """
+    package = Path(package)
+    if package.is_symlink() or not package.is_dir():
+        raise DetectorError("detector package boundary is unsafe")
+    digest = hashlib.sha256()
+    for path in sorted(package.rglob("*")):
+        if path.is_symlink():
+            raise DetectorError("detector package contains a symlink")
+        if path.is_file():
+            digest.update(path.relative_to(package).as_posix().encode())
+            digest.update(path.read_bytes())
+    return "sha256:" + digest.hexdigest()
+
 
 def _strip_yaml_comment(value: str) -> str:
     quoted = False
@@ -563,6 +584,8 @@ def _require_gate_a(root: Path, requested: tuple[str, ...]) -> dict[str, tuple[s
         scopes[detector_id] = tuple(table_ids)
     return scopes
 
+
+@phase_event("P4", "execute_detectors")
 def execute_detectors(
     root: Path,
     detector_ids: tuple[str, ...] | list[str],
@@ -656,9 +679,7 @@ def execute_detectors(
                     signal_key = f"{detector_id}:{table['table_id']}:{candidate_id}"
                     signal["signal_id"] = "signal-" + hashlib.sha256(signal_key.encode("utf-8")).hexdigest()[:24]
                     rows.append(redact_credentials(_json_safe(signal)))
-        implementation_hash = _sha256_bytes(
-            query_bytes + (package / "meta.yaml").read_bytes()
-        )
+        implementation_hash = package_implementation_hash(package)
         stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
         run_id = f"{stamp}-{detector_id.replace('.', '_')}-{implementation_hash[7:19]}"
         run_dir = runs_root / run_id

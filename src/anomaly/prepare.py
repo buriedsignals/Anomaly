@@ -17,6 +17,7 @@ import pyarrow.parquet as parquet
 
 import anomaly.decode as public_decoder
 from anomaly.case import resume_case
+from anomaly.events import phase_event
 from anomaly.semantics import (
     UnsafeCasePathError,
     redact_credentials,
@@ -41,6 +42,7 @@ _LATITUDE_NAMES = {"lat", "latitude"}
 _LONGITUDE_NAMES = {"lon", "lng", "longitude"}
 
 
+@phase_event("P2", "prepare_sources")
 def prepare_sources(root: Path, *, now: datetime) -> dict[str, Any]:
     """Build one hash-bound prepared generation for every registered source."""
     root = Path(root)

@@ -120,7 +120,7 @@ def test_default_execution_resolves_explicit_namespaced_gain_detector_without_un
     assert len(discovered) <= 10
     results = execute_detectors(
         root,
-        ["gain.spending_spikes"],
+        ["us_lobbying.spending_spikes"],
         approved=True,
         limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
     )

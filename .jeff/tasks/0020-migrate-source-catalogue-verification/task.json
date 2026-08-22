@@ -31,7 +31,9 @@
     "gate": {
       "hash": "f33c5f64",
       "green": false,
-      "clean": true
+      "clean": true,
+      "command": "uv run --extra test pytest tests/ -q",
+      "at": "2026-08-22T10:02:00Z"
     }
   },
   "review": {
@@ -48,8 +50,8 @@
   "commits": [],
   "kickbacks": [
     {
-      "from": "gate",
-      "to": "operator",
+      "from": "review",
+      "to": "implement",
       "reason": "Known-green baseline cannot be established: the full suite requires the absent external gain-2026 fixture root. Do not repair unrelated GAIN fixtures under this migration task.",
       "at": "2026-08-22T10:02:00Z"
     }
@@ -64,7 +66,9 @@
       "Reuse the offline adapter result-contract, forbidden-surface, ThinkPol-specific, lazy-loading, registry-safety, and explicit no-Arbiter checks.",
       "Run only the targeted source catalogue test file and record pre-update RED plus post-update targeted evidence."
     ],
-    "testFiles": ["tests/test_source_catalogue.py"],
+    "testFiles": [
+      "tests/test_source_catalogue.py"
+    ],
     "redRun": {
       "command": "uv run pytest tests/test_source_catalogue.py -q",
       "output": "Pre-update: 2 failed, 9 passed because the test used the removed navigator/osint-navigator/data/skills path and attempted to decode .DS_Store. After the test contract update: 11 passed."

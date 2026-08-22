@@ -15,6 +15,7 @@ import pyarrow as pa
 import pyarrow.parquet as parquet
 
 from anomaly.case import resume_case
+from anomaly.events import phase_event
 from anomaly.semantics import UnsafeCasePathError, redact_credentials
 
 _START = "<!-- anomaly:p2:start -->"
@@ -40,6 +41,7 @@ class PreparedDataError(ValueError):
     """The prepared manifest, Parquet generation, and DuckDB index disagree."""
 
 
+@phase_event("P2", "profile_prepared")
 def profile_prepared(root: Path, *, now: datetime) -> dict[str, Any]:
     """Validate and completely profile the current prepared generation."""
     root = Path(root)

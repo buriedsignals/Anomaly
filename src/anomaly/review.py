@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from anomaly import detect
 from anomaly.detectors.registry import package_implementation_hash
+from anomaly.events import phase_event
 from anomaly.semantics import UnsafeCasePathError, redact_credentials, validate_case_documents
 
 
@@ -52,6 +53,7 @@ _SIGNAL_FIELDS = {
 }
 
 
+@phase_event("P6", "replay_signals")
 def replay_signals(root: Path) -> dict[str, Any]:
     """Revalidate source/provenance bindings and recompute signal calculations."""
     root = _root(root)
@@ -174,6 +176,7 @@ def _replay_basis_status(root: Path) -> dict[str, Any] | None:
     return None
 
 
+@phase_event("P5", "draft_findings")
 def draft_findings(root: Path) -> dict[str, Any]:
     """Create an immutable, redacted draft from ranked signal previews."""
     root = _root(root)
@@ -240,6 +243,7 @@ def draft_findings(root: Path) -> dict[str, Any]:
     return payload
 
 
+@phase_event("P6", "record_review")
 def record_review(
     root: Path,
     reviewer_id: str | None,
@@ -353,11 +357,16 @@ def _strict_case(root: Path) -> bool:
         provenance_path = run_dir / "provenance.json"
         if provenance_path.is_file() and not provenance_path.is_symlink():
             payload = _read_json(provenance_path)
-            if isinstance(payload, dict) and payload.get("schema_version") == 2:
+            # Any recorded provenance makes the case attestation-required:
+            # a legacy-shaped run (schema_version 1, no signals.parquet) must
+            # never bypass the isolated-review attestation and silently count
+            # as independent.
+            if isinstance(payload, dict):
                 return True
     return False
 
 
+@phase_event("P7", "accept_findings")
 def accept_findings(
     root: Path,
     accepted_claim_ids: list[str] | tuple[str, ...],
@@ -474,8 +483,10 @@ def _require_replay(root: Path, strict: bool) -> dict[str, Any]:
     replay_path = _owned(root, "evidence/replay.json")
     receipt_path = _owned(root, ".anomaly/receipts/replay.json")
     if not replay_path.is_file() or not receipt_path.is_file():
-        if strict:
-            raise ReviewError("replay artifact/status is required before Gate B")
+        # Strict cases (any recorded run provenance) replay here too: a
+        # missing artifact is regenerated or refused with its reason, so a
+        # legacy-shaped run can never skip the attestation gate by skipping
+        # the explicit replay call.
         replay = replay_signals(root)
         if replay.get("status") != "replayed":
             raise ReviewError(
@@ -584,6 +595,7 @@ def _verify_prepared_generation(root: Path, provenance: dict[str, Any]) -> None:
         raise ReviewError("prepared table set changed")
 
 
+@phase_event("P7", "write_report")
 def write_report(root: Path) -> dict[str, Any]:
     """Write a redacted report and relative case links from Gate-B findings."""
     root = _root(root)
@@ -783,8 +795,12 @@ def _verify_provenance(
         current = _current_detector_identity(detector_id)
         if current is None:
             raise ReviewError("detector dependency is unavailable")
-        if current["query_hash"] != query_hash or current["implementation_hash"] != detector_hash:
-            raise ReviewError("detector query does not match provenance")
+        if current["query_hash"] != query_hash:
+            raise ReviewError("detector query hash does not match provenance")
+        if current["implementation_hash"] != detector_hash:
+            raise ReviewError(
+                "detector implementation identity does not match provenance"
+            )
     elif source_list and any(item not in source_hashes.values() for item in source_list):
         raise ReviewError("source provenance hash is not registered")
     # Legacy provenance remains readable, but never weakens the live detector

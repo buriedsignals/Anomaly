@@ -12,6 +12,7 @@ from anomaly.acquire import register_local_source
 from anomaly.case import create_case
 from anomaly.review import (
     ReviewError,
+    _hash_json,
     accept_findings,
     draft_findings,
     record_review,
@@ -29,6 +30,17 @@ DETECTOR_HASH = package_implementation_hash(
 
 def _sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _attestation(root: Path, reviewer: str) -> dict[str, Any]:
+    """Isolated-review attestation bound to the current draft hash."""
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+    return {
+        "isolated": True,
+        "attested_by": reviewer,
+        "draft_hash": _hash_json(draft),
+        "statement": "Inspected draft, replay, provenance, and previews.",
+    }
 
 
 def _json(path: Path) -> Any:
@@ -261,8 +273,32 @@ def test_unavailable_reviewer_is_explicit_and_cannot_claim_independent_review(
 
     review = _json(root / "findings" / "review.json")
     assert "unavailable" in json.dumps(review).lower()
-    accept_findings(root, ["claim-accepted"])
-    assert _claims(root) == []
+    # Audit A5: an unavailable review cannot promote anything through Gate B.
+    with pytest.raises(ReviewError, match=r"(?i)(attestation|review)"):
+        accept_findings(root, ["claim-accepted"])
+    assert not (root / "findings" / "findings.json").exists()
+
+
+def test_legacy_shaped_run_requires_attestation_instead_of_silent_independence(
+    tmp_path: Path,
+) -> None:
+    """Audit A5: a schema-1 run without signals.parquet is attestation-required."""
+    root = _seed_case(tmp_path)
+    draft_findings(root)
+
+    review = record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+    )
+
+    assert review["schema_version"] == 2
+    assert review["status"] == "unavailable"
+    assert review["independent"] is False
+
+    with pytest.raises(ReviewError, match=r"(?i)attestation"):
+        accept_findings(root, ["claim-accepted"])
+    assert not (root / "findings" / "findings.json").exists()
 
 
 def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: Path) -> None:
@@ -276,6 +312,7 @@ def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: P
             "claim-accepted": {"verdict": "accepted", "notes": "replayed"},
             "claim-rejected": {"verdict": "rejected", "notes": "denominator is not justified"},
         },
+        independent_attestation=_attestation(root, "reviewer-007"),
     )
 
     accept_findings(root, ["claim-accepted", "claim-rejected", "claim-unreviewed"])
@@ -339,6 +376,7 @@ def test_same_evidence_in_different_categories_is_not_corroboration(tmp_path: Pa
                 "signal_ids": ["signal-category-a", "signal-category-b"],
             }
         },
+        independent_attestation=_attestation(root, "reviewer-007"),
     )
 
     accept_findings(root, ["claim-category-corroboration"])
@@ -363,6 +401,7 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
         root,
         reviewer_id="reviewer-007",
         verdicts={"claim-accepted": {"verdict": "accepted"}},
+        independent_attestation=_attestation(root, "reviewer-007"),
     )
     accept_findings(root, ["claim-accepted"])
     write_report(root)
@@ -383,7 +422,12 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
 def test_credentials_never_persist_in_review_findings_or_report(tmp_path: Path) -> None:
     root = _seed_case(tmp_path)
     draft_findings(root)
-    record_review(root, reviewer_id="reviewer-007", verdicts={"claim-accepted": {"verdict": "accepted"}})
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+        independent_attestation=_attestation(root, "reviewer-007"),
+    )
     accept_findings(root, ["claim-accepted"])
     write_report(root)
 
