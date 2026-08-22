@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from anomaly import detect
+from anomaly.detectors.registry import package_implementation_hash
 from anomaly.semantics import UnsafeCasePathError, redact_credentials, validate_case_documents
 
 
@@ -808,7 +809,7 @@ def _current_detector_identity(detector_id: str) -> dict[str, str] | None:
         "version": version,
         "query_hash": _sha256_bytes(query_bytes),
         "metadata_hash": _sha256_bytes(metadata_bytes),
-        "implementation_hash": _sha256_bytes(query_bytes + metadata_bytes),
+        "implementation_hash": package_implementation_hash(package),
     }
 
 

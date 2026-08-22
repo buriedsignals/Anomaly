@@ -13,17 +13,21 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-22T00:13:36Z",
-  "updatedAt": "2026-08-22T00:58:28Z",
+  "updatedAt": "2026-08-22T01:23:03Z",
   "agents": {
-    "implementer_agent_id": "01a026f5-b5ab-7ef2-bede-69a1bff065d4",
+    "implementer_agent_id": "01a02706-1059-74a3-8da7-e0a839a4e984",
     "reviewer_agent_id": "01a026d7-c576-70c3-8466-8be1d5880384",
     "reviewer2_agent_id": "01a026d7-c5cd-7eb1-9174-16f06088144e",
     "audit_agent_id": "01a026d7-c631-7881-b7e6-6843d0c0a18e"
   },
   "tests": {
-    "authored_by_agent_id": "01a026e9-8d47-7ad0-b8c1-864c33f68b85",
+    "authored_by_agent_id": "01a026fc-f380-7f42-8c04-dfeda0aa2846",
     "green": false,
     "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
@@ -225,17 +229,16 @@
     "refactorOpportunity": "Unify live detector package identity fingerprinting across replay, review, and Gate B."
   },
   "implement": {
-    "agent_id": "01a026f5-b5ab-7ef2-bede-69a1bff065d4",
+    "agent_id": "01a02706-1059-74a3-8da7-e0a839a4e984",
     "result": "green",
     "files": [
       "src/anomaly/detectors/registry.py",
       "src/anomaly/review.py",
-      "tests/test_detector_registry.py",
-      "tests/test_gain_detectors.py"
+      "tests/test_m5_handoff.py"
     ],
     "greenRun": {
-      "command": "env UV_CACHE_DIR=/private/tmp/anomaly-uv-cache uv run --extra test pytest -q",
-      "output": "focused 14 passed; full 702 passed; security 0 findings across 5 files; diff check passed"
+      "command": ".venv/bin/pytest -q",
+      "output": "focused 46 passed; full 704 passed; security 0 findings; compile passed"
     }
   },
   "review2": {

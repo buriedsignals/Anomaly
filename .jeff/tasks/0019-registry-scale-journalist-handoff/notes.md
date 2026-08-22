@@ -61,3 +61,10 @@
   missing live-package freshness behavior plus the unbounded default-root
   path. Missing-dependency behavior is an existing review finding, not a new
   test slice in this authoring request.
+
+## Repair / final RED authoring context
+
+- Production code and `task.json` remain untouched. This pass adds only two RED contracts in `tests/test_m5_handoff.py`.
+- The first contract requires registry package validation and replay/live review to emit the same implementation hash for an unchanged built-in package. It exposes the current mismatch: registry hashing includes package files such as fixtures while live review hashes `query.sql` and `meta.yaml`.
+- The second contract requires bounded default discovery (at most 10 results) to coexist with explicit execution of the namespaced `gain.spending_spikes` detector. It uses the existing approved gain-case fixture and must fail against the current capped default catalog, proving that explicit execution needs a separate bounded resolution path.
+- RED command: `./.venv/bin/pytest -q tests/test_m5_handoff.py`.

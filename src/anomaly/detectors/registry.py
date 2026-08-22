@@ -160,11 +160,12 @@ def validate_detector_package(package: Path, *, allowed_root: Path | None = None
     normalized["package"] = str(package)
     normalized["origin"] = "core" if package.is_relative_to(_ROOT.resolve()) else "user"
     normalized["signal_contract"] = "lead"
-    normalized["implementation_hash"] = _hash_package(package)
+    normalized["implementation_hash"] = package_implementation_hash(package)
     return normalized
 
 
-def _hash_package(package: Path) -> str:
+def package_implementation_hash(package: Path) -> str:
+    """Return the canonical hash for every file in a detector package."""
     digest = hashlib.sha256()
     for path in sorted(package.rglob("*")):
         if path.is_file() and not path.is_symlink():
@@ -361,6 +362,31 @@ def recommend_detectors(
     }
 
 
+def _resolve_explicit_detectors(detector_ids: tuple[str, ...]) -> dict[str, dict[str, Any]]:
+    """Resolve at most ten requested core packages without expanding the menu."""
+    requested = set(detector_ids)
+    resolved: dict[str, dict[str, Any]] = {}
+    for metadata_path in sorted(_ROOT.rglob("meta.yaml"), key=lambda path: path.as_posix()):
+        if "_template" in metadata_path.parts:
+            continue
+        try:
+            hint = _yaml(metadata_path)
+        except RegistryError:
+            continue
+        detector_id = hint.get("id")
+        if detector_id not in requested:
+            continue
+        package = metadata_path.parent
+        metadata = validate_detector_package(package, allowed_root=_ROOT)
+        if metadata["id"] in resolved:
+            raise RegistryError("duplicate detector id")
+        resolved[metadata["id"]] = metadata
+    unknown = requested - resolved.keys()
+    if unknown:
+        raise RegistryError("unknown detector")
+    return resolved
+
+
 def execute_detectors(
     root: Path,
     detector_ids: list[str] | tuple[str, ...],
@@ -374,10 +400,7 @@ def execute_detectors(
     requested = tuple(detector_ids)
     if not requested or len(requested) > 10 or len(set(requested)) != len(requested):
         raise RegistryError("at most 10 unique detectors may be executed")
-    catalog = {item["id"]: item for item in discover_detectors()}
-    unknown = [item for item in requested if item not in catalog]
-    if unknown:
-        raise RegistryError("unknown detector")
+    catalog = _resolve_explicit_detectors(requested)
     root = Path(root)
     if not root.is_dir():
         raise RegistryError("prepared case with index is required")

@@ -9,7 +9,7 @@ import pytest
 
 from anomaly.acquire import register_local_source
 from anomaly.case import UnsafeCasePathError, create_case, fork_case
-from anomaly.detectors.registry import discover_detectors, validate_detector_package
+from anomaly.detectors.registry import discover_detectors, execute_detectors, validate_detector_package
 from anomaly.review import accept_findings, draft_findings, record_review, replay_signals
 
 
@@ -87,6 +87,45 @@ def test_registry_discovery_with_default_roots_is_bounded_to_safe_maximum() -> N
     results = discover_detectors()
 
     assert len(results) <= 10
+
+
+def test_registry_and_live_review_use_the_same_implementation_hash_for_unchanged_package() -> None:
+    from anomaly.review import _current_detector_identity
+
+    package = Path(__file__).parents[1] / "detectors" / "numeric" / "zscore_outliers"
+
+    registry_metadata = validate_detector_package(package)
+    live_identity = _current_detector_identity("numeric.zscore_outliers")
+
+    assert live_identity is not None
+    assert registry_metadata["implementation_hash"] == live_identity["implementation_hash"]
+
+
+def test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery(
+    tmp_path: Path,
+) -> None:
+    from test_gain_detectors import _approved_gain_case
+
+    root = _approved_gain_case(
+        tmp_path,
+        source_payloads= {
+            "senate_filings": (
+                "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n" +
+                "1,1,Example,2025,Q1,100,Q1\n"
+            )
+        }
+    )
+    discovered = discover_detectors()
+
+    assert len(discovered) <= 10
+    results = execute_detectors(
+        root,
+        ["gain.spending_spikes"],
+        approved=True,
+        limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
+    )
+
+    assert isinstance(results, list)
 
 
 def test_user_detector_metadata_preserves_origin_version_hash_and_signal_contract(
