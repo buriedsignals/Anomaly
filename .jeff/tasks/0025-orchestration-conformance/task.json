@@ -4,23 +4,23 @@
   "id": 25,
   "slug": "orchestration-conformance",
   "title": "Unify Anomaly durable execution and demo conformance",
-  "status": "in_progress",
+  "status": "blocked",
   "stage": "review",
   "category": "code",
   "priority": "p1",
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T17:35:23Z",
+  "updatedAt": "2026-08-23T17:54:27Z",
   "agents": {
     "implementer_agent_id": "ImplementAnomalyCouncilRecovery",
-    "reviewer_agent_id": null,
-    "reviewer2_agent_id": null,
-    "audit_agent_id": null
+    "reviewer_agent_id": "ReviewAnomalyCouncilCorrect",
+    "reviewer2_agent_id": "ReviewAnomalyCouncilStandards",
+    "audit_agent_id": "AuditAnomalyCouncil"
   },
   "tests": {
     "authored_by_agent_id": "PlanAnomalyCouncilRecovery",
-    "green": false,
+    "green": true,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
@@ -41,21 +41,252 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ],
+    "gate": {
+      "hash": "bd3d49ecfa322331a71146640ecc3e8deb7b11c0",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-23T17:35:56Z"
+    }
+  },
+  "review": {
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "ReviewAnomalyCouncilCorrect",
+    "findings": [
+      {
+        "file": "src/anomaly/workflow.py",
+        "line": 509,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "The runner-owned README projector deletes every byte from the first `## Outputs` heading through EOF. Bound the rewrite to the generated outputs section and preserve unrelated trailing README content; add a completed-case restart/invalidation test with a journalist-authored section after Outputs.",
+        "why": "`load_state()` invokes this projector for every completed case, and P7 invalidation invokes it again. A normal completed README with `## Journalist notes` after the generated links loses those notes on the next resume or mutation. This is reachable user-data loss and the AC6 restart/mutation tests assert only status markers, so they cannot detect it.",
+        "refute": {
+          "agent_id": "RefuteAnomalyPostReadme",
+          "source": "review",
+          "finding": "src/anomaly/workflow.py:509 The runner-owned README projector deletes every byte from the first `## Outputs` heading through EOF. Bound the rewrite to the generated outputs section and preserve unrelated trailing README content; add a completed-case restart/invalidation test with a journalist-authored section after Outputs.",
+          "verdict": "survives",
+          "rationale": "The defect is reachable through the public restart and invalidation paths because completed P7 state unconditionally invokes a greedy Outputs-to-EOF rewrite, while neither case validation nor the tests protect journalist-authored trailing README content.",
+          "evidence": [
+            {
+              "command": "read anomaly/src/anomaly/workflow.py:138-153,290-315,488-518; anomaly/src/anomaly/product_workflow.py:30-55",
+              "output": "run_product_workflow constructs WorkflowRunner and calls load_state; load_state calls _project_readme whenever the completed phase is P7, and completed-case invalidation calls it again. _project_readme applies re.sub(r\"\\n## Outputs\\n.*\\Z\", \"\\n\", readme, flags=re.S), so every byte after the first matching Outputs heading is removed."
+            },
+            {
+              "command": "read anomaly/src/anomaly/case.py:254-303; anomaly/PRD.md:74-126",
+              "output": "The case-tree preflight permits ordinary regular non-executable README.md content and imposes no heading-order or generated-only restriction. The PRD identifies README.md as the journalist entry point, so a journalist-authored section after Outputs is a valid reachable input, not an impossible precondition."
+            },
+            {
+              "command": "read anomaly/tests/test_pipeline_walk.py:185-218,435-466",
+              "output": "The completed-case restart test checks state, report, chart receipt, and event order only; the Gate-B invalidation test checks status/phase markers and preserved review/replay files only. Neither appends nor asserts preservation of trailing journalist-authored README content."
+            }
+          ]
+        }
+      },
+      {
+        "file": "src/anomaly/review.py",
+        "line": 655,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "F5 is not fully resolved: `_markdown_text` escapes Markdown delimiters but leaves dataset-controlled bare `http://`/`https://` URLs, which GitHub-Flavored Markdown recognizes as extended autolinks. Neutralize URL schemes as well as link/HTML delimiters, and revise the test to detect rendered/scan-visible links rather than only checking that the original raw syntax disappeared.",
+        "why": "The exact malicious fixture serializes to `Acme \\[click\\]\\(https://example.invalid/pixel\\) &lt;img src=https://example.invalid/pixel&gt; ...`; both external URLs remain. GFM specifies that `http://` and `https://` followed by a valid domain are extended URL autolinks. `tests/test_review.py:449-452` passes because it checks only absence of the original inline-link and raw-tag strings, not absence of active outbound links, so the council's active-Markdown blocker and AC7 report-safety contract remain under-tested and unmet.",
+        "refute": {
+          "agent_id": "RefuteAnomalyPostUrl",
+          "source": "review",
+          "finding": "src/anomaly/review.py:655 F5 is not fully resolved: `_markdown_text` escapes Markdown delimiters but leaves dataset-controlled bare `http://`/`https://` URLs, which GitHub-Flavored Markdown recognizes as extended autolinks. Neutralize URL schemes as well as link/HTML delimiters, and revise the test to detect rendered/scan-visible links rather than only checking that the original raw syntax disappeared.",
+          "verdict": "survives",
+          "rationale": "The production detector interpolates dataset-derived candidate_id values into statements, the report path passes those statements through _markdown_text, and that function demonstrably preserves bare HTTPS URLs that GFM renders as links while the current test asserts only that the original inline-link and HTML-tag strings disappeared.",
+          "evidence": [
+            {
+              "command": "read src/anomaly/detect.py:632-675; src/anomaly/review.py:180-235,370-480,625-658",
+              "output": "detect.py reads candidate_id from each query result and builds statement = f\"{category} lead for {candidate_id}\"; draft_findings preserves signal.statement, accept_findings promotes it, and write_report serializes it with _markdown_text. _markdown_text collapses whitespace, HTML-escapes, and backslash-escapes Markdown delimiters but has no URL-scheme guard."
+            },
+            {
+              "command": ".venv/bin/python -c \"from anomaly.review import _markdown_text; print(repr(_markdown_text(<exact malicious fixture>)))\"",
+              "output": "'Acme \\\\[click\\\\]\\\\(https://example.invalid/pixel\\\\) &lt;img src=https://example.invalid/pixel&gt; \\\\#\\\\# Forged heading' — both bare HTTPS URLs remain."
+            },
+            {
+              "command": "read GFM spec section 6.9, extended URL autolinks, lines 10989-11038",
+              "output": "The spec states that http:// or https:// followed by a valid domain is recognized as an extended URL autolink and shows the rendered HTML as <a href=\"...\">."
+            },
+            {
+              "command": "read tests/test_review.py:425-454",
+              "output": "The inertness test checks only that the original [click](https://...) string, raw <img ...> string, and newline heading are absent; it never asserts that outbound URLs or rendered/scan-visible links are absent."
+            }
+          ]
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "command": "git log --oneline -7; git diff --stat b382922 bd3d49e; read task.json:49-56",
+        "output": "Reviewed the full recovered task from base b382922 through clean green gate bd3d49ecfa322331a71146640ecc3e8deb7b11c0. Supplied gate evidence is 725 passed; no full-suite rerun was performed."
+      },
+      {
+        "command": "read task.md; read notes.md:100-139; inspect production and tests",
+        "output": "Re-derived all seven locked dispositions symmetrically. AC1/2/3/4/5 have consumer-observable seams; AC6 misses unrelated README preservation across restart/invalidation; AC7's new Markdown test does not prove inert rendered output. Deleted aliases/completion helper have no absence-test debt, and repository search confirms the production symbols are gone."
+      },
+      {
+        "command": "grep state writers; read workflow.py:210-585, product_workflow.py:1-279, pipeline tests:223-578, review tests:393-452",
+        "output": "F1-F4 and earlier authority/retry/invalidation contracts are implemented and meaningfully tested: runner-owned completion/demotion, pre-write duplicate validation, body-only write_report, whole-tree symlink rejection, three durable attempts, event-failure resume, public replacement/stale-plan recovery, identity separation, canonical P5 draft then P6 replay/review, and completed-demo resume."
+      },
+      {
+        "command": ".venv/bin/python -c \"from anomaly.review import _markdown_text; print(_markdown_text(<F5 fixture>))\"; read GFM spec §6.9 lines 11008-11021",
+        "output": "Serializer output retained two bare `https://example.invalid/pixel` strings. GFM explicitly recognizes http/https plus a valid domain as extended URL autolinks and shows them rendered as `<a href=...>`."
+      },
+      {
+        "command": ".venv/bin/python -c \"apply workflow.py:509 regex to completed README with a trailing Journalist notes section\"",
+        "output": "Output retained only the status lines; the generated Outputs section and the trailing `## Journalist notes\\nKeep this.` content were both deleted."
+      },
+      {
+        "command": ".venv/bin/pytest <six recovery tests> -q",
+        "output": "Not rerun: the read-only execution sandbox had no writable temporary directory. This does not supersede the supplied clean 725-pass gate; code/test inspection and pure serializer/regex probes supplied the review evidence."
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC5",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
       }
     ]
   },
-  "review": {
-    "verdict": null,
-    "reviewer_agent_id": null,
-    "findings": [],
-    "evidence": []
-  },
   "audit": {
     "required": true,
-    "verdict": "na",
-    "audit_agent_id": null,
+    "verdict": "pass",
+    "audit_agent_id": "AuditAnomalyCouncil",
     "findings": [],
-    "evidence": []
+    "evidence": [
+      {
+        "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly/workflow.py src/anomaly/product_workflow.py src/anomaly/acquire.py src/anomaly/detect.py src/anomaly/review.py src/anomaly/recommend.py --skip-deps --report-dir scratchpads",
+        "output": "Six final Python files scanned with no dropped targets. Scanner reported 3 high findings, 0 critical/medium/low, 12 categories with 2 scanner-only gaps, audit_tool_failures=0, and REVIEW. The report records an informational gitleaks parse failure and absent semgrep; built-in secrets coverage completed."
+      },
+      {
+        "command": "read scratchpads/security-audit-20260823-173641.md and detect.py:80-110,220-270,330-390,620-655",
+        "output": "All three machine findings are false positives. ast.literal_eval parses only quoted scalar literals from fixed package-owned built-in metadata and cannot execute calls, names, or attributes. PRAGMA memory_limit and threads interpolate only positive non-boolean integers returned by _validate_limits; public workflow supplies no limits override. DuckDB remains read-only with external access disabled."
+      },
+      {
+        "command": "read product_workflow.py:1-279 and case.py:245-325",
+        "output": "The public dispatcher applies the existing whole-tree lstat scanner before root resolution, resume, WorkflowRunner construction, JSON reads, or durable writes. It rejects symlinked ancestors, nested symlinks, special files, and executable artifacts. The earlier case-controlled symlink disclosure/path escape is closed."
+      },
+      {
+        "command": "read workflow.py:90-180,240-340,360-570,620-720 and product_workflow.py:35-180",
+        "output": "F1-F5 lifecycle checks pass: P7 identity changes invalidate durable completion and demote README; P7 completion and README projection occur only after report plus charts succeed; source IDs are canonicalized and the whole batch is rejected before the first registration write; write_report no longer owns durable completion; WorkflowRunner is the sole runtime transition authority. Obsolete competing completion plumbing is absent."
+      },
+      {
+        "command": "read acquire.py:35-205; recommend.py:330-390; detect.py:518-589; review.py:100-150,378-510,570-670; report.py:45-145",
+        "output": "Persisted source, attempt, artifact, and receipt paths are relative and containment-checked. Gate A binds the exact plan hash and approved detector set before execution. Replay binds source/run identities. Gate B binds draft, isolated review, replay, accepted findings, and journalist identity. Report and chart generation revalidate the Gate B hashes; charts write a deterministic hash receipt, and runner completion follows only after that succeeds."
+      },
+      {
+        "command": "read review.py:594-659; grep Markdown credential signatures in PRD.md and skills/anomaly/SKILL.md",
+        "output": "Dataset-derived claim IDs and statements are credential-redacted, whitespace-collapsed, HTML-escaped, and Markdown punctuation-escaped at the serializer boundary, making headings, links, images, and raw HTML inert. Manual Markdown secret search found no credential material."
+      },
+      {
+        "command": "read PRD.md:200-270,335-375 and skills/anomaly/SKILL.md:20-105,135-175",
+        "output": "PRD and installed skill agree on one P0-P7 authority, explicit Gate A and Gate B pauses, hash-bound receipts, relative portable paths, installed-only detector execution, disabled external access, credential redaction, independent review, and README completion only after every P7 output. The recovery adds only the standard-library html module and no dependency, network, process, crypto, or deserialization surface."
+      },
+      {
+        "command": "supplied final gate evidence",
+        "output": "The parent brief reports the final full gate passed with 725 tests; per instruction, the full suite was not rerun during this read-only audit."
+      }
+    ],
+    "reportedVerdict": "pass",
+    "scan": {
+      "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly/workflow.py src/anomaly/product_workflow.py src/anomaly/acquire.py src/anomaly/detect.py src/anomaly/review.py src/anomaly/recommend.py --skip-deps --report-dir scratchpads",
+      "recommendation": "REVIEW",
+      "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0025-orchestration-conformance/security-audit-20260823-173641.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_with_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [
@@ -230,7 +461,7 @@
       "at": "2026-08-23T17:15:13Z"
     }
   ],
-  "blockedReason": null,
+  "blockedReason": "Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.; Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.; The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.; The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.; Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
   "abandonReason": null,
   "plan": {
     "result": "red",
@@ -280,7 +511,122 @@
       "No files changed."
     ]
   },
-  "review2": null,
+  "review2": {
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "ReviewAnomalyCouncilStandards",
+    "findings": [
+      {
+        "file": "tests/test_pipeline_walk.py",
+        "line": 199,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "The recovery moved successful README completion and portable output-link projection from `write_report` to `WorkflowRunner`, then deleted the old success/link assertions without re-homing them in the public completed-demo test. Add assertions after public P7 completion for `Status: complete`, `Last completed phase: P7`, and the three expected relative output links (including that they resolve inside the case).",
+        "why": "This is removal of a consumer-observable test without removal of the production behavior. A regression that removes the successful-P7 `_project_readme` call passes every new F1–F5 test: the invalidation and chart-failure tests only require README to be active, and the direct report test correctly requires no completion. AC6's completed public demo and AC7's portable relative paths therefore lack a change-detecting seam.",
+        "refute": {
+          "agent_id": "RefuteAnomalyPostTest",
+          "source": "review2",
+          "finding": "tests/test_pipeline_walk.py:199 The recovery moved successful README completion and portable output-link projection from `write_report` to `WorkflowRunner`, then deleted the old success/link assertions without re-homing them in the public completed-demo test. Add assertions after public P7 completion for `Status: complete`, `Last completed phase: P7`, and the three expected relative output links (including that they resolve inside the case).",
+          "verdict": "survives",
+          "rationale": "No equivalent coverage exists: the public completed-demo test proves durable P7 state and report/chart artifacts but never reads README.md, while the only remaining completion-string assertions are negative failure-path checks and no test asserts the three projected links or their containment.",
+          "evidence": [
+            {
+              "command": "read tests/test_pipeline_walk.py:199-220",
+              "output": "test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work asserts last_completed_phase == P7, findings/report.md exists, charts.json exists, resume equality, and event ordering; it contains no README.md, completion-status, or output-link assertion."
+            },
+            {
+              "command": "grep -n '_project_readme|## Outputs|accepted findings|unresolved work|Status.*complete|Last completed phase.*P7' tests",
+              "output": "The only matches are tests/test_pipeline_walk.py:495-496, which assert Status: complete and Last completed phase: P7 are absent after P7 failure; there are no positive completion assertions and no projected-link assertions anywhere under tests."
+            },
+            {
+              "command": "read src/anomaly/workflow.py:448-521",
+              "output": "Successful P7 calls _project_readme after committing complete state; _project_readme writes Status: complete, Last completed phase: P7, and relative links to findings/findings.json, findings/report.md, and findings/unresolved.md. Removing that success call would leave the completed-demo assertions satisfied."
+            }
+          ]
+        }
+      },
+      {
+        "file": "src/anomaly/workflow.py",
+        "line": 35,
+        "severity": "low",
+        "class": "follow-up",
+        "kickTo": "refactor",
+        "what": "Delete the unused `RetryLimitExceeded` exception.",
+        "why": "Repository-wide search finds only its declaration. The recovery deleted the six proven-unused compatibility aliases but left this weightless API surface from the same earlier maintainability finding."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "Source/test inspection of F1-F5 and locked ACs",
+        "output": "F1 runner-owned completion/demotion is implemented at workflow.py:262-320, 367-463, 489-524; F2 whole-batch canonical prevalidation is at product_workflow.py:70-98; F3 `write_report` is body-only at review.py:594-653; F4 the existing whole-tree scanner runs before resume/runner construction at product_workflow.py:44-49; F5 report claim text is collapsed and HTML/Markdown-escaped at review.py:655-658. The corresponding recovery tests cover failure/demotion/boundary behavior."
+      },
+      {
+        "command": "git diff --numstat 5cd3aa9..bd3d49e, grouped",
+        "output": "Council recovery: canonical production +64/-56 (net +8); tests +112/-92 (net +20); installed docs +1/-1 (net 0); security evidence +87/-0; Jeff state +1694/-84. This matches the supplied recovery accounting."
+      },
+      {
+        "command": "git diff --numstat b382922..bd3d49e, grouped",
+        "output": "Full task: canonical production +740/-102 (net +638); tests +628/-119 (net +509); documentation/evidence +234/-36 (net +198); Jeff state +4382/-7 (net +4375). Non-Jeff total +1602/-257 (net +1345). Base workflow.py was 420 lines; final workflow.py is 729 and product_workflow.py is 279, combined 1008."
+      },
+      {
+        "command": "git diff 5cd3aa9..bd3d49e -- tests/test_pipeline_walk.py tests/test_review.py; grep README/output-link assertions in tests",
+        "output": "Recovery correctly deletes the duplicate 64-line P0-P7 test composition and stale direct-report completion expectation, but also deletes assertions for successful `Status: complete` and the three portable README links. Current public-demo coverage asserts P7 state/report/chart receipt only; current README assertions cover demotion/failure/non-completion only."
+      },
+      {
+        "command": "Recorded full gate at bd3d49ecfa322331a71146640ecc3e8deb7b11c0",
+        "output": "Green, clean gate; supplied gate count 725 passed. A local targeted rerun was not possible in this read-only judgment sandbox: uv cache initialization was denied and direct pytest reported no usable temporary directory."
+      },
+      {
+        "command": "grep -n RetryLimitExceeded src tests",
+        "output": "Only src/anomaly/workflow.py:35 declares the symbol; no source or test consumer exists."
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC5",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      }
+    ]
+  },
   "refutes": [
     {
       "agent_id": "RefuteBPrd",
@@ -759,6 +1105,73 @@
           "output": "1 passed in 0.23s"
         }
       ]
+    },
+    {
+      "agent_id": "RefuteAnomalyPostReadme",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:509 The runner-owned README projector deletes every byte from the first `## Outputs` heading through EOF. Bound the rewrite to the generated outputs section and preserve unrelated trailing README content; add a completed-case restart/invalidation test with a journalist-authored section after Outputs.",
+      "verdict": "survives",
+      "rationale": "The defect is reachable through the public restart and invalidation paths because completed P7 state unconditionally invokes a greedy Outputs-to-EOF rewrite, while neither case validation nor the tests protect journalist-authored trailing README content.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:138-153,290-315,488-518; anomaly/src/anomaly/product_workflow.py:30-55",
+          "output": "run_product_workflow constructs WorkflowRunner and calls load_state; load_state calls _project_readme whenever the completed phase is P7, and completed-case invalidation calls it again. _project_readme applies re.sub(r\"\\n## Outputs\\n.*\\Z\", \"\\n\", readme, flags=re.S), so every byte after the first matching Outputs heading is removed."
+        },
+        {
+          "command": "read anomaly/src/anomaly/case.py:254-303; anomaly/PRD.md:74-126",
+          "output": "The case-tree preflight permits ordinary regular non-executable README.md content and imposes no heading-order or generated-only restriction. The PRD identifies README.md as the journalist entry point, so a journalist-authored section after Outputs is a valid reachable input, not an impossible precondition."
+        },
+        {
+          "command": "read anomaly/tests/test_pipeline_walk.py:185-218,435-466",
+          "output": "The completed-case restart test checks state, report, chart receipt, and event order only; the Gate-B invalidation test checks status/phase markers and preserved review/replay files only. Neither appends nor asserts preservation of trailing journalist-authored README content."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyPostUrl",
+      "source": "review",
+      "finding": "src/anomaly/review.py:655 F5 is not fully resolved: `_markdown_text` escapes Markdown delimiters but leaves dataset-controlled bare `http://`/`https://` URLs, which GitHub-Flavored Markdown recognizes as extended autolinks. Neutralize URL schemes as well as link/HTML delimiters, and revise the test to detect rendered/scan-visible links rather than only checking that the original raw syntax disappeared.",
+      "verdict": "survives",
+      "rationale": "The production detector interpolates dataset-derived candidate_id values into statements, the report path passes those statements through _markdown_text, and that function demonstrably preserves bare HTTPS URLs that GFM renders as links while the current test asserts only that the original inline-link and HTML-tag strings disappeared.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/detect.py:632-675; src/anomaly/review.py:180-235,370-480,625-658",
+          "output": "detect.py reads candidate_id from each query result and builds statement = f\"{category} lead for {candidate_id}\"; draft_findings preserves signal.statement, accept_findings promotes it, and write_report serializes it with _markdown_text. _markdown_text collapses whitespace, HTML-escapes, and backslash-escapes Markdown delimiters but has no URL-scheme guard."
+        },
+        {
+          "command": ".venv/bin/python -c \"from anomaly.review import _markdown_text; print(repr(_markdown_text(<exact malicious fixture>)))\"",
+          "output": "'Acme \\\\[click\\\\]\\\\(https://example.invalid/pixel\\\\) &lt;img src=https://example.invalid/pixel&gt; \\\\#\\\\# Forged heading' — both bare HTTPS URLs remain."
+        },
+        {
+          "command": "read GFM spec section 6.9, extended URL autolinks, lines 10989-11038",
+          "output": "The spec states that http:// or https:// followed by a valid domain is recognized as an extended URL autolink and shows the rendered HTML as <a href=\"...\">."
+        },
+        {
+          "command": "read tests/test_review.py:425-454",
+          "output": "The inertness test checks only that the original [click](https://...) string, raw <img ...> string, and newline heading are absent; it never asserts that outbound URLs or rendered/scan-visible links are absent."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyPostTest",
+      "source": "review2",
+      "finding": "tests/test_pipeline_walk.py:199 The recovery moved successful README completion and portable output-link projection from `write_report` to `WorkflowRunner`, then deleted the old success/link assertions without re-homing them in the public completed-demo test. Add assertions after public P7 completion for `Status: complete`, `Last completed phase: P7`, and the three expected relative output links (including that they resolve inside the case).",
+      "verdict": "survives",
+      "rationale": "No equivalent coverage exists: the public completed-demo test proves durable P7 state and report/chart artifacts but never reads README.md, while the only remaining completion-string assertions are negative failure-path checks and no test asserts the three projected links or their containment.",
+      "evidence": [
+        {
+          "command": "read tests/test_pipeline_walk.py:199-220",
+          "output": "test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work asserts last_completed_phase == P7, findings/report.md exists, charts.json exists, resume equality, and event ordering; it contains no README.md, completion-status, or output-link assertion."
+        },
+        {
+          "command": "grep -n '_project_readme|## Outputs|accepted findings|unresolved work|Status.*complete|Last completed phase.*P7' tests",
+          "output": "The only matches are tests/test_pipeline_walk.py:495-496, which assert Status: complete and Last completed phase: P7 are absent after P7 failure; there are no positive completion assertions and no projected-link assertions anywhere under tests."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:448-521",
+          "output": "Successful P7 calls _project_readme after committing complete state; _project_readme writes Status: complete, Last completed phase: P7, and relative links to findings/findings.json, findings/report.md, and findings/unresolved.md. Removing that success call would leave the completed-demo assertions satisfied."
+        }
+      ]
     }
   ],
   "convergence": {
@@ -1015,7 +1428,7 @@
         ]
       },
       "verdict": "block",
-      "outcome": null,
+      "outcome": "blocked-to-operator",
       "synthesizer_agent_id": "SynthesizeAnomalyTerminal",
       "researchProvenance": "canonical",
       "cycle": 2
@@ -1024,11 +1437,11 @@
       "episode": 1,
       "route": "causal-subgraph-reconstruction",
       "baselineGate": {
-        "hash": "5cd3aa9a6d4561a5e6890f418a7885917e277323",
+        "hash": "bd3d49ecfa322331a71146640ecc3e8deb7b11c0",
         "clean": true,
         "green": true,
         "command": "uv run --extra test pytest tests/",
-        "at": "2026-08-23T16:49:56Z"
+        "at": "2026-08-23T17:35:56Z"
       },
       "test_author_agent_id": "PlanAnomalyCouncilRecovery",
       "builder_agent_id": "ImplementAnomalyCouncilRecovery",

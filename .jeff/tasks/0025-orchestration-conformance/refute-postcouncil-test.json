@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 4,
+  "source": "review2",
+  "finding": "tests/test_pipeline_walk.py:199 The recovery moved successful README completion and portable output-link projection from `write_report` to `WorkflowRunner`, then deleted the old success/link assertions without re-homing them in the public completed-demo test. Add assertions after public P7 completion for `Status: complete`, `Last completed phase: P7`, and the three expected relative output links (including that they resolve inside the case).",
+  "verdict": "survives",
+  "rationale": "No equivalent coverage exists: the public completed-demo test proves durable P7 state and report/chart artifacts but never reads README.md, while the only remaining completion-string assertions are negative failure-path checks and no test asserts the three projected links or their containment.",
+  "evidence": [
+    {
+      "command": "read tests/test_pipeline_walk.py:199-220",
+      "output": "test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work asserts last_completed_phase == P7, findings/report.md exists, charts.json exists, resume equality, and event ordering; it contains no README.md, completion-status, or output-link assertion."
+    },
+    {
+      "command": "grep -n '_project_readme|## Outputs|accepted findings|unresolved work|Status.*complete|Last completed phase.*P7' tests",
+      "output": "The only matches are tests/test_pipeline_walk.py:495-496, which assert Status: complete and Last completed phase: P7 are absent after P7 failure; there are no positive completion assertions and no projected-link assertions anywhere under tests."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:448-521",
+      "output": "Successful P7 calls _project_readme after committing complete state; _project_readme writes Status: complete, Last completed phase: P7, and relative links to findings/findings.json, findings/report.md, and findings/unresolved.md. Removing that success call would leave the completed-demo assertions satisfied."
+    }
+  ]
+}

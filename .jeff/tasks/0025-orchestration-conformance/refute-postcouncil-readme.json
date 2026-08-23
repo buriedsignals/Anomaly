@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 4,
+  "source": "review",
+  "finding": "src/anomaly/workflow.py:509 The runner-owned README projector deletes every byte from the first `## Outputs` heading through EOF. Bound the rewrite to the generated outputs section and preserve unrelated trailing README content; add a completed-case restart/invalidation test with a journalist-authored section after Outputs.",
+  "verdict": "survives",
+  "rationale": "The defect is reachable through the public restart and invalidation paths because completed P7 state unconditionally invokes a greedy Outputs-to-EOF rewrite, while neither case validation nor the tests protect journalist-authored trailing README content.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/workflow.py:138-153,290-315,488-518; anomaly/src/anomaly/product_workflow.py:30-55",
+      "output": "run_product_workflow constructs WorkflowRunner and calls load_state; load_state calls _project_readme whenever the completed phase is P7, and completed-case invalidation calls it again. _project_readme applies re.sub(r\"\\n## Outputs\\n.*\\Z\", \"\\n\", readme, flags=re.S), so every byte after the first matching Outputs heading is removed."
+    },
+    {
+      "command": "read anomaly/src/anomaly/case.py:254-303; anomaly/PRD.md:74-126",
+      "output": "The case-tree preflight permits ordinary regular non-executable README.md content and imposes no heading-order or generated-only restriction. The PRD identifies README.md as the journalist entry point, so a journalist-authored section after Outputs is a valid reachable input, not an impossible precondition."
+    },
+    {
+      "command": "read anomaly/tests/test_pipeline_walk.py:185-218,435-466",
+      "output": "The completed-case restart test checks state, report, chart receipt, and event order only; the Gate-B invalidation test checks status/phase markers and preserved review/replay files only. Neither appends nor asserts preservation of trailing journalist-authored README content."
+    }
+  ]
+}

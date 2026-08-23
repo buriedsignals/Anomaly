@@ -1,0 +1,95 @@
+{
+  "stage": "review",
+  "cycle": 4,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/workflow.py",
+      "line": 509,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The runner-owned README projector deletes every byte from the first `## Outputs` heading through EOF. Bound the rewrite to the generated outputs section and preserve unrelated trailing README content; add a completed-case restart/invalidation test with a journalist-authored section after Outputs.",
+      "why": "`load_state()` invokes this projector for every completed case, and P7 invalidation invokes it again. A normal completed README with `## Journalist notes` after the generated links loses those notes on the next resume or mutation. This is reachable user-data loss and the AC6 restart/mutation tests assert only status markers, so they cannot detect it."
+    },
+    {
+      "file": "src/anomaly/review.py",
+      "line": 655,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "F5 is not fully resolved: `_markdown_text` escapes Markdown delimiters but leaves dataset-controlled bare `http://`/`https://` URLs, which GitHub-Flavored Markdown recognizes as extended autolinks. Neutralize URL schemes as well as link/HTML delimiters, and revise the test to detect rendered/scan-visible links rather than only checking that the original raw syntax disappeared.",
+      "why": "The exact malicious fixture serializes to `Acme \\[click\\]\\(https://example.invalid/pixel\\) &lt;img src=https://example.invalid/pixel&gt; ...`; both external URLs remain. GFM specifies that `http://` and `https://` followed by a valid domain are extended URL autolinks. `tests/test_review.py:449-452` passes because it checks only absence of the original inline-link and raw-tag strings, not absence of active outbound links, so the council's active-Markdown blocker and AC7 report-safety contract remain under-tested and unmet."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git log --oneline -7; git diff --stat b382922 bd3d49e; read task.json:49-56",
+      "output": "Reviewed the full recovered task from base b382922 through clean green gate bd3d49ecfa322331a71146640ecc3e8deb7b11c0. Supplied gate evidence is 725 passed; no full-suite rerun was performed."
+    },
+    {
+      "command": "read task.md; read notes.md:100-139; inspect production and tests",
+      "output": "Re-derived all seven locked dispositions symmetrically. AC1/2/3/4/5 have consumer-observable seams; AC6 misses unrelated README preservation across restart/invalidation; AC7's new Markdown test does not prove inert rendered output. Deleted aliases/completion helper have no absence-test debt, and repository search confirms the production symbols are gone."
+    },
+    {
+      "command": "grep state writers; read workflow.py:210-585, product_workflow.py:1-279, pipeline tests:223-578, review tests:393-452",
+      "output": "F1-F4 and earlier authority/retry/invalidation contracts are implemented and meaningfully tested: runner-owned completion/demotion, pre-write duplicate validation, body-only write_report, whole-tree symlink rejection, three durable attempts, event-failure resume, public replacement/stale-plan recovery, identity separation, canonical P5 draft then P6 replay/review, and completed-demo resume."
+    },
+    {
+      "command": ".venv/bin/python -c \"from anomaly.review import _markdown_text; print(_markdown_text(<F5 fixture>))\"; read GFM spec \u00a76.9 lines 11008-11021",
+      "output": "Serializer output retained two bare `https://example.invalid/pixel` strings. GFM explicitly recognizes http/https plus a valid domain as extended URL autolinks and shows them rendered as `<a href=...>`."
+    },
+    {
+      "command": ".venv/bin/python -c \"apply workflow.py:509 regex to completed README with a trailing Journalist notes section\"",
+      "output": "Output retained only the status lines; the generated Outputs section and the trailing `## Journalist notes\\nKeep this.` content were both deleted."
+    },
+    {
+      "command": ".venv/bin/pytest <six recovery tests> -q",
+      "output": "Not rerun: the read-only execution sandbox had no writable temporary directory. This does not supersede the supplied clean 725-pass gate; code/test inspection and pure serializer/regex probes supplied the review evidence."
+    }
+  ]
+}

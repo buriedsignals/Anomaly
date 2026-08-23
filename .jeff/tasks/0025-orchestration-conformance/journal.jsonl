@@ -108,3 +108,16 @@
 {"seq":107,"at":"2026-08-23T17:27:12.915Z","event":"record","stage":"plan","agent":"PlanAnomalyCouncilRecovery"}
 {"seq":108,"at":"2026-08-23T17:27:22.231Z","event":"intent","stage":"implement","note":"Implement council recovery with estimated +50/-40 production and delete obsolete completion/aliases/test composition"}
 {"seq":109,"at":"2026-08-23T17:35:23.872Z","event":"record","stage":"implement","agent":"ImplementAnomalyCouncilRecovery"}
+{"seq":110,"at":"2026-08-23T17:35:56.377Z","event":"gate","hash":"bd3d49ecfa322331a71146640ecc3e8deb7b11c0","green":true,"clean":true}
+{"seq":111,"at":"2026-08-23T17:36:03.853Z","event":"intent","stage":"review","note":"Post-council correctness review after net +8 production recovery"}
+{"seq":112,"at":"2026-08-23T17:36:03.913Z","event":"intent","stage":"review","note":"Post-council simplicity review with deleted aliases/completion/duplicate tests and line accounting"}
+{"seq":113,"at":"2026-08-23T17:36:03.972Z","event":"intent","stage":"audit","note":"Post-council audit of tree scanner, Markdown inertness, source batch, README projection"}
+{"seq":114,"at":"2026-08-23T17:49:30.412Z","event":"record","stage":"review","agent":"ReviewAnomalyCouncilCorrect"}
+{"seq":115,"at":"2026-08-23T17:49:39.014Z","event":"record","stage":"review","agent":"ReviewAnomalyCouncilStandards"}
+{"seq":116,"at":"2026-08-23T17:49:48.468Z","event":"record","stage":"audit","agent":"AuditAnomalyCouncil"}
+{"seq":117,"at":"2026-08-23T17:50:06.673Z","event":"intent","stage":"refute","note":"Refute README trailing content data loss"}
+{"seq":118,"at":"2026-08-23T17:50:06.733Z","event":"intent","stage":"refute","note":"Refute bare URL autolink in escaped Markdown"}
+{"seq":119,"at":"2026-08-23T17:50:06.792Z","event":"intent","stage":"refute","note":"Refute missing successful README/output-link test"}
+{"seq":120,"at":"2026-08-23T17:54:27.534Z","event":"record","stage":"refute","agent":"RefuteAnomalyPostReadme"}
+{"seq":121,"at":"2026-08-23T17:54:27.603Z","event":"record","stage":"refute","agent":"RefuteAnomalyPostUrl"}
+{"seq":122,"at":"2026-08-23T17:54:27.672Z","event":"record","stage":"refute","agent":"RefuteAnomalyPostTest"}

@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 4,
+  "source": "review",
+  "finding": "src/anomaly/review.py:655 F5 is not fully resolved: `_markdown_text` escapes Markdown delimiters but leaves dataset-controlled bare `http://`/`https://` URLs, which GitHub-Flavored Markdown recognizes as extended autolinks. Neutralize URL schemes as well as link/HTML delimiters, and revise the test to detect rendered/scan-visible links rather than only checking that the original raw syntax disappeared.",
+  "verdict": "survives",
+  "rationale": "The production detector interpolates dataset-derived candidate_id values into statements, the report path passes those statements through _markdown_text, and that function demonstrably preserves bare HTTPS URLs that GFM renders as links while the current test asserts only that the original inline-link and HTML-tag strings disappeared.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/detect.py:632-675; src/anomaly/review.py:180-235,370-480,625-658",
+      "output": "detect.py reads candidate_id from each query result and builds statement = f\"{category} lead for {candidate_id}\"; draft_findings preserves signal.statement, accept_findings promotes it, and write_report serializes it with _markdown_text. _markdown_text collapses whitespace, HTML-escapes, and backslash-escapes Markdown delimiters but has no URL-scheme guard."
+    },
+    {
+      "command": ".venv/bin/python -c \"from anomaly.review import _markdown_text; print(repr(_markdown_text(<exact malicious fixture>)))\"",
+      "output": "'Acme \\\\[click\\\\]\\\\(https://example.invalid/pixel\\\\) &lt;img src=https://example.invalid/pixel&gt; \\\\#\\\\# Forged heading' \u2014 both bare HTTPS URLs remain."
+    },
+    {
+      "command": "read GFM spec section 6.9, extended URL autolinks, lines 10989-11038",
+      "output": "The spec states that http:// or https:// followed by a valid domain is recognized as an extended URL autolink and shows the rendered HTML as <a href=\"...\">."
+    },
+    {
+      "command": "read tests/test_review.py:425-454",
+      "output": "The inertness test checks only that the original [click](https://...) string, raw <img ...> string, and newline heading are absent; it never asserts that outbound URLs or rendered/scan-visible links are absent."
+    }
+  ]
+}

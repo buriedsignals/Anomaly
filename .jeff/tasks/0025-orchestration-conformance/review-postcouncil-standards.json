@@ -1,0 +1,95 @@
+{
+  "stage": "review",
+  "cycle": 4,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    }
+  ],
+  "findings": [
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 199,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The recovery moved successful README completion and portable output-link projection from `write_report` to `WorkflowRunner`, then deleted the old success/link assertions without re-homing them in the public completed-demo test. Add assertions after public P7 completion for `Status: complete`, `Last completed phase: P7`, and the three expected relative output links (including that they resolve inside the case).",
+      "why": "This is removal of a consumer-observable test without removal of the production behavior. A regression that removes the successful-P7 `_project_readme` call passes every new F1\u2013F5 test: the invalidation and chart-failure tests only require README to be active, and the direct report test correctly requires no completion. AC6's completed public demo and AC7's portable relative paths therefore lack a change-detecting seam."
+    },
+    {
+      "file": "src/anomaly/workflow.py",
+      "line": 35,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "refactor",
+      "what": "Delete the unused `RetryLimitExceeded` exception.",
+      "why": "Repository-wide search finds only its declaration. The recovery deleted the six proven-unused compatibility aliases but left this weightless API surface from the same earlier maintainability finding."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "Source/test inspection of F1-F5 and locked ACs",
+      "output": "F1 runner-owned completion/demotion is implemented at workflow.py:262-320, 367-463, 489-524; F2 whole-batch canonical prevalidation is at product_workflow.py:70-98; F3 `write_report` is body-only at review.py:594-653; F4 the existing whole-tree scanner runs before resume/runner construction at product_workflow.py:44-49; F5 report claim text is collapsed and HTML/Markdown-escaped at review.py:655-658. The corresponding recovery tests cover failure/demotion/boundary behavior."
+    },
+    {
+      "command": "git diff --numstat 5cd3aa9..bd3d49e, grouped",
+      "output": "Council recovery: canonical production +64/-56 (net +8); tests +112/-92 (net +20); installed docs +1/-1 (net 0); security evidence +87/-0; Jeff state +1694/-84. This matches the supplied recovery accounting."
+    },
+    {
+      "command": "git diff --numstat b382922..bd3d49e, grouped",
+      "output": "Full task: canonical production +740/-102 (net +638); tests +628/-119 (net +509); documentation/evidence +234/-36 (net +198); Jeff state +4382/-7 (net +4375). Non-Jeff total +1602/-257 (net +1345). Base workflow.py was 420 lines; final workflow.py is 729 and product_workflow.py is 279, combined 1008."
+    },
+    {
+      "command": "git diff 5cd3aa9..bd3d49e -- tests/test_pipeline_walk.py tests/test_review.py; grep README/output-link assertions in tests",
+      "output": "Recovery correctly deletes the duplicate 64-line P0-P7 test composition and stale direct-report completion expectation, but also deletes assertions for successful `Status: complete` and the three portable README links. Current public-demo coverage asserts P7 state/report/chart receipt only; current README assertions cover demotion/failure/non-completion only."
+    },
+    {
+      "command": "Recorded full gate at bd3d49ecfa322331a71146640ecc3e8deb7b11c0",
+      "output": "Green, clean gate; supplied gate count 725 passed. A local targeted rerun was not possible in this read-only judgment sandbox: uv cache initialization was denied and direct pytest reported no usable temporary directory."
+    },
+    {
+      "command": "grep -n RetryLimitExceeded src tests",
+      "output": "Only src/anomaly/workflow.py:35 declares the symbol; no source or test consumer exists."
+    }
+  ]
+}
