@@ -390,7 +390,7 @@ def test_same_evidence_in_different_categories_is_not_corroboration(tmp_path: Pa
     )
 
 
-def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
+def test_write_report_preserves_accepted_work_without_completing_case(
     tmp_path: Path,
 ) -> None:
     root = _seed_case(tmp_path)
@@ -418,11 +418,38 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
     assert "A third lead remains unresolved." not in report
     assert (root / "findings" / "unresolved.md").read_text(encoding="utf-8") == unresolved
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert "Status: complete" in readme
-    assert "findings/findings.json" in readme
-    assert "findings/report.md" in readme
-    assert "findings/unresolved.md" in readme
-    assert all(not Path(line.split("](", 1)[-1].split(")", 1)[0]).is_absolute() for line in readme.splitlines() if "](" in line)
+    assert "Status: active" in readme
+    assert "Last completed phase: P0" in readme
+
+
+def test_write_report_serializes_dataset_text_as_inert_markdown(
+    tmp_path: Path,
+) -> None:
+    root = _seed_case(tmp_path)
+    preview_path = root / "evidence" / "runs" / "run-007" / "preview.json"
+    preview = _json(preview_path)
+    preview[0]["statement"] = (
+        "Acme [click](https://example.invalid/pixel)\n"
+        "<img src=https://example.invalid/pixel>\n"
+        "## Forged heading"
+    )
+    preview_path.write_text(json.dumps(preview, indent=2) + "\n", encoding="utf-8")
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+        independent_attestation=_attestation(root, "reviewer-007"),
+    )
+    accept_findings(root, ["claim-accepted"])
+
+    write_report(root)
+
+    report = (root / "findings" / "report.md").read_text(encoding="utf-8")
+    assert "Acme" in report
+    assert "[click](https://example.invalid/pixel)" not in report
+    assert "<img src=https://example.invalid/pixel>" not in report
+    assert "\n## Forged heading" not in report
 
 
 def test_credentials_never_persist_in_review_findings_or_report(tmp_path: Path) -> None:

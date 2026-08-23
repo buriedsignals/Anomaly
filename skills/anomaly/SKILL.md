@@ -89,7 +89,7 @@ state. It pauses at each missing human input rather than bypassing it.
 | Gate B closes in P7 | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
 | P7 report | 12 | `anomaly.review.write_report` materializes the redacted report body from Gate-B findings |
 | P7 charts | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
-| P7 completion | 14 | `anomaly.review.complete_report_readme` projects complete status and relative links only after every output succeeds |
+| P7 completion | 14 | `anomaly.workflow.WorkflowRunner` projects complete status and relative links only after every output succeeds |
 
 Step 13 records a sha256 receipt in `.anomaly/receipts/charts.json` and refuses
 without writing anything when the hash-bound Gate B receipt is missing or no

@@ -144,6 +144,8 @@ class WorkflowRunner:
             and digest != _artifact_identity(self.root, name)
         ]
         if not changed:
+            if _completed_phase(state) == "P7":
+                _project_readme(self.root, state)
             return state
         start = min((_IDENTITY_PHASES[name] for name in changed), key=PHASES.index)
         return self._invalidate_state(
@@ -162,7 +164,6 @@ class WorkflowRunner:
             raise WorkflowError("workflow state must be a record")
         return value
 
-    read_state = load_state
 
     def _write_state(self, state: Mapping[str, Any]) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,7 +186,6 @@ class WorkflowRunner:
                 result.append(item)
         return result
 
-    read_events = events
 
     def append_event(
         self,
@@ -302,6 +302,8 @@ class WorkflowRunner:
         elif start_index <= PHASES.index("P7") and state.get("gate") == "B":
             state["gate"] = "A"
         self._write_state(state)
+        if previous == "P7":
+            _project_readme(self.root, state)
         self.append_event(
             "invalidation",
             phase=start,
@@ -311,8 +313,6 @@ class WorkflowRunner:
         )
         return state
 
-    invalidate_downstream = invalidate
-    record_invalidation = invalidate
 
     def _check_fingerprints(self) -> None:
         if not self._fingerprints:
@@ -344,7 +344,6 @@ class WorkflowRunner:
                 return self.load_state()
         return self.load_state()
 
-    resume = run
 
     def _validate_composition(self) -> None:
         handlers = self._handlers
@@ -428,6 +427,8 @@ class WorkflowRunner:
                 state["blocked"] = True
                 state["blocked_reason"] = message
                 self._write_state(state)
+                if phase == "P7":
+                    _project_readme(self.root, state)
                 self.append_event(
                     "phase_unavailable",
                     phase=phase,
@@ -453,6 +454,8 @@ class WorkflowRunner:
                 state.pop("invalidated_from", None)
             _capture_identities(self.root, state, phase)
             self._write_state(state)
+            if phase == "P7":
+                _project_readme(self.root, state)
             self.append_event(
                 "phase_completed",
                 phase=phase,
@@ -462,7 +465,6 @@ class WorkflowRunner:
             return PhaseResult(phase, "completed", attempt, output)
         return PhaseResult(phase, "unavailable", attempt, error="retry limit reached")
 
-    execute_phase = run_phase
 
     def _handler_for(self, phase: str) -> PhaseHandler:
         if isinstance(self._handlers, Mapping):
@@ -481,6 +483,43 @@ class WorkflowRunner:
     def _initialize_durable_execution(self) -> dict[str, str]:
         self._read_state()
         return {"status": "initialized"}
+
+
+def _project_readme(root: Path, state: Mapping[str, Any]) -> None:
+    """Project authoritative workflow completion into the case README."""
+    readme_path = root / "README.md"
+    if not readme_path.is_file():
+        return
+    if readme_path.is_symlink():
+        raise WorkflowError("README.md must be a regular case file")
+    original = readme_path.read_text(encoding="utf-8")
+    readme = original
+    completed = _completed_phase(state) or "P0"
+    values = {
+        "Status": "complete" if completed == "P7" and state.get("status") == "complete" else "active",
+        "Last completed phase": completed,
+    }
+    for label, value in values.items():
+        updated, count = re.subn(
+            rf"(?m)^{re.escape(label)}: .*?$",
+            f"{label}: {value}",
+            readme,
+        )
+        readme = updated if count else readme.rstrip() + f"\n\n{label}: {value}\n"
+    readme = re.sub(r"\n## Outputs\n.*\Z", "\n", readme, flags=re.S)
+    if values["Status"] == "complete":
+        readme = readme.rstrip() + (
+            "\n\n## Outputs\n\n"
+            "- [accepted findings](findings/findings.json)\n"
+            "- [report](findings/report.md)\n"
+            "- [unresolved work](findings/unresolved.md)\n"
+        )
+    projected = str(redact_credentials(readme.rstrip() + "\n"))
+    if projected == original:
+        return
+    temporary = readme_path.with_suffix(".md.tmp")
+    temporary.write_text(projected, encoding="utf-8")
+    temporary.replace(readme_path)
 
 
 def run_workflow(

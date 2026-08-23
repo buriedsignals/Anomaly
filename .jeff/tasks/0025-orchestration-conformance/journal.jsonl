@@ -79,3 +79,32 @@
 {"seq":78,"at":"2026-08-23T16:42:34.188Z","event":"record","stage":"plan","agent":"PlanAnomalyEventRepair"}
 {"seq":79,"at":"2026-08-23T16:43:39.137Z","event":"intent","stage":"implement","note":"Confirm plan-authored event expectation green; production unchanged"}
 {"seq":80,"at":"2026-08-23T16:49:29.036Z","event":"record","stage":"implement","agent":"ImplementAnomalyEventRepair"}
+{"seq":81,"at":"2026-08-23T16:49:56.429Z","event":"gate","hash":"5cd3aa9a6d4561a5e6890f418a7885917e277323","green":true,"clean":true}
+{"seq":82,"at":"2026-08-23T16:50:04.160Z","event":"intent","stage":"review","note":"Terminal correctness review after causal reconstruction and event contract"}
+{"seq":83,"at":"2026-08-23T16:50:04.219Z","event":"intent","stage":"review","note":"Terminal standards review with simplicity objective and line-growth accounting"}
+{"seq":84,"at":"2026-08-23T16:50:04.281Z","event":"intent","stage":"audit","note":"Terminal audit of contained .anomaly, product composition, source replacement, receipts, detector boundary"}
+{"seq":85,"at":"2026-08-23T16:59:48.875Z","event":"record","stage":"review","agent":"ReviewAnomalyTerminalCorrect"}
+{"seq":86,"at":"2026-08-23T16:59:55.414Z","event":"record","stage":"review","agent":"ReviewAnomalyTerminalStandards"}
+{"seq":87,"at":"2026-08-23T17:00:03.102Z","event":"record","stage":"audit","agent":"AuditAnomalyTerminal"}
+{"seq":88,"at":"2026-08-23T17:00:14.044Z","event":"intent","stage":"refute","note":"Refute stale README after invalidation"}
+{"seq":89,"at":"2026-08-23T17:00:14.103Z","event":"intent","stage":"refute","note":"Refute duplicate source batch retry overwrite"}
+{"seq":90,"at":"2026-08-23T17:00:14.163Z","event":"intent","stage":"refute","note":"Refute direct write_report completion path"}
+{"seq":91,"at":"2026-08-23T17:00:14.220Z","event":"intent","stage":"refute","note":"Refute case-controlled symlink external read"}
+{"seq":92,"at":"2026-08-23T17:00:14.278Z","event":"intent","stage":"refute","note":"Refute active Markdown injection in report"}
+{"seq":93,"at":"2026-08-23T17:07:19.552Z","event":"record","stage":"refute","agent":"RefuteAnomalyReadmeInvalidate"}
+{"seq":94,"at":"2026-08-23T17:07:19.614Z","event":"record","stage":"refute","agent":"RefuteAnomalyDuplicateBatch"}
+{"seq":95,"at":"2026-08-23T17:07:19.676Z","event":"record","stage":"refute","agent":"RefuteAnomalyWriteReport"}
+{"seq":96,"at":"2026-08-23T17:07:19.740Z","event":"record","stage":"refute","agent":"RefuteAnomalyCaseSymlink"}
+{"seq":97,"at":"2026-08-23T17:07:19.802Z","event":"record","stage":"refute","agent":"RefuteAnomalyMarkdown"}
+{"seq":98,"at":"2026-08-23T17:07:40.815Z","event":"intent","stage":"council","note":"Anomaly terminal integrity inquiry over five blockers"}
+{"seq":99,"at":"2026-08-23T17:07:40.874Z","event":"intent","stage":"council","note":"Anomaly terminal security inquiry over five blockers"}
+{"seq":100,"at":"2026-08-23T17:07:40.933Z","event":"intent","stage":"council","note":"Anomaly terminal pragmatist inquiry with deletion/simplicity lens"}
+{"seq":101,"at":"2026-08-23T17:12:43.782Z","event":"intent","stage":"council","note":"Synthesize five-blocker terminal council with deletion-first simplicity objective"}
+{"seq":102,"at":"2026-08-23T17:15:13.370Z","event":"record","stage":"council","agent":"CouncilAnomalyTermIntegrity"}
+{"seq":103,"at":"2026-08-23T17:15:13.370Z","event":"record","stage":"council","agent":"CouncilAnomalyTermSecurity"}
+{"seq":104,"at":"2026-08-23T17:15:13.370Z","event":"record","stage":"council","agent":"CouncilAnomalyTermPragmatist"}
+{"seq":105,"at":"2026-08-23T17:15:13.370Z","event":"record","stage":"council","agent":"SynthesizeAnomalyTerminal"}
+{"seq":106,"at":"2026-08-23T17:15:23.173Z","event":"intent","stage":"plan","note":"Council recovery: centralize README projection on runner, prevalidate source batch, reuse no-symlink scan, escape Markdown, delete completion option/aliases/duplicate tests"}
+{"seq":107,"at":"2026-08-23T17:27:12.915Z","event":"record","stage":"plan","agent":"PlanAnomalyCouncilRecovery"}
+{"seq":108,"at":"2026-08-23T17:27:22.231Z","event":"intent","stage":"implement","note":"Implement council recovery with estimated +50/-40 production and delete obsolete completion/aliases/test composition"}
+{"seq":109,"at":"2026-08-23T17:35:23.872Z","event":"record","stage":"implement","agent":"ImplementAnomalyCouncilRecovery"}

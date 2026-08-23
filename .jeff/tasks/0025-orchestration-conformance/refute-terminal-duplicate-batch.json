@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review",
+  "finding": "src/anomaly/product_workflow.py:72 Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+  "verdict": "survives",
+  "rationale": "The public entry has no batch-level canonical-uniqueness guard, so the first colliding request is durably registered before the second fails, and the automatic retry then classifies both requests as replacements and permits the second payload to win.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/product_workflow.py:41-89,204-241",
+      "output": "run_product_workflow passes supplied inputs into P1; _register_sources snapshots existing_keys once before iterating _source_requests and sets replace_existing only from that fixed snapshot, while _source_requests validates list/mapping fields but never compares canonical source IDs across the batch."
+    },
+    {
+      "command": "read src/anomaly/acquire.py:31-121",
+      "output": "register_local_source rejects an existing canonical ID only when replace_existing is false, but a successful new registration writes the raw payload, receipt, and data/sources.json before returning; replacement preserves the first spelling of source_id while replacing the record and payload."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:369-445",
+      "output": "run_phase catches the second registration's exception, persists the failure, and immediately retries the phase without rolling back artifacts; the retry re-enters _register_sources against the now-mutated sources.json, making the colliding canonical key existing for both requests."
+    }
+  ]
+}

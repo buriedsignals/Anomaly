@@ -84,3 +84,56 @@
 ## Existing ledger condition
 
 - Task 20 remains pre-existing invalid ledger state and is outside task 25's edit scope.
+
+## Terminal council causal-subgraph recovery
+
+- Recovery kind: `causal-subgraph-reconstruction`.
+- Complexity: `complex`; the recovery spans durable lifecycle projection, pre-write validation, filesystem containment, and output serialization. The existing dual-review floor remains.
+- Audit required: `true`; this cannot lower the previously required audit and directly changes the case-tree and untrusted-text boundaries.
+- Approach: keep `state.json` authoritative and make runner transitions project both README completion and demotion; prevalidate all canonical source IDs before the P1 registration loop; invoke the existing case-tree scanner before the public dispatcher reads or writes the case; serialize untrusted claim text as collapsed, escaped Markdown using the standard library; delete the competing completion option/helper and unused compatibility/test aliases. No framework, dependency, phase, or case-format change is warranted.
+- Refactor opportunity: delete `WorkflowRunner.read_state`, `read_events`, `invalidate_downstream`, `record_invalidation`, `resume`, and `execute_phase`; delete the `write_report(..., complete_readme=...)` branch and report-owned completion helper after moving projection ownership to the runner; retain the valid report-body assertions but delete their stale direct-completion expectations; and keep the removed `_phase_handlers`/`_completed_demo_with_test_handlers` duplicate test composition removed in favor of the public completed-demo baseline plus one focused P1 handler.
+
+### Ordered slices
+
+1. Make the durable runner the sole README lifecycle owner: after successful P7 transition project complete/P7 plus output links; after any P7 invalidation or failed retry project the state-derived active phase and remove stale completion/output claims. `write_report` writes only `findings/report.md`.
+2. Guard mutations and reads at existing boundaries: validate canonical uniqueness across the complete supplied source batch before the first registration/replacement, and call the existing whole-tree scanner before public resume/runner construction.
+3. Make accepted claim statements Markdown-inert at report serialization by collapsing line breaks and escaping HTML/Markdown syntax with standard-library primitives; leave fixed report structure and trusted relative output links unchanged.
+4. Delete obsolete completion plumbing, unused runner aliases, stale direct-completion expectations, and duplicate test composition; run the targeted suite without weakening the six RED contracts.
+
+### Terminal blocker proof dispositions
+
+1. **F1 README invalidation — `revise`.** Consumer behavior: mutating Gate B on a completed case immediately demotes README to active/P6 while paused, and a subsequent exhausted P7 chart retry never restores or retains complete/P7. Deterministic seams: `test_public_dispatcher_invalidates_changed_gate_b_from_p7` and `test_readme_does_not_claim_completion_when_chart_generation_fails`.
+2. **F2 duplicate batch — `write`.** Consumer behavior: case-insensitive duplicate source IDs exhaust the existing three P1 attempts without registering, replacing, or copying either source. Deterministic seam: `test_public_dispatcher_rejects_duplicate_source_batch_before_registration`.
+3. **F3 direct report completion — `revise` plus `delete`.** Consumer behavior: direct `write_report` preserves accepted-only report content and unresolved work but leaves README active/P0; only runner-owned successful P7 completion may claim complete/P7. Deterministic seam: `test_write_report_preserves_accepted_work_without_completing_case`, with the old direct-completion assertions deleted; the checked-in public demo reuses the successful P7/charts seam.
+4. **F4 whole-tree symlink boundary — `write`.** Consumer behavior: a nested case-controlled `data/sources.json` symlink raises `UnsafeCasePathError` before creation of durable attempt evidence. Deterministic seam: `test_public_dispatcher_rejects_nested_case_symlink_before_durable_write`; the existing `.anomaly` symlink test remains complementary.
+5. **F5 Markdown inertness — `write`.** Consumer behavior: dataset text containing an inline link, raw HTML, and a newline heading remains recognizable as claim prose but none of those constructs remains active in `findings/report.md`. Deterministic seam: `test_write_report_serializes_dataset_text_as_inert_markdown`.
+6. **Unused aliases and duplicate composition — `delete`/`skip`.** These have no consumer-observable contract, so no symbol-absence/change-detector test is owed. Existing runner and public-dispatch behavior tests remain the proof after deletion.
+
+### Locked acceptance-criterion dispositions
+
+1. **One documented authority and non-conflicting stores — `revise`.** Consumer behavior: runner state alone decides completion/demotion; report helpers cannot independently project P7. Seams: direct report non-completion, public successful demo, and completed Gate B invalidation.
+2. **Successful mutation survives event failure — `reuse`.** Consumer behavior and seam remain `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
+3. **Exactly three installed-path attempts — `revise`.** Consumer behavior: duplicate-batch rejection remains inside P1's three-attempt durable boundary and produces no source mutation. Seam: duplicate-batch test plus existing P1/P3 retry tests.
+4. **Earliest downstream invalidation — `revise`.** Consumer behavior: P7 identity drift removes durable P7 and its README projection while preserving P6 review/replay. Seam: revised Gate B invalidation and retry-failure tests.
+5. **Canonical P5/P6 order and independent review — `reuse`.** Existing event ordering and independent-identity tests remain unchanged.
+6. **Checked-in demo, resume, and mutation — `revise`.** Consumer behavior: the public completed-demo baseline now owns invalidation tests; completed-case Gate B mutation proves paused, failed-retry, and successful-resume projections. Seams: checked-in demo plus the two F1 tests.
+7. **Existing deterministic contracts and portable paths — `revise`.** Consumer behavior: the public boundary rejects any case-tree symlink before writes, report text is inert, and relative attempts/case artifacts remain unchanged. Seams: nested and `.anomaly` symlink tests, Markdown test, and existing relative-attempt assertions.
+
+### RED and preservation evidence
+
+- Targeted RED command: `uv run --extra test pytest tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_readme_does_not_claim_completion_when_chart_generation_fails tests/test_pipeline_walk.py::test_public_dispatcher_rejects_duplicate_source_batch_before_registration tests/test_pipeline_walk.py::test_public_dispatcher_rejects_nested_case_symlink_before_durable_write tests/test_review.py::test_write_report_preserves_accepted_work_without_completing_case tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q`.
+- Decisive result: `6 failed in 0.52s` (exit 1). F1 paused and failed-retry paths retained complete/P7 README; F2 completed to a pause after partial/replacement mutation; F4 reached a later escaping-path `ValueError` instead of the upfront symlink error; F3 direct report writing completed README; F5 retained the raw link, HTML, and newline heading.
+- Targeted preservation command: `uv run --extra test pytest tests/test_pipeline_walk.py::test_successful_mutation_remains_resumable_when_event_store_is_unavailable tests/test_pipeline_walk.py::test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase -q`.
+- Preservation result: `10 passed in 1.62s`.
+- Changed test files: `tests/test_pipeline_walk.py`, `tests/test_review.py`.
+
+### Estimated line effect
+
+- Current test-contract diff: approximately `+112/-92`, net `+20`; the gross deletions include the duplicate P0–P7 test composition and stale completion expectations.
+- Expected production recovery: approximately `+50/-40`, net `+10`; this counts moving/generalizing the README projector, four small guards, and deleting obsolete options/aliases.
+- Estimated final non-Jeff product/test diff: approximately `+162/-132`, net `+30`; documentation is expected to remain unchanged because its existing authority/order wording already matches the locked contract. These are planning estimates, not a release gate.
+
+### F4 test-contract correction
+
+- `create_case` already guarantees an empty `.anomaly/attempts/` directory (`tests/test_case.py:97-98`). The F4 postcondition therefore asserts that directory remains empty after upfront rejection; it does not require deleting the directory.
+- The corrected seam preserves the original pre-implementation RED cause. After implementation began in the shared checkout, the six targeted tests returned `6 passed in 0.45s`.

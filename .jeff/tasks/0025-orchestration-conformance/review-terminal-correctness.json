@@ -1,0 +1,95 @@
+{
+  "stage": "review",
+  "cycle": 2,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "reuse",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "reuse",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "reuse",
+      "rederived": "write",
+      "ok": false
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/workflow.py",
+      "line": 261,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+      "why": "A changed Gate B receipt reaches this path, removes P7 completion, and pauses for a new Gate B decision while the user-facing README still claims completion. If the replacement P7 later exhausts chart retries, the stale claim remains. This violates AC4/AC6's observable invalidation and deterministic mutation contract; the current README failure test starts at P6 and cannot catch the completed-case path."
+    },
+    {
+      "file": "src/anomaly/product_workflow.py",
+      "line": 72,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+      "why": "`existing_keys` is a fixed pre-loop snapshot. With two requests for the same new canonical source ID, attempt 1 registers the first then fails on the second; attempt 2 sees the now-existing ID, treats both as replacements, and succeeds with the second payload silently winning. This reachable partial-write/retry path corrupts the caller's source selection and breaks AC7's preserved canonical source contract."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read task.md; read notes.md",
+      "output": "Confirmed all seven locked criteria and final claimed dispositions: reuse, reuse, reuse, reuse, revise, reuse, reuse."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:261-320; read src/anomaly/review.py:663-705; grep completion projection paths",
+      "output": "`_invalidate_state` removes completed suffixes and sets state active but never updates README; `complete_report_readme` is the only runtime path that writes `Status: complete` and `Last completed phase: P7`."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:450-525",
+      "output": "Gate-B invalidation preserves P6 artifacts but does not inspect README while paused; the chart-failure test starts from a never-completed P6 case, so neither detects stale completion after invalidating an already-complete case."
+    },
+    {
+      "command": "read src/anomaly/product_workflow.py:68-93; read src/anomaly/acquire.py:39-121",
+      "output": "The product handler snapshots existing canonical IDs once, then enables replacement solely from that snapshot. Direct registration writes a new first source before rejecting the duplicate second source; runner retry recomputes the snapshot and admits both as replacements."
+    },
+    {
+      "command": "grep duplicate/replace coverage in tests; read tests/test_pipeline_walk.py:412-433",
+      "output": "Direct acquisition tests cover canonical duplicate rejection, while the public source-replacement test supplies exactly one source; no public multi-source duplicate/retry test covers the new replacement composition."
+    },
+    {
+      "command": "read .jeff/test-runs.jsonl:63-66; git rev-parse HEAD; git status --porcelain",
+      "output": "The supplied full gate is green at clean checkpoint 5cd3aa9a6d4561a5e6890f418a7885917e277323 (722 passed per task context). Current non-product changes are only Jeff/audit bookkeeping after that checkpoint; the green suite does not exercise the two paths above."
+    }
+  ]
+}

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from anomaly.acquire import register_local_source
-from anomaly.case import resume_case
+from anomaly.case import _scan_case_tree, resume_case
 from anomaly.detect import execute_detectors
 from anomaly.prepare import prepare_sources
 from anomaly.profile import profile_prepared
@@ -14,7 +14,6 @@ from anomaly.recommend import approve_detector_plan, recommend_detectors
 from anomaly.report import generate_charts
 from anomaly.review import (
     accept_findings,
-    complete_report_readme,
     draft_findings,
     record_review,
     replay_signals,
@@ -45,7 +44,9 @@ def run_product_workflow(
 ) -> dict[str, Any]:
     """Run the installed product composition through the durable runner."""
     supplied = _public_inputs(inputs)
-    case_root = _safe_case_root(root)
+    case_root = Path(root)
+    _scan_case_tree(case_root)
+    case_root = _safe_case_root(case_root)
     resume_case(case_root)
     runner = WorkflowRunner(case_root, handlers=_PRODUCT_HANDLERS)
     while True:
@@ -69,12 +70,16 @@ def _resume(root: Path, _attempt: Path, _inputs: Mapping[str, Any]) -> Any:
 def _register_sources(root: Path, _attempt: Path, inputs: Mapping[str, Any]) -> list[dict[str, Any]]:
     if "sources" not in inputs:
         return _registered_sources(root)
+    requests = _source_requests(inputs["sources"])
+    request_keys = [canonical_key(request["source_id"]) for request in requests]
+    if len(request_keys) != len(set(request_keys)):
+        raise ValueError("source IDs must be unique after canonicalization")
     existing_keys = {
         canonical_key(record["source_id"])
         for record in _registered_sources(root, required=False)
     }
     registered: list[dict[str, Any]] = []
-    for request in _source_requests(inputs["sources"]):
+    for request, request_key in zip(requests, request_keys, strict=True):
         registered.append(
             register_local_source(
                 root,
@@ -87,7 +92,7 @@ def _register_sources(root: Path, _attempt: Path, inputs: Mapping[str, Any]) -> 
                 reacquisition=request["reacquisition"],
                 included=request["included"],
                 reason=request.get("reason"),
-                replace_existing=canonical_key(request["source_id"]) in existing_keys,
+                replace_existing=request_key in existing_keys,
             )
         )
     return registered
@@ -158,9 +163,8 @@ def _accept_and_report(root: Path, _attempt: Path, inputs: Mapping[str, Any]) ->
     if _same_identity(journalist_id, reviewer_id):
         raise WorkflowError("Gate B journalist must differ from the independent reviewer")
     findings = accept_findings(root, gate["accepted_claim_ids"], journalist_id=journalist_id)
-    report = write_report(root, complete_readme=False)
+    report = write_report(root)
     charts = generate_charts(root)
-    complete_report_readme(root)
     return {"findings": findings, "report": report, "charts": charts}
 
 

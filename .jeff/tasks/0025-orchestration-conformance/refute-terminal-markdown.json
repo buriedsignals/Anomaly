@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "audit",
+  "finding": "src/anomaly/review.py:641 Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+  "verdict": "survives",
+  "rationale": "The installed public workflow accepts a built-in detector claim whose dataset-derived candidate ID contains raw HTML, and the credential-only sanitizer preserves that HTML and line breaks before the report writer emits the statement as unescaped Markdown.",
+  "evidence": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c '<create a CSV whose outlier id is <img src=https://example.invalid/pixel>; drive run_workflow through Gate A, independent review, Gate B, and report generation in a temporary directory>'",
+      "output": "{\"accepted\": true, \"report_contains_raw_html\": true, \"report_excerpt\": [\"outlier lead for row-<img src=https://example.invalid/pixel>\"], \"statement\": \"outlier lead for row-<img src=https://example.invalid/pixel>\", \"status\": \"complete\"}"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c \"from anomaly.review import _redact_text; print(repr(_redact_text('outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected')))\"",
+      "output": "'outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected'"
+    },
+    {
+      "command": "read src/anomaly/detect.py:640-672; src/anomaly/review.py:174-246,369-474,594-655,1074-1094; src/anomaly/product_workflow.py:120-180",
+      "output": "execute_detectors interpolates query-derived candidate_id into statement; draft/review/Gate B preserve and hash-bind the statement but only redact credential patterns; write_report places the statement on its own Markdown line without escaping or fencing; _accept_and_report invokes acceptance and report generation on the installed P7 path."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work -q",
+      "output": "1 passed in 0.23s"
+    }
+  ]
+}

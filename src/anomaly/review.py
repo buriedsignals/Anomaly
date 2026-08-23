@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import html
 import hashlib
 import json
 import math
@@ -591,11 +592,7 @@ def _verify_prepared_generation(root: Path, provenance: dict[str, Any]) -> None:
 
 
 @phase_event("P7", "write_report")
-def write_report(
-    root: Path,
-    *,
-    complete_readme: bool = True,
-) -> dict[str, Any]:
+def write_report(root: Path) -> dict[str, Any]:
     """Write a redacted report and relative case links from Gate-B findings."""
     root = _root(root)
     findings = _read_json(_owned(root, "findings/findings.json"))
@@ -633,11 +630,8 @@ def write_report(
         for claim in claims:
             if not isinstance(claim, dict):
                 continue
-            claim_id = _redact_text(_text(claim.get("claim_id", "claim")))
-            statement = (
-                _redact_text(_text(claim.get("statement", "")).strip())
-                or "(statement unavailable)"
-            )
+            claim_id = _markdown_text(claim.get("claim_id", "claim"))
+            statement = _markdown_text(claim.get("statement", "")) or "(statement unavailable)"
             lines.extend([f"### {claim_id}", "", statement, ""])
     else:
         lines.extend(["No claims were accepted at Gate B.", ""])
@@ -651,8 +645,6 @@ def write_report(
     )
     unresolved = unresolved_path.read_text(encoding="utf-8")
     _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
-    if complete_readme:
-        complete_report_readme(root)
     return {
         "status": "complete",
         "report": "findings/report.md",
@@ -660,37 +652,10 @@ def write_report(
     }
 
 
-def complete_report_readme(root: Path) -> None:
-    """Project P7 completion only after all final outputs have succeeded."""
-    root = _root(root)
-    for relative in ("findings/findings.json", "findings/report.md"):
-        path = _owned(root, relative)
-        if not path.is_file() or path.is_symlink():
-            raise ReviewError(f"final report output is missing: {relative}")
-    readme_path = _owned(root, "README.md")
-    readme = (
-        readme_path.read_text(encoding="utf-8")
-        if readme_path.is_file()
-        else "# Case\n"
-    )
-    readme = re.sub(r"(?m)^Status: .*?$", "Status: complete", readme)
-    if "Status: complete" not in readme:
-        readme = readme.rstrip() + "\n\nStatus: complete\n"
-    readme = re.sub(
-        r"(?m)^Last completed phase: .*?$",
-        "Last completed phase: P7",
-        readme,
-    )
-    if "Last completed phase: P7" not in readme:
-        readme = readme.rstrip() + "\nLast completed phase: P7\n"
-    links = (
-        "\n## Outputs\n\n"
-        "- [accepted findings](findings/findings.json)\n"
-        "- [report](findings/report.md)\n"
-        "- [unresolved work](findings/unresolved.md)\n"
-    )
-    readme = re.sub(r"\n## Outputs\n.*\Z", "\n", readme, flags=re.S)
-    _write_text(root, "README.md", _redact_text(readme.rstrip() + "\n" + links))
+def _markdown_text(value: Any) -> str:
+    collapsed = " ".join(_redact_text(_text(value)).split())
+    escaped = html.escape(collapsed, quote=False)
+    return re.sub(r"([\\`*_[\]{}()#+!|~-])", r"\\\1", escaped)
 
 
 def _draft_signals(root: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:

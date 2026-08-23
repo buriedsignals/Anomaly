@@ -9,17 +9,17 @@
   "category": "code",
   "priority": "p1",
   "deps": [],
-  "complexity": "simple",
+  "complexity": "complex",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T16:49:29Z",
+  "updatedAt": "2026-08-23T17:35:23Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyEventRepair",
+    "implementer_agent_id": "ImplementAnomalyCouncilRecovery",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyEventRepair",
+    "authored_by_agent_id": "PlanAnomalyCouncilRecovery",
     "green": false,
     "evidence": [
       {
@@ -37,6 +37,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ]
   },
@@ -218,6 +222,12 @@
       "to": "plan",
       "reason": "Full-suite gate found one stale event-order expectation: direct accept_findings no longer performs a redundant replay after completed P6 review, so tests/test_events.py expects an extra P6 replay event that the canonical P5→P6→GateB→P7 flow intentionally removed.",
       "at": "2026-08-23T16:25:00Z"
+    },
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "Council block: Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.; Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.; The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.; The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.; Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+      "at": "2026-08-23T17:15:13Z"
     }
   ],
   "blockedReason": null,
@@ -225,25 +235,35 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Revise only direct mainline event expectation to remove redundant second P6 replay before P7 while retaining every other event assertion."
+      "Centralize README projection on runner; write_report body-only.",
+      "Prevalidate source batch uniqueness and reuse tree scanner at public boundary.",
+      "Escape/collapse dataset claim prose at Markdown serializer.",
+      "Delete obsolete completion plumbing, aliases, stale tests, duplicate composition."
     ],
     "testFiles": [
-      "tests/test_events.py"
+      "tests/test_pipeline_walk.py",
+      "tests/test_review.py"
     ],
     "redRun": {
-      "command": "uv run --extra test pytest tests/",
-      "output": "1 failed, 721 passed; sole stale second-replay expectation."
+      "command": "six targeted public tests",
+      "output": "6 failed in 0.52s; preservation seams 10 passed in 1.62s."
     },
     "escalation": null,
-    "refactorOpportunity": null
+    "refactorOpportunity": "Delete six unused runner aliases, report-owned completion option/helper, stale direct-completion tests, and duplicate P0-P7 test composition; reuse public demo and tree scanner. Estimated non-Jeff +162/-132 net +30."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyEventRepair",
+    "agent_id": "ImplementAnomalyCouncilRecovery",
     "result": "green",
-    "files": [],
+    "files": [
+      "src/anomaly/workflow.py",
+      "src/anomaly/product_workflow.py",
+      "src/anomaly/review.py",
+      "skills/anomaly/SKILL.md",
+      ".jeff/tasks/0025-orchestration-conformance/context.md"
+    ],
     "greenRun": {
-      "command": "uv run pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q",
-      "output": "1 passed in 0.13s"
+      "command": "six recovery tests plus ten preservation tests",
+      "output": "Recovery 6 passed; preservation 10 passed. Production +64/-56 net +8; tests +112/-92 net +20; docs +1/-1 net 0; non-Jeff total +177/-149 net +28."
     }
   },
   "refactor": {
@@ -622,6 +642,123 @@
           "output": "The only runtime completion-status mutations are case creation's active/P0 README and write_report's complete/P7 README; load_state, invalidation, retry, and unavailable handling contain no README correction or rollback guard."
         }
       ]
+    },
+    {
+      "agent_id": "RefuteAnomalyReadmeInvalidate",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:261 Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable through the public dispatcher: a changed Gate B receipt demotes durable state to P6, but neither the pause path nor a replacement P7 that exhausts retries rewrites the prior completion projection, so README.md continues to make a materially false completion claim.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:12-35,118-175,261-320,392-457,510-617",
+          "output": "gate_b is identity-owned by P7; load_state compares captured artifact identities and routes a changed Gate B receipt to _invalidate_state at P7. That function removes P7 from completed/attempts/failures/identities, sets last_completed_phase=P6 and status=active, then writes state.json and an event only—there is no README update."
+        },
+        {
+          "command": "read src/anomaly/product_workflow.py:31-55,138-161,192-211; read src/anomaly/case.py:146-151,199-225",
+          "output": "The public run_workflow path resumes the case without writing README, calls runner.load_state, computes P7 next, and pauses for missing gate_b input. With replacement input, P7 calls accept_findings, write_report(complete_readme=False), generate_charts, then complete_report_readme; therefore a pause or chart failure before the final call leaves the old README completion text intact while state is demoted or unavailable."
+        },
+        {
+          "command": "grep 'README.md|Status:|Last completed phase' src/anomaly; read src/anomaly/review.py:594-693",
+          "output": "Runtime README writers are limited to initial case creation (Status: active / P0) and complete_report_readme (Status: complete / P7). No demotion writer or fail-safe projection exists upstream or in invalidation."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:472-526",
+          "output": "The completed-case Gate B mutation test asserts paused state and preserved P6 artifacts but never checks README. The chart-failure README test begins from a never-completed P6 case, so it cannot detect stale completion text after demoting an already-complete case."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyDuplicateBatch",
+      "source": "review",
+      "finding": "src/anomaly/product_workflow.py:72 Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+      "verdict": "survives",
+      "rationale": "The public entry has no batch-level canonical-uniqueness guard, so the first colliding request is durably registered before the second fails, and the automatic retry then classifies both requests as replacements and permits the second payload to win.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/product_workflow.py:41-89,204-241",
+          "output": "run_product_workflow passes supplied inputs into P1; _register_sources snapshots existing_keys once before iterating _source_requests and sets replace_existing only from that fixed snapshot, while _source_requests validates list/mapping fields but never compares canonical source IDs across the batch."
+        },
+        {
+          "command": "read src/anomaly/acquire.py:31-121",
+          "output": "register_local_source rejects an existing canonical ID only when replace_existing is false, but a successful new registration writes the raw payload, receipt, and data/sources.json before returning; replacement preserves the first spelling of source_id while replacing the record and payload."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:369-445",
+          "output": "run_phase catches the second registration's exception, persists the failure, and immediately retries the phase without rolling back artifacts; the retry re-enters _register_sources against the now-mutated sources.json, making the colliding canonical key existing for both requests."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyWriteReport",
+      "source": "review2",
+      "finding": "src/anomaly/review.py:594 The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.",
+      "verdict": "survives",
+      "rationale": "The public write_report API is directly importable and still marks README status complete/P7 before charts run, because its default invokes a helper whose only preconditions are findings.json and report.md; only the installed dispatcher opts out and sequences charts first.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/review.py:593-693",
+          "output": "write_report(root, *, complete_readme: bool = True) writes report.md and, when the default is retained, calls complete_report_readme; that helper checks only findings/findings.json and findings/report.md, then writes 'Status: complete' and 'Last completed phase: P7' to README.md."
+        },
+        {
+          "command": "read src/anomaly/product_workflow.py:154-164; tests/test_events.py:184-186",
+          "output": "The canonical dispatcher avoids the bug only by calling write_report(root, complete_readme=False), then generate_charts(root), then complete_report_readme(root); the direct mainline API test separately calls write_report(root) before generate_charts(root), proving the default path remains reachable."
+        },
+        {
+          "command": "read tests/test_review.py:411-423; src/anomaly/report.py:18-31,52-105",
+          "output": "The report API contract test asserts write_report leaves state.json unchanged yet puts 'Status: complete' in README; generate_charts is the separate operation that creates findings/charts and .anomaly/receipts/charts.json, neither of which complete_report_readme validates."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyCaseSymlink",
+      "source": "audit",
+      "finding": "src/anomaly/product_workflow.py:180 The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.",
+      "verdict": "survives",
+      "rationale": "Although resume_case's _under_root rejects a case.json symlink that resolves outside the case, no whole-tree guard precedes dispatch, and a nonempty list of records behind data/sources.json is read by the P1 input check and handler then written to the durable attempt result before later identity reconciliation can fail, so the confidentiality and containment defect remains reachable and blocking.",
+      "evidence": [
+        {
+          "command": "grep '_scan_case_tree\\(' src/anomaly",
+          "output": "The only call is case.py:163 inside fork_case; case.py:255 is the definition. run_workflow and run_product_workflow have no whole-tree scan upstream."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:486-495; src/anomaly/product_workflow.py:41-52,180-184,198-211,246-275",
+          "output": "run_workflow directly delegates to run_product_workflow. _safe_case_root checks only root/.anomaly. The dispatch loop calls _awaiting_input before P1; with no supplied sources, that calls _registered_sources, whose _read_case_json performs (root / 'data/sources.json').read_text with no lstat, symlink, or containment check. Any nonempty list whose items are dictionaries is accepted, and the P1 handler returns the same value."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:380-462,670-672",
+          "output": "run_phase invokes the P1 handler and immediately calls _write_output inside its try block; _write_output serializes the returned value to .anomaly/attempts/P1/attempt-1/result.json. State reload and _capture_identities happen only afterward, so an external symlink can be noticed or fail later without undoing the copied attempt evidence."
+        },
+        {
+          "command": "read src/anomaly/case.py:137-150,199-205,255-297,355-359; src/anomaly/semantics.py:179-225,275-278",
+          "output": "resume_case does not call the whole-tree scanner. Its case.json read goes through _under_root, so an outside-resolving case.json link is rejected, but this leaf guard does not cover data/sources.json or receipts. validate_case_documents enumerates receipt files with rglob/is_file and _read_json then calls read_text directly, so receipt symlinks are followed; the only comprehensive no-symlink scan remains fork_case-only."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAnomalyMarkdown",
+      "source": "audit",
+      "finding": "src/anomaly/review.py:641 Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+      "verdict": "survives",
+      "rationale": "The installed public workflow accepts a built-in detector claim whose dataset-derived candidate ID contains raw HTML, and the credential-only sanitizer preserves that HTML and line breaks before the report writer emits the statement as unescaped Markdown.",
+      "evidence": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c '<create a CSV whose outlier id is <img src=https://example.invalid/pixel>; drive run_workflow through Gate A, independent review, Gate B, and report generation in a temporary directory>'",
+          "output": "{\"accepted\": true, \"report_contains_raw_html\": true, \"report_excerpt\": [\"outlier lead for row-<img src=https://example.invalid/pixel>\"], \"statement\": \"outlier lead for row-<img src=https://example.invalid/pixel>\", \"status\": \"complete\"}"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c \"from anomaly.review import _redact_text; print(repr(_redact_text('outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected')))\"",
+          "output": "'outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected'"
+        },
+        {
+          "command": "read src/anomaly/detect.py:640-672; src/anomaly/review.py:174-246,369-474,594-655,1074-1094; src/anomaly/product_workflow.py:120-180",
+          "output": "execute_detectors interpolates query-derived candidate_id into statement; draft/review/Gate B preserve and hash-bind the statement but only redact credential patterns; write_report places the statement on its own Markdown line without escaping or fencing; _accept_and_report invokes acceptance and report generation on the installed P7 path."
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work -q",
+          "output": "1 passed in 0.23s"
+        }
+      ]
     }
   ],
   "convergence": {
@@ -635,12 +772,297 @@
       }
     },
     "council": {
-      "convened": false,
-      "stage": null,
-      "members": [],
-      "findings": [],
-      "verdict": null,
-      "outcome": null
+      "convened": true,
+      "stage": "review",
+      "members": [
+        {
+          "agent_id": "CouncilAnomalyTermIntegrity",
+          "lens": "integrity",
+          "temperature": null,
+          "inquiry": {
+            "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+            "problemRestatement": "Five surviving blockers show the public workflow can disagree with its own lifecycle state, retry a partially committed source batch into a different result, follow case-controlled links outside containment, and render dataset-controlled text as active Markdown. The integrity issue is not merely five missed conditionals: authority, atomicity, trust-boundary validation, and lifecycle tests are distributed across helpers rather than enforced at the owning boundaries.",
+            "causalHypotheses": [
+              "F1 and F3 share one cause: README completion is a mutable second projection owned by report helpers instead of being derived or updated by the authoritative workflow transition, so completion can be both premature and stale after invalidation.",
+              "F2 arises because the runner retries handlers as though attempts were atomic or idempotent, while P1 commits each source independently before validating the whole batch; retry therefore observes and reinterprets partial state.",
+              "F4 and F5 arise from fragmented trust-boundary enforcement: the public dispatcher validates only `.anomaly`, JSON readers follow other case links, and the report sink performs credential redaction without making data-derived text inert for Markdown rendering.",
+              "The test contract is helper- and happy-path-oriented: it preserves direct `write_report` completion, does not assert README demotion from a completed case, and omits duplicate-batch retry, case-leaf symlink, and active-content report invariants."
+            ],
+            "solutionStrategies": [
+              "confined-repair",
+              "causal-subgraph-reconstruction"
+            ],
+            "findingVotes": [
+              {
+                "id": "F1",
+                "blocking": true,
+                "rationale": "Invalidating P7 rewrites authoritative state to active/P6 but never rewrites README, so a public pause or failed replacement attempt leaves a durable user-facing false claim of complete/P7. Existing tests miss the completed-to-invalidated README transition."
+              },
+              {
+                "id": "F2",
+                "blocking": true,
+                "rationale": "The fixed pre-loop `existing_keys` snapshot and per-source writes allow the first duplicate to commit before the second fails; the runner retry then treats both canonical IDs as replacements and silently changes which payload wins. This violates source identity and retry determinism."
+              },
+              {
+                "id": "F3",
+                "blocking": true,
+                "rationale": "`write_report` still defaults to completing README, while `complete_report_readme` verifies only findings and report files, not charts or their receipt. A directly reachable API can therefore claim P7 completion before all required outputs and independently of the runner."
+              },
+              {
+                "id": "F4",
+                "blocking": true,
+                "rationale": "The dispatcher checks only whether `.anomaly` is linked, while `_read_case_json` follows `data/sources.json` and receipt links. P1 can read valid external JSON and persist it into attempt evidence before later validation, creating a concrete containment and confidentiality failure."
+              },
+              {
+                "id": "F5",
+                "blocking": true,
+                "rationale": "Detector statements embed dataset-derived candidate IDs, and the report writer emits those statements verbatim after credential-only redaction. Headings, raw HTML, links, line breaks, and remote-image content remain active, so the accepted report can misrepresent findings or trigger renderer-dependent network access."
+              }
+            ],
+            "decisiveEvidence": [
+              "`workflow.py:261-320` removes P7 completion, sets active state, writes state and an event, but contains no README demotion; `tests/test_pipeline_walk.py:472-526` checks paused state but not the completed case's README.",
+              "`review.py:594-693` makes `write_report(..., complete_readme=True)` the default and checks only `findings/findings.json` plus `findings/report.md` before writing complete/P7; `tests/test_review.py:411-423` explicitly asserts that direct call marks README complete.",
+              "`product_workflow.py:68-93` snapshots existing canonical IDs once; `acquire.py:31-121` durably writes each new source; `workflow.py:369-445` retries after handler failure without rolling back those writes.",
+              "`product_workflow.py:180-184,246-275` validates only `.anomaly` and reads arbitrary case-relative JSON with `Path.read_text`; `workflow.py:380-462` writes the returned P1 value to attempt output before post-handler identity capture.",
+              "`detect.py:640-672` interpolates query-derived `candidate_id` into `statement`; `review.py:594-655` applies credential redaction but inserts the statement as an unfenced Markdown line.",
+              "The evidence supports reconstructing the causal subgraph, not a full-system rewrite: centralize lifecycle projection under the runner, make P1 batch validation precede all writes, enforce containment at the public case boundary, and encode untrusted text at the report sink, with transition-level regression tests for each invariant."
+            ]
+          }
+        },
+        {
+          "agent_id": "CouncilAnomalyTermSecurity",
+          "lens": "security",
+          "temperature": null,
+          "inquiry": {
+            "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+            "problemRestatement": "The public workflow crosses untrusted case and dataset boundaries without one containment policy, retries side-effecting P1 work without batch atomicity, and has multiple unsynchronized P7 completion projections. Consequently it can read and persist external symlink targets, render attacker-controlled Markdown/HTML, overwrite a canonical source after a partial retry, and claim completion after invalidation or before charts exist.",
+            "causalHypotheses": [
+              "The dispatcher treats resolving the case root and checking only `.anomaly` as sufficient containment, while downstream readers use ordinary `Path.read_text`; the comprehensive no-symlink tree scanner is confined to `fork_case`, so public resume has a weaker trust boundary.",
+              "The durable runner assumes a failed phase can be retried safely, but P1 performs irreversible per-item writes before the whole batch is validated; `_register_sources` also freezes `existing_keys` before iteration, so retry changes collision semantics after partial success.",
+              "P7 completion is denormalized across runner state and README and is owned by both the dispatcher and the report-body API; invalidation has no inverse README projection, while `write_report` defaults to completing README before chart generation.",
+              "Credential redaction is being reused as output safety even though it does not neutralize Markdown, raw HTML, or line breaks; review and Gate B authenticate the bytes but do not make dataset-derived statements safe to render."
+            ],
+            "solutionStrategies": [
+              "confined-repair",
+              "causal-subgraph-reconstruction"
+            ],
+            "findingVotes": [
+              {
+                "id": "F1",
+                "blocking": true,
+                "rationale": "README invalidation is a security-relevant integrity failure: `WorkflowRunner._invalidate_state` demotes state and removes P7 but never rewrites README, so a public resume paused at Gate B can continue advertising `Status: complete` and P7 to operators and downstream readers."
+              },
+              {
+                "id": "F2",
+                "blocking": true,
+                "rationale": "Duplicate-source batching violates transactional integrity on the public P1 path. The first request writes payload, receipt, and `sources.json`; the second canonical collision fails; the runner retries the entire handler; and the now-existing canonical key makes both requests replacements, allowing the later payload to win."
+              },
+              {
+                "id": "F3",
+                "blocking": true,
+                "rationale": "`write_report` remains a directly reachable competing completion authority because `complete_readme=True` by default. Its helper checks only findings and report, not chart outputs or the chart receipt, so it can publish P7 completion before the required final artifacts exist."
+              },
+              {
+                "id": "F4",
+                "blocking": true,
+                "rationale": "This is a concrete confidentiality and containment escape. `_safe_case_root` rejects only a linked `.anomaly`, while `_read_case_json` follows `data/sources.json`; P1 accepts list-shaped external JSON and `_write_output` copies it into durable attempt evidence. The whole-tree scanner is not called on public resume."
+              },
+              {
+                "id": "F5",
+                "blocking": true,
+                "rationale": "Dataset-controlled candidate IDs flow into signal statements and then verbatim into `findings/report.md`; `_redact_text` only removes credential patterns. The recorded end-to-end exploit preserved a raw `<img src=https://example.invalid/pixel>` through acceptance and completion, enabling structural spoofing or renderer-dependent network requests."
+              }
+            ],
+            "decisiveEvidence": [
+              "`product_workflow.py:180-184,246-275` checks only `.anomaly` and reads workflow JSON through unguarded `Path.read_text`; `case.py:255-297` contains the stronger scanner, whose only caller is `fork_case`.",
+              "`product_workflow.py:58-82` snapshots canonical source keys once and registers sequentially; `acquire.py:31-125` commits each new source before returning; `workflow.py:369-445` retries the entire failed phase without rollback.",
+              "`workflow.py:261-320` invalidates state only; `review.py:594-693` makes `write_report` complete README by default and `complete_report_readme` validates no chart artifact or receipt; only `product_workflow.py:154-164` uses the safe ordering.",
+              "`detect.py:640-672` constructs a statement from query-derived `candidate_id`; `review.py:628-655,1074-1094` inserts the statement as active Markdown and sanitizes credentials only.",
+              "The terminal refute reproduced the installed workflow with a CSV candidate containing a raw image tag and observed `accepted: true`, `status: complete`, and the unchanged tag in the generated report."
+            ]
+          }
+        },
+        {
+          "agent_id": "CouncilAnomalyTermPragmatist",
+          "lens": "pragmatist",
+          "temperature": null,
+          "inquiry": {
+            "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+            "problemRestatement": "The five surviving blockers are not one systemic failure. F1 and F3 are one split-authority defect around README completion projection; F2, F4, and F5 are independent missing validation or serialization boundaries. A broad rewrite is unjustified, but merely flipping defaults is too weak: reconstruct only the runner-to-README projection, delete the report-owned completion option and obsolete aliases/stale expectations, then add small pre-mutation, no-symlink, and Markdown-escaping guards.",
+            "causalHypotheses": [
+              "F1 and F3 share a cause: README completion is written by the report layer while invalidation and durable completion are owned by WorkflowRunner, so the projection can become both premature and stale.",
+              "F2 is mutation-before-validation: canonical uniqueness is checked incrementally against a fixed pre-loop snapshot, allowing a failed first attempt to alter how the automatic retry classifies the same batch.",
+              "F4 is a missing public-entry containment check: an existing comprehensive case-tree scanner is reused by fork_case but not by run_product_workflow, while _read_case_json follows leaf symlinks.",
+              "F5 is a serializer-boundary error: credential redaction is treated as if it also made untrusted prose safe for Markdown, but statement and claim-id data are emitted as syntax-bearing text.",
+              "Unused runner aliases and the test that requires direct write_report completion keep obsolete authority paths credible; deleting them reduces choices and makes the intended contract explicit."
+            ],
+            "solutionStrategies": [
+              "causal-subgraph-reconstruction",
+              "confined-repair"
+            ],
+            "findingVotes": [
+              {
+                "id": "F1",
+                "blocking": true,
+                "rationale": "WorkflowRunner._invalidate_state demotes state through P7 but never updates README.md; a completed case paused for replacement Gate B input or exhausted during replacement P7 therefore still advertises complete/P7. This is an observable false state and must block."
+              },
+              {
+                "id": "F2",
+                "blocking": true,
+                "rationale": "_register_sources snapshots existing canonical keys once, writes the first new source, then rejects the colliding second source; phase retry sees the newly persisted key and permits both requests as replacements, silently selecting the second payload. Upfront batch uniqueness is required before any write."
+              },
+              {
+                "id": "F3",
+                "blocking": true,
+                "rationale": "Public write_report defaults complete_readme=True and complete_report_readme checks only findings.json and report.md, so callers can mark P7 complete before chart files and the chart receipt exist. Delete this option/path rather than changing its default, and derive README completion from the authoritative successful P7 transition."
+              },
+              {
+                "id": "F4",
+                "blocking": true,
+                "rationale": "run_product_workflow checks only .anomaly, and _registered_sources reads data/sources.json with Path.read_text; a case-controlled symlink can therefore copy external list-shaped JSON into durable P1 attempt evidence. Reuse the existing no-symlink tree validation at the public boundary and add a focused dispatcher contract test."
+              },
+              {
+                "id": "F5",
+                "blocking": true,
+                "rationale": "Detector candidate_id is dataset-derived, interpolated into statement, preserved by credential-only redaction, and inserted verbatim into report.md. Raw HTML, headings, links, and image URLs remain active; escape/collapse untrusted claim prose at the Markdown serializer boundary."
+              }
+            ],
+            "decisiveEvidence": [
+              "workflow.py run_phase is the durable state completer, yet review.py write_report independently completes README by default; workflow.py _invalidate_state writes active state without a matching projection.",
+              "product_workflow.py computes existing_keys before its registration loop, while acquire.py persists each successful registration immediately and workflow.py retries failed phases without rollback.",
+              "case.py already contains _scan_case_tree, but its only runtime use is fork_case; product_workflow.py _read_case_json directly follows data and receipt paths.",
+              "review.py builds report lines with the redacted claim_id and statement verbatim; the supplied reproduction reached a complete public workflow with raw img HTML still present in report.md.",
+              "Repository search finds RetryLimitExceeded and the read_state/read_events/invalidate_downstream/record_invalidation/resume/execute_phase compatibility names only at their declarations, while test_review.py explicitly preserves the obsolete direct-write completion behavior."
+            ]
+          }
+        }
+      ],
+      "findings": [
+        {
+          "id": "F1",
+          "summary": "Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+          "source": "review",
+          "blockingVotes": 3,
+          "survived": true,
+          "followupTaskId": null
+        },
+        {
+          "id": "F2",
+          "summary": "Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+          "source": "review",
+          "blockingVotes": 3,
+          "survived": true,
+          "followupTaskId": null
+        },
+        {
+          "id": "F3",
+          "summary": "The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.",
+          "source": "review2",
+          "blockingVotes": 3,
+          "survived": true,
+          "followupTaskId": null
+        },
+        {
+          "id": "F4",
+          "summary": "The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.",
+          "source": "audit",
+          "blockingVotes": 3,
+          "survived": true,
+          "followupTaskId": null
+        },
+        {
+          "id": "F5",
+          "summary": "Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+          "source": "audit",
+          "blockingVotes": 3,
+          "survived": true,
+          "followupTaskId": null
+        }
+      ],
+      "synthesis": {
+        "problemRestatement": "All five blockers survive. F1 and F3 expose one split lifecycle-authority defect: report helpers can project P7 completion while the runner owns durable completion and invalidation, leaving README prematurely or stale-complete. F2, F4, and F5 are narrower boundary defects: P1 mutates before validating a batch, public resume does not apply the existing whole-tree no-symlink scanner, and report serialization leaves dataset-controlled Markdown active. The smallest maintainable recovery is to reconstruct only this causal subgraph, not rewrite the workflow.",
+        "survivingBlockers": [
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "F5"
+        ],
+        "causalHypotheses": [
+          "README completion is a duplicated mutable projection owned by both report helpers and WorkflowRunner; centralizing it on successful runner transitions and applying its inverse during invalidation resolves the shared cause of F1 and F3.",
+          "P1 retries become nondeterministic because batch identity validation occurs incrementally after durable per-source writes; validating canonical uniqueness and replacement legality for the entire batch before the first mutation resolves F2.",
+          "F4 exists because the stronger existing case-tree scanner is not reused at the public workflow boundary, while downstream JSON reads follow case-controlled leaf symlinks.",
+          "F5 exists because credential redaction is incorrectly serving as output safety; untrusted claim prose must instead be collapsed and escaped at the Markdown serializer boundary.",
+          "Obsolete completion helpers, compatibility aliases, stale direct-completion tests, and duplicate test composition preserve competing paths and add enough code weight to obscure these invariants."
+        ],
+        "solutionStrategies": [
+          "confined-repair",
+          "causal-subgraph-reconstruction",
+          "full-replan"
+        ],
+        "rejectedAlternatives": [
+          "confined-repair",
+          "full-replan"
+        ],
+        "selectedStrategy": "causal-subgraph-reconstruction",
+        "decisiveEvidence": [
+          "All three inquiries independently sustain F1-F5 and agree that F1/F3 share split completion authority, while F2/F4/F5 require small boundary guards rather than framework changes.",
+          "`workflow.py:261-320` invalidates durable P7 state without demoting README, while `review.py:594-693` independently completes README by default and checks neither chart artifacts nor their receipt.",
+          "`product_workflow.py:58-93` validates against a fixed pre-loop key snapshot, `acquire.py:31-125` persists each item immediately, and `workflow.py:369-445` retries the failed phase; therefore a duplicate batch can change meaning after partial mutation.",
+          "`case.py:255-297` already provides the comprehensive no-symlink tree scanner, but public resume reads case JSON through ordinary path reads without invoking it, so reuse is sufficient for F4.",
+          "`detect.py:640-672` embeds dataset-derived identifiers into statements and `review.py:628-655` writes them as active Markdown after credential-only redaction; the terminal reproduction preserved raw image HTML through accepted completion.",
+          "Keep the recovery bounded by deleting the report-owned completion option/helper, unused runner compatibility aliases, the stale test requiring direct `write_report` completion, and duplicate test composition; those deletions offset focused transition, upfront-batch, symlink-boundary, and Markdown-inertness guards/tests."
+        ]
+      },
+      "verdict": "block",
+      "outcome": null,
+      "synthesizer_agent_id": "SynthesizeAnomalyTerminal",
+      "researchProvenance": "canonical",
+      "cycle": 2
+    },
+    "recovery": {
+      "episode": 1,
+      "route": "causal-subgraph-reconstruction",
+      "baselineGate": {
+        "hash": "5cd3aa9a6d4561a5e6890f418a7885917e277323",
+        "clean": true,
+        "green": true,
+        "command": "uv run --extra test pytest tests/",
+        "at": "2026-08-23T16:49:56Z"
+      },
+      "test_author_agent_id": "PlanAnomalyCouncilRecovery",
+      "builder_agent_id": "ImplementAnomalyCouncilRecovery",
+      "original": {
+        "complexity": "complex",
+        "audit_required": true,
+        "absentLineage": [],
+        "plan": {
+          "result": "red",
+          "slices": [
+            "Revise only direct mainline event expectation to remove redundant second P6 replay before P7 while retaining every other event assertion."
+          ],
+          "testFiles": [
+            "tests/test_events.py"
+          ],
+          "redRun": {
+            "command": "uv run --extra test pytest tests/",
+            "output": "1 failed, 721 passed; sole stale second-replay expectation."
+          },
+          "escalation": null,
+          "refactorOpportunity": null
+        },
+        "test_author_agent_id": "PlanAnomalyEventRepair",
+        "builder_agent_id": "ImplementAnomalyEventRepair",
+        "implement": {
+          "agent_id": "ImplementAnomalyEventRepair",
+          "result": "green",
+          "files": [],
+          "greenRun": {
+            "command": "uv run pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q",
+            "output": "1 passed in 0.13s"
+          }
+        }
+      }
     }
   },
   "judgmentHistory": [
@@ -1518,6 +1940,462 @@
         "reviewer_agent_id": "ReviewAnomalyRecoveryCorrect",
         "reviewer2_agent_id": "ReviewAnomalyRecoveryStandards",
         "audit_agent_id": "AuditAnomalyRecovery"
+      }
+    },
+    {
+      "at": "2026-08-23T17:27:12Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyTerminalCorrect",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 261,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+            "why": "A changed Gate B receipt reaches this path, removes P7 completion, and pauses for a new Gate B decision while the user-facing README still claims completion. If the replacement P7 later exhausts chart retries, the stale claim remains. This violates AC4/AC6's observable invalidation and deterministic mutation contract; the current README failure test starts at P6 and cannot catch the completed-case path.",
+            "refute": {
+              "agent_id": "RefuteAnomalyReadmeInvalidate",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:261 Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable through the public dispatcher: a changed Gate B receipt demotes durable state to P6, but neither the pause path nor a replacement P7 that exhausts retries rewrites the prior completion projection, so README.md continues to make a materially false completion claim.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:12-35,118-175,261-320,392-457,510-617",
+                  "output": "gate_b is identity-owned by P7; load_state compares captured artifact identities and routes a changed Gate B receipt to _invalidate_state at P7. That function removes P7 from completed/attempts/failures/identities, sets last_completed_phase=P6 and status=active, then writes state.json and an event only—there is no README update."
+                },
+                {
+                  "command": "read src/anomaly/product_workflow.py:31-55,138-161,192-211; read src/anomaly/case.py:146-151,199-225",
+                  "output": "The public run_workflow path resumes the case without writing README, calls runner.load_state, computes P7 next, and pauses for missing gate_b input. With replacement input, P7 calls accept_findings, write_report(complete_readme=False), generate_charts, then complete_report_readme; therefore a pause or chart failure before the final call leaves the old README completion text intact while state is demoted or unavailable."
+                },
+                {
+                  "command": "grep 'README.md|Status:|Last completed phase' src/anomaly; read src/anomaly/review.py:594-693",
+                  "output": "Runtime README writers are limited to initial case creation (Status: active / P0) and complete_report_readme (Status: complete / P7). No demotion writer or fail-safe projection exists upstream or in invalidation."
+                },
+                {
+                  "command": "read tests/test_pipeline_walk.py:472-526",
+                  "output": "The completed-case Gate B mutation test asserts paused state and preserved P6 artifacts but never checks README. The chart-failure README test begins from a never-completed P6 case, so it cannot detect stale completion text after demoting an already-complete case."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/product_workflow.py",
+            "line": 72,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+            "why": "`existing_keys` is a fixed pre-loop snapshot. With two requests for the same new canonical source ID, attempt 1 registers the first then fails on the second; attempt 2 sees the now-existing ID, treats both as replacements, and succeeds with the second payload silently winning. This reachable partial-write/retry path corrupts the caller's source selection and breaks AC7's preserved canonical source contract.",
+            "refute": {
+              "agent_id": "RefuteAnomalyDuplicateBatch",
+              "source": "review",
+              "finding": "src/anomaly/product_workflow.py:72 Validate canonical uniqueness across the complete supplied source batch before any registration or replacement, and add a public-entry duplicate-batch test.",
+              "verdict": "survives",
+              "rationale": "The public entry has no batch-level canonical-uniqueness guard, so the first colliding request is durably registered before the second fails, and the automatic retry then classifies both requests as replacements and permits the second payload to win.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/product_workflow.py:41-89,204-241",
+                  "output": "run_product_workflow passes supplied inputs into P1; _register_sources snapshots existing_keys once before iterating _source_requests and sets replace_existing only from that fixed snapshot, while _source_requests validates list/mapping fields but never compares canonical source IDs across the batch."
+                },
+                {
+                  "command": "read src/anomaly/acquire.py:31-121",
+                  "output": "register_local_source rejects an existing canonical ID only when replace_existing is false, but a successful new registration writes the raw payload, receipt, and data/sources.json before returning; replacement preserves the first spelling of source_id while replacing the record and payload."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:369-445",
+                  "output": "run_phase catches the second registration's exception, persists the failure, and immediately retries the phase without rolling back artifacts; the retry re-enters _register_sources against the now-mutated sources.json, making the colliding canonical key existing for both requests."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read task.md; read notes.md",
+            "output": "Confirmed all seven locked criteria and final claimed dispositions: reuse, reuse, reuse, reuse, revise, reuse, reuse."
+          },
+          {
+            "command": "read src/anomaly/workflow.py:261-320; read src/anomaly/review.py:663-705; grep completion projection paths",
+            "output": "`_invalidate_state` removes completed suffixes and sets state active but never updates README; `complete_report_readme` is the only runtime path that writes `Status: complete` and `Last completed phase: P7`."
+          },
+          {
+            "command": "read tests/test_pipeline_walk.py:450-525",
+            "output": "Gate-B invalidation preserves P6 artifacts but does not inspect README while paused; the chart-failure test starts from a never-completed P6 case, so neither detects stale completion after invalidating an already-complete case."
+          },
+          {
+            "command": "read src/anomaly/product_workflow.py:68-93; read src/anomaly/acquire.py:39-121",
+            "output": "The product handler snapshots existing canonical IDs once, then enables replacement solely from that snapshot. Direct registration writes a new first source before rejecting the duplicate second source; runner retry recomputes the snapshot and admits both as replacements."
+          },
+          {
+            "command": "grep duplicate/replace coverage in tests; read tests/test_pipeline_walk.py:412-433",
+            "output": "Direct acquisition tests cover canonical duplicate rejection, while the public source-replacement test supplies exactly one source; no public multi-source duplicate/retry test covers the new replacement composition."
+          },
+          {
+            "command": "read .jeff/test-runs.jsonl:63-66; git rev-parse HEAD; git status --porcelain",
+            "output": "The supplied full gate is green at clean checkpoint 5cd3aa9a6d4561a5e6890f418a7885917e277323 (722 passed per task context). Current non-product changes are only Jeff/audit bookkeeping after that checkpoint; the green suite does not exercise the two paths above."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC4",
+            "claimed": "reuse",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "reuse",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "write",
+            "ok": false
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyTerminalStandards",
+        "findings": [
+          {
+            "file": "src/anomaly/review.py",
+            "line": 594,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.",
+            "why": "PRD.md:218-221 says run_workflow is the only completion-state owner and report APIs write artifacts/receipts only; skills/anomaly/SKILL.md:90-92 says README completion occurs only after every P7 output succeeds. A direct write_report call can still write `Status: complete` and `Last completed phase: P7` before charts exist, and tests/test_review.py:412-421 explicitly preserves that stale behavior. Revise that consumer contract, make write_report body-only, and ensure completion projection fails unless all final outputs—including charts—are present.",
+            "refute": {
+              "agent_id": "RefuteAnomalyWriteReport",
+              "source": "review2",
+              "finding": "src/anomaly/review.py:594 The report-body API remains a second reachable P7-completion path: write_report defaults complete_readme=True, while complete_report_readme verifies only findings/report and not the chart output or chart receipt.",
+              "verdict": "survives",
+              "rationale": "The public write_report API is directly importable and still marks README status complete/P7 before charts run, because its default invokes a helper whose only preconditions are findings.json and report.md; only the installed dispatcher opts out and sequences charts first.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/review.py:593-693",
+                  "output": "write_report(root, *, complete_readme: bool = True) writes report.md and, when the default is retained, calls complete_report_readme; that helper checks only findings/findings.json and findings/report.md, then writes 'Status: complete' and 'Last completed phase: P7' to README.md."
+                },
+                {
+                  "command": "read src/anomaly/product_workflow.py:154-164; tests/test_events.py:184-186",
+                  "output": "The canonical dispatcher avoids the bug only by calling write_report(root, complete_readme=False), then generate_charts(root), then complete_report_readme(root); the direct mainline API test separately calls write_report(root) before generate_charts(root), proving the default path remains reachable."
+                },
+                {
+                  "command": "read tests/test_review.py:411-423; src/anomaly/report.py:18-31,52-105",
+                  "output": "The report API contract test asserts write_report leaves state.json unchanged yet puts 'Status: complete' in README; generate_charts is the separate operation that creates findings/charts and .anomaly/receipts/charts.json, neither of which complete_report_readme validates."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 35,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "refactor",
+            "what": "Proven-unused compatibility surface remains in the durable runner: RetryLimitExceeded plus read_state, read_events, invalidate_downstream, record_invalidation, resume, and execute_phase aliases have no repository consumers.",
+            "why": "The task's simplicity objective explicitly called for deleting obsolete aliases/dead paths. These names add API surface and maintenance choices without protecting behavior; repository-wide search finds only their declarations."
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 486,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "refactor",
+            "what": "The extraction separates responsibilities but leaves a mutual dependency: workflow.run_workflow lazily imports product_workflow, while product_workflow imports WorkflowRunner, PHASES, and private _completed_phase/_next_phase helpers from workflow.",
+            "why": "Product policy is now easier to locate, but dependency direction did not become clean and the composition owner depends on runner internals. Make the boundary one-way and expose only the minimum public runner operation rather than private state interpretation."
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 81,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "plan",
+            "what": "The test suite defines a second 64-line P0-P7 handler composition whose P3/P4 responsibilities differ from the installed product composition; it is used only to seed the invalidation matrix and supply one P1 handler.",
+            "why": "This is avoidable duplicate policy and much of the test bloat. Seed the matrix through the checked-in public demo and exercise the event-failure case through run_workflow (or one explicit handler), so tests reuse the canonical composition instead of maintaining a parallel one."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git diff --numstat b382922..HEAD -- src/anomaly tests/fixtures/orchestration_demo.csv tests",
+            "output": "Canonical production files add 714/delete 84 lines (net +630); tests plus demo fixture add 590/delete 101 (net +489). The growth buys the required durable behavior and broad observable tests, but the specific legacy paths in the findings are not load-bearing."
+          },
+          {
+            "command": "module structure comparison: git show b382922:src/anomaly/workflow.py; git show HEAD:src/anomaly/{workflow.py,product_workflow.py}",
+            "output": "Base workflow.py was 420 lines. HEAD has workflow.py 690 lines plus product_workflow.py 275 lines. Extraction did reduce responsibility coupling by isolating installed P0-P7 product handlers and input/gate policy, but combined orchestration grew to 965 lines and the modules remain mutually dependent through a lazy import plus private helper imports."
+          },
+          {
+            "command": "grep -n 'complete_readme\\|complete_report_readme\\|Status: complete' src/anomaly tests skills/anomaly/SKILL.md PRD.md",
+            "output": "product_workflow.py:161 opts out of write_report completion, generates charts at 162, then completes at 163; review.py:597 defaults complete_readme=True and calls completion at 654-655; complete_report_readme at 663 checks only findings/findings.json and findings/report.md; test_review.py:421 expects direct write_report to mark complete; SKILL.md:92 says completion occurs only after every output succeeds."
+          },
+          {
+            "command": "grep -n 'RetryLimitExceeded\\|read_state =\\|read_events =\\|invalidate_downstream\\|record_invalidation\\|resume = run\\|execute_phase' src tests",
+            "output": "All matches are declarations in src/anomaly/workflow.py; no src/test consumer references any of these compatibility names."
+          },
+          {
+            "command": "git diff 20b5667..5cd3aa9 -- tests/test_events.py",
+            "output": "The final test-contract repair removes only the redundant second P6 replay expectation; the ordered P1-P7 API event assertions remain. This is a legitimate consumer-observable revision, not a weakened or change-detector test."
+          },
+          {
+            "command": "uv run --extra test pytest tests/",
+            "output": "Recorded terminal gate at 5cd3aa9: 722 passed; not rerun during this review per the no-full-suite constraint."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "reuse",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC4",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditAnomalyTerminal",
+        "findings": [
+          {
+            "file": "src/anomaly/product_workflow.py",
+            "line": 180,
+            "severity": "high",
+            "class": "blocking",
+            "cwe": "CWE-59; CWE-22; CWE-200",
+            "kickTo": "implement",
+            "what": "The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.",
+            "why": "A shared or malicious case can make the installed workflow read host files outside the case and copy valid list-shaped JSON into durable attempt evidence. The existing whole-tree no-symlink validator is called only by `fork_case`, so the public dispatcher has a reachable confidentiality and containment escape before the narrower module guards run.",
+            "refute": {
+              "agent_id": "RefuteAnomalyCaseSymlink",
+              "source": "audit",
+              "finding": "src/anomaly/product_workflow.py:180 The new public dispatcher rejects only a symlinked `.anomaly`; it still follows case-controlled symlinks for `case.json`, `data/sources.json`, and receipt files. In particular `_registered_sources` reads `data/sources.json` through `_read_case_json`, P1 returns that external JSON, and `WorkflowRunner._write_output` persists it in the case attempt directory.",
+              "verdict": "survives",
+              "rationale": "Although resume_case's _under_root rejects a case.json symlink that resolves outside the case, no whole-tree guard precedes dispatch, and a nonempty list of records behind data/sources.json is read by the P1 input check and handler then written to the durable attempt result before later identity reconciliation can fail, so the confidentiality and containment defect remains reachable and blocking.",
+              "evidence": [
+                {
+                  "command": "grep '_scan_case_tree\\(' src/anomaly",
+                  "output": "The only call is case.py:163 inside fork_case; case.py:255 is the definition. run_workflow and run_product_workflow have no whole-tree scan upstream."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:486-495; src/anomaly/product_workflow.py:41-52,180-184,198-211,246-275",
+                  "output": "run_workflow directly delegates to run_product_workflow. _safe_case_root checks only root/.anomaly. The dispatch loop calls _awaiting_input before P1; with no supplied sources, that calls _registered_sources, whose _read_case_json performs (root / 'data/sources.json').read_text with no lstat, symlink, or containment check. Any nonempty list whose items are dictionaries is accepted, and the P1 handler returns the same value."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:380-462,670-672",
+                  "output": "run_phase invokes the P1 handler and immediately calls _write_output inside its try block; _write_output serializes the returned value to .anomaly/attempts/P1/attempt-1/result.json. State reload and _capture_identities happen only afterward, so an external symlink can be noticed or fail later without undoing the copied attempt evidence."
+                },
+                {
+                  "command": "read src/anomaly/case.py:137-150,199-205,255-297,355-359; src/anomaly/semantics.py:179-225,275-278",
+                  "output": "resume_case does not call the whole-tree scanner. Its case.json read goes through _under_root, so an outside-resolving case.json link is rejected, but this leaf guard does not cover data/sources.json or receipts. validate_case_documents enumerates receipt files with rglob/is_file and _read_json then calls read_text directly, so receipt symlinks are followed; the only comprehensive no-symlink scan remains fork_case-only."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/review.py",
+            "line": 641,
+            "severity": "medium",
+            "class": "blocking",
+            "cwe": "CWE-116; CWE-79",
+            "kickTo": "implement",
+            "what": "Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+            "why": "A malicious CSV value can produce headings, links, raw HTML, or a remote-image tracking URL in an accepted portable report. Hash-bound review and Gate B preserve provenance but do not make the rendered content inert; opening the generated report can alter its apparent editorial structure or trigger renderer-dependent network content.",
+            "refute": {
+              "agent_id": "RefuteAnomalyMarkdown",
+              "source": "audit",
+              "finding": "src/anomaly/review.py:641 Dataset-derived detector text reaches `findings/report.md` as active Markdown. `detect.py:669` embeds the query-derived `candidate_id` in `statement`; review redaction removes credential patterns but does not escape Markdown/HTML or line breaks before inserting the statement verbatim.",
+              "verdict": "survives",
+              "rationale": "The installed public workflow accepts a built-in detector claim whose dataset-derived candidate ID contains raw HTML, and the credential-only sanitizer preserves that HTML and line breaks before the report writer emits the statement as unescaped Markdown.",
+              "evidence": [
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c '<create a CSV whose outlier id is <img src=https://example.invalid/pixel>; drive run_workflow through Gate A, independent review, Gate B, and report generation in a temporary directory>'",
+                  "output": "{\"accepted\": true, \"report_contains_raw_html\": true, \"report_excerpt\": [\"outlier lead for row-<img src=https://example.invalid/pixel>\"], \"statement\": \"outlier lead for row-<img src=https://example.invalid/pixel>\", \"status\": \"complete\"}"
+                },
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c \"from anomaly.review import _redact_text; print(repr(_redact_text('outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected')))\"",
+                  "output": "'outlier lead for row-<img src=https://example.invalid/pixel>\\n## injected'"
+                },
+                {
+                  "command": "read src/anomaly/detect.py:640-672; src/anomaly/review.py:174-246,369-474,594-655,1074-1094; src/anomaly/product_workflow.py:120-180",
+                  "output": "execute_detectors interpolates query-derived candidate_id into statement; draft/review/Gate B preserve and hash-bind the statement but only redact credential patterns; write_report places the statement on its own Markdown line without escaping or fencing; _accept_and_report invokes acceptance and report generation on the installed P7 path."
+                },
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work -q",
+                  "output": "1 passed in 0.23s"
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "security scanner",
+            "output": "Six final changed Python files scanned; no dropped targets; 3 high machine findings; recommendation REVIEW; 12 scanner categories with 2 scanner-only coverage gaps; no dependency-audit failure."
+          },
+          {
+            "command": "read scanner findings with detect.py:84-103,239-260,343-386,628-646",
+            "output": "The dynamic-evaluation hit is `ast.literal_eval`, which accepts literals only and is used by the restricted fallback parser for fixed built-in metadata. Both SQL interpolation hits receive positive non-boolean integers from `_validate_limits`, so neither can inject SQL syntax. All three machine hits are refuted."
+          },
+          {
+            "command": "read product_workflow.py:41-75,180-186,246-275; case.py:146-150; semantics.py:179-225; workflow.py:386-396,670-672",
+            "output": "The dispatcher checks only `.anomaly`. `resume_case`, `_read_case_json`, and receipt enumeration follow other case symlinks; registered-source JSON is returned by P1 and serialized to `result.json`, establishing a concrete external-read and persistence path."
+          },
+          {
+            "command": "read detect.py:640-672; detectors/numeric/level_shift/query.sql:15-17; review.py:174-246,369-474,594-655,1091-1094",
+            "output": "Built-in SQL derives candidate IDs from case data, detector execution copies them into signal statements, and accepted statements are written verbatim as Markdown after secret redaction only. Independent review and Gate B bind the bytes but do not escape the rendering sink."
+          },
+          {
+            "command": "read recommend.py:334-387; detect.py:519-589; review.py:369-546,594-624; report.py:53-145; PRD.md:229-267; skills/anomaly/SKILL.md:69-108",
+            "output": "Gate A is hash-bound to the exact plan and validated before detector execution; replay/review/Gate B hashes are rechecked before report and charts; detector SQL is fixed-package, SELECT-only, external access disabled, and table identifiers validated. PRD and installed skill agree on P3→Gate A/P4 and P6→Gate B/P7, with portable relative receipts and no new network/dependency surface."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "scan": {
+          "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly/acquire.py src/anomaly/detect.py src/anomaly/product_workflow.py src/anomaly/recommend.py src/anomaly/review.py src/anomaly/workflow.py --report-dir scratchpads --force",
+          "recommendation": "REVIEW",
+          "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-audit-20260823-165135.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_no_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewAnomalyTerminalCorrect",
+        "reviewer2_agent_id": "ReviewAnomalyTerminalStandards",
+        "audit_agent_id": "AuditAnomalyTerminal"
+      }
+    },
+    {
+      "at": "2026-08-23T17:35:23Z",
+      "review": {
+        "verdict": null,
+        "reviewer_agent_id": null,
+        "findings": [],
+        "evidence": []
+      },
+      "review2": null,
+      "audit": {
+        "required": true,
+        "verdict": "na",
+        "audit_agent_id": null,
+        "findings": [],
+        "evidence": []
+      },
+      "agents": {
+        "reviewer_agent_id": null,
+        "reviewer2_agent_id": null,
+        "audit_agent_id": null
       }
     }
   ]

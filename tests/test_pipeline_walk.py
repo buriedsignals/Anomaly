@@ -11,20 +11,8 @@ from typing import Any, Callable
 import pytest
 
 from anomaly.acquire import register_local_source
-from anomaly.case import create_case, resume_case
-from anomaly.detect import execute_detectors
-from anomaly.prepare import prepare_sources
-from anomaly.profile import profile_prepared
-from anomaly.recommend import approve_detector_plan, recommend_detectors
-from anomaly.report import generate_charts
-from anomaly.review import (
-    _hash_json,
-    accept_findings,
-    draft_findings,
-    record_review,
-    replay_signals,
-    write_report,
-)
+from anomaly.case import create_case
+from anomaly.review import _hash_json
 from anomaly.semantics import UnsafeCasePathError
 from anomaly.workflow import PHASES, WorkflowRunner, run_workflow
 
@@ -57,8 +45,6 @@ def _review_input(
     }
 
 
-def _review(root: Path) -> dict[str, Any]:
-    return record_review(root, **_review_input(root))
 
 
 def _source_inputs(source: Path = DEMO_CSV) -> dict[str, Any]:
@@ -78,73 +64,6 @@ def _source_inputs(source: Path = DEMO_CSV) -> dict[str, Any]:
     }
 
 
-def _phase_handlers(source: Path = DEMO_CSV) -> dict[str, Callable[..., Any]]:
-    def register(root: Path) -> dict[str, Any]:
-        return register_local_source(
-            root,
-            source,
-            source_id="payments",
-            now=NOW,
-            license="internal",
-            sensitivity="restricted",
-            redistribution="no",
-            reacquisition="Copy from the locked newsroom drive.",
-            included=True,
-        )
-
-    def prepare_and_profile(root: Path) -> dict[str, Any]:
-        prepare_sources(root, now=NOW)
-        return profile_prepared(root, now=NOW)
-
-    def recommend_and_approve(root: Path) -> dict[str, Any]:
-        plan = recommend_detectors(root, now=NOW)
-        return approve_detector_plan(
-            root,
-            plan["recommended"],
-            approved_by="journalist",
-            now=NOW,
-        )
-
-    def detect(root: Path) -> list[dict[str, Any]]:
-        plan = json.loads((root / "detectors" / "plan.json").read_text(encoding="utf-8"))
-        return execute_detectors(root, plan["approved"], now=NOW)
-
-    def replay_and_review(root: Path) -> dict[str, Any]:
-        replay = replay_signals(root)
-        assert replay["status"] == "replayed", replay.get("reason")
-        return _review(root)
-
-    def accept_and_report(root: Path) -> dict[str, Any]:
-        draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
-        claim_ids = [claim["claim_id"] for claim in draft["claims"]]
-        accept_findings(root, claim_ids[:1], journalist_id="journalist")
-        write_report(root)
-        return generate_charts(root)
-
-    return {
-        "P0": resume_case,
-        "P1": register,
-        "P2": prepare_and_profile,
-        "P3": recommend_and_approve,
-        "P4": detect,
-        "P5": draft_findings,
-        "P6": replay_and_review,
-        "P7": accept_and_report,
-    }
-
-
-def _completed_demo_with_test_handlers(parent: Path) -> Path:
-    root = parent / "case"
-    create_case(
-        root,
-        title="Payments review",
-        question="Which payments need review?",
-        case_id="case-walk",
-        now=NOW,
-    )
-    state = WorkflowRunner(root, handlers=_phase_handlers()).run()
-    assert state["status"] == "complete"
-    return root
 
 
 def _case_at_gate_a(parent: Path) -> tuple[Path, dict[str, Any]]:
@@ -318,7 +237,20 @@ def test_successful_mutation_remains_resumable_when_event_store_is_unavailable(
     events.unlink()
     events.mkdir()
 
-    result = runner.run_phase("P1", _phase_handlers()["P1"])
+    result = runner.run_phase(
+        "P1",
+        lambda: register_local_source(
+            root,
+            DEMO_CSV,
+            source_id="payments",
+            now=NOW,
+            license="internal",
+            sensitivity="restricted",
+            redistribution="no",
+            reacquisition="Copy from the locked newsroom drive.",
+            included=True,
+        ),
+    )
     assert result.status == "completed"
     assert (root / "data" / "sources.json").is_file()
 
@@ -358,6 +290,37 @@ def test_installed_runner_persists_three_failed_attempts_and_blocks(
     ]
     assert all(not Path(failure["attempt_path"]).is_absolute() for failure in failures)
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
+
+
+def test_public_dispatcher_rejects_duplicate_source_batch_before_registration(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Duplicate source batch",
+        question="Can canonical source IDs collide?",
+        case_id="case-duplicate-sources",
+        now=NOW,
+    )
+    duplicate = tmp_path / "duplicate.csv"
+    shutil.copyfile(DEMO_CSV, duplicate)
+    inputs = _source_inputs()
+    inputs["sources"].append(
+        {
+            **inputs["sources"][0],
+            "path": duplicate,
+            "source_id": "PAYMENTS",
+        }
+    )
+
+    state = run_workflow(root, inputs=inputs)
+
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["phase"] == "P1"
+    assert state["attempts"]["P1"] == 3
+    assert json.loads((root / "data" / "sources.json").read_text(encoding="utf-8")) == []
+    assert list((root / "data" / "raw").iterdir()) == []
 
 
 def test_public_dispatcher_retries_recommendation_failure_inside_p3(
@@ -485,6 +448,9 @@ def test_public_dispatcher_invalidates_changed_gate_b_from_p7(
     assert paused["last_completed_phase"] == "P6"
     assert list(paused["completed"]) == list(PHASES[:7])
     assert (review_path.read_bytes(), replay_path.read_bytes()) == preserved
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "Status: active" in readme
+    assert "Last completed phase: P6" in readme
 
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     resumed = run_workflow(
@@ -503,8 +469,12 @@ def test_public_dispatcher_invalidates_changed_gate_b_from_p7(
 def test_readme_does_not_claim_completion_when_chart_generation_fails(
     tmp_path: Path,
 ) -> None:
-    root = _case_at_gate_b(tmp_path)
+    root = _completed_demo(tmp_path)
+    _mark(root / ".anomaly" / "receipts" / "gate-b.json")
+    paused = run_workflow(root)
+    assert paused["status"] == "paused"
     charts_path = root / "findings" / "charts"
+    shutil.rmtree(charts_path)
     charts_path.write_text("not a directory\n", encoding="utf-8")
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
 
@@ -524,6 +494,29 @@ def test_readme_does_not_claim_completion_when_chart_generation_fails(
     assert state["attempts"]["P7"] == 3
     assert "Status: complete" not in readme
     assert "Last completed phase: P7" not in readme
+
+
+def test_public_dispatcher_rejects_nested_case_symlink_before_durable_write(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Containment",
+        question="Can a case-controlled link be read?",
+        case_id="case-nested-containment",
+        now=NOW,
+    )
+    external = tmp_path / "external-sources.json"
+    external.write_text('[{"source_id": "external"}]\n', encoding="utf-8")
+    sources_path = root / "data" / "sources.json"
+    sources_path.unlink()
+    sources_path.symlink_to(external)
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        run_workflow(root)
+
+    assert list((root / ".anomaly" / "attempts").iterdir()) == []
 
 
 def test_public_dispatcher_rejects_anomaly_symlink_before_durable_write(
@@ -555,7 +548,7 @@ def test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_ph
     expected_phase: str,
     mutate: Callable[[Path], None],
 ) -> None:
-    baseline = _completed_demo_with_test_handlers(tmp_path / "baseline")
+    baseline = _completed_demo(tmp_path / "baseline")
     root = tmp_path / change.replace(" ", "-")
     shutil.copytree(baseline, root)
     mutate(root)

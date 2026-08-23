@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review",
+  "finding": "src/anomaly/workflow.py:261 Invalidation of a previously completed case updates only state.json; README.md keeps `Status: complete` and `Last completed phase: P7`. Demote the completion projection whenever P7 is invalidated, and add a public completed-case mutation test that checks the paused/retry-failure README state.",
+  "verdict": "survives",
+  "rationale": "The blocker is reachable through the public dispatcher: a changed Gate B receipt demotes durable state to P6, but neither the pause path nor a replacement P7 that exhausts retries rewrites the prior completion projection, so README.md continues to make a materially false completion claim.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:12-35,118-175,261-320,392-457,510-617",
+      "output": "gate_b is identity-owned by P7; load_state compares captured artifact identities and routes a changed Gate B receipt to _invalidate_state at P7. That function removes P7 from completed/attempts/failures/identities, sets last_completed_phase=P6 and status=active, then writes state.json and an event only\u2014there is no README update."
+    },
+    {
+      "command": "read src/anomaly/product_workflow.py:31-55,138-161,192-211; read src/anomaly/case.py:146-151,199-225",
+      "output": "The public run_workflow path resumes the case without writing README, calls runner.load_state, computes P7 next, and pauses for missing gate_b input. With replacement input, P7 calls accept_findings, write_report(complete_readme=False), generate_charts, then complete_report_readme; therefore a pause or chart failure before the final call leaves the old README completion text intact while state is demoted or unavailable."
+    },
+    {
+      "command": "grep 'README.md|Status:|Last completed phase' src/anomaly; read src/anomaly/review.py:594-693",
+      "output": "Runtime README writers are limited to initial case creation (Status: active / P0) and complete_report_readme (Status: complete / P7). No demotion writer or fail-safe projection exists upstream or in invalidation."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:472-526",
+      "output": "The completed-case Gate B mutation test asserts paused state and preserved P6 artifacts but never checks README. The chart-failure README test begins from a never-completed P6 case, so it cannot detect stale completion text after demoting an already-complete case."
+    }
+  ]
+}
