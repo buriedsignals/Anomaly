@@ -115,20 +115,17 @@ def _offline_input(source_id: str) -> dict:
         return {"q": "test"}
     return {"q": "test"}
 
-
-def test_navigator_inventory_has_29_packages_and_exactly_28_one_to_one_migrations() -> None:
-    assert NAVIGATOR_ROOT.is_dir()
-    navigator_ids = _ids(NAVIGATOR_ROOT)
+def test_catalogue_has_exactly_28_packages_and_no_arbiter() -> None:
+    # The Data Navigator source tree this catalogue was migrated from was
+    # retired on 2026-08-23; parity with it was verified before deletion
+    # (task 0020 evidence) and the checked-in expectations below are now
+    # the inventory contract.
     anomaly_meta = sorted(SOURCE_ROOT.rglob("meta.yaml"))
     anomaly_ids = [_source_id(path) for path in anomaly_meta]
 
-    assert len(navigator_ids) == 29
-    assert navigator_ids.count(ARBITER_ID) == 1
-    expected_ids = set(navigator_ids) - {ARBITER_ID}
-    assert len(expected_ids) == 28
     assert len(anomaly_ids) == 28
+    assert len(anomaly_ids) == len(set(anomaly_ids))
     assert ARBITER_ID not in anomaly_ids
-    assert set(anomaly_ids) == expected_ids
     assert anomaly_ids.count("global/opensanctions") == 1
     assert anomaly_ids.count("global/thinkpol/reddit-evidence") == 1
     for meta_path in anomaly_meta:
