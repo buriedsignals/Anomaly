@@ -53,15 +53,15 @@
 - `tests/test_pipeline_walk.py:529` — pre-write `.anomaly` containment contract.
 - `tests/test_pipeline_walk.py:551` — injected-handler suffix invalidation matrix.
 - `tests/test_workflow.py:95` — fail-closed composition parameter set.
+- `tests/test_events.py:155` — direct API phase-event sequence contract.
 - `tests/fixtures/orchestration_demo.csv:1` — deterministic ten-row demo input.
 
 ## Targeted commands
 
-- Causal RED: `uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q`
-- Causal RED result: `11 failed, 18 passed in 2.65s`; exit 1.
-- Focused public path: `uv run pytest tests/test_pipeline_walk.py -q`
-- Focused durable runner: `uv run pytest tests/test_workflow.py -q`
-- Full suite: `uv run --extra test pytest tests/`
+- Recorded full-gate RED: `uv run --extra test pytest tests/`
+- Recorded full-gate result: `1 failed, 721 passed`; sole failure was `tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call`.
+- Targeted event contract: `uv run --extra test pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q`
+- Targeted result after expectation revision: `1 passed in 0.12s`.
 
 ## Mechanical constraints
 
@@ -69,6 +69,7 @@
 - Public proof input keys are `now`, `sources`, `gate_a`, `review`, and `gate_b`; timestamps are explicit timezone-aware `datetime` values.
 - P3 recommendation completes before the Gate A pause; Gate A is consumed by P4.
 - P6 replay/review completes before the Gate B pause; Gate B is consumed by P7.
+- A completed direct path records one P6 replay before P6 review; P7 acceptance does not record another P6 replay.
 - Maximum failed attempts per phase is 3.
 - Persisted case references and attempt paths are relative to the case root.
 - Gate A and Gate B identities are caller inputs.

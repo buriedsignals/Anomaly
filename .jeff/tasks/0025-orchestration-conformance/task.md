@@ -21,6 +21,13 @@ Make Anomaly's installed mainline sequence use one authoritative durable executi
 - No broad rewrite of deterministic modules that already pass their contracts.
 - Do not make `ORCHESTRATION-SPINE.md` a runtime dependency.
 
+## Simplicity objective
+
+- This is a review lens, not a numeric release gate: prefer deletion and reuse, with one durable runner and one small product-composition owner rather than another framework.
+- Avoid recurring additions of hundreds of lines. Material growth must buy clear user-visible reliability and be simpler than adapting existing deterministic modules.
+- Keep orchestration functions/modules small where practical, move policy out of the durable runner only when it reduces coupling, and delete obsolete aliases, no-op paths, stale tests, and duplicate state writers.
+- Final handoff must explain in plain language what was added, transformed, consolidated, and removed, with line counts split into canonical product code, tests, documentation/evidence, and Jeff state.
+
 ## Audit
 
 Not required unless the plan changes detector execution, path containment, DuckDB isolation, credential handling, acquisition networking, or another existing trust boundary.

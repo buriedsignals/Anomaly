@@ -195,7 +195,6 @@ def test_case_walk_appends_phase_events_for_every_mainline_call(tmp_path: Path) 
         ("P5", "draft_findings"),
         ("P6", "replay_signals"),
         ("P6", "record_review"),
-        ("P6", "replay_signals"),
         ("P7", "accept_findings"),
         ("P7", "write_report"),
         ("P7", "generate_charts"),

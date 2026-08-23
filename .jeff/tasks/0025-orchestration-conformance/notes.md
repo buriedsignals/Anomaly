@@ -1,5 +1,29 @@
 # Notes
 
+## Stale event-contract repair
+
+- Recovery kind: `test-contract-repair`.
+- Complexity: `simple`.
+- Audit required: `true`; retain the causal recovery's already-required audit. This test-only repair does not add audit scope.
+- Refactor opportunity: `null`; production already owns the canonical replay/review sequence, and no behavior-preserving production cleanup is owed.
+- Ordered slice: revise only the direct mainline event expectation so completed P6 review is followed by P7 acceptance without a second P6 replay, preserving every other phase-event assertion.
+
+### Acceptance-criterion dispositions
+
+1. **One documented entry and non-conflicting stores — `reuse`.** Consumer behavior remains the public `run_workflow` authority with runner-owned phase state. Deterministic seams remain `test_public_dispatcher_fails_closed_without_required_inputs` and `test_workflow_runner_rejects_incomplete_or_noncallable_composition`.
+2. **Mutation survives event failure — `reuse`.** A successful durable mutation remains resumable when best-effort event storage is unavailable. Deterministic seam: `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
+3. **Exactly three installed-path attempts — `reuse`.** P1 and P3 failures retain exactly three durable attempts and terminate blocked/unavailable. Deterministic seams: `test_installed_runner_persists_three_failed_attempts_and_blocks` and `test_public_dispatcher_retries_recommendation_failure_inside_p3`.
+4. **Earliest downstream invalidation — `reuse`.** Existing source, prepared, gate, and artifact mutations retain their earliest affected suffix. Deterministic seams: `test_public_dispatcher_rebuilds_stale_plan_after_prepared_change`, `test_public_dispatcher_replaces_changed_registered_source`, `test_public_dispatcher_invalidates_changed_gate_b_from_p7`, and `test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase`.
+5. **Canonical P5/P6 order and independent review — `revise`.** The direct API event stream contains P5 draft, one P6 replay, P6 independent review, then P7 acceptance; `accept_findings` after completed review emits no redundant P6 replay. Deterministic seam: `test_case_walk_appends_phase_events_for_every_mainline_call`, with all other phase-event assertions retained.
+6. **Checked-in demo, resume, and mutation — `reuse`.** The checked-in CSV continues through the public dispatcher and resumes without repeated completed work. Deterministic seam: `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`.
+7. **Existing deterministic contracts and portable paths — `reuse`.** Existing modules, case shape, detector contracts, and relative attempt paths remain unchanged. Deterministic seams: `test_installed_runner_persists_three_failed_attempts_and_blocks` and the recorded full-suite gate.
+
+### RED/GREEN disposition
+
+- Decisive recorded RED: `uv run --extra test pytest tests/` returned `1 failed, 721 passed`; the sole failure was `tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call`, whose expected stream still contained a second `("P6", "replay_signals")` before P7 acceptance.
+- Targeted GREEN after revising only that expectation: `uv run --extra test pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q` returned `1 passed in 0.12s`.
+- Revised test file: `tests/test_events.py`.
+
 ## Recovery decision
 
 - Complexity: `complex`.

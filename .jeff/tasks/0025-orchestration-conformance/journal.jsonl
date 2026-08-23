@@ -74,3 +74,8 @@
 {"seq":73,"at":"2026-08-23T16:36:14.648Z","event":"record","stage":"implement","agent":"ImplementAnomalyCausalRepair"}
 {"seq":74,"at":"2026-08-23T16:36:22.727Z","event":"intent","stage":"refactor","note":"Constrain causal reconstruction: keep runner focused and product_workflow single-purpose; delete obsolete aliases/fallbacks only"}
 {"seq":75,"at":"2026-08-23T16:38:05.936Z","event":"record","stage":"refactor","agent":"RefactorAnomalyCausal"}
+{"seq":76,"at":"2026-08-23T16:38:39.609Z","event":"gate","hash":"20b566715e5f9fdf625599042a8cf61499cbc94f","green":false,"clean":true}
+{"seq":77,"at":"2026-08-23T16:39:05.787Z","event":"intent","stage":"plan","note":"Repair one stale event-order test after redundant replay removal; production remains unchanged"}
+{"seq":78,"at":"2026-08-23T16:42:34.188Z","event":"record","stage":"plan","agent":"PlanAnomalyEventRepair"}
+{"seq":79,"at":"2026-08-23T16:43:39.137Z","event":"intent","stage":"implement","note":"Confirm plan-authored event expectation green; production unchanged"}
+{"seq":80,"at":"2026-08-23T16:49:29.036Z","event":"record","stage":"implement","agent":"ImplementAnomalyEventRepair"}

@@ -9,17 +9,17 @@
   "category": "code",
   "priority": "p1",
   "deps": [],
-  "complexity": "complex",
+  "complexity": "simple",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T16:38:05Z",
+  "updatedAt": "2026-08-23T16:49:29Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyCausalRepair",
+    "implementer_agent_id": "ImplementAnomalyEventRepair",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyCausalRepair",
+    "authored_by_agent_id": "PlanAnomalyEventRepair",
     "green": false,
     "evidence": [
       {
@@ -33,6 +33,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
       }
     ]
   },
@@ -208,6 +212,12 @@
           "kickTo": "implement"
         }
       ]
+    },
+    {
+      "from": "refactor",
+      "to": "plan",
+      "reason": "Full-suite gate found one stale event-order expectation: direct accept_findings no longer performs a redundant replay after completed P6 review, so tests/test_events.py expects an extra P6 replay event that the canonical P5→P6→GateB→P7 flow intentionally removed.",
+      "at": "2026-08-23T16:25:00Z"
     }
   ],
   "blockedReason": null,
@@ -215,36 +225,25 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Reject unsafe/symlinked .anomaly before writes and fail closed unless every handler is callable.",
-      "Run recommendation as runner-owned P3, commit before Gate A, apply Gate A at P4, retain identity rejection.",
-      "Regenerate P3 after drift, support validated same-ID source replacement, map Gate A/Gate B invalidation to P4/P7.",
-      "Generate P7 artifacts/charts before README completion and align docs."
+      "Revise only direct mainline event expectation to remove redundant second P6 replay before P7 while retaining every other event assertion."
     ],
     "testFiles": [
-      "tests/test_pipeline_walk.py",
-      "tests/test_workflow.py"
+      "tests/test_events.py"
     ],
     "redRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q",
-      "output": "11 failed, 18 passed in 2.65s; RED covers retries, stale plan, source replacement, gate mapping, README order, symlink escape, incomplete runner; identity rejection tests pass."
+      "command": "uv run --extra test pytest tests/",
+      "output": "1 failed, 721 passed; sole stale second-replay expectation."
     },
     "escalation": null,
-    "refactorOpportunity": "Extract production P0-P7 composition/input policy from workflow.py into focused product_workflow.py; leave durable state/attempt execution in WorkflowRunner, delete recommendation prework/no-op fallbacks and unused aliases, preserve run_workflow."
+    "refactorOpportunity": null
   },
   "implement": {
-    "agent_id": "ImplementAnomalyCausalRepair",
+    "agent_id": "ImplementAnomalyEventRepair",
     "result": "green",
-    "files": [
-      "src/anomaly/workflow.py",
-      "src/anomaly/product_workflow.py",
-      "src/anomaly/acquire.py",
-      "src/anomaly/review.py",
-      "PRD.md",
-      "skills/anomaly/SKILL.md"
-    ],
+    "files": [],
     "greenRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q",
-      "output": "29 passed in 2.41s"
+      "command": "uv run pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q",
+      "output": "1 passed in 0.13s"
     }
   },
   "refactor": {
