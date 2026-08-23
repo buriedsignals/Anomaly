@@ -11,9 +11,9 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T13:30:19Z",
+  "updatedAt": "2026-08-23T13:38:32Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyAuthorityRepair",
+    "implementer_agent_id": "ImplementAnomalyGateConsumer",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
@@ -25,6 +25,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
       }
     ]
   },
@@ -113,6 +117,21 @@
           "kickTo": "plan"
         }
       ]
+    },
+    {
+      "from": "review",
+      "to": "implement",
+      "reason": "The full-suite gate exposed a stale Gate A consumer: detect._require_gate_a still requires state.phase=P4 and gate=A after the recovery clean cutover made the Gate A API artifact/receipt-only. This breaks direct detector execution, event walk, registry handoff, and symlink tests despite valid current approval receipts.",
+      "at": "2026-08-23T13:33:52Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/detect.py",
+          "line": 564,
+          "what": "Gate A validation still requires workflow-owned state.phase=P4/gate=A instead of validating the current hash-bound approval receipt independently.",
+          "kickTo": "implement"
+        }
+      ]
     }
   ],
   "blockedReason": null,
@@ -141,33 +160,27 @@
     "refactorOpportunity": "Delete run_workflow's caller-injected/no-op handler fallback and direct state writes from approve_detector_plan, accept_findings, and write_report, harmonizing phase/status/attempt ownership under WorkflowRunner."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyAuthorityRepair",
+    "agent_id": "ImplementAnomalyGateConsumer",
     "result": "green",
     "files": [
-      "src/anomaly/workflow.py",
-      "src/anomaly/recommend.py",
-      "src/anomaly/review.py",
-      "PRD.md",
-      "skills/anomaly/SKILL.md",
-      ".jeff/tasks/0025-orchestration-conformance/context.md"
+      "src/anomaly/detect.py"
     ],
     "greenRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
-      "output": "24 passed in 1.74s"
+      "command": "uv run pytest tests/test_detect.py tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call tests/test_m5_handoff.py::test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery -q",
+      "output": "51 passed in 0.75s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorAnomalyAuthority",
+    "agent_id": "RefactorAnomalyGateConsumer",
     "result": "clean",
     "files": [],
     "outsideDiff": [],
     "greenRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
-      "output": "24 passed in 1.70s"
+      "command": "uv run pytest tests/test_detect.py tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call tests/test_m5_handoff.py::test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery -q",
+      "output": "51 passed in 0.74s"
     },
     "summary": [
-      "No safe behavior-preserving reduction remains: public run_workflow owns exact production composition and fail-closed pauses, and Gate APIs no longer write phase/status state.",
-      "The remaining injectable/no-op WorkflowRunner seam is retained only for unit tests as planned.",
+      "No safe simplification remains: detect.py no longer loads/checks state.json; all imports are used and receipt/plan/hash/path validation remains intact.",
       "No files changed."
     ]
   },
