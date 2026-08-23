@@ -11,7 +11,7 @@ from typing import Any, Callable
 import pytest
 
 from anomaly.acquire import register_local_source
-from anomaly.case import create_case
+from anomaly.case import create_case, resume_case
 from anomaly.detect import execute_detectors
 from anomaly.prepare import prepare_sources
 from anomaly.profile import profile_prepared
@@ -25,17 +25,21 @@ from anomaly.review import (
     replay_signals,
     write_report,
 )
+from anomaly.semantics import UnsafeCasePathError
 from anomaly.workflow import PHASES, WorkflowRunner, run_workflow
 
 NOW = datetime(2026, 8, 22, 12, 0, tzinfo=timezone.utc)
 DEMO_CSV = Path(__file__).parent / "fixtures" / "orchestration_demo.csv"
 
 
-def _review_input(root: Path) -> dict[str, Any]:
+def _review_input(
+    root: Path,
+    reviewer_id: str = "reviewer-007",
+) -> dict[str, Any]:
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     claim_ids = [claim["claim_id"] for claim in draft["claims"]]
     assert claim_ids
-    reviewer = "reviewer-007"
+    reviewer = reviewer_id
     return {
         "reviewer_id": reviewer,
         "verdicts": {
@@ -118,6 +122,7 @@ def _phase_handlers(source: Path = DEMO_CSV) -> dict[str, Callable[..., Any]]:
         return generate_charts(root)
 
     return {
+        "P0": resume_case,
         "P1": register,
         "P2": prepare_and_profile,
         "P3": recommend_and_approve,
@@ -142,7 +147,7 @@ def _completed_demo_with_test_handlers(parent: Path) -> Path:
     return root
 
 
-def _completed_demo(parent: Path) -> Path:
+def _case_at_gate_a(parent: Path) -> tuple[Path, dict[str, Any]]:
     root = parent / "case"
     create_case(
         root,
@@ -151,34 +156,52 @@ def _completed_demo(parent: Path) -> Path:
         case_id="case-walk",
         now=NOW,
     )
-
-    gate_a_pause = run_workflow(root, inputs=_source_inputs())
-    assert gate_a_pause["status"] == "paused"
-    assert gate_a_pause["awaiting_input"] == "gate_a"
-    assert gate_a_pause["last_completed_phase"] == "P2"
+    state = run_workflow(root, inputs=_source_inputs())
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_a"
     plan = json.loads((root / "detectors" / "plan.json").read_text(encoding="utf-8"))
+    return root, plan
 
-    review_pause = run_workflow(
+
+def _case_at_review(parent: Path, *, approved_by: str = "journalist-42") -> Path:
+    root, plan = _case_at_gate_a(parent)
+    state = run_workflow(
         root,
         inputs={
             "now": NOW,
             "gate_a": {
                 "approved_ids": plan["recommended"],
-                "approved_by": "journalist-42",
+                "approved_by": approved_by,
             },
         },
     )
-    assert review_pause["status"] == "paused"
-    assert review_pause["awaiting_input"] == "review"
-    assert review_pause["last_completed_phase"] == "P5"
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "review"
+    assert state["last_completed_phase"] == "P5"
+    return root
 
-    gate_b_pause = run_workflow(root, inputs={"review": _review_input(root)})
-    assert gate_b_pause["status"] == "paused"
-    assert gate_b_pause["awaiting_input"] == "gate_b"
-    assert gate_b_pause["last_completed_phase"] == "P6"
+
+def _case_at_gate_b(
+    parent: Path,
+    *,
+    approved_by: str = "journalist-42",
+    reviewer_id: str = "reviewer-007",
+) -> Path:
+    root = _case_at_review(parent, approved_by=approved_by)
+    state = run_workflow(
+        root,
+        inputs={"review": _review_input(root, reviewer_id)},
+    )
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_b"
+    assert state["last_completed_phase"] == "P6"
+    return root
+
+
+def _completed_demo(parent: Path) -> Path:
+    root = _case_at_gate_b(parent)
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     accepted_claim_ids = [draft["claims"][0]["claim_id"]]
-
     state = run_workflow(
         root,
         inputs={
@@ -231,8 +254,8 @@ MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
     ("draft", "P5", lambda root: _mark(root / "findings" / "draft.json")),
     ("replay", "P6", lambda root: _mark(root / "evidence" / "replay.json")),
     ("review", "P6", lambda root: _mark(root / "findings" / "review.json")),
-    ("Gate A approval", "P3", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-a.json")),
-    ("Gate B approval", "P6", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-b.json")),
+    ("Gate A approval", "P4", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-a.json")),
+    ("Gate B approval", "P7", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-b.json")),
 )
 
 
@@ -335,6 +358,194 @@ def test_installed_runner_persists_three_failed_attempts_and_blocks(
     ]
     assert all(not Path(failure["attempt_path"]).is_absolute() for failure in failures)
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
+
+
+def test_public_dispatcher_retries_recommendation_failure_inside_p3(
+    tmp_path: Path,
+) -> None:
+    root, plan = _case_at_gate_a(tmp_path)
+    plan_path = root / "detectors" / "plan.json"
+    plan_path.unlink()
+    plan_path.mkdir()
+
+    state = run_workflow(
+        root,
+        inputs={
+            "now": NOW,
+            "gate_a": {
+                "approved_ids": plan["recommended"],
+                "approved_by": "journalist-42",
+            },
+        },
+    )
+
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["phase"] == "P3"
+    assert state["attempts"]["P3"] == 3
+    failures = state["failures"]["P3"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
+
+
+def test_public_dispatcher_rebuilds_stale_plan_after_prepared_change(
+    tmp_path: Path,
+) -> None:
+    root = _completed_demo(tmp_path)
+    completed_plan = json.loads(
+        (root / "detectors" / "plan.json").read_text(encoding="utf-8")
+    )
+    assert completed_plan["approved"]
+    _mark(root / "data" / "prepared" / "transforms.json")
+
+    state = run_workflow(root, inputs={"now": NOW})
+
+    rebuilt_plan = json.loads(
+        (root / "detectors" / "plan.json").read_text(encoding="utf-8")
+    )
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_a"
+    assert state["last_completed_phase"] == "P3"
+    assert rebuilt_plan["recommended"]
+    assert rebuilt_plan["approved"] == []
+
+
+def test_public_dispatcher_replaces_changed_registered_source(
+    tmp_path: Path,
+) -> None:
+    root = _completed_demo(tmp_path)
+    sources_path = root / "data" / "sources.json"
+    sources = json.loads(sources_path.read_text(encoding="utf-8"))
+    registered_source = root / sources[0]["path"]
+    registered_source.write_text(
+        registered_source.read_text(encoding="utf-8") + "11,V11,100,20\n",
+        encoding="utf-8",
+    )
+
+    state = run_workflow(root, inputs=_source_inputs())
+
+    replaced_sources = json.loads(sources_path.read_text(encoding="utf-8"))
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_a"
+    assert state["last_completed_phase"] == "P3"
+    assert len(replaced_sources) == 1
+    assert registered_source.read_bytes() == DEMO_CSV.read_bytes()
+
+
+def test_public_dispatcher_rejects_gate_a_approver_as_reviewer(
+    tmp_path: Path,
+) -> None:
+    root = _case_at_review(tmp_path, approved_by="reviewer-007")
+
+    state = run_workflow(
+        root,
+        inputs={"review": _review_input(root, "reviewer-007")},
+    )
+
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["phase"] == "P6"
+    assert "must differ" in state["blocked_reason"]
+    assert not (root / "findings" / "review.json").exists()
+
+
+def test_public_dispatcher_rejects_reviewer_as_gate_b_journalist(
+    tmp_path: Path,
+) -> None:
+    root = _case_at_gate_b(tmp_path, reviewer_id="reviewer-007")
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+
+    state = run_workflow(
+        root,
+        inputs={
+            "gate_b": {
+                "accepted_claim_ids": [draft["claims"][0]["claim_id"]],
+                "journalist_id": "reviewer-007",
+            }
+        },
+    )
+
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["phase"] == "P7"
+    assert "must differ" in state["blocked_reason"]
+    assert not (root / ".anomaly" / "receipts" / "gate-b.json").exists()
+
+
+def test_public_dispatcher_invalidates_changed_gate_b_from_p7(
+    tmp_path: Path,
+) -> None:
+    root = _completed_demo(tmp_path)
+    review_path = root / "findings" / "review.json"
+    replay_path = root / "evidence" / "replay.json"
+    preserved = (review_path.read_bytes(), replay_path.read_bytes())
+    _mark(root / ".anomaly" / "receipts" / "gate-b.json")
+
+    paused = run_workflow(root)
+
+    assert paused["status"] == "paused"
+    assert paused["awaiting_input"] == "gate_b"
+    assert paused["last_completed_phase"] == "P6"
+    assert list(paused["completed"]) == list(PHASES[:7])
+    assert (review_path.read_bytes(), replay_path.read_bytes()) == preserved
+
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+    resumed = run_workflow(
+        root,
+        inputs={
+            "gate_b": {
+                "accepted_claim_ids": [draft["claims"][0]["claim_id"]],
+                "journalist_id": "journalist-42",
+            }
+        },
+    )
+    assert resumed["status"] == "complete"
+    assert (review_path.read_bytes(), replay_path.read_bytes()) == preserved
+
+
+def test_readme_does_not_claim_completion_when_chart_generation_fails(
+    tmp_path: Path,
+) -> None:
+    root = _case_at_gate_b(tmp_path)
+    charts_path = root / "findings" / "charts"
+    charts_path.write_text("not a directory\n", encoding="utf-8")
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+
+    state = run_workflow(
+        root,
+        inputs={
+            "gate_b": {
+                "accepted_claim_ids": [draft["claims"][0]["claim_id"]],
+                "journalist_id": "journalist-42",
+            }
+        },
+    )
+
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["phase"] == "P7"
+    assert state["attempts"]["P7"] == 3
+    assert "Status: complete" not in readme
+    assert "Last completed phase: P7" not in readme
+
+
+def test_public_dispatcher_rejects_anomaly_symlink_before_durable_write(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Containment",
+        question="Can durable writes escape?",
+        case_id="case-containment",
+        now=NOW,
+    )
+    shutil.rmtree(root / ".anomaly")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (root / ".anomaly").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        run_workflow(root)
+
+    assert list(outside.iterdir()) == []
 
 
 @pytest.mark.parametrize(("change", "expected_phase", "mutate"), MUTATIONS)

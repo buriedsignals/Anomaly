@@ -1,49 +1,55 @@
 # Notes
 
-## Recovery plan decision
+## Recovery decision
 
 - Complexity: `complex`.
-- Audit required: `true`. The recovery routes caller-supplied journalist and independent-review identities through the installed dispatcher and changes the fail-closed behavior of both editorial approval boundaries. The audit is limited to identity validation, gate bypass, path portability, and credential-safe failure persistence; detector execution and the other existing trust boundaries remain unchanged.
-- Selected authority: retain `anomaly.workflow.WorkflowRunner` as the only owner of `.anomaly/state.json` phase, status, attempts, completion, invalidation, pause, and retry fields. Validated domain artifacts and Gate A/Gate B receipts remain owned by their APIs. `.anomaly/events.jsonl` remains best-effort observational history, and `.anomaly/attempts/` remains relative per-attempt evidence.
-- Public contract: `anomaly.workflow.run_workflow(root, *, inputs=None)` owns a production-built, complete P0–P7 handler composition. The public dispatcher no longer accepts caller-built phase mappings. It validates the complete production composition before executing and never substitutes a no-op for a missing handler.
-- Pause contract: absent sources or human input returns durable `status: paused` with `awaiting_input` set to `sources`, `gate_a`, `review`, or `gate_b`; a pause is neither phase completion nor a failed attempt. A later call supplies only the awaited input and resumes the same authoritative state. Source registration metadata, Gate A approved IDs/identity, independent reviewer/verdict/attestation, and Gate B accepted IDs/journalist identity are explicit caller inputs; no production identity is hard-coded.
-- Canonical order: P5 drafts claims, P6 replays and records independent review, Gate B validates journalist acceptance, and P7 writes the report/charts. The checked-in demo retains that exact order.
-- Refactor opportunity: delete the public dispatcher's caller-injected/no-op handler fallback and delete direct `.anomaly/state.json` writes from `approve_detector_plan`, `accept_findings`, and `write_report`, harmonizing all phase/status/attempt ownership under `WorkflowRunner`.
-- Decomposition: the dispatcher cutover, API ownership deletion, pause/resume inputs, invalidation proof, and documentation alignment are one coupled recovery slice set. Splitting them would temporarily preserve either a fail-open entry or competing state writers, so no independently shippable split is proposed.
+- Audit required: `true`. This recovery changes the caller-controlled `.anomaly` containment boundary and retains public cross-gate identity validation. Audit scope is containment before durable writes, gate separation, source-replacement ownership, portable attempt paths, and credential-redacted failures.
+- Selected recovery: `causal-subgraph-reconstruction`, confined to the dispatcher, durable runner, phase-artifact invalidation/recovery, and P7 completion projection.
+- Public authority: `anomaly.workflow.run_workflow(root, *, inputs=None)` remains the only documented product entry. `WorkflowRunner` remains the durable state/attempt executor but must reject an absent, partial, or non-callable composition when asked to run a workflow; explicit single-phase handlers remain a focused unit-test seam.
+- Phase boundaries: runner-owned P3 recommendation completes before the Gate A pause; Gate A is consumed at P4. P6 replay/review completes before the Gate B pause; Gate B is consumed at P7. Gate A and Gate B identity changes therefore invalidate from P4 and P7 respectively.
+- Refactor opportunity: extract the production P0–P7 composition plus input/gate policy from the 922-line `src/anomaly/workflow.py` into one focused `src/anomaly/product_workflow.py` module, leaving the durable runner and state primitives in `workflow.py`; delete `_ensure_recommendation`, no-op handler fallback, and the weightless `Workflow`/`DurableWorkflow` aliases. The public `anomaly.workflow.run_workflow` path remains unchanged.
+- The eight blockers are one coupled recovery. Splitting would temporarily leave either recommendation outside retry ownership, a fail-open runner, stale artifact reuse, or premature finalization, so there is no independently shippable decomposition.
 
 ## Ordered slices
 
-1. Keep the revised proof contract: Gate A, Gate B, and report APIs must produce their artifacts/receipts while leaving workflow state byte-for-byte unchanged; the public dispatcher must not complete without required inputs.
-2. Replace `run_workflow`'s optional caller mapping with a production-owned exact P0–P7 composition over the existing case/acquire/prepare/profile/recommend/detect/review/report APIs. Validate the composition before starting and fail closed if any required handler is absent or non-callable; retain handler injection only on `WorkflowRunner` for isolated runner tests.
-3. Add runner-owned durable pause/resume handling and consume explicit `inputs` for sources, Gate A, independent review, and Gate B. Pauses must not consume the three failure attempts; actual phase failures still persist exactly three credential-redacted failure records and relative attempt paths before becoming unavailable/blocked.
-4. Remove phase/status writes from `approve_detector_plan`, `accept_findings`, and `write_report`; after each domain call succeeds, let `WorkflowRunner` alone commit completion, identities, phase, status, and attempts. Preserve the APIs' existing artifact validation and receipt ownership.
-5. Retain the existing identity invalidation implementation where the strengthened matrix passes it; otherwise repair only the earliest-phase mapping/deletion needed so every downstream `completed` entry is removed and resume executes exactly the expected suffix.
-6. Align `PRD.md` and `skills/anomaly/SKILL.md` with state plus validated identities as resume authority, receipts as artifact/approval evidence, and events as observational only. Document the production dispatcher and explicit pauses without a caller-built handler table, preserving P5 → P6 → Gate B.
+1. Enforce the trust and execution boundary before mutation: reject a symlinked/non-contained `.anomaly` before runner construction or durable-tree creation, and make `WorkflowRunner.run()` validate an exact callable P0–P7 composition instead of substituting no-ops.
+2. Move product composition/input policy into one focused module. Run recommendation as the P3 handler under the existing three-attempt durable boundary, commit P3, then pause for Gate A; apply Gate A before P4. Keep replay/review in P6, then pause for Gate B before P7. Preserve explicit caller identities and reject equal cross-gate identities.
+3. Bind artifacts to their producing/consuming phases: an invalidated P3 always recomputes and overwrites the plan rather than accepting file presence; Gate A/Gate B map to P4/P7; a supplied source with an existing canonical ID performs one validated atomic replacement of its raw payload and manifest record instead of append/duplicate rejection.
+4. Make P7 fail closed: produce accepted findings, report body, and charts before projecting README completion from committed P7 state. A chart failure exhausts P7 attempts without writing `Status: complete` or `Last completed phase: P7`. Align PRD/SKILL wording only after behavior is green.
+
+## Blocker proof dispositions
+
+1. **P3 recommendation retry — `write`.** Consumer behavior: a recommendation write failure through `run_workflow` produces exactly three P3 failure attempts and returns unavailable/blocked instead of raising outside the runner. Seam: `test_public_dispatcher_retries_recommendation_failure_inside_p3`.
+2. **Stale plan generation — `write`.** Consumer behavior: prepared-generation drift reruns P2 then P3, resets prior approval, and pauses at Gate A with P3 complete. Seam: `test_public_dispatcher_rebuilds_stale_plan_after_prepared_change`.
+3. **Cross-gate rejection — `write`.** Consumer behavior: Gate A approver cannot be the independent reviewer, and the reviewer cannot be the Gate B journalist, through caller-supplied public inputs. Seams: `test_public_dispatcher_rejects_gate_a_approver_as_reviewer` and `test_public_dispatcher_rejects_reviewer_as_gate_b_journalist`.
+4. **Fail-closed injected runner — `write`.** Consumer behavior: absent, partial, or non-callable phase composition cannot durably complete. Seam: `test_workflow_runner_rejects_incomplete_or_noncallable_composition`.
+5. **Executable source replacement — `write`.** Consumer behavior: after registered raw-source drift, supplying the same canonical source ID replaces its payload/record, preserves one registration, recomputes through P3, and pauses at Gate A. Seam: `test_public_dispatcher_replaces_changed_registered_source`.
+6. **Gate B at P7 — `revise` plus `write`.** Consumer behavior: changed Gate B invalidates only P7, preserves replay/review bytes, pauses for Gate B, then recompletes. Seams: revised `MUTATIONS` Gate B row plus `test_public_dispatcher_invalidates_changed_gate_b_from_p7`. The Gate A row is likewise corrected to its P4 consumer boundary.
+7. **README after whole P7 — `write`.** Consumer behavior: deterministic chart obstruction yields three failed P7 attempts and no README completion claim. Seam: `test_readme_does_not_claim_completion_when_chart_generation_fails`.
+8. **Pre-write `.anomaly` containment — `write`.** Consumer behavior: a symlinked `.anomaly` is rejected as an unsafe case path and the target directory remains byte-empty. Seam: `test_public_dispatcher_rejects_anomaly_symlink_before_durable_write`.
 
 ## Acceptance-criterion dispositions
 
-1. **One documented entry and non-conflicting stores — `revise`.** Consumer behavior: `run_workflow` uses its installed complete composition, pauses on missing input instead of completing, and is the only phase/status/attempt writer; Gate/report APIs leave state unchanged. Deterministic seams: `test_public_dispatcher_fails_closed_without_required_inputs`, `test_approval_records_gate_a_artifacts_without_mutating_workflow_state`, `test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state`, and the report state assertion in `test_report_preserves_unresolved_work_and_contains_only_accepted_findings`.
-2. **Mutation survives event failure — `reuse`.** Consumer behavior: a successful artifact plus runner transition remains resumable when event append is unavailable. Deterministic seam: existing `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
-3. **Exactly three durable attempts on the installed path — `revise`.** Consumer behavior: invalid P1 registration through public `run_workflow` produces exactly three structured relative failure paths and ends unavailable/blocked. Deterministic seam: revised `test_installed_runner_persists_three_failed_attempts_and_blocks`.
-4. **Earliest complete downstream invalidation — `revise`.** Consumer behavior: each of the nine source/artifact/approval mutations removes every completion from the expected phase onward, and resume executes exactly that suffix once. Deterministic seam: strengthened parameterized `test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase`.
-5. **One P5/P6 order — `revise`.** Consumer behavior: the public demo observes draft before replay, replay before independent review, and review before Gate B acceptance. Deterministic seam: API-event order in `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`; canonical PRD/SKILL prose is revised in the implementation slice rather than asserted as source text.
-6. **Checked-in complete demo and deterministic resume — `revise`.** Consumer behavior: the checked-in CSV drives the public dispatcher through explicit Gate A, review, and Gate B pauses to report/charts; a fresh no-input call repeats no completed work. Deterministic seam: revised `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`.
-7. **Existing deterministic contracts and portable paths — `reuse`.** Consumer behavior: existing case, detector, artifact, and receipt APIs retain their formats; structured attempt paths remain relative. Deterministic seams: the checked-in demo plus the relative-path assertions in the installed retry test.
+1. **One documented entry and non-conflicting stores — `revise`.** Consumer behavior: the documented dispatcher builds the exact product composition; the runner cannot manufacture completion from missing handlers; state owns phase/attempt/status while artifacts and receipts retain their existing roles. Deterministic seams: public demo, missing-input test, and fail-closed runner test.
+2. **Mutation survives event failure — `reuse`.** Consumer behavior: committed source plus phase state resumes when best-effort event storage is unavailable. Seam: existing `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
+3. **Exactly three installed-path attempts — `revise`.** Consumer behavior: both P1 registration and P3 recommendation failures persist three relative attempt paths and end unavailable/blocked. Seams: existing P1 retry test and new P3 retry test.
+4. **Earliest downstream invalidation — `revise`.** Consumer behavior: prepared drift rebuilds P3; source drift has an executable replacement; Gate A and Gate B invalidate from P4/P7; existing artifact mutations still delete the exact state suffix. Seams: stale-plan, source-replacement, public Gate B, and revised mutation matrix tests.
+5. **Canonical order and independent review — `revise`.** Consumer behavior: P3 precedes Gate A/P4; draft precedes replay/review; Gate B follows independent review and precedes P7; equal cross-gate identities are rejected. Seams: public demo event order and two new identity tests.
+6. **Checked-in demo, resume, and mutation — `revise`.** Consumer behavior: the checked-in CSV completes through the public dispatcher, resumes without repeated work, and public mutation cases recover or fail closed deterministically. Seams: existing demo plus stale-plan, source-replacement, Gate B, and chart-failure tests.
+7. **Existing deterministic contracts and portable paths — `reuse`.** Consumer behavior: deterministic domain modules, case format, detector contracts, and relative attempt paths remain intact. Seams: existing full suite, checked-in demo, retry path assertions, and containment test.
 
-## Test changes
+## Test files
 
-- `tests/test_pipeline_walk.py` — public fail-closed dispatch, staged public pause/resume demo, installed retry behavior, and full downstream deletion/exact-suffix rerun.
-- `tests/test_recommend.py` — Gate A artifact/receipt ownership with unchanged workflow state.
-- `tests/test_review.py` — Gate B and report artifact ownership with unchanged workflow state.
-- `tests/test_skill.py` — deleted the source-text-only handler wiring/order assertion; public behavior now owns that proof.
+- `tests/test_pipeline_walk.py` — revised Gate A/Gate B consumer-phase matrix and added public P3 retry, stale plan, source replacement, cross-gate identity, Gate B resume, README/chart failure, and `.anomaly` symlink contracts.
+- `tests/test_workflow.py` — added fail-closed composition contract.
 - `tests/fixtures/orchestration_demo.csv` — reused unchanged.
 
 ## Decisive RED
 
-- Command: `uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q`
-- Result: `6 failed, 18 passed in 1.66s` (exit 1).
-- Missing production behavior: no-input `run_workflow` falsely returns `complete`; `run_workflow(..., inputs=...)` is absent; the installed retry contract cannot enter production composition.
-- Competing production behavior: Gate A changes P0 to P4/Gate A, Gate B changes P0 to P7/Gate B, and `write_report` changes active to complete. Each failure occurs after its fixture successfully produces the expected plan, receipt, findings, or report artifact.
+- Command: `uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q`
+- Result: `11 failed, 18 passed in 2.65s` (exit 1).
+- Missing behavior represented by failures: P3 recommendation raises before retry accounting; stale P3 plan remains approved after P2 drift; same-ID source input becomes unavailable; Gate A/Gate B still map to P3/P6; chart failure leaves README complete/P7; `.anomaly` symlink writes escape before a `ValueError`; incomplete runner compositions complete rather than raising.
+- The two new public cross-gate identity rejection tests pass against the current guards and now own those consumer-visible contracts.
 
 ## Skill inputs
 
@@ -53,4 +59,4 @@
 
 ## Existing ledger condition
 
-Task 20 remains pre-existing invalid ledger state and is outside task 25's edit scope.
+- Task 20 remains pre-existing invalid ledger state and is outside task 25's edit scope.

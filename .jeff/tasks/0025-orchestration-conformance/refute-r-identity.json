@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review",
+  "finding": "tests/test_pipeline_walk.py:161 Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.",
+  "verdict": "survives",
+  "rationale": "The guards are reachable in the public dispatcher, but no test supplies equal Gate A/reviewer or reviewer/Gate B identities and asserts rejection, so deleting either guard would leave the current suite\u2019s public-entry coverage green.",
+  "evidence": [
+    {
+      "command": "grep -R \"run_workflow(\" tests",
+      "output": "All public-dispatcher calls are in tests/test_pipeline_walk.py; lines 155-190 cover only the successful path with Gate A/Gate B journalist-42 and reviewer-007, while the other calls cover missing inputs, resume, and P1 retry exhaustion."
+    },
+    {
+      "command": "grep -R -E \"must differ|same identity|reviewer.*journalist|journalist.*reviewer\" tests",
+      "output": "No rejection assertion or equal cross-gate identity case was found in tests."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:624-662",
+      "output": "P6 rejects reviewer_id equal to gate-a approved_by at lines 638-639, and P7 rejects journalist_id equal to findings/review.json reviewer_id at lines 660-661; these are the only matching guards."
+    }
+  ]
+}

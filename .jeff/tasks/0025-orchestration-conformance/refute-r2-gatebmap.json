@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "src/anomaly/workflow.py:37 Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.",
+  "verdict": "survives",
+  "rationale": "The public dispatcher completes replay and independent review in P6, requests Gate B only for P7, and can safely revalidate those preserved P6 artifacts while rebuilding accepted findings and reports, so mapping a changed Gate B receipt to P6 demonstrably invalidates one phase too early and violates the task\u2019s earliest-correct-phase contract.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:27-37,161-174,288-329",
+      "output": "`gate_b` maps to P6; `load_state` selects that mapped phase when the recorded receipt digest changes; `_invalidate_state` then removes completed phases, attempts, failures, and identities from P6 onward and demotes Gate B to Gate A."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:558-568,619-681",
+      "output": "The real dispatcher requests `review` at P6 and `gate_b` at P7; production P6 runs replay plus independent review, while P7 runs Gate B acceptance, report writing, and chart generation."
+    },
+    {
+      "command": "read src/anomaly/review.py:369-487",
+      "output": "`accept_findings` validates the existing draft, review, review-basis hash, replay, and independent attestation before rewriting accepted findings and `gate-b.json`, so a changed Gate B decision does not require replay or review to be discarded."
+    },
+    {
+      "command": "read PRD.md:230-248",
+      "output": "The canonical sequence is P6 replay/independent review, then Gate B, then P7 findings/report."
+    }
+  ]
+}

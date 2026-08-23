@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from anomaly.workflow import MAX_ATTEMPTS, PHASES, RetryLimitExceeded, WorkflowRunner
+from anomaly.workflow import MAX_ATTEMPTS, PHASES, WorkflowError, WorkflowRunner
 
 
 def test_workflow_records_linear_events_attempts_and_resume(tmp_path: Path) -> None:
@@ -89,3 +91,28 @@ def test_workflow_fingerprint_change_invalidates_downstream(tmp_path: Path) -> N
 def test_workflow_rejects_non_three_attempt_configuration(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="exactly three"):
         WorkflowRunner(tmp_path, max_attempts=4)
+
+
+@pytest.mark.parametrize(
+    "handlers",
+    [
+        None,
+        {"P0": lambda: None},
+        {
+            phase: (None if phase == "P7" else (lambda: None))
+            for phase in PHASES
+        },
+    ],
+)
+def test_workflow_runner_rejects_incomplete_or_noncallable_composition(
+    tmp_path: Path,
+    handlers: Any,
+) -> None:
+    with pytest.raises(WorkflowError, match=r"(?i)(handler|callable|P0-P7|composition)"):
+        WorkflowRunner(tmp_path, handlers=handlers).run()
+
+    state_path = tmp_path / ".anomaly" / "state.json"
+    if state_path.is_file():
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert state.get("status") != "complete"
+        assert not state.get("completed")

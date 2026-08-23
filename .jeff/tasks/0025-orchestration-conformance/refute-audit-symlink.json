@@ -1,0 +1,18 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "audit",
+  "finding": "src/anomaly/workflow.py:144 The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+  "verdict": "survives",
+  "rationale": "The public run_workflow path is directly reachable with a caller-supplied case root, resolves only that root, then constructs WorkflowRunner and creates or writes beneath .anomaly before P0 invokes resume_case; neither WorkflowRunner nor resume_case rejects a .anomaly symlink, while the only whole-tree symlink scan is confined to fork_case.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:77-153,484-503,559-703",
+      "output": "WorkflowRunner.__init__ sets self.root = Path(root).resolve() and immediately calls _ensure_durable_tree(); that method runs mkdir beneath root/.anomaly and writes state.json/events.jsonl without lstat/is_symlink containment checks. run_workflow constructs WorkflowRunner before its loop, and the first case operation, P0 resume_case, occurs only later through run_phase."
+    },
+    {
+      "command": "read src/anomaly/case.py:137-168,199-216,255-299",
+      "output": "resume_case checks only that case.json is a file and calls _load_case; it does not invoke _scan_case_tree. _scan_case_tree rejects symlinks, but its sole call is in fork_case, so it is not an upstream guard for run_workflow."
+    }
+  ]
+}

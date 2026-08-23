@@ -81,20 +81,22 @@ state. It pauses at each missing human input rather than bypassing it.
 | P2 prepare | 3 | `anomaly.prepare.prepare_sources` |
 | P2 profile | 4 | `anomaly.profile.profile_prepared` |
 | P3 recommend | 5 | `anomaly.recommend.recommend_detectors` |
-| Gate A closes | 6 | `anomaly.recommend.approve_detector_plan` — only after the journalist approves; seals the hash-bound Gate A receipt |
+| Gate A closes in P4 | 6 | `anomaly.recommend.approve_detector_plan` — only after the journalist approves; seals the hash-bound Gate A receipt |
 | P4 execute | 7 | `anomaly.detect.execute_detectors` with the approved IDs and bounded limits |
 | P5 draft | 8 | `anomaly.review.draft_findings` |
 | P6 replay | 9 | `anomaly.review.replay_signals` before relying on any calculation |
 | P6 independent review | 10 | `anomaly.review.record_review` with the isolated reviewer ID, verdicts, and draft-hash attestation |
-| Gate B closes | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
-| P7 report | 12 | `anomaly.review.write_report` materializes the redacted report and case links from Gate-B findings |
-| P7 post-report | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
+| Gate B closes in P7 | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
+| P7 report | 12 | `anomaly.review.write_report` materializes the redacted report body from Gate-B findings |
+| P7 charts | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
+| P7 completion | 14 | `anomaly.review.complete_report_readme` projects complete status and relative links only after every output succeeds |
 
 Step 13 records a sha256 receipt in `.anomaly/receipts/charts.json` and refuses
 without writing anything when the hash-bound Gate B receipt is missing or no
 longer matches the current findings, review, or replay artifacts; that refusal
 means charts are unavailable — never approximate, assume, or substitute chart
-data.
+data. Step 14 does not run after any such refusal, so `README.md` cannot claim
+P7 completion before the charts exist.
 
 The resulting portable case folder contains the root files, instructions, data,
 detector plan and inert snapshots, evidence, findings, and durable `.anomaly/`

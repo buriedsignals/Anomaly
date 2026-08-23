@@ -38,3 +38,39 @@
 {"seq":37,"at":"2026-08-23T13:36:46.057Z","event":"record","stage":"implement","agent":"ImplementAnomalyGateConsumer"}
 {"seq":38,"at":"2026-08-23T13:36:58.292Z","event":"intent","stage":"refactor","note":"Check the one-file Gate A consumer repair for deletion/simplification only; preserve receipt validation and single authority"}
 {"seq":39,"at":"2026-08-23T13:38:32.261Z","event":"record","stage":"refactor","agent":"RefactorAnomalyGateConsumer"}
+{"seq":40,"at":"2026-08-23T13:38:54.374Z","event":"gate","hash":"80ec3ee14ea5c79c3f367e4625876076ffdac2e3","green":true,"clean":true}
+{"seq":41,"at":"2026-08-23T13:39:01.586Z","event":"intent","stage":"review","note":"Recovery correctness review of fail-closed production composition, pauses, artifact-only gates, exact invalidation, and detector Gate A consumer"}
+{"seq":42,"at":"2026-08-23T13:39:01.644Z","event":"intent","stage":"review","note":"Recovery standards review of one state authority, API reuse, docs, simplicity, and test integrity"}
+{"seq":43,"at":"2026-08-23T13:39:01.703Z","event":"intent","stage":"audit","note":"Audit recovery diff for path containment, detector execution boundary, receipt validation, unsafe input, and case portability"}
+{"seq":44,"at":"2026-08-23T13:49:09.182Z","event":"record","stage":"review","agent":"ReviewAnomalyRecoveryCorrect"}
+{"seq":45,"at":"2026-08-23T13:49:54.077Z","event":"record","stage":"review","agent":"ReviewAnomalyRecoveryStandards"}
+{"seq":46,"at":"2026-08-23T13:50:17.471Z","event":"record","stage":"audit","agent":"AuditAnomalyRecovery"}
+{"seq":47,"at":"2026-08-23T13:50:31.376Z","event":"intent","stage":"refute","note":"Refute recovery P3 recommendation outside retry boundary"}
+{"seq":48,"at":"2026-08-23T13:50:31.437Z","event":"intent","stage":"refute","note":"Refute stale recommendation reuse after invalidation"}
+{"seq":49,"at":"2026-08-23T13:50:31.498Z","event":"intent","stage":"refute","note":"Refute missing cross-gate identity rejection tests"}
+{"seq":50,"at":"2026-08-23T13:50:31.556Z","event":"intent","stage":"refute","note":"Refute public WorkflowRunner fail-open test seam"}
+{"seq":51,"at":"2026-08-23T13:50:31.615Z","event":"intent","stage":"refute","note":"Refute changed-source recovery dead end"}
+{"seq":52,"at":"2026-08-23T13:50:31.674Z","event":"intent","stage":"refute","note":"Refute Gate B over-invalidation mapping"}
+{"seq":53,"at":"2026-08-23T13:50:31.734Z","event":"intent","stage":"refute","note":"Refute premature README completion"}
+{"seq":54,"at":"2026-08-23T13:50:31.793Z","event":"intent","stage":"refute","note":"Refute .anomaly symlink path escape"}
+{"seq":55,"at":"2026-08-23T13:55:09.505Z","event":"record","stage":"refute","agent":"RefuteArRunner"}
+{"seq":56,"at":"2026-08-23T13:55:09.567Z","event":"record","stage":"refute","agent":"RefuteArSymlink"}
+{"seq":57,"at":"2026-08-23T13:56:00.396Z","event":"record","stage":"refute","agent":"RefuteArP3Retry"}
+{"seq":58,"at":"2026-08-23T13:56:00.459Z","event":"record","stage":"refute","agent":"RefuteArStalePlan"}
+{"seq":59,"at":"2026-08-23T13:56:00.523Z","event":"record","stage":"refute","agent":"RefuteArIdentityTests"}
+{"seq":60,"at":"2026-08-23T13:56:00.587Z","event":"record","stage":"refute","agent":"RefuteArSourceRecovery"}
+{"seq":61,"at":"2026-08-23T13:56:00.651Z","event":"record","stage":"refute","agent":"RefuteArGateBMap"}
+{"seq":62,"at":"2026-08-23T13:58:28.392Z","event":"intent","stage":"council","note":"Council integrity inquiry over exact second-cycle blocker union"}
+{"seq":63,"at":"2026-08-23T13:58:28.452Z","event":"intent","stage":"council","note":"Council security inquiry over exact second-cycle blocker union"}
+{"seq":64,"at":"2026-08-23T13:58:28.511Z","event":"intent","stage":"council","note":"Council pragmatist inquiry over exact second-cycle blocker union"}
+{"seq":65,"at":"2026-08-23T16:03:50.057Z","event":"intent","stage":"council","note":"Retry compact integrity council inquiry after provider reset"}
+{"seq":66,"at":"2026-08-23T16:03:50.116Z","event":"intent","stage":"council","note":"Retry compact security council inquiry after provider reset"}
+{"seq":67,"at":"2026-08-23T16:03:50.174Z","event":"intent","stage":"council","note":"Retry compact pragmatist council inquiry after provider reset"}
+{"seq":68,"at":"2026-08-23T16:06:39.072Z","event":"intent","stage":"council","note":"Synthesize unanimous eight-blocker council and select one bounded recovery route"}
+{"seq":69,"at":"2026-08-23T16:10:29.555Z","event":"record","stage":"refute","agent":"RefuteArReadme"}
+{"seq":70,"at":"2026-08-23T16:10:44.270Z","event":"intent","stage":"plan","note":"Third-cycle plan using unanimous council guidance: reconstruct only runner/dispatcher/artifact invalidation causal subgraph and confined symlink/test obligations"}
+{"seq":71,"at":"2026-08-23T16:24:39.188Z","event":"record","stage":"plan","agent":"PlanAnomalyCausalRepair"}
+{"seq":72,"at":"2026-08-23T16:24:47.030Z","event":"intent","stage":"implement","note":"Implement final causal reconstruction: focused product workflow, fail-closed runner, P3 retries/artifacts, source replacement, gate mapping, P7 completion order, symlink guard"}
+{"seq":73,"at":"2026-08-23T16:36:14.648Z","event":"record","stage":"implement","agent":"ImplementAnomalyCausalRepair"}
+{"seq":74,"at":"2026-08-23T16:36:22.727Z","event":"intent","stage":"refactor","note":"Constrain causal reconstruction: keep runner focused and product_workflow single-purpose; delete obsolete aliases/fallbacks only"}
+{"seq":75,"at":"2026-08-23T16:38:05.936Z","event":"record","stage":"refactor","agent":"RefactorAnomalyCausal"}

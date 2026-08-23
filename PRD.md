@@ -345,7 +345,9 @@ After Gate B:
 - Materialize accepted claims into `findings/findings.json`.
 - Update `findings/unresolved.md`.
 - Generate `findings/report.md`.
-- Refresh `README.md` with status and relative links.
+- Generate deterministic charts and their hash-bound receipt.
+- Refresh `README.md` with complete status and relative links only after every
+  P7 output succeeds.
 
 ## 5. Detector registry
 

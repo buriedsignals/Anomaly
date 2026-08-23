@@ -406,8 +406,6 @@ def accept_findings(
         raise ReviewError("required journalist approval is missing or does not match")
     strict = _strict_case(root)
     replay = _require_replay(root, strict)
-    if strict:
-        replay = replay_signals(root)
     unavailable = review.get("status") != "recorded" or review.get("availability") != "available"
     if review.get("draft_hash") != _hash_json(draft):
         raise ReviewError("draft changed after review")
@@ -593,7 +591,11 @@ def _verify_prepared_generation(root: Path, provenance: dict[str, Any]) -> None:
 
 
 @phase_event("P7", "write_report")
-def write_report(root: Path) -> dict[str, Any]:
+def write_report(
+    root: Path,
+    *,
+    complete_readme: bool = True,
+) -> dict[str, Any]:
     """Write a redacted report and relative case links from Gate-B findings."""
     root = _root(root)
     findings = _read_json(_owned(root, "findings/findings.json"))
@@ -608,7 +610,11 @@ def write_report(root: Path) -> dict[str, Any]:
         or receipt.get("gate") != "B"
         or receipt.get("findings_hash") != _hash_json(findings)
         or receipt.get("accepted_claim_ids")
-        != [claim.get("claim_id") for claim in findings.get("claims", []) if isinstance(claim, dict)]
+        != [
+            claim.get("claim_id")
+            for claim in findings.get("claims", [])
+            if isinstance(claim, dict)
+        ]
         or not review_path.is_file()
         or receipt.get("review_hash") != _hash_json(_read_json(review_path))
         or not replay_path.is_file()
@@ -628,20 +634,53 @@ def write_report(root: Path) -> dict[str, Any]:
             if not isinstance(claim, dict):
                 continue
             claim_id = _redact_text(_text(claim.get("claim_id", "claim")))
-            statement = _redact_text(_text(claim.get("statement", "")).strip()) or "(statement unavailable)"
+            statement = (
+                _redact_text(_text(claim.get("statement", "")).strip())
+                or "(statement unavailable)"
+            )
             lines.extend([f"### {claim_id}", "", statement, ""])
     else:
         lines.extend(["No claims were accepted at Gate B.", ""])
-    lines.extend(["## Unresolved work", "", "See [unresolved work](unresolved.md).", ""])
-    report = "\n".join(lines)
-    _write_text(root, "findings/report.md", _redact_text(report))
+    lines.extend(
+        ["## Unresolved work", "", "See [unresolved work](unresolved.md).", ""]
+    )
+    _write_text(
+        root,
+        "findings/report.md",
+        _redact_text("\n".join(lines)),
+    )
+    unresolved = unresolved_path.read_text(encoding="utf-8")
+    _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
+    if complete_readme:
+        complete_report_readme(root)
+    return {
+        "status": "complete",
+        "report": "findings/report.md",
+        "findings": "findings/findings.json",
+    }
 
+
+def complete_report_readme(root: Path) -> None:
+    """Project P7 completion only after all final outputs have succeeded."""
+    root = _root(root)
+    for relative in ("findings/findings.json", "findings/report.md"):
+        path = _owned(root, relative)
+        if not path.is_file() or path.is_symlink():
+            raise ReviewError(f"final report output is missing: {relative}")
     readme_path = _owned(root, "README.md")
-    readme = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else "# Case\n"
+    readme = (
+        readme_path.read_text(encoding="utf-8")
+        if readme_path.is_file()
+        else "# Case\n"
+    )
     readme = re.sub(r"(?m)^Status: .*?$", "Status: complete", readme)
     if "Status: complete" not in readme:
         readme = readme.rstrip() + "\n\nStatus: complete\n"
-    readme = re.sub(r"(?m)^Last completed phase: .*?$", "Last completed phase: P7", readme)
+    readme = re.sub(
+        r"(?m)^Last completed phase: .*?$",
+        "Last completed phase: P7",
+        readme,
+    )
     if "Last completed phase: P7" not in readme:
         readme = readme.rstrip() + "\nLast completed phase: P7\n"
     links = (
@@ -652,10 +691,6 @@ def write_report(root: Path) -> dict[str, Any]:
     )
     readme = re.sub(r"\n## Outputs\n.*\Z", "\n", readme, flags=re.S)
     _write_text(root, "README.md", _redact_text(readme.rstrip() + "\n" + links))
-    unresolved = unresolved_path.read_text(encoding="utf-8")
-    _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
-
-    return {"status": "complete", "report": "findings/report.md", "findings": "findings/findings.json"}
 
 
 def _draft_signals(root: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:

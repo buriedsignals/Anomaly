@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "src/anomaly/workflow.py:470 Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.",
+  "verdict": "survives",
+  "rationale": "The installed `anomaly.workflow` module exposes the non-private `WorkflowRunner` plus `Workflow` and `DurableWorkflow` aliases, and direct construction with omitted, partial, or non-callable handlers reaches `run()` without the production-composition guard, substitutes no-ops, skips missing artifact identities, and durably records every phase through P7 as complete.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:77-121,369-482,510-511",
+      "output": "WorkflowRunner is directly constructible with handlers defaulting to None; run() iterates P0-P7; _handler_for returns `lambda: None` when the handler set is absent or the selected handler is missing/non-callable; run_phase writes attempt result, completed phase, last_completed_phase, and final status `complete`; public aliases Workflow and DurableWorkflow reference the same class."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:554-726,829-878",
+      "output": "The exact-handler/callability guard exists only inside `_production_handlers`, which `run_workflow` invokes; direct WorkflowRunner construction never calls it. `_capture_identities` calls `_artifact_identity`, which returns None when artifact files are absent, and simply omits that identity instead of rejecting phase completion."
+    },
+    {
+      "command": "read pyproject.toml; grep WorkflowRunner src tests PRD.md skills/anomaly/SKILL.md",
+      "output": "Setuptools installs packages from `src`, so `anomaly.workflow.WorkflowRunner` remains directly importable even though package-root `__all__` lists only PreparedDataError; supported tests import and execute WorkflowRunner directly, while documentation designates only run_workflow as the production dispatcher, leaving no upstream runtime guard on the class entry."
+    }
+  ]
+}

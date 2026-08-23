@@ -11,15 +11,15 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T13:38:32Z",
+  "updatedAt": "2026-08-23T16:38:05Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyGateConsumer",
+    "implementer_agent_id": "ImplementAnomalyCausalRepair",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyAuthorityRepair",
+    "authored_by_agent_id": "PlanAnomalyCausalRepair",
     "green": false,
     "evidence": [
       {
@@ -29,6 +29,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ]
   },
@@ -119,7 +123,7 @@
       ]
     },
     {
-      "from": "review",
+      "from": "refactor",
       "to": "implement",
       "reason": "The full-suite gate exposed a stale Gate A consumer: detect._require_gate_a still requires state.phase=P4 and gate=A after the recovery clean cutover made the Gate A API artifact/receipt-only. This breaks direct detector execution, event walk, registry handoff, and symlink tests despite valid current approval receipts.",
       "at": "2026-08-23T13:33:52Z",
@@ -132,6 +136,78 @@
           "kickTo": "implement"
         }
       ]
+    },
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "P3 recommendation runs through `_ensure_recommendation` before `WorkflowRunner.run_phase`, outside the runner's attempt/retry/failure boundary. Move recommendation into runner-owned execution while preserving the pre-Gate-A pause, and add a public-entry recommendation-failure test.; `_ensure_recommendation` accepts any pre-existing nonempty plan. Upstream invalidation clears state completions but leaves the old plan on disk, so a source/prepared mutation reruns P1/P2 and then skips the required P3 recommendation. Distinguish a plan produced for the current paused Gate A from a stale downstream plan, and prove the real public dispatcher recomputes the affected suffix.; Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.; Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.; Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.; Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.; write_report writes README complete/P7 before chart generation and before WorkflowRunner commits P7.",
+      "at": "2026-08-23T16:10:29Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 499,
+          "what": "P3 recommendation runs through `_ensure_recommendation` before `WorkflowRunner.run_phase`, outside the runner's attempt/retry/failure boundary. Move recommendation into runner-owned execution while preserving the pre-Gate-A pause, and add a public-entry recommendation-failure test.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 695,
+          "what": "`_ensure_recommendation` accepts any pre-existing nonempty plan. Upstream invalidation clears state completions but leaves the old plan on disk, so a source/prepared mutation reruns P1/P2 and then skips the required P3 recommendation. Distinguish a plan produced for the current paused Gate A from a stale downstream plan, and prove the real public dispatcher recomputes the affected suffix.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 161,
+          "what": "Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 470,
+          "what": "Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 548,
+          "what": "Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 37,
+          "what": "Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/review.py",
+          "line": 645,
+          "what": "write_report writes README complete/P7 before chart generation and before WorkflowRunner commits P7.",
+          "kickTo": "plan"
+        }
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "implement",
+      "reason": "The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+      "at": "2026-08-23T16:10:29Z",
+      "findings": [
+        {
+          "source": "audit",
+          "file": "src/anomaly/workflow.py",
+          "line": 144,
+          "what": "The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+          "kickTo": "implement"
+        }
+      ]
     }
   ],
   "blockedReason": null,
@@ -139,48 +215,49 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Keep the revised consumer proof contract for fail-closed public dispatch and artifact/receipt-only Gate A, Gate B, and report APIs.",
-      "Replace run_workflow's optional caller mapping with a validated production-owned exact P0-P7 composition while retaining injection only on WorkflowRunner unit tests.",
-      "Add runner-owned durable pauses and explicit sources, Gate A, independent-review, and Gate B resume inputs without hard-coded identities; pauses do not consume failure attempts.",
-      "Remove competing phase/status writes from approve_detector_plan, accept_findings, and write_report; WorkflowRunner commits completion and identities after domain artifacts validate.",
-      "Use the strengthened nine-row mutation matrix to retain or minimally repair full downstream completion deletion and exact suffix rerun.",
-      "Align PRD.md and skills/anomaly/SKILL.md on state plus validated identities as resume authority, receipts as binding evidence, events as observational, and P5 to P6 to Gate B order."
+      "Reject unsafe/symlinked .anomaly before writes and fail closed unless every handler is callable.",
+      "Run recommendation as runner-owned P3, commit before Gate A, apply Gate A at P4, retain identity rejection.",
+      "Regenerate P3 after drift, support validated same-ID source replacement, map Gate A/Gate B invalidation to P4/P7.",
+      "Generate P7 artifacts/charts before README completion and align docs."
     ],
     "testFiles": [
       "tests/test_pipeline_walk.py",
-      "tests/test_recommend.py",
-      "tests/test_review.py",
-      "tests/test_skill.py"
+      "tests/test_workflow.py"
     ],
     "redRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
-      "output": "6 failed, 18 passed in 1.66s: no-input public dispatch falsely completed; public inputs unsupported; Gate A, Gate B, and write_report still mutated workflow state."
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q",
+      "output": "11 failed, 18 passed in 2.65s; RED covers retries, stale plan, source replacement, gate mapping, README order, symlink escape, incomplete runner; identity rejection tests pass."
     },
     "escalation": null,
-    "refactorOpportunity": "Delete run_workflow's caller-injected/no-op handler fallback and direct state writes from approve_detector_plan, accept_findings, and write_report, harmonizing phase/status/attempt ownership under WorkflowRunner."
+    "refactorOpportunity": "Extract production P0-P7 composition/input policy from workflow.py into focused product_workflow.py; leave durable state/attempt execution in WorkflowRunner, delete recommendation prework/no-op fallbacks and unused aliases, preserve run_workflow."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyGateConsumer",
+    "agent_id": "ImplementAnomalyCausalRepair",
     "result": "green",
     "files": [
-      "src/anomaly/detect.py"
+      "src/anomaly/workflow.py",
+      "src/anomaly/product_workflow.py",
+      "src/anomaly/acquire.py",
+      "src/anomaly/review.py",
+      "PRD.md",
+      "skills/anomaly/SKILL.md"
     ],
     "greenRun": {
-      "command": "uv run pytest tests/test_detect.py tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call tests/test_m5_handoff.py::test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery -q",
-      "output": "51 passed in 0.75s"
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q",
+      "output": "29 passed in 2.41s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorAnomalyGateConsumer",
+    "agent_id": "RefactorAnomalyCausal",
     "result": "clean",
     "files": [],
     "outsideDiff": [],
     "greenRun": {
-      "command": "uv run pytest tests/test_detect.py tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call tests/test_m5_handoff.py::test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery -q",
-      "output": "51 passed in 0.74s"
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_workflow.py -q",
+      "output": "29 passed in 2.40s"
     },
     "summary": [
-      "No safe simplification remains: detect.py no longer loads/checks state.json; all imports are used and receipt/plan/hash/path validation remains intact.",
+      "No safe simplification required; runner/product composition boundaries are focused.",
       "No files changed."
     ]
   },
@@ -374,16 +451,188 @@
           "output": "run_workflow reported complete P7 with no report or plan."
         }
       ]
+    },
+    {
+      "agent_id": "RefuteArRunner",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:470 Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.",
+      "verdict": "survives",
+      "rationale": "The installed `anomaly.workflow` module exposes the non-private `WorkflowRunner` plus `Workflow` and `DurableWorkflow` aliases, and direct construction with omitted, partial, or non-callable handlers reaches `run()` without the production-composition guard, substitutes no-ops, skips missing artifact identities, and durably records every phase through P7 as complete.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:77-121,369-482,510-511",
+          "output": "WorkflowRunner is directly constructible with handlers defaulting to None; run() iterates P0-P7; _handler_for returns `lambda: None` when the handler set is absent or the selected handler is missing/non-callable; run_phase writes attempt result, completed phase, last_completed_phase, and final status `complete`; public aliases Workflow and DurableWorkflow reference the same class."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:554-726,829-878",
+          "output": "The exact-handler/callability guard exists only inside `_production_handlers`, which `run_workflow` invokes; direct WorkflowRunner construction never calls it. `_capture_identities` calls `_artifact_identity`, which returns None when artifact files are absent, and simply omits that identity instead of rejecting phase completion."
+        },
+        {
+          "command": "read pyproject.toml; grep WorkflowRunner src tests PRD.md skills/anomaly/SKILL.md",
+          "output": "Setuptools installs packages from `src`, so `anomaly.workflow.WorkflowRunner` remains directly importable even though package-root `__all__` lists only PreparedDataError; supported tests import and execute WorkflowRunner directly, while documentation designates only run_workflow as the production dispatcher, leaving no upstream runtime guard on the class entry."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArSymlink",
+      "source": "audit",
+      "finding": "src/anomaly/workflow.py:144 The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+      "verdict": "survives",
+      "rationale": "The public run_workflow path is directly reachable with a caller-supplied case root, resolves only that root, then constructs WorkflowRunner and creates or writes beneath .anomaly before P0 invokes resume_case; neither WorkflowRunner nor resume_case rejects a .anomaly symlink, while the only whole-tree symlink scan is confined to fork_case.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:77-153,484-503,559-703",
+          "output": "WorkflowRunner.__init__ sets self.root = Path(root).resolve() and immediately calls _ensure_durable_tree(); that method runs mkdir beneath root/.anomaly and writes state.json/events.jsonl without lstat/is_symlink containment checks. run_workflow constructs WorkflowRunner before its loop, and the first case operation, P0 resume_case, occurs only later through run_phase."
+        },
+        {
+          "command": "read src/anomaly/case.py:137-168,199-216,255-299",
+          "output": "resume_case checks only that case.json is a file and calls _load_case; it does not invoke _scan_case_tree. _scan_case_tree rejects symlinks, but its sole call is in fork_case, so it is not an upstream guard for run_workflow."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArP3Retry",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:499 P3 recommendation runs through `_ensure_recommendation` before `WorkflowRunner.run_phase`, outside the runner's attempt/retry/failure boundary. Move recommendation into runner-owned execution while preserving the pre-Gate-A pause, and add a public-entry recommendation-failure test.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher reaches recommendation at P3, and any recommendation read, metadata, or write exception is re-raised before run_phase can create an attempt directory, increment P3 attempts, persist a failure, retry, or return unavailable.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:486-510,555-607,689-701",
+          "output": "run_workflow computes phase P3, calls _ensure_recommendation before _awaiting_input and runner.run_phase; the registered P3 handler only approves Gate A, while _ensure_recommendation directly calls recommend_detectors when no nonempty plan exists."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:373-455",
+          "output": "P3 attempt count, attempt directory creation, failure.json/state failure persistence, retries, and unavailable status all begin inside WorkflowRunner.run_phase; no part of that boundary runs if _ensure_recommendation raises first."
+        },
+        {
+          "command": "read src/anomaly/recommend.py:37-53,256-330; read src/anomaly/events.py:51-69",
+          "output": "recommend_detectors performs fallible profile/transforms reads, detector metadata loading, and plan writing; its phase_event wrapper logs a failed API event but explicitly re-raises the exception unchanged, providing no retry or fail-safe state transition."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArStalePlan",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:695 `_ensure_recommendation` accepts any pre-existing nonempty plan. Upstream invalidation clears state completions but leaves the old plan on disk, so a source/prepared mutation reruns P1/P2 and then skips the required P3 recommendation. Distinguish a plan produced for the current paused Gate A from a stale downstream plan, and prove the real public dispatcher recomputes the affected suffix.",
+      "verdict": "survives",
+      "rationale": "A real public resume after source or prepared identity drift reaches P3 with the old detectors/plan.json still present: invalidation clears only durable-state metadata, P1/P2 do not remove or update the plan, and _ensure_recommendation returns on its nonempty recommended list before the Gate A pause or approval.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:137-155,298-333",
+          "output": "load_state detects changed stored artifact identities and calls _invalidate_state at the earliest mapped phase; _invalidate_state removes completed phases, attempts, failures, downstream identities, pause/block fields, and gate state, then writes state, but contains no artifact deletion."
+        },
+        {
+          "command": "grep 'unlink|rmtree|remove\\(|delete' src/anomaly/workflow.py; grep 'plan\\.json|detectors' src/anomaly/{acquire,prepare,profile}.py",
+          "output": "No matches found in workflow.py for deletion operations, and no matches found in the P1/P2 acquisition, preparation, or profiling modules for detectors/plan.json."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:488-503,561-572,695-706",
+          "output": "run_workflow advances the real public dispatcher phase-by-phase and, when next phase is P3, calls _ensure_recommendation before checking whether Gate A input is absent; _ensure_recommendation returns immediately whenever detectors/plan.json has a nonempty recommended list, so the stale plan is reachable both at the Gate A pause and with supplied Gate A approval."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArIdentityTests",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:161 Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.",
+      "verdict": "survives",
+      "rationale": "The guards are reachable in the public dispatcher, but no test supplies equal Gate A/reviewer or reviewer/Gate B identities and asserts rejection, so deleting either guard would leave the current suite’s public-entry coverage green.",
+      "evidence": [
+        {
+          "command": "grep -R \"run_workflow(\" tests",
+          "output": "All public-dispatcher calls are in tests/test_pipeline_walk.py; lines 155-190 cover only the successful path with Gate A/Gate B journalist-42 and reviewer-007, while the other calls cover missing inputs, resume, and P1 retry exhaustion."
+        },
+        {
+          "command": "grep -R -E \"must differ|same identity|reviewer.*journalist|journalist.*reviewer\" tests",
+          "output": "No rejection assertion or equal cross-gate identity case was found in tests."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:624-662",
+          "output": "P6 rejects reviewer_id equal to gate-a approved_by at lines 638-639, and P7 rejects journalist_id equal to findings/review.json reviewer_id at lines 660-661; these are the only matching guards."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArSourceRecovery",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:548 Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.",
+      "verdict": "survives",
+      "rationale": "A real run_workflow restart invalidated to P1 has no supported replacement branch: omitting sources re-completes P1 from the stale manifest, while supplying the reacquired source with its existing identity enters the append-only registrar and fails its duplicate-identity guard; P2's hash-mismatch handling fails safe but cannot perform the required recovery.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:560-593",
+          "output": "_awaiting_input requests sources only when the sources input is absent AND _has_registered_sources(root) is false; register_sources returns _registered_sources(root) when sources is absent, otherwise sends every request to register_local_source with no replace/update mode."
+        },
+        {
+          "command": "read src/anomaly/acquire.py:28-94",
+          "output": "register_local_source rejects any canonical source_id already present in sources.json with UnsafeCasePathError(\"duplicate canonical source identity\"); its only successful write appends [*sources, persisted], so it has no reacquisition replacement path."
+        },
+        {
+          "command": "read src/anomaly/prepare.py:29-97",
+          "output": "Preparation verifies each raw payload against the content_hash retained in sources.json and converts a mismatch into required-sources-unavailable; this prevents stale evidence from shipping but only blocks progress after stale P1 completion."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:341-374",
+          "output": "The changed-source mutation proof constructs WorkflowRunner with injected record-only handlers for every phase, then asserts the suffix ran; it never exercises run_workflow's production P1 registration/replacement behavior."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArGateBMap",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:37 Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher completes replay and independent review in P6, requests Gate B only for P7, and can safely revalidate those preserved P6 artifacts while rebuilding accepted findings and reports, so mapping a changed Gate B receipt to P6 demonstrably invalidates one phase too early and violates the task’s earliest-correct-phase contract.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:27-37,161-174,288-329",
+          "output": "`gate_b` maps to P6; `load_state` selects that mapped phase when the recorded receipt digest changes; `_invalidate_state` then removes completed phases, attempts, failures, and identities from P6 onward and demotes Gate B to Gate A."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:558-568,619-681",
+          "output": "The real dispatcher requests `review` at P6 and `gate_b` at P7; production P6 runs replay plus independent review, while P7 runs Gate B acceptance, report writing, and chart generation."
+        },
+        {
+          "command": "read src/anomaly/review.py:369-487",
+          "output": "`accept_findings` validates the existing draft, review, review-basis hash, replay, and independent attestation before rewriting accepted findings and `gate-b.json`, so a changed Gate B decision does not require replay or review to be discarded."
+        },
+        {
+          "command": "read PRD.md:230-248",
+          "output": "The canonical sequence is P6 replay/independent review, then Gate B, then P7 findings/report."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteArReadme",
+      "source": "review2",
+      "finding": "src/anomaly/review.py:645 write_report writes README complete/P7 before chart generation and before WorkflowRunner commits P7.",
+      "verdict": "survives",
+      "rationale": "The installed P7 handler writes README as complete/P7, then performs fallible chart filesystem writes, while WorkflowRunner commits P7 only after the handler returns and its failure path never restores README, so three chart failures can leave durable state unavailable with user-visible completion text.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:642-669; read src/anomaly/review.py:639-656",
+          "output": "close_gate_b_and_report calls accept_findings, then write_report, then generate_charts; write_report writes `Status: complete` and `Last completed phase: P7` to README before returning."
+        },
+        {
+          "command": "read src/anomaly/report.py:79-109; read src/anomaly/workflow.py:399-478",
+          "output": "generate_charts performs fallible mkdir/unlink/atomic-write operations and writes its receipt only afterward; run_phase catches any exception, retries, and after the third failure writes status `unavailable`, whereas the P7 completion commit occurs only in the callback-success branch."
+        },
+        {
+          "command": "grep 'README|Status:|Last completed phase' src/anomaly",
+          "output": "The only runtime completion-status mutations are case creation's active/P0 README and write_report's complete/P7 README; load_state, invalidation, retry, and unavailable handling contain no README correction or rollback guard."
+        }
+      ]
     }
   ],
   "convergence": {
     "cap": 2,
     "stages": {
       "review": {
-        "blockingKickbacks": 1
+        "blockingKickbacks": 2
       },
       "audit": {
-        "blockingKickbacks": 0
+        "blockingKickbacks": 1
       }
     },
     "council": {
@@ -801,6 +1050,475 @@
         "reviewer_agent_id": "ReviewAnomalyCorrectness",
         "reviewer2_agent_id": "ReviewAnomalyMaintainability",
         "audit_agent_id": null
+      }
+    },
+    {
+      "at": "2026-08-23T16:36:14Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyRecoveryCorrect",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 499,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "P3 recommendation runs through `_ensure_recommendation` before `WorkflowRunner.run_phase`, outside the runner's attempt/retry/failure boundary. Move recommendation into runner-owned execution while preserving the pre-Gate-A pause, and add a public-entry recommendation-failure test.",
+            "why": "A reachable recommendation error propagates immediately with no P3 attempt directory, failure record, or three-attempt unavailable/blocked result. The installed retry test covers only invalid P1 registration, so AC3's exactly-three-attempts-per-phase contract can false-pass.",
+            "refute": {
+              "agent_id": "RefuteArP3Retry",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:499 P3 recommendation runs through `_ensure_recommendation` before `WorkflowRunner.run_phase`, outside the runner's attempt/retry/failure boundary. Move recommendation into runner-owned execution while preserving the pre-Gate-A pause, and add a public-entry recommendation-failure test.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher reaches recommendation at P3, and any recommendation read, metadata, or write exception is re-raised before run_phase can create an attempt directory, increment P3 attempts, persist a failure, retry, or return unavailable.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:486-510,555-607,689-701",
+                  "output": "run_workflow computes phase P3, calls _ensure_recommendation before _awaiting_input and runner.run_phase; the registered P3 handler only approves Gate A, while _ensure_recommendation directly calls recommend_detectors when no nonempty plan exists."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:373-455",
+                  "output": "P3 attempt count, attempt directory creation, failure.json/state failure persistence, retries, and unavailable status all begin inside WorkflowRunner.run_phase; no part of that boundary runs if _ensure_recommendation raises first."
+                },
+                {
+                  "command": "read src/anomaly/recommend.py:37-53,256-330; read src/anomaly/events.py:51-69",
+                  "output": "recommend_detectors performs fallible profile/transforms reads, detector metadata loading, and plan writing; its phase_event wrapper logs a failed API event but explicitly re-raises the exception unchanged, providing no retry or fail-safe state transition."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 695,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "`_ensure_recommendation` accepts any pre-existing nonempty plan. Upstream invalidation clears state completions but leaves the old plan on disk, so a source/prepared mutation reruns P1/P2 and then skips the required P3 recommendation. Distinguish a plan produced for the current paused Gate A from a stale downstream plan, and prove the real public dispatcher recomputes the affected suffix.",
+            "why": "AC4/AC6 require earliest invalidation and exact suffix resume, not merely deletion/recreation of state keys. `test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase` injects recording no-op handlers for every phase, so it cannot detect stale production artifacts or the skipped recommendation.",
+            "refute": {
+              "agent_id": "RefuteArStalePlan",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:695 `_ensure_recommendation` accepts any pre-existing nonempty plan. Upstream invalidation clears state completions but leaves the old plan on disk, so a source/prepared mutation reruns P1/P2 and then skips the required P3 recommendation. Distinguish a plan produced for the current paused Gate A from a stale downstream plan, and prove the real public dispatcher recomputes the affected suffix.",
+              "verdict": "survives",
+              "rationale": "A real public resume after source or prepared identity drift reaches P3 with the old detectors/plan.json still present: invalidation clears only durable-state metadata, P1/P2 do not remove or update the plan, and _ensure_recommendation returns on its nonempty recommended list before the Gate A pause or approval.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:137-155,298-333",
+                  "output": "load_state detects changed stored artifact identities and calls _invalidate_state at the earliest mapped phase; _invalidate_state removes completed phases, attempts, failures, downstream identities, pause/block fields, and gate state, then writes state, but contains no artifact deletion."
+                },
+                {
+                  "command": "grep 'unlink|rmtree|remove\\(|delete' src/anomaly/workflow.py; grep 'plan\\.json|detectors' src/anomaly/{acquire,prepare,profile}.py",
+                  "output": "No matches found in workflow.py for deletion operations, and no matches found in the P1/P2 acquisition, preparation, or profiling modules for detectors/plan.json."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:488-503,561-572,695-706",
+                  "output": "run_workflow advances the real public dispatcher phase-by-phase and, when next phase is P3, calls _ensure_recommendation before checking whether Gate A input is absent; _ensure_recommendation returns immediately whenever detectors/plan.json has a nonempty recommended list, so the stale plan is reachable both at the Gate A pause and with supplied Gate A approval."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 161,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.",
+            "why": "The cross-gate separation checks at workflow.py:638-661 are consumer-observable error contracts required by AC5. Deleting either check leaves every planned test green, so the current happy-path ordering assertion does not prove independent reviewer separation.",
+            "refute": {
+              "agent_id": "RefuteArIdentityTests",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:161 Add public-entry rejection tests for Gate A approver == independent reviewer and independent reviewer == Gate B journalist, using caller-supplied identities. The current demo supplies distinct fixed identities only.",
+              "verdict": "survives",
+              "rationale": "The guards are reachable in the public dispatcher, but no test supplies equal Gate A/reviewer or reviewer/Gate B identities and asserts rejection, so deleting either guard would leave the current suite’s public-entry coverage green.",
+              "evidence": [
+                {
+                  "command": "grep -R \"run_workflow(\" tests",
+                  "output": "All public-dispatcher calls are in tests/test_pipeline_walk.py; lines 155-190 cover only the successful path with Gate A/Gate B journalist-42 and reviewer-007, while the other calls cover missing inputs, resume, and P1 retry exhaustion."
+                },
+                {
+                  "command": "grep -R -E \"must differ|same identity|reviewer.*journalist|journalist.*reviewer\" tests",
+                  "output": "No rejection assertion or equal cross-gate identity case was found in tests."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:624-662",
+                  "output": "P6 rejects reviewer_id equal to gate-a approved_by at lines 638-639, and P7 rejects journalist_id equal to findings/review.json reviewer_id at lines 660-661; these are the only matching guards."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read .jeff/tasks/0025-orchestration-conformance/task.md; read notes.md",
+            "output": "Confirmed seven locked criteria and claimed dispositions: revise, reuse, revise, revise, revise, revise, reuse."
+          },
+          {
+            "command": "read src/anomaly/workflow.py:373-455,486-510,649-708",
+            "output": "The retry boundary begins inside run_phase; run_workflow calls `_ensure_recommendation` first; P3's registered handler is approval only; `_ensure_recommendation` returns for any nonempty existing recommendation."
+          },
+          {
+            "command": "read tests/test_pipeline_walk.py:312-374",
+            "output": "The installed three-attempt proof fails P1 only. The nine-row invalidation proof resumes `WorkflowRunner` with caller-injected recording no-op handlers rather than `run_workflow`'s production composition."
+          },
+          {
+            "command": "grep identity guards across workflow.py and tests",
+            "output": "Production rejects reviewer == Gate A approver and Gate B journalist == reviewer; tests contain only the distinct `journalist-42` / `reviewer-007` happy path and no same-identity rejection case."
+          },
+          {
+            "command": "read src/anomaly/detect.py:523-591; read tests/test_detect.py:35-72",
+            "output": "Detector execution validates the canonical plan hash and hash-bound Gate A receipt without reading workflow phase/gate fields. The detector helper approves then executes from a create-case state, providing phase-independent positive coverage."
+          },
+          {
+            "command": "uv run --extra test pytest tests/ (supplied final gate)",
+            "output": "711 passed in 6.07s; green full gate does not exercise the three blocking paths above."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyRecoveryStandards",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 470,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.",
+            "why": "The fail-open test seam remains a public competing execution entry despite run_workflow's fail-closed composition.",
+            "refute": {
+              "agent_id": "RefuteArRunner",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:470 Public WorkflowRunner still converts absent/non-callable handlers to no-ops and can durably complete P0-P7 without production artifacts.",
+              "verdict": "survives",
+              "rationale": "The installed `anomaly.workflow` module exposes the non-private `WorkflowRunner` plus `Workflow` and `DurableWorkflow` aliases, and direct construction with omitted, partial, or non-callable handlers reaches `run()` without the production-composition guard, substitutes no-ops, skips missing artifact identities, and durably records every phase through P7 as complete.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:77-121,369-482,510-511",
+                  "output": "WorkflowRunner is directly constructible with handlers defaulting to None; run() iterates P0-P7; _handler_for returns `lambda: None` when the handler set is absent or the selected handler is missing/non-callable; run_phase writes attempt result, completed phase, last_completed_phase, and final status `complete`; public aliases Workflow and DurableWorkflow reference the same class."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:554-726,829-878",
+                  "output": "The exact-handler/callability guard exists only inside `_production_handlers`, which `run_workflow` invokes; direct WorkflowRunner construction never calls it. `_capture_identities` calls `_artifact_identity`, which returns None when artifact files are absent, and simply omits that identity instead of rejecting phase completion."
+                },
+                {
+                  "command": "read pyproject.toml; grep WorkflowRunner src tests PRD.md skills/anomaly/SKILL.md",
+                  "output": "Setuptools installs packages from `src`, so `anomaly.workflow.WorkflowRunner` remains directly importable even though package-root `__all__` lists only PreparedDataError; supported tests import and execute WorkflowRunner directly, while documentation designates only run_workflow as the production dispatcher, leaving no upstream runtime guard on the class entry."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 548,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.",
+            "why": "The public production mutation path cannot resume the earliest affected suffix and tests hide this with injected no-op handlers.",
+            "refute": {
+              "agent_id": "RefuteArSourceRecovery",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:548 Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.",
+              "verdict": "survives",
+              "rationale": "A real run_workflow restart invalidated to P1 has no supported replacement branch: omitting sources re-completes P1 from the stale manifest, while supplying the reacquired source with its existing identity enters the append-only registrar and fails its duplicate-identity guard; P2's hash-mismatch handling fails safe but cannot perform the required recovery.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:560-593",
+                  "output": "_awaiting_input requests sources only when the sources input is absent AND _has_registered_sources(root) is false; register_sources returns _registered_sources(root) when sources is absent, otherwise sends every request to register_local_source with no replace/update mode."
+                },
+                {
+                  "command": "read src/anomaly/acquire.py:28-94",
+                  "output": "register_local_source rejects any canonical source_id already present in sources.json with UnsafeCasePathError(\"duplicate canonical source identity\"); its only successful write appends [*sources, persisted], so it has no reacquisition replacement path."
+                },
+                {
+                  "command": "read src/anomaly/prepare.py:29-97",
+                  "output": "Preparation verifies each raw payload against the content_hash retained in sources.json and converts a mismatch into required-sources-unavailable; this prevents stale evidence from shipping but only blocks progress after stale P1 completion."
+                },
+                {
+                  "command": "read tests/test_pipeline_walk.py:341-374",
+                  "output": "The changed-source mutation proof constructs WorkflowRunner with injected record-only handlers for every phase, then asserts the suffix ran; it never exercises run_workflow's production P1 registration/replacement behavior."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 37,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.",
+            "why": "Gate B receipt changes unnecessarily invalidate replay/review instead of preserving P6 and reopening the Gate B/P7 boundary.",
+            "refute": {
+              "agent_id": "RefuteArGateBMap",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:37 Gate B identity is assigned to P6 although Gate B follows completed P6 and precedes P7.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher completes replay and independent review in P6, requests Gate B only for P7, and can safely revalidate those preserved P6 artifacts while rebuilding accepted findings and reports, so mapping a changed Gate B receipt to P6 demonstrably invalidates one phase too early and violates the task’s earliest-correct-phase contract.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:27-37,161-174,288-329",
+                  "output": "`gate_b` maps to P6; `load_state` selects that mapped phase when the recorded receipt digest changes; `_invalidate_state` then removes completed phases, attempts, failures, and identities from P6 onward and demotes Gate B to Gate A."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:558-568,619-681",
+                  "output": "The real dispatcher requests `review` at P6 and `gate_b` at P7; production P6 runs replay plus independent review, while P7 runs Gate B acceptance, report writing, and chart generation."
+                },
+                {
+                  "command": "read src/anomaly/review.py:369-487",
+                  "output": "`accept_findings` validates the existing draft, review, review-basis hash, replay, and independent attestation before rewriting accepted findings and `gate-b.json`, so a changed Gate B decision does not require replay or review to be discarded."
+                },
+                {
+                  "command": "read PRD.md:230-248",
+                  "output": "The canonical sequence is P6 replay/independent review, then Gate B, then P7 findings/report."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/review.py",
+            "line": 645,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "write_report writes README complete/P7 before chart generation and before WorkflowRunner commits P7.",
+            "why": "A chart failure can leave authoritative state unavailable while user-visible README says complete, retaining a second state writer.",
+            "refute": {
+              "agent_id": "RefuteArReadme",
+              "source": "review2",
+              "finding": "src/anomaly/review.py:645 write_report writes README complete/P7 before chart generation and before WorkflowRunner commits P7.",
+              "verdict": "survives",
+              "rationale": "The installed P7 handler writes README as complete/P7, then performs fallible chart filesystem writes, while WorkflowRunner commits P7 only after the handler returns and its failure path never restores README, so three chart failures can leave durable state unavailable with user-visible completion text.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:642-669; read src/anomaly/review.py:639-656",
+                  "output": "close_gate_b_and_report calls accept_findings, then write_report, then generate_charts; write_report writes `Status: complete` and `Last completed phase: P7` to README before returning."
+                },
+                {
+                  "command": "read src/anomaly/report.py:79-109; read src/anomaly/workflow.py:399-478",
+                  "output": "generate_charts performs fallible mkdir/unlink/atomic-write operations and writes its receipt only afterward; run_phase catches any exception, retries, and after the third failure writes status `unavailable`, whereas the P7 completion commit occurs only in the callback-success branch."
+                },
+                {
+                  "command": "grep 'README|Status:|Last completed phase' src/anomaly",
+                  "output": "The only runtime completion-status mutations are case creation's active/P0 README and write_report's complete/P7 README; load_state, invalidation, retry, and unavailable handling contain no README correction or rollback guard."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 577,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "refactor",
+            "what": "workflow.py is now a 922-line module combining storage, retries, invalidation, hashing, input schemas, gate policy, and production handlers.",
+            "why": "This exceeds the maintainability size/single-responsibility guidance; separate composition/input policy after blockers without adding a framework."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "final diff inspection",
+            "output": "Gate APIs are artifact-only and detector receipt authorization is phase-independent; public WorkflowRunner no-op, source reacquisition, GateB mapping, and README completion remain."
+          },
+          {
+            "command": "full gate evidence",
+            "output": "711 passed; tests do not cover the blockers."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditAnomalyRecovery",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 144,
+            "severity": "high",
+            "class": "blocking",
+            "cwe": "CWE-59; CWE-22",
+            "kickTo": "implement",
+            "what": "The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+            "why": "A malicious or relocated case can redirect durable bookkeeping into any writable target, violating path containment and portability.",
+            "refute": {
+              "agent_id": "RefuteArSymlink",
+              "source": "audit",
+              "finding": "src/anomaly/workflow.py:144 The public production entry constructs WorkflowRunner before a case-tree guard; _ensure_durable_tree follows a case-controlled .anomaly directory symlink and state/events/attempt writes can escape the case.",
+              "verdict": "survives",
+              "rationale": "The public run_workflow path is directly reachable with a caller-supplied case root, resolves only that root, then constructs WorkflowRunner and creates or writes beneath .anomaly before P0 invokes resume_case; neither WorkflowRunner nor resume_case rejects a .anomaly symlink, while the only whole-tree symlink scan is confined to fork_case.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:77-153,484-503,559-703",
+                  "output": "WorkflowRunner.__init__ sets self.root = Path(root).resolve() and immediately calls _ensure_durable_tree(); that method runs mkdir beneath root/.anomaly and writes state.json/events.jsonl without lstat/is_symlink containment checks. run_workflow constructs WorkflowRunner before its loop, and the first case operation, P0 resume_case, occurs only later through run_phase."
+                },
+                {
+                  "command": "read src/anomaly/case.py:137-168,199-216,255-299",
+                  "output": "resume_case checks only that case.json is a file and calls _load_case; it does not invoke _scan_case_tree. _scan_case_tree rejects symlinks, but its sole call is in fork_case, so it is not an upstream guard for run_workflow."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "security scanner",
+            "output": "4 Python files scanned; 3 high regex hits manually refuted; Markdown manually covered; recommendation REVIEW; no dependency audit failure."
+          },
+          {
+            "command": "manual path trace",
+            "output": "run_workflow constructs WorkflowRunner before guarded case access; .anomaly symlink ancestors are followed by mkdir/write_state/attempt creation."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "scan": {
+          "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly/workflow.py src/anomaly/recommend.py src/anomaly/review.py src/anomaly/detect.py PRD.md skills/anomaly/SKILL.md --report-dir scratchpads --force",
+          "recommendation": "REVIEW",
+          "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-audit-20260823-134125.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_with_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewAnomalyRecoveryCorrect",
+        "reviewer2_agent_id": "ReviewAnomalyRecoveryStandards",
+        "audit_agent_id": "AuditAnomalyRecovery"
       }
     }
   ]

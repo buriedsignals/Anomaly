@@ -1,0 +1,325 @@
+{
+  "stage": "council",
+  "council": {
+    "convened": true,
+    "stage": "review",
+    "members": [
+      {
+        "agent_id": "CouncilAnomalyIntegrity2",
+        "lens": "integrity",
+        "temperature": null,
+        "inquiry": {
+          "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+          "problemRestatement": "The eight surviving blockers expose a broken ownership model across the public dispatcher, runner, durable artifacts, invalidation, and tests. The product path can bypass retry accounting, reuse artifacts whose producing phase was invalidated, falsely complete through a public no-op runner, dead-end on source replacement, invalidate the wrong suffix, and publish completion before P7 commits; meanwhile public-entry tests mostly exercise happy paths or injected handlers. The .anomaly symlink escape is a distinct path-containment defect, but it also reflects the missing public-entry precondition boundary.",
+          "causalHypotheses": [
+            "The generic injectable WorkflowRunner and the product-specific run_workflow composition are competing execution models: production-only work such as recommendation and pause policy sits outside run_phase, while the runner remains publicly callable with fail-open handlers.",
+            "Invalidation owns state metadata but not the lifecycle of phase-produced artifacts. Because artifact freshness is not bound to the producing phase generation, an old plan survives P1/P2 invalidation and Gate B is mapped to the phase that produced review rather than the phase that consumes the decision.",
+            "Test ownership is concentrated at the wrong seam: injected-handler runner tests prove bookkeeping in isolation, while public-dispatcher tests cover only a happy identity sequence and a P1 failure. They therefore cannot detect recommendation retry bypass, stale production artifacts, source replacement failure, identity-guard deletion, or premature completion projection.",
+            "README completion and .anomaly initialization are side effects executed before the authoritative transition or trust-boundary validation. Both defects arise from construction and presentation concerns acting before the state machine has established a safe, committed boundary."
+          ],
+          "solutionStrategies": [
+            "causal-subgraph-reconstruction",
+            "full-replan"
+          ],
+          "findingVotes": [
+            {
+              "id": "F1",
+              "blocking": true,
+              "rationale": "P3 recommendation can raise before run_phase creates an attempt, persists failure evidence, retries, or returns unavailable. This independently violates the exactly-three-attempt public-path contract even if every other finding is repaired."
+            },
+            {
+              "id": "F2",
+              "blocking": true,
+              "rationale": "State invalidation removes P1/P2 completion metadata but leaves detectors/plan.json; _ensure_recommendation accepts any nonempty recommendation without proving it belongs to the current generation. Resume can therefore skip the required P3 recomputation independently of retry behavior."
+            },
+            {
+              "id": "F3",
+              "blocking": true,
+              "rationale": "The separation guards are consumer-visible AC5 policy, but no public-entry test supplies equal Gate A/reviewer or reviewer/Gate B identities. Deleting either guard leaves the suite green, so the locked contract is not durably owned by tests."
+            },
+            {
+              "id": "F4",
+              "blocking": true,
+              "rationale": "WorkflowRunner and its Workflow/DurableWorkflow aliases are publicly importable, and missing or non-callable handlers become successful no-ops that persist P0-P7 complete without artifacts. That is a competing fail-open authority, not merely an internal test convenience."
+            },
+            {
+              "id": "F5",
+              "blocking": true,
+              "rationale": "After source identity drift, omitting sources reuses the stale manifest while supplying the replacement reaches append-only registration and fails as a duplicate. The advertised dispatcher has no successful changed-source recovery path, directly violating earliest-suffix resume."
+            },
+            {
+              "id": "F6",
+              "blocking": true,
+              "rationale": "gate_b is mapped to P6 although P6 produces replay/review and Gate B is consumed by P7. A changed decision unnecessarily discards valid P6 work, violating the explicit earliest-correct-phase invariant even when all artifacts remain valid."
+            },
+            {
+              "id": "F7",
+              "blocking": true,
+              "rationale": "write_report publishes README status complete/P7 before fallible chart generation and before WorkflowRunner commits P7. A chart failure can leave authoritative state unavailable while the user-facing status says complete, recreating split-brain state ownership."
+            },
+            {
+              "id": "F8",
+              "blocking": true,
+              "rationale": "WorkflowRunner resolves the case root and immediately creates or writes beneath .anomaly without rejecting a symlink; the full tree scan is used only by fork_case. A caller-controlled case can redirect durable state outside the case, so containment must block shipment independently of state-machine correctness."
+            }
+          ],
+          "decisiveEvidence": [
+            "workflow.py:371-478 establishes attempts, failure persistence, retries, and phase commit inside run_phase, but workflow.py:497-499 calls _ensure_recommendation before that boundary; workflow.py:691-706 accepts any nonempty existing plan.",
+            "workflow.py:288-333 removes suffix state, attempts, failures, and identities but no phase artifacts; workflow.py:27-37 maps gate_b to P6 even though workflow.py:619-681 performs review in P6 and consumes Gate B in P7.",
+            "workflow.py:455-477 returns a lambda no-op for absent/non-callable handlers, while WorkflowRunner is directly constructible and publicly aliased; successful run_phase then records completion regardless of missing artifacts.",
+            "workflow.py:560-593 suppresses the P1 input pause when a manifest exists and otherwise calls register_local_source; acquire.py:37-45 rejects an existing canonical source identity and exposes no replacement mode.",
+            "review.py:639-656 writes README complete/P7, while workflow.py:642-669 calls generate_charts only afterward and run_phase commits P7 only after the handler returns.",
+            "workflow.py:77-144 writes .anomaly storage during construction without lstat containment checks; case.py:255-299 contains the symlink scan, but its verified caller is fork_case rather than run_workflow/resume_case.",
+            "tests/test_pipeline_walk.py:341-374 proves invalidation with injected record-only handlers; its public demo uses fixed distinct identities, the three-attempt test fails only P1, and the test-tree search found no same-identity rejection assertion."
+          ]
+        }
+      },
+      {
+        "agent_id": "CouncilAnomalySecurity2",
+        "lens": "security",
+        "temperature": null,
+        "inquiry": {
+          "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+          "problemRestatement": "The installed workflow exposes multiple ways to persist success or completion without first proving trusted inputs, contained paths, current artifact identities, and successful phase execution. Eight surviving findings show fail-open execution, stale authorization, dead-end recovery, premature completion, over-invalidation, and a direct symlink escape across the same durable-state boundary.",
+          "causalHypotheses": [
+            "WorkflowRunner is simultaneously an injectable test engine and a public durable executor; its fail-open handler seam bypasses the stricter production composition and lets absent artifacts become completed phases.",
+            "Phase ownership is not modeled as one atomic causal graph: artifact provenance, approval identities, invalidation phases, README status, and runner completion can advance or survive independently.",
+            "Tests prove happy paths and synthetic no-op suffixes rather than adversarial public-entry contracts, so identity separation, recommendation retry behavior, and real source recovery can regress unnoticed.",
+            "Containment validation occurs after WorkflowRunner creates the durable tree, so attacker-controlled filesystem indirection is trusted before any case-tree guard runs."
+          ],
+          "solutionStrategies": [
+            "confined-repair",
+            "causal-subgraph-reconstruction"
+          ],
+          "findingVotes": [
+            {
+              "id": "F1",
+              "blocking": true,
+              "rationale": "P3 recommendation executes before run_phase, so recommendation exceptions bypass all three durable attempts, failure records, and unavailable state. This is a fail-open gap in the promised failure-containment boundary."
+            },
+            {
+              "id": "F2",
+              "blocking": true,
+              "rationale": "Invalidation removes state identities but leaves the old nonempty plan, which _ensure_recommendation accepts as current. A changed source or prepared artifact can therefore reuse stale detector authority."
+            },
+            {
+              "id": "F3",
+              "blocking": true,
+              "rationale": "The only cross-gate identity guards have no public-entry rejection tests; deleting either guard leaves the suite green. Independent reviewer separation is a security contract and requires regression proof."
+            },
+            {
+              "id": "F4",
+              "blocking": true,
+              "rationale": "Public WorkflowRunner and its aliases replace missing or non-callable handlers with no-ops, omit absent artifact identities, and still durably complete P0-P7. Callers can bypass production validation and manufacture completion."
+            },
+            {
+              "id": "F5",
+              "blocking": true,
+              "rationale": "After source drift, omitting input reuses stale registration while supplying replacement input hits the duplicate-identity rejection. The advertised recovery path cannot safely rotate authoritative evidence and can persist a denial-of-recovery state."
+            },
+            {
+              "id": "F6",
+              "blocking": true,
+              "rationale": "Mapping Gate B identity to P6 discards already validated replay and independent-review work even though Gate B is consumed at P7. This can unnecessarily repeat or overwrite security-review evidence and violates earliest-correct invalidation."
+            },
+            {
+              "id": "F7",
+              "blocking": true,
+              "rationale": "write_report marks README complete/P7 before fallible chart generation and before the runner commits P7. Exhausted chart failures leave authoritative state unavailable while the operator-facing status falsely declares completion."
+            },
+            {
+              "id": "F8",
+              "blocking": true,
+              "rationale": "WorkflowRunner resolves only the case root, then follows a case-controlled .anomaly symlink during mkdir and state/event/attempt writes before any tree scan. A crafted case can redirect durable writes outside the case into any writable target."
+            }
+          ],
+          "decisiveEvidence": [
+            "src/anomaly/workflow.py:77-144 resolves root and calls _ensure_durable_tree, whose mkdir/touch/state writes have no .anomaly symlink or containment check; run_workflow constructs this runner before P0 resume_case.",
+            "src/anomaly/workflow.py:373-482 shows run_phase owns retries and completion, while _handler_for substitutes lambda: None for absent/non-callable handlers and public Workflow/DurableWorkflow alias the class.",
+            "src/anomaly/workflow.py:486-503,695-706 calls _ensure_recommendation before run_phase and accepts any nonempty plan; _invalidate_state clears state metadata but not that artifact.",
+            "src/anomaly/workflow.py:27-37 and 619-681 maps gate_b to P6 although the dispatcher consumes Gate B at P7; tests/test_pipeline_walk.py:341-374 proves invalidation only with injected record-only handlers.",
+            "src/anomaly/acquire.py:28-94 rejects duplicate canonical source identities and only appends registrations, leaving no replacement path for drift recovery.",
+            "src/anomaly/review.py:639-656 writes README complete/P7 before workflow.py's P7 handler generates charts and before run_phase records completion."
+          ]
+        }
+      },
+      {
+        "agent_id": "CouncilAnomalyPragmatist2",
+        "lens": "pragmatist",
+        "temperature": null,
+        "inquiry": {
+          "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+          "problemRestatement": "Eight surviving blockers cluster around a narrow orchestration boundary: the production dispatcher, the publicly constructible runner, artifact-identity invalidation, and phase finalization disagree about who owns retries, recovery, and completion. The smallest maintainable route is to reconstruct that causal subgraph\u2014not add another framework or continue growing the 922-line module\u2014while treating the case-root symlink guard and missing public identity tests as confined obligations.",
+          "causalHypotheses": [
+            "WorkflowRunner is serving incompatible roles: a permissive injected-handler test seam and a public durable executor. Its no-op fallback enables false completion, while production-only work performed before run_phase bypasses retries.",
+            "Invalidation records phase labels but does not own artifact lifecycle. That permits a stale recommendation, provides no source-replacement path, and maps Gate B to P6 even though its consumer boundary is P7.",
+            "P7 domain functions publish completion before all fallible outputs and the runner commit succeed, so user-visible README state can contradict durable state.",
+            "Case containment is checked only in the fork path; construction of the durable runner writes beneath a caller-controlled .anomaly path before any equivalent guard.",
+            "The happy-path public tests and injected-handler invalidation matrix obscure these boundary defects, including the two independent-identity rejection contracts."
+          ],
+          "solutionStrategies": [
+            "causal-subgraph-reconstruction",
+            "confined-repair"
+          ],
+          "findingVotes": [
+            {
+              "id": "F1",
+              "blocking": true,
+              "rationale": "P3 recommendation is reachable before run_phase, so recommendation failures receive no P3 attempt directory, durable failure record, retry, or three-attempt unavailable result; this directly violates the phase retry contract."
+            },
+            {
+              "id": "F2",
+              "blocking": true,
+              "rationale": "Invalidation removes state suffixes but preserves detectors/plan.json, and _ensure_recommendation accepts any nonempty plan; a real public resume can therefore reuse a recommendation from obsolete upstream inputs."
+            },
+            {
+              "id": "F3",
+              "blocking": true,
+              "rationale": "The public dispatcher contains both separation guards, but the suite supplies only distinct identities. Removing either guard would remain green, so the required consumer-visible rejection contract is unproved."
+            },
+            {
+              "id": "F4",
+              "blocking": true,
+              "rationale": "Direct WorkflowRunner construction still substitutes no-ops for missing or non-callable handlers and commits P0-P7 complete without required artifacts. A public durable executor must fail closed rather than expose a false-success path."
+            },
+            {
+              "id": "F5",
+              "blocking": true,
+              "rationale": "After source identity drift, omitting sources reuses the stale manifest while supplying the same canonical source is rejected as a duplicate; the advertised dispatcher has no executable reacquisition route."
+            },
+            {
+              "id": "F6",
+              "blocking": true,
+              "rationale": "Gate B is consumed only after P6 review at the P7 boundary, yet its identity maps to P6. Changing the receipt needlessly discards valid replay/review work and violates earliest-correct invalidation."
+            },
+            {
+              "id": "F7",
+              "blocking": true,
+              "rationale": "write_report marks README complete/P7 before chart generation and before the runner commits P7. A chart failure can exhaust retries and leave durable state unavailable while README still claims completion."
+            },
+            {
+              "id": "F8",
+              "blocking": true,
+              "rationale": "WorkflowRunner creates and writes .anomaly before a case-tree symlink check; a caller-controlled .anomaly symlink can redirect state, event, receipt, and attempt writes outside the case root."
+            }
+          ],
+          "decisiveEvidence": [
+            "workflow.py:373-478 places attempts and completion inside run_phase, while workflow.py:486-503 invokes recommendation first and workflow.py:470 permits missing handlers to become no-ops.",
+            "workflow.py:298-333 clears state metadata only; workflow.py:695-706 accepts any nonempty plan; acquire.py:28-94 rejects duplicate source identities and offers no replacement operation.",
+            "workflow.py maps gate_b to P6 although its production composition requests Gate B for P7 after P6 replay/review.",
+            "review.py:639-656 writes README complete/P7 before workflow.py runs generate_charts and before run_phase commits success.",
+            "WorkflowRunner.__init__ calls _ensure_durable_tree immediately, whereas the whole-tree symlink scan is used by fork_case, not run_workflow/resume_case.",
+            "tests/test_pipeline_walk.py covers P1 retry failure and distinct-identity success; its mutation matrix resumes injected recording handlers rather than the installed production dispatcher.",
+            "Prefer causal-subgraph-reconstruction limited to runner fail-closed execution, phase-owned prework/finalization, and explicit artifact recovery. A confined eight-patch repair is smaller in initial diff but would preserve the dual-role runner and add more special cases to the already oversized module."
+          ]
+        }
+      }
+    ],
+    "findings": [
+      {
+        "id": "F1",
+        "summary": "P3 recommendation executes outside runner retry accounting",
+        "source": "review",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F2",
+        "summary": "Stale detector recommendation survives upstream invalidation",
+        "source": "review",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F3",
+        "summary": "Cross-gate identity rejection contracts lack public tests",
+        "source": "review",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F4",
+        "summary": "Public WorkflowRunner no-op handlers can falsely complete P0-P7",
+        "source": "review2",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F5",
+        "summary": "Changed-source recovery has no executable replacement path",
+        "source": "review2",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F6",
+        "summary": "Gate B identity maps to P6 instead of P7 boundary",
+        "source": "review2",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F7",
+        "summary": "README declares completion before charts and runner P7 commit",
+        "source": "review2",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      },
+      {
+        "id": "F8",
+        "summary": ".anomaly symlink can escape durable writes outside case",
+        "source": "audit",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      }
+    ],
+    "synthesis": {
+      "problemRestatement": "All three inquiries unanimously sustain F1-F8. Seven blockers are coupled failures of one narrow orchestration authority boundary: the public dispatcher and runner disagree about phase execution, retries, artifact freshness, source recovery, invalidation, and completion commit order; F8 is a confined containment precondition at that same public entry. Eight local patches would be smaller initially but would preserve the dual-role fail-open runner and add special cases. The smallest maintainable use of the single allowed bounded recovery episode is to reconstruct only this causal subgraph, add the symlink guard and public identity contracts as bounded obligations, and introduce no framework, service, or phase.",
+      "survivingBlockers": [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8"
+      ],
+      "causalHypotheses": [
+        "WorkflowRunner combines a permissive injected-handler test seam with a public durable executor, allowing absent handlers to complete phases while production-only P3 work runs outside the runner's retry and failure boundary.",
+        "Phase and artifact ownership are not one causal model: invalidation clears metadata without binding or retiring produced artifacts, source registration has no replacement path, and Gate B is attached to P6 despite being consumed at P7.",
+        "P7 presentation is published before all fallible outputs and the authoritative phase commit, so README completion can diverge from durable state.",
+        "Public-entry tests concentrate on happy paths and injected handlers, leaving identity separation, real source replacement, recommendation retry, and production suffix invalidation unowned.",
+        "Durable-tree construction trusts .anomaly before containment validation, making the entry precondition too late and permitting writes outside the case root."
+      ],
+      "solutionStrategies": [
+        "confined-repair",
+        "causal-subgraph-reconstruction",
+        "full-replan"
+      ],
+      "rejectedAlternatives": [
+        "confined-repair",
+        "full-replan"
+      ],
+      "selectedStrategy": "causal-subgraph-reconstruction",
+      "decisiveEvidence": [
+        "F1 and F4 share the same execution seam: recommendation is invoked before run_phase creates attempts and retries, while public WorkflowRunner substitutes no-ops for absent or non-callable handlers and can persist P0-P7 completion without artifacts.",
+        "F2, F5, and F6 share the same provenance/invalidation seam: suffix metadata is cleared without retiring stale plan artifacts, append-only registration cannot replace a changed source, and gate_b maps to P6 although the dispatcher consumes it at P7.",
+        "F7 proves split authority at finalization: write_report publishes complete/P7 before fallible chart generation and before the runner commits P7, so exhausted chart failures can leave README complete while durable state is unavailable.",
+        "F3 shows the public contract lacks regression ownership: no equal-identity public-entry tests cover Gate A approver versus reviewer or reviewer versus Gate B journalist.",
+        "F8 is independently blocking but confined: WorkflowRunner writes beneath .anomaly during construction before the only case-tree symlink scan, allowing a caller-controlled symlink escape.",
+        "Integrity and pragmatist inquiries favor causal reconstruction; security also identifies the shared durable-state boundary. Full replanning exceeds the locked scope, while confined repair retains the root dual-authority design."
+      ]
+    },
+    "verdict": "block",
+    "outcome": null
+  }
+}

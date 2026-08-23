@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "src/anomaly/workflow.py:548 Changed-source recovery is not executable through the advertised dispatcher; existing source records suppress input pause but reuse stale registration, while replacement input is rejected as duplicate.",
+  "verdict": "survives",
+  "rationale": "A real run_workflow restart invalidated to P1 has no supported replacement branch: omitting sources re-completes P1 from the stale manifest, while supplying the reacquired source with its existing identity enters the append-only registrar and fails its duplicate-identity guard; P2's hash-mismatch handling fails safe but cannot perform the required recovery.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:560-593",
+      "output": "_awaiting_input requests sources only when the sources input is absent AND _has_registered_sources(root) is false; register_sources returns _registered_sources(root) when sources is absent, otherwise sends every request to register_local_source with no replace/update mode."
+    },
+    {
+      "command": "read src/anomaly/acquire.py:28-94",
+      "output": "register_local_source rejects any canonical source_id already present in sources.json with UnsafeCasePathError(\"duplicate canonical source identity\"); its only successful write appends [*sources, persisted], so it has no reacquisition replacement path."
+    },
+    {
+      "command": "read src/anomaly/prepare.py:29-97",
+      "output": "Preparation verifies each raw payload against the content_hash retained in sources.json and converts a mismatch into required-sources-unavailable; this prevents stale evidence from shipping but only blocks progress after stale P1 completion."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:341-374",
+      "output": "The changed-source mutation proof constructs WorkflowRunner with injected record-only handlers for every phase, then asserts the suffix ran; it never exercises run_workflow's production P1 registration/replacement behavior."
+    }
+  ]
+}
