@@ -1,21 +1,18 @@
-"""End-to-end documented-path walk over a real detector run (audit issue A1).
-
-SKILL.md step 7 executes real built-in detectors whose provenance must replay
-against the live registry identity; every later step through charts depends on
-that working. These tests drive the documented local-API sequence unseeded.
-"""
+"""Installed-path orchestration conformance over one deterministic demo case."""
 
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+import pytest
 
 from anomaly.acquire import register_local_source
 from anomaly.case import create_case
 from anomaly.detect import execute_detectors
-from anomaly.detectors.registry import package_implementation_hash
 from anomaly.prepare import prepare_sources
 from anomaly.profile import profile_prepared
 from anomaly.recommend import approve_detector_plan, recommend_detectors
@@ -28,23 +25,86 @@ from anomaly.review import (
     replay_signals,
     write_report,
 )
+from anomaly.workflow import PHASES, WorkflowRunner, run_workflow
 
 NOW = datetime(2026, 8, 22, 12, 0, tzinfo=timezone.utc)
+DEMO_CSV = Path(__file__).parent / "fixtures" / "orchestration_demo.csv"
 
 
-def _source(tmp_path: Path) -> Path:
-    rows = ["id,vendor,amount,baseline"]
-    for index, amount in enumerate((25, 14, 30, 8, 9, 39, 11, 28, 8), start=1):
-        rows.append(f"{index},V{index},{amount},20")
-    rows.append("10,V10,819,20")
-    source = tmp_path / "payments.csv"
-    source.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    return source
+def _review(root: Path) -> dict[str, Any]:
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+    claim_ids = [claim["claim_id"] for claim in draft["claims"]]
+    assert claim_ids
+    reviewer = "reviewer-007"
+    return record_review(
+        root,
+        reviewer,
+        {claim_ids[0]: {"verdict": "accepted", "notes": "replay and wording hold"}},
+        independent_attestation={
+            "isolated": True,
+            "attested_by": reviewer,
+            "draft_hash": _hash_json(draft),
+            "statement": "Inspected draft, replay, provenance, and previews.",
+        },
+    )
 
 
-def _walk(tmp_path: Path) -> tuple[Path, list[dict[str, Any]]]:
-    """Drive create through execute_detectors exactly as SKILL.md documents."""
-    root = tmp_path / "case"
+def _phase_handlers(source: Path = DEMO_CSV) -> dict[str, Callable[..., Any]]:
+    def register(root: Path) -> dict[str, Any]:
+        return register_local_source(
+            root,
+            source,
+            source_id="payments",
+            now=NOW,
+            license="internal",
+            sensitivity="restricted",
+            redistribution="no",
+            reacquisition="Copy from the locked newsroom drive.",
+            included=True,
+        )
+
+    def prepare_and_profile(root: Path) -> dict[str, Any]:
+        prepare_sources(root, now=NOW)
+        return profile_prepared(root, now=NOW)
+
+    def recommend_and_approve(root: Path) -> dict[str, Any]:
+        plan = recommend_detectors(root, now=NOW)
+        return approve_detector_plan(
+            root,
+            plan["recommended"],
+            approved_by="journalist",
+            now=NOW,
+        )
+
+    def detect(root: Path) -> list[dict[str, Any]]:
+        plan = json.loads((root / "detectors" / "plan.json").read_text(encoding="utf-8"))
+        return execute_detectors(root, plan["approved"], now=NOW)
+
+    def replay_and_review(root: Path) -> dict[str, Any]:
+        replay = replay_signals(root)
+        assert replay["status"] == "replayed", replay.get("reason")
+        return _review(root)
+
+    def accept_and_report(root: Path) -> dict[str, Any]:
+        draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+        claim_ids = [claim["claim_id"] for claim in draft["claims"]]
+        accept_findings(root, claim_ids[:1], journalist_id="journalist")
+        write_report(root)
+        return generate_charts(root)
+
+    return {
+        "P1": register,
+        "P2": prepare_and_profile,
+        "P3": recommend_and_approve,
+        "P4": detect,
+        "P5": draft_findings,
+        "P6": replay_and_review,
+        "P7": accept_and_report,
+    }
+
+
+def _completed_demo(parent: Path) -> Path:
+    root = parent / "case"
     create_case(
         root,
         title="Payments review",
@@ -52,66 +112,167 @@ def _walk(tmp_path: Path) -> tuple[Path, list[dict[str, Any]]]:
         case_id="case-walk",
         now=NOW,
     )
-    register_local_source(
+    state = run_workflow(root, handlers=_phase_handlers())
+    assert state["status"] == "complete"
+    return root
+
+
+def _rewrite_json(path: Path, mutate: Callable[[dict[str, Any]], None]) -> None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    mutate(payload)
+    path.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+
+def _mark(path: Path) -> None:
+    _rewrite_json(path, lambda payload: payload.__setitem__("conformance_mutation", True))
+
+
+def _mutate_source(root: Path) -> None:
+    sources = json.loads((root / "data" / "sources.json").read_text(encoding="utf-8"))
+    source = root / sources[0]["path"]
+    source.write_text(source.read_text(encoding="utf-8") + "11,V11,100,20\n", encoding="utf-8")
+
+
+def _mutate_detector(root: Path) -> None:
+    snapshot = sorted((root / "detectors" / "used").glob("*.json"))[0]
+    _rewrite_json(
+        snapshot,
+        lambda payload: payload.__setitem__("implementation_hash", "sha256:" + "0" * 64),
+    )
+
+
+def _mutate_parameters(root: Path) -> None:
+    def change(payload: dict[str, Any]) -> None:
+        payload["parameters"] = {**payload["parameters"], "conformance_mutation": {}}
+
+    _rewrite_json(root / "detectors" / "plan.json", change)
+
+
+MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
+    ("source", "P1", _mutate_source),
+    ("prepared generation", "P2", lambda root: _mark(root / "data" / "prepared" / "transforms.json")),
+    ("detector identity", "P4", _mutate_detector),
+    ("detector parameters", "P3", _mutate_parameters),
+    ("draft", "P5", lambda root: _mark(root / "findings" / "draft.json")),
+    ("replay", "P6", lambda root: _mark(root / "evidence" / "replay.json")),
+    ("review", "P6", lambda root: _mark(root / "findings" / "review.json")),
+    ("Gate A approval", "P3", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-a.json")),
+    ("Gate B approval", "P6", lambda root: _mark(root / ".anomaly" / "receipts" / "gate-b.json")),
+)
+
+
+def test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work(
+    tmp_path: Path,
+) -> None:
+    root = _completed_demo(tmp_path)
+    first_state = WorkflowRunner(root).load_state()
+    assert first_state["last_completed_phase"] == "P7"
+    assert (root / "findings" / "report.md").is_file()
+    assert (root / ".anomaly" / "receipts" / "charts.json").is_file()
+
+    def repeated(_root: Path) -> None:
+        raise AssertionError("completed phase repeated on fresh-session resume")
+
+    resumed = run_workflow(root, handlers={phase: repeated for phase in PHASES})
+    assert resumed == first_state
+
+    api_events = [
+        json.loads(line)
+        for line in (root / ".anomaly" / "events.jsonl").read_text(encoding="utf-8").splitlines()
+        if '"source": "api"' in line
+    ]
+    names = [event["event"] for event in api_events]
+    assert names.index("draft_findings") < names.index("replay_signals")
+    assert names.index("replay_signals") < names.index("accept_findings")
+
+
+def test_successful_mutation_remains_resumable_when_event_store_is_unavailable(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
         root,
-        _source(tmp_path),
-        source_id="payments",
+        title="Event failure",
+        question="Does durable state survive?",
+        case_id="case-event-failure",
         now=NOW,
-        license="internal",
-        sensitivity="restricted",
-        redistribution="no",
-        reacquisition="Copy from the locked newsroom drive.",
-        included=True,
     )
-    prepare_sources(root, now=NOW)
-    profile_prepared(root, now=NOW)
-    plan = recommend_detectors(root, now=NOW)
-    approve_detector_plan(root, plan["recommended"], approved_by="journalist", now=NOW)
-    results = execute_detectors(root, plan["recommended"], now=NOW)
-    return root, results
+    runner = WorkflowRunner(root)
+    runner.run_phase("P0")
+    events = root / ".anomaly" / "events.jsonl"
+    events.unlink()
+    events.mkdir()
+
+    result = runner.run_phase("P1", _phase_handlers()["P1"])
+    assert result.status == "completed"
+    assert (root / "data" / "sources.json").is_file()
+
+    repeated: list[str] = []
+    fresh = WorkflowRunner(root)
+    resumed = fresh.run_phase("P1", lambda: repeated.append("P1"))
+    assert resumed.status == "completed"
+    assert repeated == []
+    assert fresh.load_state()["completed"]["P1"]["attempt_path"] == (
+        ".anomaly/attempts/P1/attempt-1"
+    )
 
 
-def _attestation(root: Path, reviewer: str) -> dict[str, Any]:
-    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
-    return {
-        "isolated": True,
-        "attested_by": reviewer,
-        "draft_hash": _hash_json(draft),
-        "statement": "Inspected draft, replay, provenance, and previews.",
-    }
-
-
-def test_documented_walk_replays_real_run_through_charts(tmp_path: Path) -> None:
-    root, results = _walk(tmp_path)
-
-    # Run provenance must carry the canonical registry implementation hash.
-    runs_root = root / "evidence" / "runs"
-    for run_dir in sorted(path for path in runs_root.iterdir() if path.is_dir()):
-        provenance = json.loads((run_dir / "provenance.json").read_text(encoding="utf-8"))
-        package = Path(__file__).parents[1] / "detectors" / Path(*provenance["detector_id"].split("."))
-        assert provenance["detector_hash"] == package_implementation_hash(package)
-
-    replay = replay_signals(root)
-    assert replay["status"] == "replayed", replay.get("reason")
-    assert any(run["signal_count"] for run in replay["runs"])
-    assert replay["claims"], "expected at least one replayed lead"
-
-    draft_findings(root)
-    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
-    claim_ids = [claim["claim_id"] for claim in draft["claims"]]
-    assert claim_ids
-
-    record_review(
+def test_installed_runner_persists_three_failed_attempts_and_blocks(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
         root,
-        "reviewer-007",
-        {claim_ids[0]: {"verdict": "accepted", "notes": "replay and wording hold"}},
-        independent_attestation=_attestation(root, "reviewer-007"),
+        title="Retry failure",
+        question="Does bounded convergence stop?",
+        case_id="case-retry-failure",
+        now=NOW,
     )
-    findings = accept_findings(root, claim_ids[:1])
-    assert findings["status"] == "accepted"
-    write_report(root)
 
-    manifest = generate_charts(root)
-    assert manifest["kind"] == "charts"
-    receipt = json.loads((root / ".anomaly" / "receipts" / "charts.json").read_text(encoding="utf-8"))
-    assert receipt["gate"] == "B"
+    def invalid_registration(case_root: Path) -> None:
+        register_local_source(
+            case_root,
+            DEMO_CSV,
+            source_id="../unsafe",
+            now=NOW,
+            license="internal",
+            sensitivity="restricted",
+            redistribution="no",
+            reacquisition="Copy from the locked newsroom drive.",
+            included=True,
+        )
+
+    runner = WorkflowRunner(root)
+    runner.run_phase("P0")
+    result = runner.run_phase("P1", invalid_registration)
+    state = runner.load_state()
+
+    assert result.status in {"blocked", "unavailable"}
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["attempts"]["P1"] == 3
+    failures = state["failures"]["P1"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert [failure["attempt_path"] for failure in failures] == [
+        f".anomaly/attempts/P1/attempt-{attempt}" for attempt in (1, 2, 3)
+    ]
+    assert all(not Path(failure["attempt_path"]).is_absolute() for failure in failures)
+    assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
+
+
+@pytest.mark.parametrize(("change", "expected_phase", "mutate"), MUTATIONS)
+def test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase(
+    tmp_path: Path,
+    change: str,
+    expected_phase: str,
+    mutate: Callable[[Path], None],
+) -> None:
+    baseline = _completed_demo(tmp_path / "baseline")
+    root = tmp_path / change.replace(" ", "-")
+    shutil.copytree(baseline, root)
+    mutate(root)
+
+    state = WorkflowRunner(root).load_state()
+
+    assert state["status"] == "active"
+    assert state["invalidated_from"] == expected_phase
+    assert expected_phase not in state["completed"]

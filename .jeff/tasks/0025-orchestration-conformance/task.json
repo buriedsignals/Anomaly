@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 25,
+  "slug": "orchestration-conformance",
+  "title": "Unify Anomaly durable execution and demo conformance",
+  "status": "in_progress",
+  "stage": "review",
+  "category": "code",
+  "priority": "p1",
+  "deps": [],
+  "complexity": "complex",
+  "createdAt": "2026-08-23T11:42:14Z",
+  "updatedAt": "2026-08-23T12:41:46Z",
+  "agents": {
+    "implementer_agent_id": "ImplementAnomalyConformance",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": "PlanAnomalyConformance",
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": false,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Route the installed documented phase handlers through the existing run_workflow authority; make events observational/best-effort and persist structured portable failure attempt records.",
+      "Persist and reconcile validated artifact/receipt identities so fresh sessions invalidate from P1/P2/P3/P4/P5/P6 at the earliest affected phase.",
+      "Align PRD, installed skill, decorators, and tests on P5 draft then P6 replay/independent review then Gate B.",
+      "Run the checked-in demo CSV create-to-charts through the installed runner and prove deterministic fresh-session resume and mutations."
+    ],
+    "testFiles": [
+      "tests/test_pipeline_walk.py",
+      "tests/test_skill.py",
+      "tests/test_events.py",
+      "tests/fixtures/orchestration_demo.csv"
+    ],
+    "redRun": {
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
+      "output": "12 failed, 14 passed in 1.17s (exit 1). RED seams: IsADirectoryError from unavailable events.jsonl; failure records lack attempt/attempt_path structure; nine source/artifact/approval mutations remain complete instead of invalidating; installed skill does not name anomaly.workflow.run_workflow."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Harmonize Gate A/Gate B and decorated API transition writes under WorkflowRunner, deleting duplicate direct phase/state ownership from approve_detector_plan, accept_findings, and phase-event callers after every installed call routes through run_workflow."
+  },
+  "implement": {
+    "agent_id": "ImplementAnomalyConformance",
+    "result": "green",
+    "files": [
+      "src/anomaly/workflow.py",
+      "skills/anomaly/SKILL.md"
+    ],
+    "greenRun": {
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
+      "output": "..........................                                               [100%]\n26 passed in 1.43s"
+    }
+  },
+  "refactor": {
+    "agent_id": "RefactorAnomalyConformance",
+    "result": "clean",
+    "files": [],
+    "outsideDiff": [],
+    "greenRun": {
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
+      "output": "..........................                                               [100%]\n26 passed in 1.41s"
+    },
+    "summary": [
+      "No safe behavior-preserving harmonization exists in the green diff: Gate A/Gate B state writes remain existing direct-API contracts, while decorated API events are required by the targeted event-order and installed-runner tests. Removing either would change observable behavior, so the implementation and tests were left unchanged.",
+      "The brief did not provide the required absolute bundled code-standards path; skill://code-standards was read, and no refactor was made."
+    ]
+  }
+}

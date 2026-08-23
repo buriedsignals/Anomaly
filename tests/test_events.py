@@ -165,8 +165,8 @@ def test_case_walk_appends_phase_events_for_every_mainline_call(tmp_path: Path) 
     )
     from anomaly.report import generate_charts
 
-    replay_signals(root)
     draft_findings(root)
+    replay_signals(root)
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     claim_ids = [claim["claim_id"] for claim in draft["claims"]]
     assert claim_ids, "expected at least one drafted claim"
@@ -192,8 +192,8 @@ def test_case_walk_appends_phase_events_for_every_mainline_call(tmp_path: Path) 
         ("P3", "recommend_detectors"),
         ("P3", "approve_detector_plan"),
         ("P4", "execute_detectors"),
-        ("P6", "replay_signals"),
         ("P5", "draft_findings"),
+        ("P6", "replay_signals"),
         ("P6", "record_review"),
         ("P6", "replay_signals"),
         ("P7", "accept_findings"),

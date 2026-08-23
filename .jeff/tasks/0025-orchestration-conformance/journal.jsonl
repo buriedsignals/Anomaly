@@ -1,0 +1,6 @@
+{"seq":0,"at":"2026-08-23T11:47:28.867Z","event":"intent","stage":"plan","note":"Select one durable state authority and author the minimal demo data-pipeline RED contract; delete or wire competing machinery rather than adding another layer"}
+{"seq":1,"at":"2026-08-23T12:32:00.832Z","event":"record","stage":"plan","agent":"PlanAnomalyConformance"}
+{"seq":2,"at":"2026-08-23T12:32:06.985Z","event":"intent","stage":"implement","note":"Wire the existing runner as the one installed authority, align P5/P6, and make plan-authored restart/invalidation/demo tests green without changing tests"}
+{"seq":3,"at":"2026-08-23T12:38:29.789Z","event":"record","stage":"implement","agent":"ImplementAnomalyConformance"}
+{"seq":4,"at":"2026-08-23T12:38:39.921Z","event":"intent","stage":"refactor","note":"Simplify only the green implementation by removing duplicate phase/state ownership now routed through WorkflowRunner; preserve all behavior and tests"}
+{"seq":5,"at":"2026-08-23T12:41:46.738Z","event":"record","stage":"refactor","agent":"RefactorAnomalyConformance"}

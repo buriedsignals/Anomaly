@@ -36,33 +36,38 @@ report files.
   receipt must record the source and policy.
 - Keep credentials out of prompts, commands, receipts, reports, and case JSON.
   Preserve raw inputs when policy permits, and redact previews and reports.
-- Do not infer completion from the presence of a report. Trust only the
-  append-only events, validated receipts, and `.anomaly/state.json`.
+- Do not infer completion from the presence of a report or an event. The
+  dispatcher `anomaly.workflow.run_workflow` owns phase, attempt, invalidation,
+  blocked, and resume state in `.anomaly/state.json`. Validated receipts bind
+  artifacts and approvals; `.anomaly/events.jsonl` is best-effort observational
+  history; `.anomaly/attempts/` retains relative per-attempt evidence.
 
 P0 creates `.anomaly/state.json`, `.anomaly/events.jsonl`,
-`.anomaly/receipts/`, and `.anomaly/attempts/`. Every phase appends a start,
-completion, failure, and (when relevant) gate or retry event; mainline API
-calls append their phase events through the shared best-effort helper
-(`anomaly.events.log_event`), so an event-store failure can never break the
-call itself. Write a phase's outputs under
-`.anomaly/attempts/<phase>/attempt-<n>/` first; validate hashes, schemas,
+`.anomaly/receipts/`, and `.anomaly/attempts/`. The durable runner records each
+phase start, completion, failure, and retry when the event store is available;
+mainline API calls append their phase events through the shared best-effort
+helper (`anomaly.events.log_event`). Event append failure never hides a
+successful artifact and state transition from resume. Write a phase's outputs
+under `.anomaly/attempts/<phase>/attempt-<n>/` first; validate hashes, schemas,
 safety, and relative paths before moving accepted outputs into the case
 folders. Keep superseded attempts for audit.
 
-Use bounded retries: allow at most **3 attempts per phase** (including the
-initial attempt). On failure append the error without secrets, preserve the
-attempt, and stop when the limit is reached with an explicit unavailable or
-blocked status; never loop indefinitely. On restart, read state plus the last
-valid receipt/event and resume from the **last completed event**, not from file
-presence. A changed input, mapping, detector version, or parameter invalidates
-downstream receipts and requires the linear path again.
+Use bounded retries: allow exactly **3 attempts per phase** (including the
+initial attempt). On failure persist the credential-redacted error, attempt
+number, and relative attempt path, then stop after attempt three with an
+explicit unavailable or blocked status; never loop indefinitely. On restart,
+resume from the last completed phase in state after validating its recorded
+artifact and receipt identities. A changed source, prepared generation,
+detector identity, parameter, draft, replay, review, or approval invalidates
+the earliest affected phase and all downstream progress.
 
 ## Dispatch table
 
-The dispatcher only sequences. Each state, gate, and local-API step has exactly
-one owning unit, called with the resolved case root as `Path` and an explicit
-UTC `now` where the API requires it. Handle exceptions as durable failure
-events, apply the three-attempt limit, and do not bypass a gate.
+The installed dispatcher is `anomaly.workflow.run_workflow`. Build its linear
+handler mapping from the owning units below and invoke it with the resolved case
+root; the handlers produce and validate domain artifacts but never replace the
+runner's durable phase, retry, invalidation, or blocked-state authority. Pause
+at each human gate rather than bypassing it.
 
 | State / gate | Step | Owning unit |
 | --- | --- | --- |
@@ -73,10 +78,10 @@ events, apply the three-attempt limit, and do not bypass a gate.
 | P3 recommend | 5 | `anomaly.recommend.recommend_detectors` |
 | Gate A closes | 6 | `anomaly.recommend.approve_detector_plan` — only after the journalist approves; seals the hash-bound Gate A receipt |
 | P4 execute | 7 | `anomaly.detect.execute_detectors` with the approved IDs and bounded limits |
-| P6 replay first | 8 | `anomaly.review.replay_signals` before relying on any calculation |
-| P5 draft | 9 | `anomaly.review.draft_findings` |
-| P6 review | 10 | `anomaly.review.record_review` with the isolated reviewer ID, verdicts, and draft-hash attestation |
-| Gate B closes | 11 | `anomaly.review.accept_findings` — only after the gate and only for accepted claim IDs |
+| P5 draft | 8 | `anomaly.review.draft_findings` |
+| P6 replay | 9 | `anomaly.review.replay_signals` before relying on any calculation |
+| P6 independent review | 10 | `anomaly.review.record_review` with the isolated reviewer ID, verdicts, and draft-hash attestation |
+| Gate B closes | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
 | P7 report | 12 | `anomaly.review.write_report` materializes the redacted report and case links from Gate-B findings |
 | P7 post-report | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
 

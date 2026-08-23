@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 26,
+  "slug": "public-demo-verification",
+  "title": "Verify Anomaly public demo in the installed agent pipeline",
+  "status": "pending",
+  "stage": "capture",
+  "priority": "p1",
+  "deps": [25],
+  "complexity": "complex",
+  "createdAt": "2026-08-23T12:25:52Z",
+  "updatedAt": "2026-08-23T12:25:52Z",
+  "agents": {
+    "implementer_agent_id": null,
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": null,
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": false,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null
+}

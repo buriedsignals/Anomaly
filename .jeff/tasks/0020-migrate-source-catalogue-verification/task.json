@@ -5,8 +5,8 @@
   "externalRef": "https://github.com/tomvaillant/Anomaly/issues/1",
   "slug": "migrate-source-catalogue-verification",
   "title": "Repair migrated source catalogue verification after Navigator move",
-  "status": "done",
-  "stage": "done",
+  "status": "blocked",
+  "stage": "review",
   "category": "code",
   "priority": "p1",
   "deps": [],
@@ -56,7 +56,7 @@
       "at": "2026-08-22T10:02:00Z"
     }
   ],
-  "blockedReason": null,
+  "blockedReason": "Historical task was marked terminal despite a red full-suite gate; reopened at review without fabricating a green gate or judgment.",
   "abandonReason": null,
   "plan": {
     "result": "red",
