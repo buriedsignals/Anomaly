@@ -104,9 +104,9 @@ def test_registry_and_live_review_use_the_same_implementation_hash_for_unchanged
 def test_default_execution_resolves_explicit_namespaced_gain_detector_without_uncapping_discovery(
     tmp_path: Path,
 ) -> None:
-    from test_gain_detectors import _approved_gain_case
+    from approved_case import approved_case
 
-    root = _approved_gain_case(
+    root = approved_case(
         tmp_path,
         source_payloads= {
             "senate_filings": (
