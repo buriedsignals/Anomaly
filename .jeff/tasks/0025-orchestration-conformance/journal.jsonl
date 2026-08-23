@@ -4,3 +4,32 @@
 {"seq":3,"at":"2026-08-23T12:38:29.789Z","event":"record","stage":"implement","agent":"ImplementAnomalyConformance"}
 {"seq":4,"at":"2026-08-23T12:38:39.921Z","event":"intent","stage":"refactor","note":"Simplify only the green implementation by removing duplicate phase/state ownership now routed through WorkflowRunner; preserve all behavior and tests"}
 {"seq":5,"at":"2026-08-23T12:41:46.738Z","event":"record","stage":"refactor","agent":"RefactorAnomalyConformance"}
+{"seq":6,"at":"2026-08-23T12:42:25.534Z","event":"gate","hash":"c14a7942bcca7ca5cbcd012a422d0ea539a065c2","green":true,"clean":true}
+{"seq":7,"at":"2026-08-23T12:48:30.146Z","event":"intent","stage":"review","note":"Correctness review against durable-state, invalidation, attempt, ordering, and demo acceptance"}
+{"seq":8,"at":"2026-08-23T12:48:30.203Z","event":"intent","stage":"review","note":"Standards review emphasizing simplification, single authority, portability, and test integrity"}
+{"seq":9,"at":"2026-08-23T12:57:51.032Z","event":"record","stage":"review","agent":"ReviewAnomalyCorrectness"}
+{"seq":10,"at":"2026-08-23T12:58:14.839Z","event":"record","stage":"review","agent":"ReviewAnomalyMaintainability"}
+{"seq":11,"at":"2026-08-23T12:59:27.970Z","event":"intent","stage":"refute","note":"Refute review finding workflow.py:404 fail-open installed dispatcher"}
+{"seq":12,"at":"2026-08-23T12:59:28.029Z","event":"intent","stage":"refute","note":"Refute review finding recommend.py:383 competing Gate A state writer"}
+{"seq":13,"at":"2026-08-23T12:59:28.088Z","event":"intent","stage":"refute","note":"Refute review finding review.py:475 competing Gate B state writer"}
+{"seq":14,"at":"2026-08-23T12:59:28.146Z","event":"intent","stage":"refute","note":"Refute review finding test_pipeline_walk.py:278 weak invalidation proof"}
+{"seq":15,"at":"2026-08-23T12:59:28.203Z","event":"intent","stage":"refute","note":"Refute review2 finding workflow.py:406 missing production composition"}
+{"seq":16,"at":"2026-08-23T12:59:28.259Z","event":"intent","stage":"refute","note":"Refute review2 finding recommend.py:380 competing Gate A ownership"}
+{"seq":17,"at":"2026-08-23T12:59:28.317Z","event":"intent","stage":"refute","note":"Refute review2 finding review.py:390 competing Gate B/report ownership"}
+{"seq":18,"at":"2026-08-23T12:59:28.377Z","event":"intent","stage":"refute","note":"Refute review2 finding PRD.md:215 resume-authority contradiction"}
+{"seq":19,"at":"2026-08-23T12:59:28.434Z","event":"intent","stage":"refute","note":"Refute review2 finding test_skill.py:139 source-text installed wiring test"}
+{"seq":20,"at":"2026-08-23T13:01:40.778Z","event":"record","stage":"refute","agent":"RefuteBPrd"}
+{"seq":21,"at":"2026-08-23T13:02:14.144Z","event":"record","stage":"refute","agent":"RefuteBGateB"}
+{"seq":22,"at":"2026-08-23T13:02:28.930Z","event":"record","stage":"refute","agent":"RefuteBWorkflow"}
+{"seq":23,"at":"2026-08-23T13:02:47.577Z","event":"record","stage":"refute","agent":"RefuteAWorkflow"}
+{"seq":24,"at":"2026-08-23T13:03:43.067Z","event":"record","stage":"refute","agent":"RefuteAInvalidation"}
+{"seq":25,"at":"2026-08-23T13:03:43.128Z","event":"record","stage":"refute","agent":"RefuteAGateA"}
+{"seq":26,"at":"2026-08-23T13:03:43.188Z","event":"record","stage":"refute","agent":"RefuteAGateB"}
+{"seq":27,"at":"2026-08-23T13:03:43.248Z","event":"record","stage":"refute","agent":"RefuteBGateA"}
+{"seq":28,"at":"2026-08-23T13:03:43.308Z","event":"record","stage":"refute","agent":"RefuteBSkillTest"}
+{"seq":29,"at":"2026-08-23T13:03:56.763Z","event":"intent","stage":"plan","note":"Replan after both independent reviews and all nine refutes sustained: install a fail-closed production composition, remove Gate A/B/report state writers, align PRD, and strengthen public-entry invalidation/demo tests"}
+{"seq":30,"at":"2026-08-23T13:14:08.144Z","event":"record","stage":"plan","agent":"PlanAnomalyAuthorityRepair"}
+{"seq":31,"at":"2026-08-23T13:14:13.858Z","event":"intent","stage":"implement","note":"Implement sustained review union: fail-closed production composition, runner-owned pauses/state, artifact-only Gate APIs, strengthened invalidation, and canonical docs"}
+{"seq":32,"at":"2026-08-23T13:27:06.315Z","event":"record","stage":"implement","agent":"ImplementAnomalyAuthorityRepair"}
+{"seq":33,"at":"2026-08-23T13:27:13.552Z","event":"intent","stage":"refactor","note":"Simplify green authority repair by deleting no-op mapping fallback and duplicate state writes made obsolete; preserve exact public behavior"}
+{"seq":34,"at":"2026-08-23T13:30:19.351Z","event":"record","stage":"refactor","agent":"RefactorAnomalyAuthority"}

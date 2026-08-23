@@ -1,0 +1,13 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "PRD.md:215 The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.",
+  "verdict": "survives",
+  "rationale": "PRD.md makes a completed event part of the restart point, while the installed skill makes events optional observational history and resumes from authoritative state; a successful phase with failed event append is visible under the skill but absent from the PRD's stated basis.",
+  "evidence": [
+    {"command":"read PRD.md:209-216","output":"PRD says resume from the last completed event and receipt."},
+    {"command":"read skills/anomaly/SKILL.md:39-60","output":"Skill makes state authoritative, receipts binding, and events best-effort observational history."},
+    {"command":"read task.md:9-10","output":"Locked contract requires one state authority and event failure must not hide a successful transition."}
+  ]
+}

@@ -227,13 +227,14 @@ def test_approval_rejects_unknown_or_blocked_ids_without_mutating_plan(
     assert _plan(root) == before
 
 
-def test_approval_records_gate_a_and_approved_subset_with_identity_and_time(
+def test_approval_records_gate_a_artifacts_without_mutating_workflow_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root = _prepared_case(tmp_path)
     _patch_metadata(monkeypatch, _metadata(blocked=True))
     api = _recommend_api()
     api.recommend_detectors(root, now=NOW)
+    state_before = read_json(root / ".anomaly" / "state.json")
 
     approved_ids = ["numeric.level_shift", "categorical.rare_levels"]
     result = api.approve_detector_plan(root, approved_ids, approved_by="editor-1", now=NOW)
@@ -245,9 +246,7 @@ def test_approval_records_gate_a_and_approved_subset_with_identity_and_time(
     assert receipt["approved"] == approved_ids
     assert receipt["approved_by"] == "editor-1"
     assert receipt["approved_at"] == NOW.isoformat()
-    state = read_json(root / ".anomaly" / "state.json")
-    assert state["phase"] == "P4"
-    assert state["gate"] == "A"
+    assert read_json(root / ".anomaly" / "state.json") == state_before
 
 
 def test_approval_refuses_empty_plan_without_sealing_gate_a(

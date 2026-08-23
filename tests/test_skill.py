@@ -136,27 +136,5 @@ def test_skill_does_not_route_into_external_knowledge_systems() -> None:
             assert prohibition.search(line), f"active external-system instruction: {line!r}"
 
 
-def test_skill_local_invocation_wires_the_durable_runner_and_returns_a_portable_case() -> None:
-    skill = _required_text(SKILL_PATH)
-    assert "anomaly.workflow.run_workflow" in skill
-    required_calls = (
-        "anomaly.prepare.prepare_sources",
-        "anomaly.recommend.recommend_detectors",
-        "anomaly.recommend.approve_detector_plan",
-        "anomaly.detect.execute_detectors",
-        "anomaly.review.draft_findings",
-        "anomaly.review.replay_signals",
-        "anomaly.review.record_review",
-        "anomaly.review.accept_findings",
-        "anomaly.review.write_report",
-    )
-
-    positions = []
-    for call in required_calls:
-        assert call in skill
-        positions.append(skill.index(call))
-    assert positions == sorted(positions)
-    assert re.search(r"(?i)(?:portable case folder|case folder.*portable)", skill)
-    assert re.search(r"(?i)all case (?:paths|references) are relative", skill)
 
 

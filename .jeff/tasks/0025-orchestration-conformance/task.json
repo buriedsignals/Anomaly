@@ -11,78 +11,784 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-23T11:42:14Z",
-  "updatedAt": "2026-08-23T12:41:46Z",
+  "updatedAt": "2026-08-23T13:30:19Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyConformance",
+    "implementer_agent_id": "ImplementAnomalyAuthorityRepair",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyConformance",
+    "authored_by_agent_id": "PlanAnomalyAuthorityRepair",
     "green": false,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ]
   },
   "review": {
     "verdict": null,
     "reviewer_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "audit": {
-    "required": false,
+    "required": true,
     "verdict": "na",
     "audit_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "commits": [],
-  "kickbacks": [],
+  "kickbacks": [
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "The advertised dispatcher is fail-open and not wired to a production handler set; missing handlers become successful no-ops. Define a production-owned required mapping/public dispatcher, fail closed, model gate pause/resume, and make the demo invoke it.; approve_detector_plan still writes phase P4/gate A into state.json. Revise the test contract and leave the API responsible for its validated receipt only; WorkflowRunner must own phase transition.; accept_findings still writes phase P7/gate B/status active into state.json. Remove the competing transition so the receipt validates approval and WorkflowRunner alone advances state.; The invalidation matrix removes only the expected phase and never proves every downstream completion is removed or that resume reruns exactly the expected suffix. Strengthen the test accordingly.; run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.; approve_detector_plan remains a competing P4/Gate A state writer. Keep plan/receipt behavior but move durable phase transition ownership to WorkflowRunner.; accept_findings and write_report remain independent P7 workflow-state authorities. Retain artifacts/receipts but make WorkflowRunner the sole phase/status owner.; The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.; The installed-wiring test only searches SKILL.md text while the demo supplies a private handler map. Replace it with a public-entry behavioral contract using the production-owned composition.",
+      "at": "2026-08-23T13:03:43Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 404,
+          "what": "The advertised dispatcher is fail-open and not wired to a production handler set; missing handlers become successful no-ops. Define a production-owned required mapping/public dispatcher, fail closed, model gate pause/resume, and make the demo invoke it.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/recommend.py",
+          "line": 383,
+          "what": "approve_detector_plan still writes phase P4/gate A into state.json. Revise the test contract and leave the API responsible for its validated receipt only; WorkflowRunner must own phase transition.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/review.py",
+          "line": 475,
+          "what": "accept_findings still writes phase P7/gate B/status active into state.json. Remove the competing transition so the receipt validates approval and WorkflowRunner alone advances state.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 278,
+          "what": "The invalidation matrix removes only the expected phase and never proves every downstream completion is removed or that resume reruns exactly the expected suffix. Strengthen the test accordingly.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 406,
+          "what": "run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/recommend.py",
+          "line": 380,
+          "what": "approve_detector_plan remains a competing P4/Gate A state writer. Keep plan/receipt behavior but move durable phase transition ownership to WorkflowRunner.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/review.py",
+          "line": 390,
+          "what": "accept_findings and write_report remain independent P7 workflow-state authorities. Retain artifacts/receipts but make WorkflowRunner the sole phase/status owner.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "PRD.md",
+          "line": 215,
+          "what": "The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_skill.py",
+          "line": 139,
+          "what": "The installed-wiring test only searches SKILL.md text while the demo supplies a private handler map. Replace it with a public-entry behavioral contract using the production-owned composition.",
+          "kickTo": "plan"
+        }
+      ]
+    }
+  ],
   "blockedReason": null,
   "abandonReason": null,
   "plan": {
     "result": "red",
     "slices": [
-      "Route the installed documented phase handlers through the existing run_workflow authority; make events observational/best-effort and persist structured portable failure attempt records.",
-      "Persist and reconcile validated artifact/receipt identities so fresh sessions invalidate from P1/P2/P3/P4/P5/P6 at the earliest affected phase.",
-      "Align PRD, installed skill, decorators, and tests on P5 draft then P6 replay/independent review then Gate B.",
-      "Run the checked-in demo CSV create-to-charts through the installed runner and prove deterministic fresh-session resume and mutations."
+      "Keep the revised consumer proof contract for fail-closed public dispatch and artifact/receipt-only Gate A, Gate B, and report APIs.",
+      "Replace run_workflow's optional caller mapping with a validated production-owned exact P0-P7 composition while retaining injection only on WorkflowRunner unit tests.",
+      "Add runner-owned durable pauses and explicit sources, Gate A, independent-review, and Gate B resume inputs without hard-coded identities; pauses do not consume failure attempts.",
+      "Remove competing phase/status writes from approve_detector_plan, accept_findings, and write_report; WorkflowRunner commits completion and identities after domain artifacts validate.",
+      "Use the strengthened nine-row mutation matrix to retain or minimally repair full downstream completion deletion and exact suffix rerun.",
+      "Align PRD.md and skills/anomaly/SKILL.md on state plus validated identities as resume authority, receipts as binding evidence, events as observational, and P5 to P6 to Gate B order."
     ],
     "testFiles": [
       "tests/test_pipeline_walk.py",
-      "tests/test_skill.py",
-      "tests/test_events.py",
-      "tests/fixtures/orchestration_demo.csv"
+      "tests/test_recommend.py",
+      "tests/test_review.py",
+      "tests/test_skill.py"
     ],
     "redRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
-      "output": "12 failed, 14 passed in 1.17s (exit 1). RED seams: IsADirectoryError from unavailable events.jsonl; failure records lack attempt/attempt_path structure; nine source/artifact/approval mutations remain complete instead of invalidating; installed skill does not name anomaly.workflow.run_workflow."
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
+      "output": "6 failed, 18 passed in 1.66s: no-input public dispatch falsely completed; public inputs unsupported; Gate A, Gate B, and write_report still mutated workflow state."
     },
     "escalation": null,
-    "refactorOpportunity": "Harmonize Gate A/Gate B and decorated API transition writes under WorkflowRunner, deleting duplicate direct phase/state ownership from approve_detector_plan, accept_findings, and phase-event callers after every installed call routes through run_workflow."
+    "refactorOpportunity": "Delete run_workflow's caller-injected/no-op handler fallback and direct state writes from approve_detector_plan, accept_findings, and write_report, harmonizing phase/status/attempt ownership under WorkflowRunner."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyConformance",
+    "agent_id": "ImplementAnomalyAuthorityRepair",
     "result": "green",
     "files": [
       "src/anomaly/workflow.py",
-      "skills/anomaly/SKILL.md"
+      "src/anomaly/recommend.py",
+      "src/anomaly/review.py",
+      "PRD.md",
+      "skills/anomaly/SKILL.md",
+      ".jeff/tasks/0025-orchestration-conformance/context.md"
     ],
     "greenRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
-      "output": "..........................                                               [100%]\n26 passed in 1.43s"
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
+      "output": "24 passed in 1.74s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorAnomalyConformance",
+    "agent_id": "RefactorAnomalyAuthority",
     "result": "clean",
     "files": [],
     "outsideDiff": [],
     "greenRun": {
-      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q",
-      "output": "..........................                                               [100%]\n26 passed in 1.41s"
+      "command": "uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q",
+      "output": "24 passed in 1.70s"
     },
     "summary": [
-      "No safe behavior-preserving harmonization exists in the green diff: Gate A/Gate B state writes remain existing direct-API contracts, while decorated API events are required by the targeted event-order and installed-runner tests. Removing either would change observable behavior, so the implementation and tests were left unchanged.",
-      "The brief did not provide the required absolute bundled code-standards path; skill://code-standards was read, and no refactor was made."
+      "No safe behavior-preserving reduction remains: public run_workflow owns exact production composition and fail-closed pauses, and Gate APIs no longer write phase/status state.",
+      "The remaining injectable/no-op WorkflowRunner seam is retained only for unit tests as planned.",
+      "No files changed."
     ]
-  }
+  },
+  "review2": null,
+  "refutes": [
+    {
+      "agent_id": "RefuteBPrd",
+      "source": "review2",
+      "finding": "PRD.md:215 The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.",
+      "verdict": "survives",
+      "rationale": "PRD.md makes a completed event part of the restart point, while the installed skill makes events optional observational history and resumes from authoritative state; a successful phase with failed event append is visible under the skill but absent from the PRD's stated basis.",
+      "evidence": [
+        {
+          "command": "read PRD.md:209-216",
+          "output": "PRD says resume from the last completed event and receipt."
+        },
+        {
+          "command": "read skills/anomaly/SKILL.md:39-60",
+          "output": "Skill makes state authoritative, receipts binding, and events best-effort observational history."
+        },
+        {
+          "command": "read task.md:9-10",
+          "output": "Locked contract requires one state authority and event failure must not hide a successful transition."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteBGateB",
+      "source": "review2",
+      "finding": "src/anomaly/review.py:390 accept_findings and write_report remain independent P7 workflow-state authorities. Retain artifacts/receipts but make WorkflowRunner the sole phase/status owner.",
+      "verdict": "survives",
+      "rationale": "Both public APIs are directly reachable without WorkflowRunner and independently mutate state.json; write_report can set complete without runner completion/attempt fields, while fresh resume derives progress from runner fields.",
+      "evidence": [
+        {
+          "command": "read review.py:369-512,598-665",
+          "output": "accept_findings writes P7/Gate B active and write_report writes P7 complete without runner completion or attempts."
+        },
+        {
+          "command": "read workflow.py:293-452",
+          "output": "run_phase separately records attempts, last_completed_phase, completed identities, and status; resume consults those fields."
+        },
+        {
+          "command": "read test_events.py:40-185",
+          "output": "Supported tests drive accept_findings/write_report directly outside WorkflowRunner."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteBWorkflow",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:406 run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher accepts omitted/partial mappings, turns absent phases into successful no-ops, and has no production composition or fail-closed guard.",
+      "evidence": [
+        {
+          "command": "read workflow.py:267-417",
+          "output": "_handler_for returns lambda no-op for absent/non-callable handlers and run_workflow defaults phases to None before run()."
+        },
+        {
+          "command": "caller search",
+          "output": "Only tests call run_workflow with a test-local mapping; no production composition factory exists."
+        },
+        {
+          "command": "read installed skill/test",
+          "output": "Skill names the dispatcher in prose; test only checks source-text ordering and never invokes installed composition."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAWorkflow",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:404 The advertised dispatcher is fail-open and not wired to a production handler set; missing handlers become successful no-ops. Define a production-owned required mapping/public dispatcher, fail closed, model gate pause/resume, and make the demo invoke it.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher accepts absent/partial handlers, converts them to successful no-ops, and records P7 complete; no installed production mapping or fail-closed guard exists.",
+      "evidence": [
+        {
+          "command": "read workflow.py:295-417",
+          "output": "_handler_for returns no-op and run records phases complete."
+        },
+        {
+          "command": "caller search",
+          "output": "Only tests own a concrete handler mapping; installed skill is prose only."
+        },
+        {
+          "command": "read case.py and SKILL.md",
+          "output": "A normal created P0 case can reach run_workflow with no enforced mapping."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAInvalidation",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:278 The invalidation matrix removes only the expected phase and never proves every downstream completion is removed or that resume reruns exactly the expected suffix. Strengthen the test accordingly.",
+      "verdict": "survives",
+      "rationale": "Production currently removes/reruns the suffix, but no test composes artifact mutation with downstream-deletion and exact suffix-resume assertions; existing generic resume coverage cannot catch a partial invalidation regression.",
+      "evidence": [
+        {
+          "command": "read test_pipeline_walk.py:262-278",
+          "output": "Matrix asserts only status, invalidated_from, and absence of one phase; it never resumes."
+        },
+        {
+          "command": "read workflow.py:232-307",
+          "output": "Current code removes suffix and resumes it, showing current behavior but not regression coverage."
+        },
+        {
+          "command": "read test_workflow.py:48-70",
+          "output": "Generic manual-prefix resume test does not exercise identity invalidation."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAGateA",
+      "source": "review",
+      "finding": "src/anomaly/recommend.py:383 approve_detector_plan still writes phase P4/gate A into state.json. Revise the test contract and leave the API responsible for its validated receipt only; WorkflowRunner must own phase transition.",
+      "verdict": "survives",
+      "rationale": "The documented public Gate A API directly and durably writes P4/Gate A; the runner-mediated P3 handler invokes it and then independently rewrites runner state, so it is neither artifact-only nor single-authority.",
+      "evidence": [
+        {
+          "command": "read recommend.py:334-399",
+          "output": "approve_detector_plan sets P4/Gate A and writes state beside the receipt."
+        },
+        {
+          "command": "read pipeline handler and workflow.py",
+          "output": "P3 handler calls Gate A API, then WorkflowRunner writes its own phase/completion state."
+        },
+        {
+          "command": "read test_recommend.py:237-251",
+          "output": "Direct API test requires P4/Gate A state, proving reachable competing ownership."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteAGateB",
+      "source": "review",
+      "finding": "src/anomaly/review.py:475 accept_findings still writes phase P7/gate B/status active into state.json. Remove the competing transition so the receipt validates approval and WorkflowRunner alone advances state.",
+      "verdict": "survives",
+      "rationale": "The installed Gate B API is reachable directly and as the P7 handler yet independently rewrites state; direct use can expose P7 without runner completion fields, after which runner resume derives P0.",
+      "evidence": [
+        {
+          "command": "read review.py:369-478",
+          "output": "accept_findings writes P7/Gate B active."
+        },
+        {
+          "command": "read workflow resume logic",
+          "output": "Resume uses last_completed_phase/completed, not the direct P7 field."
+        },
+        {
+          "command": "read test_review.py and pipeline_walk.py",
+          "output": "Both direct and runner-mediated Gate B calls are supported."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteBGateA",
+      "source": "review2",
+      "finding": "src/anomaly/recommend.py:380 approve_detector_plan remains a competing P4/Gate A state writer. Keep plan/receipt behavior but move durable phase transition ownership to WorkflowRunner.",
+      "verdict": "survives",
+      "rationale": "The public Gate A API is directly reachable and writes P4/Gate A without WorkflowRunner, attempts, or P3 completion; no upstream guard prevents bypass.",
+      "evidence": [
+        {
+          "command": "read recommend.py:334-399",
+          "output": "Public phase_event API writes P4/Gate A state beside receipt."
+        },
+        {
+          "command": "read events.py",
+          "output": "Decorator only appends observational events and provides no runner guard."
+        },
+        {
+          "command": "read test_recommend.py:237-251",
+          "output": "Direct call is intentionally supported and asserts the bypass state."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteBSkillTest",
+      "source": "review2",
+      "finding": "tests/test_skill.py:139 The installed-wiring test only searches SKILL.md text while the demo supplies a private handler map. Replace it with a public-entry behavioral contract using the production-owned composition.",
+      "verdict": "survives",
+      "rationale": "No consumer-observable installed-wiring test exists: the skill test inspects prose, the end-to-end test injects a private map, and no-handler run_workflow can complete without producing plan/report artifacts.",
+      "evidence": [
+        {
+          "command": "focused skill/demo tests",
+          "output": "Both pass but do not exercise production-owned composition."
+        },
+        {
+          "command": "caller search",
+          "output": "Only pipeline_walk invokes run_workflow, always with test-owned handlers."
+        },
+        {
+          "command": "no-handler experiment",
+          "output": "run_workflow reported complete P7 with no report or plan."
+        }
+      ]
+    }
+  ],
+  "convergence": {
+    "cap": 2,
+    "stages": {
+      "review": {
+        "blockingKickbacks": 1
+      },
+      "audit": {
+        "blockingKickbacks": 0
+      }
+    },
+    "council": {
+      "convened": false,
+      "stage": null,
+      "members": [],
+      "findings": [],
+      "verdict": null,
+      "outcome": null
+    }
+  },
+  "judgmentHistory": [
+    {
+      "at": "2026-08-23T13:27:06Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyCorrectness",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 404,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The advertised dispatcher is fail-open and not wired to a production handler set; missing handlers become successful no-ops. Define a production-owned required mapping/public dispatcher, fail closed, model gate pause/resume, and make the demo invoke it.",
+            "why": "The installed API can falsely mark an investigation complete, violating AC1, AC3, and AC6.",
+            "refute": {
+              "agent_id": "RefuteAWorkflow",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:404 The advertised dispatcher is fail-open and not wired to a production handler set; missing handlers become successful no-ops. Define a production-owned required mapping/public dispatcher, fail closed, model gate pause/resume, and make the demo invoke it.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher accepts absent/partial handlers, converts them to successful no-ops, and records P7 complete; no installed production mapping or fail-closed guard exists.",
+              "evidence": [
+                {
+                  "command": "read workflow.py:295-417",
+                  "output": "_handler_for returns no-op and run records phases complete."
+                },
+                {
+                  "command": "caller search",
+                  "output": "Only tests own a concrete handler mapping; installed skill is prose only."
+                },
+                {
+                  "command": "read case.py and SKILL.md",
+                  "output": "A normal created P0 case can reach run_workflow with no enforced mapping."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/recommend.py",
+            "line": 383,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "approve_detector_plan still writes phase P4/gate A into state.json. Revise the test contract and leave the API responsible for its validated receipt only; WorkflowRunner must own phase transition.",
+            "why": "This remains a second phase authority, violating AC1.",
+            "refute": {
+              "agent_id": "RefuteAGateA",
+              "source": "review",
+              "finding": "src/anomaly/recommend.py:383 approve_detector_plan still writes phase P4/gate A into state.json. Revise the test contract and leave the API responsible for its validated receipt only; WorkflowRunner must own phase transition.",
+              "verdict": "survives",
+              "rationale": "The documented public Gate A API directly and durably writes P4/Gate A; the runner-mediated P3 handler invokes it and then independently rewrites runner state, so it is neither artifact-only nor single-authority.",
+              "evidence": [
+                {
+                  "command": "read recommend.py:334-399",
+                  "output": "approve_detector_plan sets P4/Gate A and writes state beside the receipt."
+                },
+                {
+                  "command": "read pipeline handler and workflow.py",
+                  "output": "P3 handler calls Gate A API, then WorkflowRunner writes its own phase/completion state."
+                },
+                {
+                  "command": "read test_recommend.py:237-251",
+                  "output": "Direct API test requires P4/Gate A state, proving reachable competing ownership."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/review.py",
+            "line": 475,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "accept_findings still writes phase P7/gate B/status active into state.json. Remove the competing transition so the receipt validates approval and WorkflowRunner alone advances state.",
+            "why": "This is split-brain Gate B ownership, violating AC1.",
+            "refute": {
+              "agent_id": "RefuteAGateB",
+              "source": "review",
+              "finding": "src/anomaly/review.py:475 accept_findings still writes phase P7/gate B/status active into state.json. Remove the competing transition so the receipt validates approval and WorkflowRunner alone advances state.",
+              "verdict": "survives",
+              "rationale": "The installed Gate B API is reachable directly and as the P7 handler yet independently rewrites state; direct use can expose P7 without runner completion fields, after which runner resume derives P0.",
+              "evidence": [
+                {
+                  "command": "read review.py:369-478",
+                  "output": "accept_findings writes P7/Gate B active."
+                },
+                {
+                  "command": "read workflow resume logic",
+                  "output": "Resume uses last_completed_phase/completed, not the direct P7 field."
+                },
+                {
+                  "command": "read test_review.py and pipeline_walk.py",
+                  "output": "Both direct and runner-mediated Gate B calls are supported."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 278,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The invalidation matrix removes only the expected phase and never proves every downstream completion is removed or that resume reruns exactly the expected suffix. Strengthen the test accordingly.",
+            "why": "The current test can pass while resume still returns complete, under-testing AC4 and AC6.",
+            "refute": {
+              "agent_id": "RefuteAInvalidation",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:278 The invalidation matrix removes only the expected phase and never proves every downstream completion is removed or that resume reruns exactly the expected suffix. Strengthen the test accordingly.",
+              "verdict": "survives",
+              "rationale": "Production currently removes/reruns the suffix, but no test composes artifact mutation with downstream-deletion and exact suffix-resume assertions; existing generic resume coverage cannot catch a partial invalidation regression.",
+              "evidence": [
+                {
+                  "command": "read test_pipeline_walk.py:262-278",
+                  "output": "Matrix asserts only status, invalidated_from, and absence of one phase; it never resumes."
+                },
+                {
+                  "command": "read workflow.py:232-307",
+                  "output": "Current code removes suffix and resumes it, showing current behavior but not regression coverage."
+                },
+                {
+                  "command": "read test_workflow.py:48-70",
+                  "output": "Generic manual-prefix resume test does not exercise identity invalidation."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "cook verify --task 25",
+            "output": "711 passed; green gate does not resolve the contract gaps."
+          },
+          {
+            "command": "source/test inspection",
+            "output": "No production run_workflow caller/handler builder; test-owned mapping only. Gate A/B APIs directly update state. Mutation assertions do not resume."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyMaintainability",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 406,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.",
+            "why": "The public entry can complete P0-P7 without sources, findings, report, or charts, defeating AC1, AC3, AC5, and AC6.",
+            "refute": {
+              "agent_id": "RefuteBWorkflow",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:406 run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher accepts omitted/partial mappings, turns absent phases into successful no-ops, and has no production composition or fail-closed guard.",
+              "evidence": [
+                {
+                  "command": "read workflow.py:267-417",
+                  "output": "_handler_for returns lambda no-op for absent/non-callable handlers and run_workflow defaults phases to None before run()."
+                },
+                {
+                  "command": "caller search",
+                  "output": "Only tests call run_workflow with a test-local mapping; no production composition factory exists."
+                },
+                {
+                  "command": "read installed skill/test",
+                  "output": "Skill names the dispatcher in prose; test only checks source-text ordering and never invokes installed composition."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/recommend.py",
+            "line": 380,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "approve_detector_plan remains a competing P4/Gate A state writer. Keep plan/receipt behavior but move durable phase transition ownership to WorkflowRunner.",
+            "why": "Direct API use bypasses runner attempts and completion semantics, violating the single-authority contract.",
+            "refute": {
+              "agent_id": "RefuteBGateA",
+              "source": "review2",
+              "finding": "src/anomaly/recommend.py:380 approve_detector_plan remains a competing P4/Gate A state writer. Keep plan/receipt behavior but move durable phase transition ownership to WorkflowRunner.",
+              "verdict": "survives",
+              "rationale": "The public Gate A API is directly reachable and writes P4/Gate A without WorkflowRunner, attempts, or P3 completion; no upstream guard prevents bypass.",
+              "evidence": [
+                {
+                  "command": "read recommend.py:334-399",
+                  "output": "Public phase_event API writes P4/Gate A state beside receipt."
+                },
+                {
+                  "command": "read events.py",
+                  "output": "Decorator only appends observational events and provides no runner guard."
+                },
+                {
+                  "command": "read test_recommend.py:237-251",
+                  "output": "Direct call is intentionally supported and asserts the bypass state."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/review.py",
+            "line": 390,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "accept_findings and write_report remain independent P7 workflow-state authorities. Retain artifacts/receipts but make WorkflowRunner the sole phase/status owner.",
+            "why": "Multiple public state writers are split-brain and contradict the clean cutover.",
+            "refute": {
+              "agent_id": "RefuteBGateB",
+              "source": "review2",
+              "finding": "src/anomaly/review.py:390 accept_findings and write_report remain independent P7 workflow-state authorities. Retain artifacts/receipts but make WorkflowRunner the sole phase/status owner.",
+              "verdict": "survives",
+              "rationale": "Both public APIs are directly reachable without WorkflowRunner and independently mutate state.json; write_report can set complete without runner completion/attempt fields, while fresh resume derives progress from runner fields.",
+              "evidence": [
+                {
+                  "command": "read review.py:369-512,598-665",
+                  "output": "accept_findings writes P7/Gate B active and write_report writes P7 complete without runner completion or attempts."
+                },
+                {
+                  "command": "read workflow.py:293-452",
+                  "output": "run_phase separately records attempts, last_completed_phase, completed identities, and status; resume consults those fields."
+                },
+                {
+                  "command": "read test_events.py:40-185",
+                  "output": "Supported tests drive accept_findings/write_report directly outside WorkflowRunner."
+                }
+              ]
+            }
+          },
+          {
+            "file": "PRD.md",
+            "line": 215,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.",
+            "why": "The load-bearing resume source remains contradictory, violating AC1 documentation correctness.",
+            "refute": {
+              "agent_id": "RefuteBPrd",
+              "source": "review2",
+              "finding": "PRD.md:215 The PRD still says resume from the last completed event/receipt while the installed skill now makes events observational and state authoritative. Align the canonical documentation.",
+              "verdict": "survives",
+              "rationale": "PRD.md makes a completed event part of the restart point, while the installed skill makes events optional observational history and resumes from authoritative state; a successful phase with failed event append is visible under the skill but absent from the PRD's stated basis.",
+              "evidence": [
+                {
+                  "command": "read PRD.md:209-216",
+                  "output": "PRD says resume from the last completed event and receipt."
+                },
+                {
+                  "command": "read skills/anomaly/SKILL.md:39-60",
+                  "output": "Skill makes state authoritative, receipts binding, and events best-effort observational history."
+                },
+                {
+                  "command": "read task.md:9-10",
+                  "output": "Locked contract requires one state authority and event failure must not hide a successful transition."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_skill.py",
+            "line": 139,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The installed-wiring test only searches SKILL.md text while the demo supplies a private handler map. Replace it with a public-entry behavioral contract using the production-owned composition.",
+            "why": "The source-text assertion stays green while production dispatch is absent, under-testing AC6.",
+            "refute": {
+              "agent_id": "RefuteBSkillTest",
+              "source": "review2",
+              "finding": "tests/test_skill.py:139 The installed-wiring test only searches SKILL.md text while the demo supplies a private handler map. Replace it with a public-entry behavioral contract using the production-owned composition.",
+              "verdict": "survives",
+              "rationale": "No consumer-observable installed-wiring test exists: the skill test inspects prose, the end-to-end test injects a private map, and no-handler run_workflow can complete without producing plan/report artifacts.",
+              "evidence": [
+                {
+                  "command": "focused skill/demo tests",
+                  "output": "Both pass but do not exercise production-owned composition."
+                },
+                {
+                  "command": "caller search",
+                  "output": "Only pipeline_walk invokes run_workflow, always with test-owned handlers."
+                },
+                {
+                  "command": "no-handler experiment",
+                  "output": "run_workflow reported complete P7 with no report or plan."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git diff and caller inspection",
+            "output": "Only workflow.py and SKILL.md changed in production; run_workflow callers are tests only; Gate A/B and report still write state."
+          },
+          {
+            "command": "cook verify --task 25",
+            "output": "711 passed at the checkpoint; green suite does not resolve the design and test-contract defects."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "na",
+        "audit_agent_id": null,
+        "evidence": [],
+        "findings": []
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewAnomalyCorrectness",
+        "reviewer2_agent_id": "ReviewAnomalyMaintainability",
+        "audit_agent_id": null
+      }
+    }
+  ]
 }

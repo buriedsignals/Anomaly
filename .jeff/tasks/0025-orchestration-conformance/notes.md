@@ -1,37 +1,56 @@
 # Notes
 
-## Plan decision
+## Recovery plan decision
 
 - Complexity: `complex`.
-- Audit required: `false`. The selected work changes orchestration ownership and documentation only; it does not change detector execution, path containment, DuckDB isolation, credentials, acquisition networking, or another trust boundary. If implementation crosses one of those boundaries, audit becomes required.
-- Selected authority: wire the existing `anomaly.workflow.WorkflowRunner`/`run_workflow` path into the installed skill rather than add receipt-derived state or another runtime layer. `state.json` is the resumable phase/attempt/fingerprint authority; validated receipts bind artifacts and approvals; `events.jsonl` is best-effort observational history; `.anomaly/attempts/` retains relative per-attempt evidence.
-- Canonical order: P5 drafts claims, then P6 replays calculations and obtains the independent review, then Gate B promotion occurs. This preserves PRD phase numbering, replay-before-promotion, and reviewer separation with fewer changes than renumbering phases.
-- Refactor opportunity: harmonize Gate A/Gate B and decorated API transition writes under `WorkflowRunner`, deleting duplicate direct phase/state ownership from `approve_detector_plan`, `accept_findings`, and phase-event callers once every installed call is routed through `run_workflow`.
-- Decomposition: keep this as one independently shippable task. Durable authority, retries, invalidation, P5/P6 alignment, and the demo are coupled by the same end-to-end proof; no shared conformance package or second task is warranted.
+- Audit required: `true`. The recovery routes caller-supplied journalist and independent-review identities through the installed dispatcher and changes the fail-closed behavior of both editorial approval boundaries. The audit is limited to identity validation, gate bypass, path portability, and credential-safe failure persistence; detector execution and the other existing trust boundaries remain unchanged.
+- Selected authority: retain `anomaly.workflow.WorkflowRunner` as the only owner of `.anomaly/state.json` phase, status, attempts, completion, invalidation, pause, and retry fields. Validated domain artifacts and Gate A/Gate B receipts remain owned by their APIs. `.anomaly/events.jsonl` remains best-effort observational history, and `.anomaly/attempts/` remains relative per-attempt evidence.
+- Public contract: `anomaly.workflow.run_workflow(root, *, inputs=None)` owns a production-built, complete P0–P7 handler composition. The public dispatcher no longer accepts caller-built phase mappings. It validates the complete production composition before executing and never substitutes a no-op for a missing handler.
+- Pause contract: absent sources or human input returns durable `status: paused` with `awaiting_input` set to `sources`, `gate_a`, `review`, or `gate_b`; a pause is neither phase completion nor a failed attempt. A later call supplies only the awaited input and resumes the same authoritative state. Source registration metadata, Gate A approved IDs/identity, independent reviewer/verdict/attestation, and Gate B accepted IDs/journalist identity are explicit caller inputs; no production identity is hard-coded.
+- Canonical order: P5 drafts claims, P6 replays and records independent review, Gate B validates journalist acceptance, and P7 writes the report/charts. The checked-in demo retains that exact order.
+- Refactor opportunity: delete the public dispatcher's caller-injected/no-op handler fallback and delete direct `.anomaly/state.json` writes from `approve_detector_plan`, `accept_findings`, and `write_report`, harmonizing all phase/status/attempt ownership under `WorkflowRunner`.
+- Decomposition: the dispatcher cutover, API ownership deletion, pause/resume inputs, invalidation proof, and documentation alignment are one coupled recovery slice set. Splitting them would temporarily preserve either a fail-open entry or competing state writers, so no independently shippable split is proposed.
 
 ## Ordered slices
 
-1. Make the existing runner the installed dispatcher authority: route the documented phase handlers through `anomaly.workflow.run_workflow`, make event appends non-authoritative/best-effort, persist structured failure records with relative attempt paths, and remove competing phase/state writes.
-2. Persist and reconcile validated artifact/receipt identities at phase completion so a fresh `WorkflowRunner` invalidates from P1 source, P2 prepared generation, P3 parameters/Gate A, P4 detector identity, P5 draft, or P6 replay/review/Gate B.
-3. Harmonize `PRD.md`, `skills/anomaly/SKILL.md`, decorators, and tests on P5 draft → P6 replay/review → Gate B; retain independent reviewer and human approval rules.
-4. Use `tests/fixtures/orchestration_demo.csv` through the installed runner for create-to-charts, prove a second session performs no completed work, and prove every mutation seam deterministically.
+1. Keep the revised proof contract: Gate A, Gate B, and report APIs must produce their artifacts/receipts while leaving workflow state byte-for-byte unchanged; the public dispatcher must not complete without required inputs.
+2. Replace `run_workflow`'s optional caller mapping with a production-owned exact P0–P7 composition over the existing case/acquire/prepare/profile/recommend/detect/review/report APIs. Validate the composition before starting and fail closed if any required handler is absent or non-callable; retain handler injection only on `WorkflowRunner` for isolated runner tests.
+3. Add runner-owned durable pause/resume handling and consume explicit `inputs` for sources, Gate A, independent review, and Gate B. Pauses must not consume the three failure attempts; actual phase failures still persist exactly three credential-redacted failure records and relative attempt paths before becoming unavailable/blocked.
+4. Remove phase/status writes from `approve_detector_plan`, `accept_findings`, and `write_report`; after each domain call succeeds, let `WorkflowRunner` alone commit completion, identities, phase, status, and attempts. Preserve the APIs' existing artifact validation and receipt ownership.
+5. Retain the existing identity invalidation implementation where the strengthened matrix passes it; otherwise repair only the earliest-phase mapping/deletion needed so every downstream `completed` entry is removed and resume executes exactly the expected suffix.
+6. Align `PRD.md` and `skills/anomaly/SKILL.md` with state plus validated identities as resume authority, receipts as artifact/approval evidence, and events as observational only. Document the production dispatcher and explicit pauses without a caller-built handler table, preserving P5 → P6 → Gate B.
 
 ## Acceptance-criterion dispositions
 
-1. **One documented entry and non-conflicting stores — `revise`.** Consumer behavior: invoking the installed Anomaly skill routes all phase work through `anomaly.workflow.run_workflow`; a reopened case reports the same phase and status from `state.json`. Seam: `test_skill_local_invocation_wires_the_durable_runner_and_returns_a_portable_case` plus the demo's fresh-runner equality assertion. Receipts remain artifact/approval validators, events remain observational, and attempt directories remain audit evidence.
-2. **Mutation survives event failure — `write`.** Consumer behavior: a successfully registered source is complete and is not repeated after `events.jsonl` becomes unavailable. Seam: `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
-3. **Exactly three durable attempts — `write`.** Consumer behavior: the installed runner returns `blocked` or `unavailable` after attempt 3 and exposes three structured, portable failure/attempt records. Seam: `test_installed_runner_persists_three_failed_attempts_and_blocks`.
-4. **Earliest downstream invalidation — `write`.** Consumer behavior: a fresh session marks the case active and removes completion beginning at P1/P2/P3/P4/P5/P6 according to the changed source, prepared generation, parameters/approval, detector identity, draft, or replay/review/approval artifact. Seam: the parameterized `test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase`.
-5. **One P5/P6 order — `revise`.** Consumer behavior: installed instructions and emitted API events show draft before replay, while accept remains after replay and independent review. Seams: `test_skill_local_invocation_wires_the_durable_runner_and_returns_a_portable_case`, `test_case_walk_appends_phase_events_for_every_mainline_call`, and the demo event-order assertions. `PRD.md` is reused because it already defines P5 draft then P6 replay/review.
-6. **Checked-in complete demo and deterministic resume — `revise`.** Consumer behavior: the checked-in CSV completes create through charts and a new runner performs no completed handler again. Seam: `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`.
-7. **Existing deterministic contracts and portable paths — `reuse`.** Consumer behavior: the product-owned APIs and detector execution remain unchanged, while attempt paths asserted by the new test remain relative. Seam: the targeted demo uses the existing real modules and checked-in built-in detector path; no new detector/source/report contract test is owed.
+1. **One documented entry and non-conflicting stores — `revise`.** Consumer behavior: `run_workflow` uses its installed complete composition, pauses on missing input instead of completing, and is the only phase/status/attempt writer; Gate/report APIs leave state unchanged. Deterministic seams: `test_public_dispatcher_fails_closed_without_required_inputs`, `test_approval_records_gate_a_artifacts_without_mutating_workflow_state`, `test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state`, and the report state assertion in `test_report_preserves_unresolved_work_and_contains_only_accepted_findings`.
+2. **Mutation survives event failure — `reuse`.** Consumer behavior: a successful artifact plus runner transition remains resumable when event append is unavailable. Deterministic seam: existing `test_successful_mutation_remains_resumable_when_event_store_is_unavailable`.
+3. **Exactly three durable attempts on the installed path — `revise`.** Consumer behavior: invalid P1 registration through public `run_workflow` produces exactly three structured relative failure paths and ends unavailable/blocked. Deterministic seam: revised `test_installed_runner_persists_three_failed_attempts_and_blocks`.
+4. **Earliest complete downstream invalidation — `revise`.** Consumer behavior: each of the nine source/artifact/approval mutations removes every completion from the expected phase onward, and resume executes exactly that suffix once. Deterministic seam: strengthened parameterized `test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase`.
+5. **One P5/P6 order — `revise`.** Consumer behavior: the public demo observes draft before replay, replay before independent review, and review before Gate B acceptance. Deterministic seam: API-event order in `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`; canonical PRD/SKILL prose is revised in the implementation slice rather than asserted as source text.
+6. **Checked-in complete demo and deterministic resume — `revise`.** Consumer behavior: the checked-in CSV drives the public dispatcher through explicit Gate A, review, and Gate B pauses to report/charts; a fresh no-input call repeats no completed work. Deterministic seam: revised `test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work`.
+7. **Existing deterministic contracts and portable paths — `reuse`.** Consumer behavior: existing case, detector, artifact, and receipt APIs retain their formats; structured attempt paths remain relative. Deterministic seams: the checked-in demo plus the relative-path assertions in the installed retry test.
+
+## Test changes
+
+- `tests/test_pipeline_walk.py` — public fail-closed dispatch, staged public pause/resume demo, installed retry behavior, and full downstream deletion/exact-suffix rerun.
+- `tests/test_recommend.py` — Gate A artifact/receipt ownership with unchanged workflow state.
+- `tests/test_review.py` — Gate B and report artifact ownership with unchanged workflow state.
+- `tests/test_skill.py` — deleted the source-text-only handler wiring/order assertion; public behavior now owns that proof.
+- `tests/fixtures/orchestration_demo.csv` — reused unchanged.
 
 ## Decisive RED
 
-- Command: `uv run pytest tests/test_pipeline_walk.py tests/test_skill.py tests/test_events.py -q`
-- Result: `12 failed, 14 passed in 1.17s` (command exit 1).
-- Missing-contract evidence: event-store failure raises `IsADirectoryError` before the successful phase can commit; failure history contains strings rather than structured attempt/path records; all nine source/artifact/approval mutations reopen as `complete` rather than invalidating; the installed skill does not name `anomaly.workflow.run_workflow`.
+- Command: `uv run pytest tests/test_pipeline_walk.py tests/test_recommend.py::test_approval_records_gate_a_artifacts_without_mutating_workflow_state tests/test_review.py::test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state tests/test_review.py::test_report_preserves_unresolved_work_and_contains_only_accepted_findings tests/test_skill.py -q`
+- Result: `6 failed, 18 passed in 1.66s` (exit 1).
+- Missing production behavior: no-input `run_workflow` falsely returns `complete`; `run_workflow(..., inputs=...)` is absent; the installed retry contract cannot enter production composition.
+- Competing production behavior: Gate A changes P0 to P4/Gate A, Gate B changes P0 to P7/Gate B, and `write_report` changes active to complete. Each failure occurs after its fixture successfully produces the expected plan, receipt, findings, or report artifact.
+
+## Skill inputs
+
+- `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/code-standards/SKILL.md`
+- `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/testing/SKILL.md`
+- No matching Python-specific bundled skill is present in the supplied skill inventory.
 
 ## Existing ledger condition
 
-Task 20 is pre-existing invalid ledger state: it is recorded `done` with a non-green gate, and its journal records the absent external GAIN fixture baseline. It was not edited, repaired, or pruned. `cook validate` therefore remains independently red outside task 25.
+Task 20 remains pre-existing invalid ledger state and is outside task 25's edit scope.

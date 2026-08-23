@@ -377,18 +377,11 @@ def approve_detector_plan(
         "approved_by": approved_by,
         "approved_at": now.isoformat(),
     }
-    state = _read_json(root, ".anomaly/state.json")
-    if not isinstance(state, dict):
-        raise RecommendationError("invalid case state")
-    state = dict(state)
-    state["phase"] = "P4"
-    state["gate"] = "A"
     _write_bundle(
         root,
         {
             "detectors/plan.json": plan,
             ".anomaly/receipts/gate-a.json": receipt,
-            ".anomaly/state.json": state,
         },
     )
     return plan

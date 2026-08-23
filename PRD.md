@@ -206,14 +206,23 @@ claim complete replay when required data is missing.
 
 This hidden directory contains runtime bookkeeping, not editorial content:
 
-- `state.json` — current phase and status.
-- `events.jsonl` — append-only phase, gate, retry, and failure log.
-- `receipts/` — source, detector, replay, review, and user-approval receipts.
-- `attempts/` — incomplete or superseded phase outputs retained for audit.
+- `state.json` — authoritative current phase, status, completed phases, attempts,
+  pauses, and validated artifact identities.
+- `events.jsonl` — best-effort observational phase, gate, retry, and failure
+  history; it is never resume authority.
+- `receipts/` — hash-bound evidence for sources, detector execution, replay,
+  review, and user approvals; receipt presence alone never advances a phase.
+- `attempts/` — relative paths to incomplete, failed, or superseded phase
+  evidence retained for audit.
 
-A phase writes to an attempt directory first and moves accepted outputs into the
-appropriate parent directory only after validation. On restart, the workflow
-resumes from the last completed event and receipt.
+`anomaly.workflow.run_workflow` owns the exact P0–P7 composition and is the only
+writer of durable phase, status, attempt, invalidation, pause, and completion
+state. Gate A, Gate B, and report APIs write their validated artifacts and
+receipts only. On restart, the runner resumes after the last completed phase in
+state, after validating the recorded artifact and receipt identities. A failed
+best-effort event append cannot hide a committed artifact or state transition.
+Pauses for source registration, Gate A, independent review, and Gate B do not
+consume a failure attempt.
 
 ## 4. Linear workflow
 

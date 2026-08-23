@@ -31,22 +31,47 @@ NOW = datetime(2026, 8, 22, 12, 0, tzinfo=timezone.utc)
 DEMO_CSV = Path(__file__).parent / "fixtures" / "orchestration_demo.csv"
 
 
-def _review(root: Path) -> dict[str, Any]:
+def _review_input(root: Path) -> dict[str, Any]:
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     claim_ids = [claim["claim_id"] for claim in draft["claims"]]
     assert claim_ids
     reviewer = "reviewer-007"
-    return record_review(
-        root,
-        reviewer,
-        {claim_ids[0]: {"verdict": "accepted", "notes": "replay and wording hold"}},
-        independent_attestation={
+    return {
+        "reviewer_id": reviewer,
+        "verdicts": {
+            claim_ids[0]: {
+                "verdict": "accepted",
+                "notes": "replay and wording hold",
+            }
+        },
+        "independent_attestation": {
             "isolated": True,
             "attested_by": reviewer,
             "draft_hash": _hash_json(draft),
             "statement": "Inspected draft, replay, provenance, and previews.",
         },
-    )
+    }
+
+
+def _review(root: Path) -> dict[str, Any]:
+    return record_review(root, **_review_input(root))
+
+
+def _source_inputs(source: Path = DEMO_CSV) -> dict[str, Any]:
+    return {
+        "now": NOW,
+        "sources": [
+            {
+                "path": source,
+                "source_id": "payments",
+                "license": "internal",
+                "sensitivity": "restricted",
+                "redistribution": "no",
+                "reacquisition": "Copy from the locked newsroom drive.",
+                "included": True,
+            }
+        ],
+    }
 
 
 def _phase_handlers(source: Path = DEMO_CSV) -> dict[str, Callable[..., Any]]:
@@ -103,6 +128,20 @@ def _phase_handlers(source: Path = DEMO_CSV) -> dict[str, Callable[..., Any]]:
     }
 
 
+def _completed_demo_with_test_handlers(parent: Path) -> Path:
+    root = parent / "case"
+    create_case(
+        root,
+        title="Payments review",
+        question="Which payments need review?",
+        case_id="case-walk",
+        now=NOW,
+    )
+    state = WorkflowRunner(root, handlers=_phase_handlers()).run()
+    assert state["status"] == "complete"
+    return root
+
+
 def _completed_demo(parent: Path) -> Path:
     root = parent / "case"
     create_case(
@@ -112,7 +151,43 @@ def _completed_demo(parent: Path) -> Path:
         case_id="case-walk",
         now=NOW,
     )
-    state = run_workflow(root, handlers=_phase_handlers())
+
+    gate_a_pause = run_workflow(root, inputs=_source_inputs())
+    assert gate_a_pause["status"] == "paused"
+    assert gate_a_pause["awaiting_input"] == "gate_a"
+    assert gate_a_pause["last_completed_phase"] == "P2"
+    plan = json.loads((root / "detectors" / "plan.json").read_text(encoding="utf-8"))
+
+    review_pause = run_workflow(
+        root,
+        inputs={
+            "now": NOW,
+            "gate_a": {
+                "approved_ids": plan["recommended"],
+                "approved_by": "journalist-42",
+            },
+        },
+    )
+    assert review_pause["status"] == "paused"
+    assert review_pause["awaiting_input"] == "review"
+    assert review_pause["last_completed_phase"] == "P5"
+
+    gate_b_pause = run_workflow(root, inputs={"review": _review_input(root)})
+    assert gate_b_pause["status"] == "paused"
+    assert gate_b_pause["awaiting_input"] == "gate_b"
+    assert gate_b_pause["last_completed_phase"] == "P6"
+    draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
+    accepted_claim_ids = [draft["claims"][0]["claim_id"]]
+
+    state = run_workflow(
+        root,
+        inputs={
+            "gate_b": {
+                "accepted_claim_ids": accepted_claim_ids,
+                "journalist_id": "journalist-42",
+            }
+        },
+    )
     assert state["status"] == "complete"
     return root
 
@@ -161,6 +236,24 @@ MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
 )
 
 
+def test_public_dispatcher_fails_closed_without_required_inputs(tmp_path: Path) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Missing inputs",
+        question="Can incomplete wiring complete?",
+        case_id="case-missing-inputs",
+        now=NOW,
+    )
+
+    state = run_workflow(root)
+
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "sources"
+    assert state["last_completed_phase"] == "P0"
+    assert not (root / "findings" / "report.md").exists()
+
+
 def test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work(
     tmp_path: Path,
 ) -> None:
@@ -170,10 +263,7 @@ def test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work(
     assert (root / "findings" / "report.md").is_file()
     assert (root / ".anomaly" / "receipts" / "charts.json").is_file()
 
-    def repeated(_root: Path) -> None:
-        raise AssertionError("completed phase repeated on fresh-session resume")
-
-    resumed = run_workflow(root, handlers={phase: repeated for phase in PHASES})
+    resumed = run_workflow(root)
     assert resumed == first_state
 
     api_events = [
@@ -183,6 +273,8 @@ def test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work(
     ]
     names = [event["event"] for event in api_events]
     assert names.index("draft_findings") < names.index("replay_signals")
+    assert names.index("replay_signals") < names.index("record_review")
+    assert names.index("record_review") < names.index("accept_findings")
     assert names.index("replay_signals") < names.index("accept_findings")
 
 
@@ -229,25 +321,11 @@ def test_installed_runner_persists_three_failed_attempts_and_blocks(
         now=NOW,
     )
 
-    def invalid_registration(case_root: Path) -> None:
-        register_local_source(
-            case_root,
-            DEMO_CSV,
-            source_id="../unsafe",
-            now=NOW,
-            license="internal",
-            sensitivity="restricted",
-            redistribution="no",
-            reacquisition="Copy from the locked newsroom drive.",
-            included=True,
-        )
+    inputs = _source_inputs()
+    inputs["sources"][0]["source_id"] = "../unsafe"
 
-    runner = WorkflowRunner(root)
-    runner.run_phase("P0")
-    result = runner.run_phase("P1", invalid_registration)
-    state = runner.load_state()
+    state = run_workflow(root, inputs=inputs)
 
-    assert result.status in {"blocked", "unavailable"}
     assert state["status"] in {"blocked", "unavailable"}
     assert state["attempts"]["P1"] == 3
     failures = state["failures"]["P1"]
@@ -266,13 +344,31 @@ def test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_ph
     expected_phase: str,
     mutate: Callable[[Path], None],
 ) -> None:
-    baseline = _completed_demo(tmp_path / "baseline")
+    baseline = _completed_demo_with_test_handlers(tmp_path / "baseline")
     root = tmp_path / change.replace(" ", "-")
     shutil.copytree(baseline, root)
     mutate(root)
+    rerun: list[str] = []
 
-    state = WorkflowRunner(root).load_state()
+    def record(phase: str) -> Callable[[], None]:
+        def handler() -> None:
+            rerun.append(phase)
+
+        return handler
+
+    runner = WorkflowRunner(root, handlers={phase: record(phase) for phase in PHASES})
+    state = runner.load_state()
+    start = PHASES.index(expected_phase)
+    expected_prefix = list(PHASES[:start])
+    expected_suffix = list(PHASES[start:])
 
     assert state["status"] == "active"
     assert state["invalidated_from"] == expected_phase
-    assert expected_phase not in state["completed"]
+    assert list(state["completed"]) == expected_prefix
+    assert all(phase not in state["completed"] for phase in expected_suffix)
+
+    resumed = runner.run()
+
+    assert rerun == expected_suffix
+    assert list(resumed["completed"]) == list(PHASES)
+    assert resumed["status"] == "complete"

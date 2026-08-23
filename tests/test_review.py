@@ -301,10 +301,12 @@ def test_legacy_shaped_run_requires_attestation_instead_of_silent_independence(
     assert not (root / "findings" / "findings.json").exists()
 
 
-def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: Path) -> None:
+def test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state(
+    tmp_path: Path,
+) -> None:
     root = _seed_case(tmp_path)
     draft_findings(root)
-    before = (root / "findings" / "draft.json").read_bytes()
+    draft_before = (root / "findings" / "draft.json").read_bytes()
     record_review(
         root,
         reviewer_id="reviewer-007",
@@ -314,13 +316,15 @@ def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: P
         },
         independent_attestation=_attestation(root, "reviewer-007"),
     )
+    state_before = _json(root / ".anomaly" / "state.json")
 
     accept_findings(root, ["claim-accepted", "claim-rejected", "claim-unreviewed"])
 
-    assert (root / "findings" / "draft.json").read_bytes() == before
+    assert (root / "findings" / "draft.json").read_bytes() == draft_before
     assert [claim["claim_id"] for claim in _claims(root)] == ["claim-accepted"]
     gate_b = _json(root / ".anomaly" / "receipts" / "gate-b.json")
     assert gate_b["accepted_claim_ids"] == ["claim-accepted"]
+    assert _json(root / ".anomaly" / "state.json") == state_before
 
 
 @pytest.mark.parametrize("replay_hash", [None, "sha256:" + ("f" * 64)])
@@ -404,7 +408,9 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
         independent_attestation=_attestation(root, "reviewer-007"),
     )
     accept_findings(root, ["claim-accepted"])
+    state_before_report = _json(root / ".anomaly" / "state.json")
     write_report(root)
+    assert _json(root / ".anomaly" / "state.json") == state_before_report
 
     report = (root / "findings" / "report.md").read_text(encoding="utf-8")
     assert "Acme is 20% above its baseline." in report

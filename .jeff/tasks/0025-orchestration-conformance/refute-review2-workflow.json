@@ -1,0 +1,13 @@
+{
+  "stage":"refute",
+  "cycle":0,
+  "source":"review2",
+  "finding":"src/anomaly/workflow.py:406 run_workflow only forwards an optional caller mapping and missing phases become successful no-ops; install the existing API composition and reject incomplete phase wiring.",
+  "verdict":"survives",
+  "rationale":"The public dispatcher accepts omitted/partial mappings, turns absent phases into successful no-ops, and has no production composition or fail-closed guard.",
+  "evidence":[
+    {"command":"read workflow.py:267-417","output":"_handler_for returns lambda no-op for absent/non-callable handlers and run_workflow defaults phases to None before run()."},
+    {"command":"caller search","output":"Only tests call run_workflow with a test-local mapping; no production composition factory exists."},
+    {"command":"read installed skill/test","output":"Skill names the dispatcher in prose; test only checks source-text ordering and never invokes installed composition."}
+  ]
+}

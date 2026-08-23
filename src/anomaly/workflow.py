@@ -9,6 +9,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from anomaly.acquire import register_local_source
+from anomaly.case import resume_case
+from anomaly.detect import execute_detectors
+from anomaly.prepare import prepare_sources
+from anomaly.profile import profile_prepared
+from anomaly.recommend import approve_detector_plan, recommend_detectors
+from anomaly.report import generate_charts
+from anomaly.review import (
+    accept_findings,
+    draft_findings,
+    record_review,
+    replay_signals,
+    write_report,
+)
 from anomaly.semantics import redact_credentials
 
 PHASES: tuple[str, ...] = tuple(f"P{index}" for index in range(8))
@@ -25,6 +39,19 @@ _IDENTITY_PHASES: dict[str, str] = {
     "gate_b": "P6",
 }
 _NON_SOURCE_RECEIPTS = {"charts.json", "gate-a.json", "gate-b.json", "replay.json"}
+_PUBLIC_INPUTS = frozenset({"now", "sources", "gate_a", "review", "gate_b"})
+_SOURCE_INPUTS = frozenset(
+    {
+        "path",
+        "source_id",
+        "license",
+        "sensitivity",
+        "redistribution",
+        "reacquisition",
+        "included",
+        "reason",
+    }
+)
 
 
 class WorkflowError(RuntimeError):
@@ -210,6 +237,39 @@ class WorkflowRunner:
             return None
         return payload
 
+    def pause(self, awaiting_input: str, *, phase: str) -> dict[str, Any]:
+        if phase not in PHASES:
+            raise ValueError(f"unknown phase: {phase}")
+        if not isinstance(awaiting_input, str) or not awaiting_input:
+            raise ValueError("awaiting input is required")
+        state = self.load_state()
+        if (
+            state.get("status") == "paused"
+            and state.get("awaiting_input") == awaiting_input
+            and state.get("phase") == phase
+        ):
+            return state
+        state["phase"] = phase
+        state["status"] = "paused"
+        state["awaiting_input"] = awaiting_input
+        self._write_state(state)
+        self.append_event("workflow_paused", phase=phase, awaiting_input=awaiting_input)
+        return state
+
+    def continue_after_pause(self) -> dict[str, Any]:
+        state = self.load_state()
+        if state.get("status") != "paused" and "awaiting_input" not in state:
+            return state
+        awaiting_input = state.pop("awaiting_input", None)
+        state["status"] = "active"
+        self._write_state(state)
+        self.append_event(
+            "workflow_resumed",
+            phase=state.get("phase"),
+            supplied_input=awaiting_input,
+        )
+        return state
+
     # -- invalidation ----------------------------------------------------
 
     def invalidate(
@@ -261,8 +321,12 @@ class WorkflowRunner:
             if PHASES.index(phase) >= start_index:
                 identities.pop(name, None)
         state["identities"] = identities
-        for key in ("blocked", "blocked_reason"):
+        for key in ("awaiting_input", "blocked", "blocked_reason"):
             state.pop(key, None)
+        if start_index <= PHASES.index("P3"):
+            state.pop("gate", None)
+        elif start_index <= PHASES.index("P6") and state.get("gate") == "B":
+            state["gate"] = "A"
         self._write_state(state)
         self.append_event(
             "invalidation",
@@ -387,6 +451,10 @@ class WorkflowRunner:
             }
             state["attempts"] = attempts
             state["status"] = "complete" if phase == "P7" else "active"
+            if phase == "P3":
+                state["gate"] = "A"
+            elif phase == "P7":
+                state["gate"] = "B"
             if state.get("invalidated_from") == phase:
                 state.pop("invalidated_from", None)
             _capture_identities(self.root, state, phase)
@@ -413,8 +481,30 @@ class WorkflowRunner:
         return callback if callable(callback) else (lambda: None)
 
 
-def run_workflow(root: Path, phases: Mapping[str, PhaseHandler] | Sequence[PhaseHandler] | None = None, **kwargs: Any) -> dict[str, Any]:
-    return WorkflowRunner(root, phases, **kwargs).run()
+def run_workflow(
+    root: Path,
+    *,
+    inputs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run the installed P0-P7 composition, pausing for explicit human input."""
+    supplied = _public_inputs(inputs)
+    runner = WorkflowRunner(root, handlers=_production_handlers(supplied))
+    while True:
+        state = runner.load_state()
+        if state.get("status") in {"unavailable", "blocked"}:
+            return state
+        if _completed_phase(state) == "P7":
+            return state
+        phase = _next_phase(state)
+        if phase == "P3":
+            _ensure_recommendation(runner.root, supplied)
+        awaiting_input = _awaiting_input(runner.root, phase, supplied)
+        if awaiting_input is not None:
+            return runner.pause(awaiting_input, phase=phase)
+        runner.continue_after_pause()
+        result = runner.run_phase(phase, context=supplied)
+        if result.status != "completed":
+            return runner.load_state()
 
 
 Workflow = WorkflowRunner
@@ -451,6 +541,244 @@ def _next_phase(state: Mapping[str, Any]) -> str:
     ):
         return completed
     return PHASES[index + 1] if index < len(PHASES) - 1 else "P7"
+
+
+def _public_inputs(value: Mapping[str, Any] | None) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError("workflow inputs must be a mapping")
+    supplied = dict(value)
+    if any(not isinstance(key, str) for key in supplied):
+        raise ValueError("workflow input names must be strings")
+    unknown = sorted(set(supplied) - _PUBLIC_INPUTS)
+    if unknown:
+        raise ValueError(f"unknown workflow inputs: {', '.join(unknown)}")
+    return supplied
+
+
+def _awaiting_input(root: Path, phase: str, inputs: Mapping[str, Any]) -> str | None:
+    if phase == "P1" and "sources" not in inputs and not _has_registered_sources(root):
+        return "sources"
+    if phase == "P3" and "gate_a" not in inputs:
+        return "gate_a"
+    if phase == "P6" and "review" not in inputs:
+        return "review"
+    if phase == "P7" and "gate_b" not in inputs:
+        return "gate_b"
+    return None
+
+
+def _production_handlers(inputs: Mapping[str, Any]) -> dict[str, PhaseHandler]:
+    def register_sources(root: Path) -> list[dict[str, Any]]:
+        if "sources" not in inputs:
+            return _registered_sources(root)
+        now = _input_time(inputs)
+        registered: list[dict[str, Any]] = []
+        for request in _source_requests(inputs["sources"]):
+            registered.append(
+                register_local_source(
+                    root,
+                    request["path"],
+                    source_id=request["source_id"],
+                    now=now,
+                    license=request["license"],
+                    sensitivity=request["sensitivity"],
+                    redistribution=request["redistribution"],
+                    reacquisition=request["reacquisition"],
+                    included=request["included"],
+                    reason=request.get("reason"),
+                )
+            )
+        return registered
+
+    def prepare_and_profile(root: Path) -> dict[str, Any]:
+        now = _input_time(inputs)
+        prepared = prepare_sources(root, now=now)
+        profile = profile_prepared(root, now=now)
+        return {"prepared": prepared, "profile": profile}
+
+    def approve_gate_a(root: Path) -> dict[str, Any]:
+        gate = _mapping_input(inputs, "gate_a", {"approved_ids", "approved_by"})
+        return approve_detector_plan(
+            root,
+            gate["approved_ids"],
+            approved_by=gate["approved_by"],
+            now=_input_time(inputs),
+        )
+
+    def run_detectors(root: Path) -> list[dict[str, Any]]:
+        plan = _read_case_json(root, "detectors/plan.json")
+        approved = plan.get("approved") if isinstance(plan, dict) else None
+        if not isinstance(approved, list) or not approved:
+            raise WorkflowError("Gate A must approve at least one detector")
+        return execute_detectors(root, approved, now=_input_time(inputs))
+
+    def replay_and_review(root: Path) -> dict[str, Any]:
+        review_input = _mapping_input(
+            inputs,
+            "review",
+            {
+                "reviewer_id",
+                "verdicts",
+                "independent_attestation",
+                "unavailable_inputs",
+                "replay_gaps",
+                "unresolved_questions",
+                "alternatives",
+                "reviewer_context",
+            },
+        )
+        reviewer_id = _required_identity(review_input.get("reviewer_id"), "reviewer_id")
+        gate_a_approver = _artifact_identity_field(
+            root,
+            ".anomaly/receipts/gate-a.json",
+            "approved_by",
+        )
+        if _same_identity(reviewer_id, gate_a_approver):
+            raise WorkflowError("independent reviewer must differ from the Gate A journalist")
+        replay = replay_signals(root)
+        if replay.get("status") != "replayed":
+            raise WorkflowError(str(replay.get("reason") or "replay is unavailable"))
+        review = record_review(root, **review_input)
+        if review.get("status") != "recorded" or review.get("independent") is not True:
+            raise WorkflowError("independent review is unavailable")
+        return {"replay": replay, "review": review}
+
+    def close_gate_b_and_report(root: Path) -> dict[str, Any]:
+        gate = _mapping_input(
+            inputs,
+            "gate_b",
+            {"accepted_claim_ids", "journalist_id"},
+        )
+        journalist_id = _required_identity(gate.get("journalist_id"), "journalist_id")
+        reviewer_id = _artifact_identity_field(
+            root,
+            "findings/review.json",
+            "reviewer_id",
+        )
+        if _same_identity(journalist_id, reviewer_id):
+            raise WorkflowError("Gate B journalist must differ from the independent reviewer")
+        findings = accept_findings(
+            root,
+            gate["accepted_claim_ids"],
+            journalist_id=journalist_id,
+        )
+        report = write_report(root)
+        charts = generate_charts(root)
+        return {"findings": findings, "report": report, "charts": charts}
+
+    handlers: dict[str, PhaseHandler] = {
+        "P0": resume_case,
+        "P1": register_sources,
+        "P2": prepare_and_profile,
+        "P3": approve_gate_a,
+        "P4": run_detectors,
+        "P5": draft_findings,
+        "P6": replay_and_review,
+        "P7": close_gate_b_and_report,
+    }
+    if tuple(handlers) != PHASES or any(
+        not callable(handler) for handler in handlers.values()
+    ):
+        raise WorkflowError(
+            "production workflow wiring must define exact P0-P7 handlers"
+        )
+    return handlers
+
+
+def _ensure_recommendation(root: Path, inputs: Mapping[str, Any]) -> None:
+    path = root / "detectors" / "plan.json"
+    try:
+        plan = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        plan = None
+    if (
+        isinstance(plan, dict)
+        and isinstance(plan.get("recommended"), list)
+        and plan["recommended"]
+    ):
+        return
+    recommend_detectors(root, now=_input_time(inputs))
+
+
+def _input_time(inputs: Mapping[str, Any]) -> datetime:
+    value = inputs.get("now")
+    if (
+        not isinstance(value, datetime)
+        or value.tzinfo is None
+        or value.utcoffset() is None
+    ):
+        raise ValueError("now must be an explicit timezone-aware datetime")
+    return value
+
+
+def _source_requests(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, (list, tuple)) or not value:
+        raise ValueError("sources must be a non-empty list")
+    requests: list[dict[str, Any]] = []
+    required = _SOURCE_INPUTS - {"reason"}
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise ValueError("each source input must be a mapping")
+        request = dict(item)
+        if set(request) - _SOURCE_INPUTS or not required.issubset(request):
+            raise ValueError("source input has missing or unknown fields")
+        requests.append(request)
+    return requests
+
+
+def _mapping_input(
+    inputs: Mapping[str, Any],
+    name: str,
+    allowed: set[str],
+) -> dict[str, Any]:
+    value = inputs.get(name)
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{name} input must be a mapping")
+    result = dict(value)
+    if set(result) - allowed:
+        raise ValueError(f"{name} input has unknown fields")
+    return result
+
+
+def _registered_sources(root: Path) -> list[dict[str, Any]]:
+    value = _read_case_json(root, "data/sources.json")
+    if not isinstance(value, list) or not value or any(not isinstance(item, dict) for item in value):
+        raise WorkflowError("at least one registered source is required")
+    return value
+
+
+def _has_registered_sources(root: Path) -> bool:
+    try:
+        value = json.loads((root / "data" / "sources.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return False
+    return isinstance(value, list) and bool(value) and all(isinstance(item, dict) for item in value)
+
+
+def _artifact_identity_field(root: Path, relative: str, field: str) -> str:
+    value = _read_case_json(root, relative)
+    if not isinstance(value, dict):
+        raise WorkflowError(f"invalid workflow artifact: {relative}")
+    return _required_identity(value.get(field), field)
+
+
+def _required_identity(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be a non-empty identity")
+    return value.strip()
+
+
+def _same_identity(left: str, right: str) -> bool:
+    return left.casefold() == right.casefold()
+
+
+def _read_case_json(root: Path, relative: str) -> Any:
+    try:
+        return json.loads((root / relative).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise WorkflowError(f"invalid or missing workflow artifact: {relative}") from error
 
 
 def load_state(root: Path) -> dict[str, Any]:

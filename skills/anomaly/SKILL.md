@@ -55,19 +55,24 @@ folders. Keep superseded attempts for audit.
 Use bounded retries: allow exactly **3 attempts per phase** (including the
 initial attempt). On failure persist the credential-redacted error, attempt
 number, and relative attempt path, then stop after attempt three with an
-explicit unavailable or blocked status; never loop indefinitely. On restart,
-resume from the last completed phase in state after validating its recorded
-artifact and receipt identities. A changed source, prepared generation,
-detector identity, parameter, draft, replay, review, or approval invalidates
-the earliest affected phase and all downstream progress.
+explicit unavailable or blocked status; never loop indefinitely. Required
+source registration, Gate A approval, independent reviewer attestation and
+verdicts, and Gate B decision produce durable `paused` state with
+`awaiting_input` and consume no failure attempt. On restart, resume from the
+last completed phase in state after validating its recorded artifact and
+receipt identities. A changed source, prepared generation, detector identity,
+parameter, draft, replay, review, or approval invalidates the earliest affected
+phase and every downstream completion.
 
 ## Dispatch table
 
-The installed dispatcher is `anomaly.workflow.run_workflow`. Build its linear
-handler mapping from the owning units below and invoke it with the resolved case
-root; the handlers produce and validate domain artifacts but never replace the
-runner's durable phase, retry, invalidation, or blocked-state authority. Pause
-at each human gate rather than bypassing it.
+The installed dispatcher is `anomaly.workflow.run_workflow`. It owns the exact
+production P0–P7 composition below; callers supply only the explicit `sources`,
+`gate_a`, `review`, and `gate_b` inputs (and required timestamps), never a
+handler map. The owning units produce and validate domain artifacts, Gate A,
+Gate B, and report APIs write artifacts and receipts only, and the runner alone
+commits durable phase, retry, invalidation, pause, completion, and blocked
+state. It pauses at each missing human input rather than bypassing it.
 
 | State / gate | Step | Owning unit |
 | --- | --- | --- |

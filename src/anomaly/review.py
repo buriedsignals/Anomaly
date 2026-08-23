@@ -473,9 +473,6 @@ def accept_findings(
         "accepted_at": _now(),
     }
     _write_json(root, ".anomaly/receipts/gate-b.json", receipt)
-    state = dict(state)
-    state.update({"phase": "P7", "gate": "B", "status": "active"})
-    _write_json(root, ".anomaly/state.json", state)
     return findings
 
 
@@ -658,11 +655,6 @@ def write_report(root: Path) -> dict[str, Any]:
     unresolved = unresolved_path.read_text(encoding="utf-8")
     _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
 
-    state = _read_json(_owned(root, ".anomaly/state.json"))
-    if isinstance(state, dict):
-        state = dict(state)
-        state.update({"phase": "P7", "gate": "B", "status": "complete"})
-        _write_json(root, ".anomaly/state.json", state)
     return {"status": "complete", "report": "findings/report.md", "findings": "findings/findings.json"}
 
 
