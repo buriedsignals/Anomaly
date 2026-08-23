@@ -4,6 +4,7 @@ import csv
 import hashlib
 import importlib
 import json
+import os
 import re
 from pathlib import Path
 
@@ -25,13 +26,21 @@ GAIN_MANIFEST = {
     "D12_committee_say_vs_pay": {"sql_hash": "274c4ef00515cd73", "rows": 161, "columns": ["lobbying_firm", "lobbied_client", "lobbyist", "former_role", "current_committee_members", "attack_press_releases", "committee_members_attacking", "income"], "csv_sha256": "508ee7a65bb3f1f535f8f190cdf4cbd88259b28e289ae8f44eade65c5df19352"},
 }
 
-SOURCE_ANOMALIES = Path("/private/tmp/gain-2026-work/case-trace/data-detective/anomalies")
 SOURCE_REPOSITORY = "https://github.com/buriedsignals/gain-2026"
+# Durable default: one clone serves every future run. Override with
+# GAIN_FIXTURE_ROOT when a different checkout should be replayed.
+SOURCE_ANOMALIES = Path(
+    os.environ.get(
+        "GAIN_FIXTURE_ROOT",
+        str(Path.home() / ".cache" / "buriedsignals" / "gain-2026" / "case-trace" / "data-detective" / "anomalies"),
+    )
+)
 
 
 # These tests replay the real GAIN-2026 case artifacts, which live outside the
-# repository at a machine-local path (sensitive source data, never committed).
-# Acquire: clone https://github.com/buriedsignals/gain-2026 and place case-trace/data-detective/anomalies at the path above.
+# repository (sensitive source data, never committed). Acquire once:
+#   git clone --depth 1 https://github.com/buriedsignals/gain-2026 \
+#     ~/.cache/buriedsignals/gain-2026
 # When the fixture root is absent, skip instead of failing: the suite stays
 # green on machines without the case and runs in full wherever it exists.
 pytestmark = [
