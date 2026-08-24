@@ -12,7 +12,7 @@
 - `src/anomaly/detect.py:679` — canonical lead assembly and stable `signal_id` derivation.
 - `src/anomaly/detect.py:717` — sanitized snapshot construction, canonical hash derivation, content-addressed immutable write, and schema-v2 provenance binding.
 - `src/anomaly/review.py:699` — strict redacted-lead validation.
-- `src/anomaly/review.py:714` — schema-v2 provenance detector-snapshot content-addressed path/hash validation through the shared pure reference predicate.
+- `src/anomaly/review.py:714` — strict replay validates and continues with the provenance-selected content-addressed snapshot; only non-strict legacy provenance resolves the detector-global snapshot name.
 - `src/anomaly/review.py:1030` — public replay allowlisting through `semantics.sanitize_public_value`.
 - `src/anomaly/semantics.py:107` — recursive credential text redaction.
 - `src/anomaly/semantics.py:116` — recursive sensitive-key removal and credential redaction for public values.
@@ -54,6 +54,7 @@
 
 - Targeted RED: `.venv/bin/python -m pytest tests/test_signal_search.py -q` — `10 failed, 21 passed in 0.84s`.
 - Targeted GREEN: `.venv/bin/python -m pytest tests/test_signal_search.py -q` — `31 passed in 0.87s`.
+- Targeted pipeline compatibility GREEN: `.venv/bin/python -m pytest tests/test_pipeline_walk.py -q` — `62 passed in 7.77s`.
 - Full suite configured by pytest: `.venv/bin/python -m pytest` (not run by plan station).
 
 ## Mechanical constraints

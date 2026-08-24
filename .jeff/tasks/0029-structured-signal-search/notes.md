@@ -70,4 +70,12 @@ The credential-shaped-source finding remains **non-blocking and refuted**. Dispo
 - Command: `.venv/bin/python -m pytest tests/test_signal_search.py -q`
 - Decisive result: `10 failed, 21 passed in 0.84s`.
 - Attribution: the failures reach the intended production seams: missing run-aware `signal_ref`; truncated overlapping `matched_on`; optional snapshot path/hash; raw `TypeError` for mixed malformed keys; mutable detector-global snapshot path; duplicate `signal_id` rejection across runs; projection A verification followed by projection B rows; and accepted post-validation input/output symlink swaps. The 21 passing cases prove fixture setup, all independent filters, all detector metadata lexical branches, explicit rebuild behavior, retrieval-only score baselines, pre-existing symlink rejection, collection, and imports are sound.
-- Full output: `artifact://186`.
+
+## Recovered checkpoint gate failure
+
+- Gate command: `uv run --extra test pytest tests/`
+- Result: `27 failed, 775 passed`.
+- Targeted search tests remained green: `31 passed`.
+- The failures cluster in `tests/test_pipeline_walk.py`: detector execution makes P5 unavailable, so Gate B and downstream workflow assertions cannot be reached; one containment recheck no longer raises.
+- Route: implementation. Preserve the revised search contract and repair the canonical detector snapshot/workflow compatibility. Tests remain unchanged.
+- Original targeted RED full output: `artifact://186`.

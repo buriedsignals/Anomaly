@@ -54,3 +54,8 @@
 {"seq":53,"at":"2026-08-24T17:37:35.774Z","event":"record","stage":"implement","agent":"ImplementSignalSearchRecovery"}
 {"seq":54,"at":"2026-08-24T17:37:46.544Z","event":"intent","stage":"refactor","note":"Harmonize snapshot validation after recovery"}
 {"seq":55,"at":"2026-08-24T17:43:35.579Z","event":"record","stage":"refactor","agent":"RefactorSignalSearchRecovery"}
+{"seq":56,"at":"2026-08-24T17:44:33.750Z","event":"gate","hash":"97514da610d41d7c0f08390cc489ae70d4c66d78","green":false,"clean":true}
+{"seq":57,"at":"2026-08-24T17:46:05.229Z","event":"intent","stage":"implement","note":"Repair recovered search compatibility with canonical pipeline"}
+{"seq":58,"at":"2026-08-24T17:52:26.512Z","event":"record","stage":"implement","agent":"ImplementSignalSearchGateRepair"}
+{"seq":59,"at":"2026-08-24T17:52:39.396Z","event":"intent","stage":"refactor","note":"Check gate repair for behavior-preserving simplification"}
+{"seq":60,"at":"2026-08-24T17:54:54.268Z","event":"record","stage":"refactor","agent":"RefactorSignalSearchGateRepair"}

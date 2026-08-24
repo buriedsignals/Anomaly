@@ -785,7 +785,6 @@ def _verify_provenance(
             or _hash_json(snapshot_payload) != snapshot_hash
         ):
             raise ReviewError("detector snapshot does not match provenance")
-        query_path = _detector_query_path(detector_id)
         current = _current_detector_identity(detector_id)
         if current is None:
             raise ReviewError("detector dependency is unavailable")
@@ -795,17 +794,18 @@ def _verify_provenance(
             raise ReviewError(
                 "detector implementation identity does not match provenance"
             )
-    elif source_list and any(item not in source_hashes.values() for item in source_list):
-        raise ReviewError("source provenance hash is not registered")
-    # Legacy provenance remains readable, but never weakens the live detector
-    # identity gate. Without a complete identity, replay is unavailable.
-    detector_id = provenance.get("detector_id")
-    if not isinstance(detector_id, str) or _DETECTOR_ID.fullmatch(detector_id) is None:
-        raise ReviewError("detector identity is unavailable")
-    snapshot = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
-    if not snapshot.is_file() or snapshot.is_symlink():
-        raise ReviewError("detector provenance snapshot is missing")
-    snapshot_payload = _read_json(snapshot)
+    else:
+        if source_list and any(item not in source_hashes.values() for item in source_list):
+            raise ReviewError("source provenance hash is not registered")
+        # Legacy provenance remains readable, but never weakens the live detector
+        # identity gate. Without a complete identity, replay is unavailable.
+        detector_id = provenance.get("detector_id")
+        if not isinstance(detector_id, str) or _DETECTOR_ID.fullmatch(detector_id) is None:
+            raise ReviewError("detector identity is unavailable")
+        snapshot_path = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
+        if not snapshot_path.is_file() or snapshot_path.is_symlink():
+            raise ReviewError("detector provenance snapshot is missing")
+        snapshot_payload = _read_json(snapshot_path)
     if (
         not isinstance(snapshot_payload, dict)
         or snapshot_payload.get("implementation_hash") != detector_hash

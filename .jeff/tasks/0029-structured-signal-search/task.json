@@ -10,9 +10,9 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T16:18:16Z",
-  "updatedAt": "2026-08-24T17:43:35Z",
+  "updatedAt": "2026-08-24T17:54:54Z",
   "agents": {
-    "implementer_agent_id": "ImplementSignalSearchRecovery",
+    "implementer_agent_id": "ImplementSignalSearchGateRepair",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
@@ -24,6 +24,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
       }
     ]
   },
@@ -192,38 +196,30 @@
     "refactorOpportunity": "Harmonize schema-v2 detector snapshot path/hash validation currently duplicated between strict replay and signal projection into one shared pure validator after corrected behavior is established, preserving public outputs and errors."
   },
   "implement": {
-    "agent_id": "ImplementSignalSearchRecovery",
+    "agent_id": "ImplementSignalSearchGateRepair",
     "result": "green",
     "files": [
-      "src/anomaly/_signal_projection.py",
-      "src/anomaly/detect.py",
-      "src/anomaly/review.py",
-      "src/anomaly/search.py"
+      "src/anomaly/review.py"
     ],
     "greenRun": {
-      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
-      "output": "...............................                                          [100%]\n31 passed in 0.87s"
+      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q\n.venv/bin/python -m pytest tests/test_pipeline_walk.py -q",
+      "output": "...............................                                          [100%]\n31 passed in 1.30s\n..............................................................           [100%]\n62 passed in 7.77s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorSignalSearchRecovery",
+    "agent_id": "RefactorSignalSearchGateRepair",
     "result": "refactored",
     "files": [
-      "src/anomaly/detectors/__init__.py",
-      "src/anomaly/_signal_projection.py",
       "src/anomaly/review.py"
     ],
-    "outsideDiff": [
-      "src/anomaly/detectors/__init__.py"
-    ],
+    "outsideDiff": [],
     "greenRun": {
-      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
-      "output": "...............................                                          [100%]\n31 passed in 1.20s"
+      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q\n.venv/bin/python -m pytest tests/test_pipeline_walk.py -q",
+      "output": "...............................                                          [100%]\n31 passed in 1.03s\n..............................................................           [100%]\n62 passed in 7.03s"
     },
     "summary": [
-      "Centralized detector snapshot path/hash/reference validation in one pure predicate shared by strict replay and signal projection.",
-      "Preserved strict replay's exact content-addressed path requirement and projection's existing normalized legacy-snapshot allowance, including each caller's existing error mapping.",
-      "Left TOCTOU protections, snapshot payload/hash and implementation checks, composite signal/run identity, public redaction, search behavior, and tests unchanged; updated the task context for the moved validation ownership."
+      "Collapsed strict-versus-legacy provenance handling into one explicit if/else, preserving the provenance-selected strict snapshot and legacy detector-global lookup.",
+      "Removed an unused strict-replay query-path allocation; no tests or unrelated files were edited."
     ]
   },
   "review2": null,
