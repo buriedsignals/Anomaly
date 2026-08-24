@@ -215,14 +215,17 @@ This hidden directory contains runtime bookkeeping, not editorial content:
 - `attempts/` — relative paths to incomplete, failed, or superseded phase
   evidence retained for audit.
 
-`anomaly.workflow.run_workflow` owns the exact P0–P7 composition and is the only
-writer of durable phase, status, attempt, invalidation, pause, and completion
-state. Gate A, Gate B, and report APIs write their validated artifacts and
-receipts only. On restart, the runner resumes after the last completed phase in
-state, after validating the recorded artifact and receipt identities. A failed
-best-effort event append cannot hide a committed artifact or state transition.
-Pauses for source registration, Gate A, independent review, and Gate B do not
-consume a failure attempt.
+`anomaly.workflow.run_workflow` is the only public dispatcher for the exact
+P0–P7 composition. It repeatedly resolves durable state without side effects,
+selects one fixed phase owner, invokes deterministic code or the installed P5
+skill/P6 reviewer, seals the result or stops at Gate A/Gate B, and resolves
+fresh state. Focused attempt utilities alone write durable phase, status,
+attempt, invalidation, pause, and completion state. Gate and report APIs write
+their validated artifacts and receipts only. On restart, resolution follows
+the canonical completed-phase map after validating recorded artifact and
+receipt identities. A failed best-effort event append cannot hide a committed
+artifact or state transition. Missing sources and Gate A/Gate B decisions pause
+without consuming an attempt.
 
 ## 4. Linear workflow
 

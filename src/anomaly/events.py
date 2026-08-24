@@ -1,9 +1,9 @@
 """Best-effort durable event logging for Anomaly's mainline API entry points.
 
 Every mainline call appends one phase event to ``.anomaly/events.jsonl`` so a
-fresh session can reconstruct what ran, exactly as ``WorkflowRunner`` records
-runner-driven phases (one JSON object per line, sorted keys, UTC timestamp,
-``phase`` field).  Logging is append-only and never raising: durable
+fresh session can reconstruct what ran, using the same JSON object shape as
+resolver-selected phase attempts (sorted keys, UTC timestamp, ``phase`` field).
+Logging is append-only and never raising: durable
 bookkeeping must not be able to break the API call it observes.
 """
 from __future__ import annotations

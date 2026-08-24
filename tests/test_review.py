@@ -450,6 +450,7 @@ def test_write_report_serializes_dataset_text_as_inert_markdown(
     assert "[click](https://example.invalid/pixel)" not in report
     assert "<img src=https://example.invalid/pixel>" not in report
     assert "\n## Forged heading" not in report
+    assert "https://example.invalid/pixel" not in report
 
 
 def test_credentials_never_persist_in_review_findings_or_report(tmp_path: Path) -> None:

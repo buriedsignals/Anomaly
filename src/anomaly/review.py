@@ -655,7 +655,12 @@ def write_report(root: Path) -> dict[str, Any]:
 def _markdown_text(value: Any) -> str:
     collapsed = " ".join(_redact_text(_text(value)).split())
     escaped = html.escape(collapsed, quote=False)
-    return re.sub(r"([\\`*_[\]{}()#+!|~-])", r"\\\1", escaped)
+    escaped = re.sub(r"([\\`*_[\]{}()#+!|~-])", r"\\\1", escaped)
+    return re.sub(
+        r"(?i)\bhttps?://",
+        lambda match: match.group().replace(":", r"\:"),
+        escaped,
+    )
 
 
 def _draft_signals(root: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:

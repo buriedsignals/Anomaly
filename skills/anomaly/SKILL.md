@@ -56,23 +56,24 @@ Use bounded retries: allow exactly **3 attempts per phase** (including the
 initial attempt). On failure persist the credential-redacted error, attempt
 number, and relative attempt path, then stop after attempt three with an
 explicit unavailable or blocked status; never loop indefinitely. Required
-source registration, Gate A approval, independent reviewer attestation and
-verdicts, and Gate B decision produce durable `paused` state with
-`awaiting_input` and consume no failure attempt. On restart, resume from the
-last completed phase in state after validating its recorded artifact and
-receipt identities. A changed source, prepared generation, detector identity,
-parameter, draft, replay, review, or approval invalidates the earliest affected
-phase and every downstream completion.
+source registration and Gate A/Gate B decisions produce durable `paused` state
+with `awaiting_input` and consume no failure attempt. P5 interpretation and P6
+independent review are dynamically loaded owners, not human-input pauses. On
+restart, resolve from the canonical completed-phase map after validating its
+recorded artifact and receipt identities. A changed source, prepared generation,
+detector identity, parameter, draft, replay, review, or approval invalidates the
+earliest affected phase and every downstream completion.
 
 ## Dispatch table
 
-The installed dispatcher is `anomaly.workflow.run_workflow`. It owns the exact
-production P0–P7 composition below; callers supply only the explicit `sources`,
-`gate_a`, `review`, and `gate_b` inputs (and required timestamps), never a
-handler map. The owning units produce and validate domain artifacts, Gate A,
-Gate B, and report APIs write artifacts and receipts only, and the runner alone
-commits durable phase, retry, invalidation, pause, completion, and blocked
-state. It pauses at each missing human input rather than bypassing it.
+The installed dispatcher is `anomaly.workflow.run_workflow`. It follows one
+method: resolve durable state without executing, select the fixed phase owner,
+invoke deterministic code or the installed P5 skill/P6 reviewer, seal the
+result or stop at Gate A/Gate B, then resolve fresh state. Callers supply only
+explicit `sources`, `gate_a`, and `gate_b` decisions, required timestamps, and
+the runtime adapter for dynamic owners—never a handler map. Focused attempt
+utilities alone commit durable retry, invalidation, pause, completion, and
+blocked state.
 
 | State / gate | Step | Owning unit |
 | --- | --- | --- |
@@ -83,13 +84,13 @@ state. It pauses at each missing human input rather than bypassing it.
 | P3 recommend | 5 | `anomaly.recommend.recommend_detectors` |
 | Gate A closes in P4 | 6 | `anomaly.recommend.approve_detector_plan` — only after the journalist approves; seals the hash-bound Gate A receipt |
 | P4 execute | 7 | `anomaly.detect.execute_detectors` with the approved IDs and bounded limits |
-| P5 draft | 8 | `anomaly.review.draft_findings` |
-| P6 replay | 9 | `anomaly.review.replay_signals` before relying on any calculation |
-| P6 independent review | 10 | `anomaly.review.record_review` with the isolated reviewer ID, verdicts, and draft-hash attestation |
+| P5 draft | 8 | dynamically loaded installed `anomaly` skill |
+| P6 replay | 9 | `anomaly.review.replay_signals` before independent review |
+| P6 independent review | 10 | dynamically loaded `anomaly-data-reviewer`; `anomaly.review.record_review` validates and seals its structured return |
 | Gate B closes in P7 | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
 | P7 report | 12 | `anomaly.review.write_report` materializes the redacted report body from Gate-B findings |
 | P7 charts | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
-| P7 completion | 14 | `anomaly.workflow.WorkflowRunner` projects complete status and relative links only after every output succeeds |
+| P7 completion | 14 | focused durable utilities project complete status and relative links only after every output succeeds |
 
 Step 13 records a sha256 receipt in `.anomaly/receipts/charts.json` and refuses
 without writing anything when the hash-bound Gate B receipt is missing or no
