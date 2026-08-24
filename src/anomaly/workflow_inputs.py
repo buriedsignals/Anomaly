@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+from anomaly.semantics import UnsafeCasePathError, validate_portable_component
 from anomaly.state import WorkflowError
 
 _PUBLIC_INPUTS = frozenset({"now", "sources", "gate_a", "gate_b"})
@@ -48,19 +49,17 @@ def input_capabilities(inputs: Mapping[str, Any]) -> frozenset[str]:
             pass
         else:
             capabilities.add("sources")
-    if _is_complete_mapping(
-        inputs.get("gate_a"),
-        required={"approved_ids", "approved_by"},
-        sequence="approved_ids",
-        identity="approved_by",
-    ):
+    try:
+        gate_a_input(inputs.get("gate_a"))
+    except ValueError:
+        pass
+    else:
         capabilities.add("gate_a")
-    if _is_complete_mapping(
-        inputs.get("gate_b"),
-        required={"accepted_claim_ids", "journalist_id"},
-        sequence="accepted_claim_ids",
-        identity="journalist_id",
-    ):
+    try:
+        gate_b_input(inputs.get("gate_b"))
+    except ValueError:
+        pass
+    else:
         capabilities.add("gate_b")
     return frozenset(capabilities)
 
@@ -91,18 +90,29 @@ def source_requests(value: Any) -> list[dict[str, Any]]:
         request = dict(item)
         if set(request) - _SOURCE_INPUTS or not required.issubset(request):
             raise ValueError("source input has missing or unknown fields")
+        _validate_source_request(request)
         requests.append(request)
     return requests
 
 
-def mapping_input(inputs: Mapping[str, Any], name: str, allowed: set[str]) -> dict[str, Any]:
-    value = inputs.get(name)
-    if not isinstance(value, Mapping):
-        raise ValueError(f"{name} input must be a mapping")
-    result = dict(value)
-    if set(result) - allowed:
-        raise ValueError(f"{name} input has unknown fields")
-    return result
+def gate_a_input(value: Any) -> dict[str, Any]:
+    return _gate_input(
+        value,
+        sequence="approved_ids",
+        identity="approved_by",
+        allow_empty=False,
+        maximum=10,
+        reject_separators=True,
+    )
+
+
+def gate_b_input(value: Any) -> dict[str, Any]:
+    return _gate_input(
+        value,
+        sequence="accepted_claim_ids",
+        identity="journalist_id",
+        allow_empty=True,
+    )
 
 
 def _is_input_time(value: Any) -> bool:
@@ -113,20 +123,60 @@ def _is_input_time(value: Any) -> bool:
     )
 
 
-def _is_complete_mapping(
+def _validate_source_request(request: Mapping[str, Any]) -> None:
+    try:
+        validate_portable_component(request["source_id"])
+    except UnsafeCasePathError as error:
+        raise ValueError("source_id must be a portable component") from error
+    path = request["path"]
+    if not isinstance(path, (str, Path)) or not str(path).strip():
+        raise ValueError("source path must be a non-empty string or Path")
+    for field in ("license", "sensitivity", "redistribution", "reacquisition"):
+        if not isinstance(request[field], str):
+            raise ValueError(f"{field} must be a string")
+    if type(request["included"]) is not bool:
+        raise ValueError("included must be a boolean")
+    reason = request.get("reason")
+    if reason is not None and not isinstance(reason, str):
+        raise ValueError("reason must be a string")
+    if request["included"] is False and (
+        not isinstance(reason, str) or not reason.strip()
+    ):
+        raise ValueError("excluded sources require a reason")
+
+
+def _gate_input(
     value: Any,
     *,
-    required: set[str],
     sequence: str,
     identity: str,
-) -> bool:
-    return (
-        isinstance(value, Mapping)
-        and set(value) == required
-        and isinstance(value.get(sequence), (list, tuple))
-        and isinstance(value.get(identity), str)
-        and bool(value[identity].strip())
-    )
+    allow_empty: bool,
+    maximum: int | None = None,
+    reject_separators: bool = False,
+) -> dict[str, Any]:
+    required = {sequence, identity}
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ValueError("gate input has missing or unknown fields")
+    selected = value[sequence]
+    if not isinstance(selected, (list, tuple)):
+        raise ValueError(f"{sequence} must be a list")
+    if not allow_empty and not selected:
+        raise ValueError(f"{sequence} must not be empty")
+    if maximum is not None and len(selected) > maximum:
+        raise ValueError(f"{sequence} exceeds its limit")
+    if any(
+        not isinstance(item, str)
+        or not item
+        or (reject_separators and ("/" in item or "\\" in item))
+        for item in selected
+    ):
+        raise ValueError(f"{sequence} contains an invalid ID")
+    if len(selected) != len(set(selected)):
+        raise ValueError(f"{sequence} contains duplicate IDs")
+    actor = value[identity]
+    if not isinstance(actor, str) or not actor.strip():
+        raise ValueError(f"{identity} must be a non-empty identity")
+    return dict(value)
 
 
 def read_case_json(root: Path, relative: str) -> Any:

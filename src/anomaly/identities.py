@@ -14,9 +14,17 @@ IDENTITY_PHASES = {
     "draft": "P5",
     "replay": "P6",
     "review": "P6",
-    "gate_b": "P7",
+    "completion": "P7",
 }
 _NON_SOURCE_RECEIPTS = {"charts.json", "gate-a.json", "gate-b.json", "replay.json"}
+_COMPLETION_FILES = (
+    "findings/findings.json",
+    "findings/report.md",
+    "findings/unresolved.md",
+    ".anomaly/receipts/gate-b.json",
+    ".anomaly/receipts/charts.json",
+)
+_COMPLETION_TREE = "findings/charts"
 
 
 def changed_identities(
@@ -53,6 +61,8 @@ def capture_identities(root: Path, state: dict[str, Any], through_phase: str) ->
 def artifact_identity(root: Path, name: str) -> str | None:
     if name == "recommendation":
         return _recommendation_identity(root)
+    if name == "completion":
+        return _completion_identity(root)
     files = _identity_files(root, name)
     if not files:
         return None
@@ -68,6 +78,43 @@ def artifact_identity(root: Path, name: str) -> str | None:
                     digest.update(chunk)
         digest.update(b"\0")
     return "sha256:" + digest.hexdigest()
+
+
+def _completion_identity(root: Path) -> str | None:
+    digest = hashlib.sha256()
+    for relative in _COMPLETION_FILES:
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            return None
+        _update_file_identity(digest, relative, path)
+    charts = root / _COMPLETION_TREE
+    if charts.is_symlink() or not charts.is_dir():
+        return None
+    digest.update(f"{_COMPLETION_TREE}/\0directory\0".encode("utf-8"))
+    descendants = sorted(
+        charts.rglob("*"),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+    for path in descendants:
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            return None
+        if path.is_dir():
+            digest.update(f"{relative}/\0directory\0".encode("utf-8"))
+        elif path.is_file():
+            _update_file_identity(digest, relative, path)
+        else:
+            return None
+    return "sha256:" + digest.hexdigest()
+
+
+def _update_file_identity(digest: Any, relative: str, path: Path) -> None:
+    digest.update(relative.encode("utf-8"))
+    digest.update(b"\0file\0")
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    digest.update(b"\0")
 
 
 def _recommendation_identity(root: Path) -> str | None:
@@ -96,7 +143,7 @@ def _identity_files(root: Path, name: str) -> list[Path]:
             "draft": ("findings/draft.json",),
             "replay": ("evidence/replay.json", ".anomaly/receipts/replay.json"),
             "review": ("findings/review.json",),
-            "gate_b": (".anomaly/receipts/gate-b.json",),
+            "completion": (),
         }[name]
         candidates = [root / path for path in relative]
     files: list[Path] = []

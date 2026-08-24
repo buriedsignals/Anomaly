@@ -42,6 +42,18 @@ def run_attempts(
         return state
     attempts = dict(state.get("attempts", {}))
     attempt = int(attempts.get(phase, 0) or 0)
+    if attempt:
+        state = _reconcile_interrupted_attempt(
+            root,
+            state,
+            phase,
+            attempt,
+            attempts,
+        )
+        attempts = dict(state.get("attempts", {}))
+        attempt = int(attempts.get(phase, 0) or 0)
+        if state.get("status") in {"blocked", "unavailable"}:
+            return state
     while attempt < MAX_ATTEMPTS:
         attempt += 1
         attempts[phase] = attempt
@@ -70,6 +82,11 @@ def run_attempts(
             if attempt < MAX_ATTEMPTS:
                 continue
             return state
+        except BaseException as error:
+            _finish_failure(
+                root, phase, attempt, attempt_path, error, attempts, workspace
+            )
+            raise
 
         try:
             _scan_case_tree(workspace)
@@ -92,6 +109,11 @@ def run_attempts(
             if attempt < MAX_ATTEMPTS:
                 continue
             return state
+        except BaseException as error:
+            _finish_failure(
+                root, phase, attempt, attempt_path, error, attempts, workspace
+            )
+            raise
         append_event(
             root,
             "phase_completed",
@@ -101,6 +123,55 @@ def run_attempts(
         )
         return state
     return state
+
+
+def _reconcile_interrupted_attempt(
+    root: Path,
+    state: dict[str, Any],
+    phase: str,
+    attempt: int,
+    attempts: Mapping[str, int],
+) -> dict[str, Any]:
+    attempt_path = f".anomaly/attempts/{phase}/attempt-{attempt}"
+    failures = state.get("failures", {}).get(phase, [])
+    recorded = next(
+        (
+            failure
+            for failure in failures
+            if isinstance(failure, Mapping)
+            and failure.get("attempt") == attempt
+            and failure.get("attempt_path") == attempt_path
+        ),
+        None,
+    )
+    if recorded is not None:
+        if attempt == MAX_ATTEMPTS and state.get("status") not in {
+            "blocked",
+            "unavailable",
+        }:
+            state.update(
+                {
+                    "phase": phase,
+                    "status": "unavailable",
+                    "blocked": True,
+                    "blocked_reason": safe_error(
+                        recorded.get("error", "attempt limit reached")
+                    ),
+                }
+            )
+            write_state(root, state)
+        return state
+    attempt_dir = root / attempt_path
+    attempt_dir.mkdir(parents=True, exist_ok=True)
+    return _finish_failure(
+        root,
+        phase,
+        attempt,
+        attempt_path,
+        WorkflowError(f"{phase} attempt {attempt} was interrupted before completion"),
+        attempts,
+        attempt_dir / "workspace",
+    )
 
 
 def _success_state(
@@ -140,7 +211,7 @@ def _finish_failure(
     phase: str,
     attempt: int,
     attempt_path: str,
-    error: Exception,
+    error: BaseException,
     attempts: Mapping[str, int],
     workspace: Path | None,
 ) -> dict[str, Any]:
@@ -166,7 +237,7 @@ def _record_failure(
     phase: str,
     attempt: int,
     attempt_path: str,
-    error: Exception,
+    error: BaseException,
     attempts: Mapping[str, int],
 ) -> dict[str, Any]:
     message = safe_error(error)

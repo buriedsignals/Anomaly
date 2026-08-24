@@ -239,6 +239,30 @@ def test_public_case_reader_rejects_a_nested_symlink(
 
     assert external.read_text(encoding="utf-8") == "outside\n"
 
+
+@pytest.mark.parametrize("link_location", ("root", "nested"))
+def test_create_case_rejects_a_symlink_before_writing(
+    tmp_path: Path,
+    link_location: str,
+) -> None:
+    root = tmp_path / "case"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    if link_location == "root":
+        root.symlink_to(outside, target_is_directory=True)
+    else:
+        root.mkdir()
+        (root / "case-controlled-link").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        _create(root)
+
+    assert not (root / "case.json").exists()
+    assert list(outside.iterdir()) == []
+
 def test_create_case_on_existing_offers_resume_or_fork(tmp_path: Path) -> None:
     root = tmp_path / "case"
     _create(root)

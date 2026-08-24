@@ -13,8 +13,9 @@ from anomaly.review import accept_findings, record_review, replay_signals, write
 from anomaly.semantics import canonical_key
 from anomaly.state import WorkflowError
 from anomaly.workflow_inputs import (
+    gate_a_input,
+    gate_b_input,
     input_time,
-    mapping_input,
     read_case_json,
     registered_sources,
     source_requests,
@@ -69,7 +70,7 @@ def _run_handler(owner_id: str, root: Path, inputs: Mapping[str, Any]) -> Any:
     if owner_id == "recommend-detectors":
         return recommend_detectors(root, now=input_time(inputs))
     if owner_id == "approve-and-detect":
-        gate = mapping_input(inputs, "gate_a", {"approved_ids", "approved_by"})
+        gate = gate_a_input(inputs.get("gate_a"))
         now = input_time(inputs)
         approval = approve_detector_plan(root, gate["approved_ids"], approved_by=gate["approved_by"], now=now)
         return {"approval": approval, "runs": execute_detectors(root, approval["approved"], now=now)}
@@ -127,7 +128,7 @@ def _replay_and_review(
 
 
 def _accept_and_report(root: Path, inputs: Mapping[str, Any]) -> dict[str, Any]:
-    gate = mapping_input(inputs, "gate_b", {"accepted_claim_ids", "journalist_id"})
+    gate = gate_b_input(inputs.get("gate_b"))
     journalist_id = _required_identity(gate.get("journalist_id"), "journalist_id")
     reviewer_id = _artifact_identity_field(root, "findings/review.json", "reviewer_id")
     if canonical_key(journalist_id) == canonical_key(reviewer_id):

@@ -11,9 +11,10 @@ from typing import Any, Callable
 import pytest
 
 import anomaly.workflow as workflow
+from anomaly.attempts import run_attempts
 from anomaly.case import create_case
 from anomaly.review import _hash_json, draft_findings
-from anomaly.state import load_snapshot
+from anomaly.state import WorkflowError, load_snapshot
 from anomaly.semantics import UnsafeCasePathError
 from anomaly.workflow import PHASES, run_workflow
 
@@ -186,6 +187,58 @@ P3_P6_MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
     ("review", "P6", lambda root: _mark(root / "findings" / "review.json")),
 )
 
+P1_PROMOTION_WRITES = (
+    "data/sources.json",
+    "data/raw",
+    ".anomaly/receipts",
+    ".anomaly/events.jsonl",
+)
+P7_OUTPUT_MUTATIONS: tuple[tuple[str, Callable[[Path], None]], ...] = (
+    ("accepted findings", lambda root: _mark(root / "findings" / "findings.json")),
+    (
+        "report",
+        lambda root: (root / "findings" / "report.md").write_text(
+            "changed report\n", encoding="utf-8"
+        ),
+    ),
+    (
+        "unresolved work",
+        lambda root: (root / "findings" / "unresolved.md").write_text(
+            "changed unresolved work\n", encoding="utf-8"
+        ),
+    ),
+    ("charts directory", lambda root: shutil.rmtree(root / "findings" / "charts")),
+    (
+        "charts receipt",
+        lambda root: _mark(root / ".anomaly" / "receipts" / "charts.json"),
+    ),
+)
+
+
+def _promotion_entries() -> list[dict[str, object]]:
+    return [
+        {"path": relative, "original": True, "status": "pending"}
+        for relative in P1_PROMOTION_WRITES
+    ]
+
+
+def _write_promotion_journal(
+    root: Path,
+    entries: list[dict[str, object]],
+) -> None:
+    payload = {
+        "schema_version": 1,
+        "phase": "P1",
+        "attempt": 1,
+        "attempt_path": ".anomaly/attempts/P1/attempt-1",
+        "status": "prepared",
+        "entries": entries,
+    }
+    (root / ".anomaly" / "promotion.json").write_text(
+        json.dumps(payload, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
 
 
 
@@ -225,6 +278,57 @@ def test_missing_now_pauses_before_p1_attempts_are_consumed(tmp_path: Path) -> N
     assert tuple(state["completed"]) == ("P0",)
     assert state["attempts"].get("P1") is None
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("source_id", ""),
+        ("source_id", "../outside"),
+        ("path", ""),
+        ("path", 7),
+        ("license", None),
+        ("sensitivity", None),
+        ("redistribution", None),
+        ("reacquisition", None),
+        ("included", "yes"),
+        ("included", False),
+        ("reason", 7),
+    ),
+    ids=(
+        "blank-source-id",
+        "unsafe-source-id",
+        "blank-path",
+        "non-path",
+        "license-type",
+        "sensitivity-type",
+        "redistribution-type",
+        "reacquisition-type",
+        "included-type",
+        "excluded-without-reason",
+        "reason-type",
+    ),
+)
+def test_value_invalid_source_input_pauses_before_an_attempt(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Source input boundary",
+        question="Does malformed source input consume an attempt?",
+        case_id="case-source-input",
+        now=NOW,
+    )
+    inputs = _source_inputs()
+    inputs["sources"][0][field] = value
+
+    state = run_workflow(root, inputs=inputs)
+
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "sources"
+    assert state["attempts"].get("P1") is None
+
 
 def test_incomplete_gate_a_decision_pauses_without_consuming_an_attempt(
     tmp_path: Path,
@@ -258,6 +362,64 @@ def test_incomplete_gate_b_decision_pauses_without_consuming_an_attempt(
     assert state["status"] == "paused"
     assert state["awaiting_input"] == "gate_b"
     assert tuple(state["completed"])[-1] == "P6"
+    assert state["attempts"].get("P7") is None
+
+@pytest.mark.parametrize(
+    "approved_ids",
+    (
+        [],
+        [1],
+        ["duplicate", "duplicate"],
+        ["unsafe/id"],
+        [f"detector-{index}" for index in range(11)],
+    ),
+    ids=("empty", "non-string", "duplicate", "unsafe", "over-limit"),
+)
+def test_value_invalid_gate_a_input_pauses_before_an_attempt(
+    tmp_path: Path,
+    approved_ids: list[object],
+) -> None:
+    root, _plan = _case_at_gate_a(tmp_path)
+
+    state = run_workflow(
+        root,
+        inputs={
+            "now": NOW,
+            "gate_a": {
+                "approved_ids": approved_ids,
+                "approved_by": "journalist-42",
+            },
+        },
+    )
+
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_a"
+    assert state["attempts"].get("P4") is None
+
+
+@pytest.mark.parametrize(
+    "accepted_claim_ids",
+    ([None], ["duplicate", "duplicate"]),
+    ids=("non-string", "duplicate"),
+)
+def test_value_invalid_gate_b_input_pauses_before_an_attempt(
+    tmp_path: Path,
+    accepted_claim_ids: list[object],
+) -> None:
+    root = _case_at_gate_b(tmp_path)
+
+    state = run_workflow(
+        root,
+        inputs={
+            "gate_b": {
+                "accepted_claim_ids": accepted_claim_ids,
+                "journalist_id": "journalist-42",
+            }
+        },
+    )
+
+    assert state["status"] == "paused"
+    assert state["awaiting_input"] == "gate_b"
     assert state["attempts"].get("P7") is None
 
 def test_gate_a_decision_supplied_before_gate_is_not_carried_across_the_turn(
@@ -425,8 +587,7 @@ def test_public_dispatcher_persists_three_failed_attempts_and_blocks(
         now=NOW,
     )
 
-    inputs = _source_inputs()
-    inputs["sources"][0]["source_id"] = "../unsafe"
+    inputs = _source_inputs(tmp_path / "missing.csv")
 
     state = run_workflow(root, inputs=inputs)
 
@@ -440,6 +601,132 @@ def test_public_dispatcher_persists_three_failed_attempts_and_blocks(
     assert all(not Path(failure["attempt_path"]).is_absolute() for failure in failures)
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
 
+
+def test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Interrupted attempts",
+        question="Does an interrupted attempt recover finitely?",
+        case_id="case-interrupted-attempts",
+        now=NOW,
+    )
+    run_workflow(root)
+
+    def interrupt(_workspace: Path) -> None:
+        raise KeyboardInterrupt("simulated process interruption")
+
+    for _attempt in range(3):
+        with pytest.raises(KeyboardInterrupt, match="simulated process interruption"):
+            run_attempts(root, "P1", interrupt, writes=())
+
+    state = run_attempts(
+        root,
+        "P1",
+        lambda _workspace: pytest.fail("retry limit must not execute attempt four"),
+        writes=(),
+    )
+
+    assert state["status"] in {"blocked", "unavailable"}
+    assert state["attempts"]["P1"] == 3
+    failures = state["failures"]["P1"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert all("interrupt" in failure["error"].casefold() for failure in failures)
+    assert all(
+        (root / failure["attempt_path"] / "failure.json").is_file()
+        and not (root / failure["attempt_path"] / "workspace").exists()
+        for failure in failures
+    )
+
+
+def test_public_restart_rolls_back_an_interrupted_promotion_before_retry(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Promotion restart",
+        question="Does restart restore the last sealed case?",
+        case_id="case-promotion-restart",
+        now=NOW,
+    )
+    first_pause = run_workflow(root)
+    assert tuple(first_pause["completed"]) == ("P0",)
+
+    def mark_interrupted_attempt(state: dict[str, Any]) -> None:
+        attempts = dict(state.get("attempts", {}))
+        attempts["P1"] = 1
+        state.update({"phase": "P1", "status": "active", "attempts": attempts})
+
+    _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
+    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
+    backup = attempt_dir / "promotion-backup" / ".anomaly" / "events.jsonl"
+    backup.parent.mkdir(parents=True)
+    events = root / ".anomaly" / "events.jsonl"
+    backup.write_bytes(events.read_bytes())
+    events.write_bytes(events.read_bytes() + b'{"event":"partial-promotion"}\n')
+    entries = _promotion_entries()
+    entries[-1]["status"] = "applied"
+    _write_promotion_journal(root, entries)
+
+    recovered = run_workflow(root)
+
+    assert recovered["status"] == "paused"
+    assert recovered["awaiting_input"] == "sources"
+    assert tuple(recovered["completed"]) == ("P0",)
+    assert recovered["attempts"].get("P1") is None
+    assert "partial-promotion" not in events.read_text(encoding="utf-8")
+    assert not (root / ".anomaly" / "promotion.json").exists()
+    assert not (attempt_dir / "promotion-backup").exists()
+
+    resumed = run_workflow(root, inputs=_source_inputs())
+
+    assert resumed["status"] == "paused"
+    assert resumed["awaiting_input"] == "gate_a"
+    assert resumed["completed"]["P1"]["attempt"] == 1
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    ("path", "status", "original"),
+)
+def test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation(
+    tmp_path: Path,
+    invalid_field: str,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Promotion journal validation",
+        question="Can a portable journal mutate unrelated evidence?",
+        case_id="case-promotion-journal",
+        now=NOW,
+    )
+    run_workflow(root)
+    entries = _promotion_entries()
+    if invalid_field == "path":
+        entries[-1] = {"path": "README.md", "original": False, "status": "applied"}
+    elif invalid_field == "status":
+        entries[-1]["status"] = "unexpected"
+    else:
+        entries[-1]["original"] = "false"
+    _write_promotion_journal(root, entries)
+    protected = {
+        relative: (root / relative).read_bytes()
+        for relative in ("README.md", "data/sources.json", ".anomaly/events.jsonl")
+    }
+
+    with pytest.raises(WorkflowError, match=r"(?i)promotion journal"):
+        run_workflow(root)
+
+    assert {
+        relative: (root / relative).read_bytes()
+        for relative in protected
+    } == protected
+    assert (root / ".anomaly" / "promotion.json").is_file()
+
 def test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence(
     tmp_path: Path,
 ) -> None:
@@ -450,11 +737,14 @@ def test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence(
         "AKIATESTONLY12345678",
         "xoxb-TESTONLY12345678",
         "swordfish",
+        "awsSecretValue1234567890abcd",
+        "openaiSecretValue1234567890abcd",
     )
     message = (
         f"Authorization: Bearer {secrets[0]} password={secrets[1]} "
         f"aws={secrets[2]} slack={secrets[3]} "
-        f"url=https://alice:{secrets[4]}@example.invalid/private"
+        f"url=https://alice:{secrets[4]}@example.invalid/private "
+        f"AWS_SECRET_ACCESS_KEY={secrets[5]} OPENAI_API_KEY={secrets[6]}"
     )
 
     def fail_reasoning(**_kwargs: Any) -> dict[str, Any]:
@@ -786,6 +1076,27 @@ def test_public_dispatcher_invalidates_changed_gate_b_from_p7(
     assert resumed["status"] == "complete"
     assert (review_path.read_bytes(), replay_path.read_bytes()) == preserved
     assert journalist_notes in readme_path.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(("output", "mutate"), P7_OUTPUT_MUTATIONS)
+def test_changed_or_missing_p7_output_demotes_completion_and_readme(
+    tmp_path: Path,
+    output: str,
+    mutate: Callable[[Path], None],
+) -> None:
+    root = _completed_demo(tmp_path)
+    mutate(root)
+
+    paused = run_workflow(root)
+
+    assert paused["status"] == "paused", output
+    assert paused["awaiting_input"] == "gate_b", output
+    assert list(paused["completed"]) == list(PHASES[:7]), output
+    assert paused["invalidated_from"] == "P7", output
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "Status: active" in readme, output
+    assert "Last completed phase: P6" in readme, output
+    assert "<!-- anomaly:outputs:start -->" not in readme, output
 
 
 def test_failed_p7_attempt_does_not_promote_outputs_or_delete_journalist_content(

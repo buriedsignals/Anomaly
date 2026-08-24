@@ -107,7 +107,9 @@ def create_case(
     case_id: str,
     now: datetime,
 ) -> Case:
-    root = Path(root).resolve()
+    root = Path(root)
+    _scan_case_tree(root)
+    root = root.resolve()
     validate_portable_component(case_id)
     root.mkdir(parents=True, exist_ok=True)
     if _case_exists(root):

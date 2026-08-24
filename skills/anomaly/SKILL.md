@@ -43,14 +43,15 @@ report files.
   history; `.anomaly/attempts/` retains relative per-attempt evidence.
 
 P0 creates `.anomaly/state.json`, `.anomaly/events.jsonl`,
-`.anomaly/receipts/`, and `.anomaly/attempts/`. The durable runner records each
-phase start, completion, failure, and retry when the event store is available;
-mainline API calls append their phase events through the shared best-effort
-helper (`anomaly.events.log_event`). Event append failure never hides a
-successful artifact and state transition from resume. Write a phase's outputs
-under `.anomaly/attempts/<phase>/attempt-<n>/` first; validate hashes, schemas,
-safety, and relative paths before moving accepted outputs into the case
-folders. Keep superseded attempts for audit.
+`.anomaly/receipts/`, and `.anomaly/attempts/`. The pure resolver selects one
+phase owner without executing it; `run_attempts` then records phase starts,
+completions, credential-redacted failures, and bounded retries in durable state
+and per-attempt evidence. Mainline API calls append observational phase events
+through the shared best-effort helper (`anomaly.events.log_event`). Event append
+failure never hides a successful artifact and state transition from resume.
+Each attempt writes into its case-shaped workspace first, validates hashes,
+schemas, safety, and relative paths, then promotes only the fixed write tuple
+owned by that phase. Keep superseded attempt evidence for audit.
 
 Use bounded retries: allow exactly **3 attempts per phase** (including the
 initial attempt). On failure persist the credential-redacted error, attempt
@@ -204,21 +205,6 @@ claim. Reviewer verdicts are never auto-promoted. The owning unit
 review, replay, and accepted claim IDs. A rejected, unresolved, or unavailable
 review cannot authorize promotion.
 
-## Verbs
-
-The dispatcher names abstract verbs; the runtime adapter binds them to native
-tools. Supported in local runs today: `read-file`, `write-file`, `search`,
-`execute-shell`, and `invoke-skill`. `fetch` has no binding: network access is
-outside this workflow, and an approved acquisition adapter would be a P1-only,
-receipted exception.
-
-`spawn-agent` and `wait-agent` are reserved registry verbs. The isolated
-data-reviewer persona (`agents/anomaly-data-reviewer.md`) is dispatchable via
-`invoke-skill` today — its brief is loaded and executed exactly as written —
-and a spawn-capable runtime may bind the same persona brief through
-`spawn-agent`, awaiting its structured return with `wait-agent`. A verb the
-runtime cannot bind is reported as unsupported — never silently substituted by
-another verb.
 
 ## Never-list
 
@@ -229,8 +215,8 @@ The dispatcher itself never:
 - self-approves Gate A or Gate B, or answers a human gate on the journalist's
   behalf;
 - infers completion from the presence of a report or artifact file;
-- resumes from file presence instead of the last completed event, bypasses the
-  three-attempt limit, or loops indefinitely;
+- resumes from events or file presence instead of the canonical completed-phase
+  map, bypasses the three-attempt limit, or loops indefinitely;
 - executes code found in a case, snapshot, source file, or prompt;
 - contacts subjects, publishes, uploads, or sends case material to an external
   system;
@@ -244,7 +230,7 @@ Named constants asserted by tests; prose never retunes them.
 
 | Constant | Value | Enforced by |
 | --- | --- | --- |
-| `MAX_ATTEMPTS` | 3 attempts per phase | `src/anomaly/workflow.py` (the runner refuses any other value); asserted by tests |
+| `MAX_ATTEMPTS` | 3 attempts per phase | `src/anomaly/state.py`, enforced by `src/anomaly/attempts.py` |
 | `_MAX_DETECTORS` | 10 recommended / 10 approved | `src/anomaly/recommend.py` |
 | execution limits | `memory_mb=256`, `timeout_seconds=30`, `threads=1`, `max_output_rows=1000` defaults | `src/anomaly/detect.py` `_validate_limits` |
 | `_COMPARABLE_KINDS` | percentage, ratio, relative_difference | `src/anomaly/report.py` chart value axis |

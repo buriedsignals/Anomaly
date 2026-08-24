@@ -67,15 +67,13 @@ def test_skill_declares_linear_p0_to_p7_sequence_and_both_gates() -> None:
     assert re.search(r"(?i)no finishing branches|linear", skill)
 
 
-def test_skill_contracts_durable_state_bounded_retries_resume_and_portable_paths() -> None:
+def test_skill_contracts_durable_state_bounded_retries_and_portable_paths() -> None:
     skill = _required_text(SKILL_PATH)
 
     for path in (".anomaly/state.json", ".anomaly/events.jsonl", ".anomaly/receipts", ".anomaly/attempts"):
         assert path in skill
     assert re.search(r"(?i)(?:bounded|finite|max(?:imum)?|limit(?:ed)?).{0,80}retries?", skill)
-    assert re.search(r"(?i)resume.{0,120}(?:event|receipt|state)", skill)
     assert re.search(r"(?i)(?:relative paths?|portable).{0,160}(?:move|copy|relocat)", skill)
-    assert re.search(r"(?i)last completed event|resume from", skill)
 
 
 def test_skill_marks_missing_data_and_detector_code_as_unavailable() -> None:

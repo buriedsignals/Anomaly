@@ -56,9 +56,10 @@ _ISO_DATETIME = re.compile(
     r"(?:Z|[+-]\d{2}:\d{2})?\Z"
 )
 _SECRET_ASSIGNMENT = re.compile(
-    r"(?i)\b(api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|"
-    r"credential|password|passwd|secret|token|private[_-]?key)"
-    r"\s*[:=]\s*(?:Bearer\s+)?[^,;\s]+"
+    r"(?i)\b((?:[a-z0-9]+[_-])*(?:api[_-]?key|access[_-]?key|"
+    r"access[_-]?token|auth(?:entication)?|authorization|credential|password|"
+    r"passwd|secret(?:[_-]access)?[_-]?key|secret|token|private[_-]?key)"
+    r"(?:[_-][a-z0-9]+)*)\s*[:=]\s*(?:Bearer\s+)?[^,;\s]+"
 )
 _BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
 _TOKEN_PREFIX = re.compile(

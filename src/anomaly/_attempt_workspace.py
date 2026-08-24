@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path, PurePosixPath
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
-from anomaly.state import WorkflowError, write_json_atomic, write_state
+from anomaly.state import PHASES, MAX_ATTEMPTS, WorkflowError, write_json_atomic, write_state
 
 _PROMOTION = ".anomaly/promotion.json"
 
@@ -47,23 +47,26 @@ def promote_workspace(
     try:
         _apply(root, workspace, attempt_dir, journal, journal_path)
         write_state(root, state)
-    except Exception:
+    except BaseException:
         _rollback(root, attempt_dir, journal, journal_path)
         _finish(attempt_dir, journal_path)
         raise
     _finish(attempt_dir, journal_path)
 
 
-def recover_interrupted_promotion(root: Path) -> None:
+def recover_interrupted_promotion(
+    root: Path,
+    writes_for_phase: Callable[[str], Sequence[str]],
+) -> None:
     journal_path = root / _PROMOTION
     if not journal_path.exists():
         return
-    journal = _read_journal(journal_path)
+    journal = _read_journal(journal_path, root, writes_for_phase)
     attempt_dir = _attempt_dir(root, journal)
     if _is_sealed(root, journal):
         _finish(attempt_dir, journal_path)
         return
-    if journal.get("status") != "rolled_back":
+    if journal["status"] != "rolled_back":
         _rollback(root, attempt_dir, journal, journal_path)
     _rewind_attempt(root, journal)
     _finish(attempt_dir, journal_path)
@@ -163,30 +166,102 @@ def _is_sealed(root: Path, journal: Mapping[str, Any]) -> bool:
     return isinstance(record, dict) and record.get("attempt_path") == journal["attempt_path"]
 
 
-def _read_journal(path: Path) -> dict[str, Any]:
+def _read_journal(
+    path: Path,
+    root: Path,
+    writes_for_phase: Callable[[str], Sequence[str]],
+) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise WorkflowError("invalid promotion journal") from error
-    if not isinstance(value, dict) or value.get("schema_version") != 1:
+    required = {
+        "schema_version",
+        "phase",
+        "attempt",
+        "attempt_path",
+        "status",
+        "entries",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != required
+        or value.get("schema_version") != 1
+        or value.get("status") not in ("prepared", "promoted", "rolled_back")
+    ):
         raise WorkflowError("invalid promotion journal")
-    entries = value.get("entries")
-    if not isinstance(entries, list) or any(not isinstance(entry, dict) for entry in entries):
+    attempt_dir = _attempt_dir(root, value)
+    entries = value["entries"]
+    if not isinstance(entries, list) or any(
+        not isinstance(entry, dict) or set(entry) != {"path", "original", "status"}
+        for entry in entries
+    ):
         raise WorkflowError("invalid promotion journal entries")
-    _validated_writes([entry.get("path") for entry in entries])
-    _attempt_dir(path.parents[1], value)
+    try:
+        expected = _validated_writes(writes_for_phase(value["phase"]))
+    except (KeyError, TypeError, ValueError) as error:
+        raise WorkflowError("invalid promotion journal phase") from error
+    paths = _validated_writes([entry["path"] for entry in entries])
+    if set(paths) != set(expected):
+        raise WorkflowError("promotion journal does not match the phase write set")
+    if any(
+        type(entry["original"]) is not bool
+        or entry["status"] not in ("pending", "applying", "applied")
+        for entry in entries
+    ):
+        raise WorkflowError("invalid promotion journal entry state")
+    if value["status"] == "promoted" and any(
+        entry["status"] != "applied" for entry in entries
+    ):
+        raise WorkflowError("invalid promoted journal entries")
+    _validate_recovery_artifacts(root, attempt_dir, value)
     return value
 
 
 def _attempt_dir(root: Path, journal: Mapping[str, Any]) -> Path:
     phase = journal.get("phase")
     attempt = journal.get("attempt")
-    expected = f".anomaly/attempts/{phase}/attempt-{attempt}"
-    if phase not in {f"P{index}" for index in range(8)} or not isinstance(attempt, int):
+    if (
+        not isinstance(phase, str)
+        or phase not in PHASES
+        or type(attempt) is not int
+        or not 1 <= attempt <= MAX_ATTEMPTS
+    ):
         raise WorkflowError("invalid promotion journal attempt")
+    expected = f".anomaly/attempts/{phase}/attempt-{attempt}"
     if journal.get("attempt_path") != expected:
         raise WorkflowError("invalid promotion journal path")
     return root / expected
+
+
+def _validate_recovery_artifacts(
+    root: Path,
+    attempt_dir: Path,
+    journal: Mapping[str, Any],
+) -> None:
+    backup_root = attempt_dir / "promotion-backup"
+    rolled_back = journal["status"] == "rolled_back"
+    for entry in journal["entries"]:
+        live = _artifact(root, entry["path"])
+        backup = _artifact(backup_root, entry["path"])
+        original = entry["original"]
+        status = entry["status"]
+        if rolled_back:
+            coherent = (
+                not backup.exists()
+                and ((original and live.exists()) or (not original and not live.exists()))
+            )
+        elif status == "pending":
+            coherent = (
+                not backup.exists()
+                and ((original and live.exists()) or (not original and not live.exists()))
+            )
+        elif original:
+            coherent = backup.exists() or (status == "applying" and live.exists())
+        else:
+            coherent = not backup.exists()
+        if not coherent:
+            raise WorkflowError("promotion journal recovery artifacts are inconsistent")
 
 
 def _validated_writes(writes: Sequence[Any]) -> tuple[str, ...]:

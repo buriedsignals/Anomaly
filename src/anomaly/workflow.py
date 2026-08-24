@@ -122,10 +122,13 @@ def resolve_workflow(
         )
     kind, owner_id, _writes = _OWNER_REGISTRY[phase]
     owner = {"kind": kind, "id": owner_id}
+    next_attempt = min(attempts + 1, MAX_ATTEMPTS)
     if last is None:
-        resume = f"Start P0; attempt {attempts + 1} of {MAX_ATTEMPTS}."
+        resume = f"Start P0; attempt {next_attempt} of {MAX_ATTEMPTS}."
+    elif attempts >= MAX_ATTEMPTS:
+        resume = f"Recover {phase} after interruption at attempt {attempts} of {MAX_ATTEMPTS}."
     else:
-        resume = f"Resume {phase} after {last}; attempt {attempts + 1} of {MAX_ATTEMPTS}."
+        resume = f"Resume {phase} after {last}; attempt {next_attempt} of {MAX_ATTEMPTS}."
     return _resolution(snapshot, phase, "ready", owner, None, resume)
 
 
@@ -166,7 +169,10 @@ def run_workflow(
     case_root = Path(root)
     resume_case(case_root)
     case_root = case_root.resolve()
-    recover_interrupted_promotion(case_root)
+    recover_interrupted_promotion(
+        case_root,
+        lambda phase: _OWNER_REGISTRY[phase][2],
+    )
     reason = (
         None
         if invoke is None
