@@ -1,0 +1,188 @@
+{
+  "stage": "audit",
+  "cycle": 0,
+  "verdict": "needs-work",
+  "scan": {
+    "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh --changes",
+    "recommendation": "PASS",
+    "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-audit-20260824-092723.md"
+  },
+  "coverage": [
+    {
+      "category": "dynamic_execution",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "github_actions",
+      "status": "not_applicable"
+    },
+    {
+      "category": "injection_command",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "injection_sql",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "insecure_deserialization",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "insecure_permissions",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "path_traversal",
+      "status": "covered_findings"
+    },
+    {
+      "category": "secrets",
+      "status": "covered_findings"
+    },
+    {
+      "category": "sensitive_logging",
+      "status": "covered_findings"
+    },
+    {
+      "category": "tls_transport",
+      "status": "not_applicable"
+    },
+    {
+      "category": "weak_crypto",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "xss",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "fixed_path_owner_loading",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "whole_case_containment",
+      "status": "covered_findings"
+    },
+    {
+      "category": "source_replacement",
+      "status": "covered_findings"
+    },
+    {
+      "category": "detector_execution",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "credential_redacted_errors",
+      "status": "covered_findings"
+    },
+    {
+      "category": "identity_validation",
+      "status": "covered_findings"
+    },
+    {
+      "category": "artifact_identity_validation",
+      "status": "covered_findings"
+    },
+    {
+      "category": "markdown_and_relative_links",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "dependencies",
+      "status": "not_applicable"
+    }
+  ],
+  "findings": [
+    {
+      "class": "blocking",
+      "severity": "high",
+      "category": "whole_case_containment",
+      "cwe": "CWE-59",
+      "file": "src/anomaly/acquire.py",
+      "line": 45,
+      "route": "implement",
+      "summary": "Public source registration can follow an in-case symlink and overwrite another case artifact because it bypasses the whole-case scan.",
+      "exploit": "A shared case can contain data/raw/new-id/payload.csv as a symlink to case.json. register_local_source resolves the root and calls resume_case, but neither scans the whole tree; validate_case_documents ignores an unregistered raw entry. _under_root accepts the destination because the symlink resolves inside the case, and the new-source branch calls dest.write_bytes, which follows the link and replaces case.json with CSV bytes. The installed run_workflow path is protected, but this public resume/write path is not.",
+      "remediation": "Run the no-symlink/special-file scan at every public case boundary, preferably in the common resume guard before any read or write, and make owned-path helpers reject every symlink component even when its target remains under the root. Add a direct register_local_source regression using an in-root symlink target and assert zero mutation."
+    },
+    {
+      "class": "blocking",
+      "severity": "high",
+      "category": "artifact_identity_validation",
+      "cwe": "CWE-345",
+      "file": "src/anomaly/identities.py",
+      "line": 22,
+      "route": "implement",
+      "summary": "Resume trusts a completed-state map when required artifact identities are absent, allowing a shared case to claim P7 completion without validation.",
+      "exploit": "changed_identities iterates only entries already present in state['identities']. load_snapshot passes a missing or non-mapping identity set as {}, so no change is reported. A portable shared case can therefore set sequential completed entries through P7, status complete, and omit identities; load_snapshot projects README completion and resolve_workflow returns complete without hashing any source, prepared data, Gate A, detector, draft, replay, review, or Gate B artifact.",
+      "remediation": "Validate the durable-state schema and derive the required identity names from the last completed phase. Missing, malformed, or extra authoritative identity state must fail closed or invalidate from the earliest affected phase; recompute and compare every required artifact identity before honoring completion."
+    },
+    {
+      "class": "blocking",
+      "severity": "high",
+      "category": "identity_validation",
+      "cwe": "CWE-178",
+      "file": "src/anomaly/owners.py",
+      "line": 126,
+      "route": "implement",
+      "summary": "Canonical-equivalent Unicode identities bypass Gate A/reviewer/Gate B role separation.",
+      "exploit": "The separation checks compare identity.casefold() values, while _required_identity only strips whitespace. Unicode canonical equivalents remain unequal without normalization—for example Gate A approver 'Café' and reviewer 'Cafe\\u0301'. The same person can therefore satisfy both roles; the identical weakness exists between reviewer and Gate B journalist at line 140.",
+      "remediation": "Validate identities through one shared canonical identity function that rejects controls and normalizes NFC before case folding. Compare only canonical identities at Gate A, P6 attestation/reviewer binding, and Gate B, while preserving the display form separately. Add composed/decomposed and case-variant separation tests for both gates."
+    },
+    {
+      "class": "blocking",
+      "severity": "high",
+      "category": "credential_redacted_errors",
+      "cwe": "CWE-532",
+      "file": "src/anomaly/state.py",
+      "line": 14,
+      "route": "implement",
+      "summary": "Attempt failure persistence redacts only three token prefixes and leaks common credentials from dynamic-owner exceptions.",
+      "exploit": "safe_error reaches _safe_text, whose only secret patterns are sk_live_, ghp_, and github_pat_. run_attempts writes that text to failure.json, events.jsonl, state.failures, and blocked_reason. A P5/P6 runtime exception containing 'Authorization: Bearer ...', 'token=super-secret-token', 'password=...', an AWS key, or a credential-bearing URL is persisted verbatim across up to three attempts. review.py already demonstrates the broader assignment/Bearer/token-prefix redaction needed at this boundary.",
+      "remediation": "Centralize the broad credential sanitizer and apply it to error text, event fields, blocked reasons, and persisted attempt results before truncation. Cover assignment forms, Bearer values, common provider prefixes, and credential-bearing URLs without rewriting structural identifiers; add a dynamic-owner failure regression that inspects every durable surface."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read scratchpads/security-audit-20260824-092723.md",
+      "output": "Scanner processed 7 files with 0 regex findings, but left 10 categories uncovered; its PASS recommendation conflicts with its own coverage ledger and the bundled skill's PASS gate."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:18-129",
+      "output": "P5/P6 owners and instruction paths are fixed constants rooted at the installed repository; run_workflow scans the case before resolving and invokes no case-selected code."
+    },
+    {
+      "command": "grep '_scan_case_tree\\(' src/anomaly",
+      "output": "Only fork_case and run_workflow call the whole-case scanner; resume_case and direct phase APIs do not."
+    },
+    {
+      "command": "read src/anomaly/acquire.py:45-61,118-121,151-156; read src/anomaly/case.py:146-151",
+      "output": "Direct source registration resumes without a whole-tree scan; its containment helper allows aliases resolving within root, then the new-source path writes through the unresolved destination."
+    },
+    {
+      "command": "read src/anomaly/identities.py:22-31; read src/anomaly/state.py:31-48; read src/anomaly/workflow.py:43-48",
+      "output": "Identity comparison is limited to recorded keys; missing identities produce no invalidation, and a sequential P7 completion is accepted as terminal."
+    },
+    {
+      "command": "read src/anomaly/owners.py:118-142,173-180",
+      "output": "Both independence gates use casefold-only equality and accept any nonblank identity, without Unicode normalization or control-character validation."
+    },
+    {
+      "command": "read src/anomaly/state.py:12-15,107-121; read src/anomaly/attempts.py:98-120; read src/anomaly/review.py:20-31,1061-1064",
+      "output": "Attempt errors use a three-prefix sanitizer before being persisted to four durable surfaces, while the report boundary already has broader assignment, Bearer, and provider-prefix redaction."
+    },
+    {
+      "command": "read src/anomaly/detect.py:307-368,372-430,491-513,524-744",
+      "output": "Detector IDs and table IDs are bounded to installed metadata/strict hashes, queries use parameters, DuckDB is read-only with external access disabled, owned paths reject aliases, Gate A is hash-bound, and execution limits are positive integers; no case-supplied executable path is reached through run_workflow."
+    },
+    {
+      "command": "read src/anomaly/review.py:594-663; read src/anomaly/readme.py:6-68",
+      "output": "Dataset claim IDs/statements are HTML-escaped, Markdown metacharacters escaped, and HTTP(S) colons neutralized; output links are fixed relative paths and README replacement is bounded by owned markers."
+    },
+    {
+      "command": "supplied task-bound gate",
+      "output": "Clean gated hash 4a1746f9050120df52e7845166f0ab935c4e584a; full task-bound suite 711/711 passed. Static audit findings identify uncovered adversarial paths rather than contradicting the supplied test result."
+    }
+  ]
+}

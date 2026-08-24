@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "src/anomaly/state.py:39 A completed snapshot with missing authoritative identities is trusted as P7-complete.",
+  "verdict": "survives",
+  "rationale": "Normal sealing captures identities, but the public portable-case entry accepts any regular state.json; load_snapshot converts a missing or non-mapping identities value to {}, changed_identities cannot notice omitted required keys, and resolve_workflow then treats a sequential completed map through P7 as terminal and even projects README completion without validating the authoritative artifacts.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/attempts.py:70-90; src/anomaly/state.py:34-49; src/anomaly/identities.py:22-31",
+      "output": "_seal_success normally calls capture_identities before write_state, but load_snapshot passes {} when identities is absent or malformed, and changed_identities compares only recorded.items(); it has no required-key check, so omitted identities produce no invalidation."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:37-49,106-128; src/anomaly/case.py:146-150,255-301",
+      "output": "run_workflow is a real public entry: its case-tree guard rejects links/special files but accepts regular files, resume_case validates the case record rather than state provenance, then load_snapshot feeds resolve_workflow; resolve_workflow returns complete solely when completed_phase is P7."
+    },
+    {
+      "command": "read src/anomaly/state.py:22-49; src/anomaly/readme.py:24-58",
+      "output": "completed_phase accepts any sequential P0-P7 key mapping; load_snapshot calls project_readme when it sees P7, and project_readme marks Status complete and adds accepted-findings/report links without checking that those artifacts or their identities exist."
+    }
+  ]
+}

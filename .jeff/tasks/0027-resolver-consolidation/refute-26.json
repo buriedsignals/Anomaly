@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/owners.py:92 A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.",
+  "verdict": "survives",
+  "rationale": "The defect is reachable through the public run_workflow sources input because only request shape and duplicate IDs are prevalidated, each valid earlier request commits directly to the live case before a later request can fail source-specific validation, and run_attempts records and retries the failure without restoring those mutations, so the high-severity atomicity violation is honest.",
+  "evidence": [
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:1-180",
+      "output": "The clean green gate is bound to hash 4a1746f9050120df52e7845166f0ab935c4e584a, and task AC3 requires durable attempt staging, failure evidence, and atomic promotion."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:101-139, src/anomaly/owners.py:49-108, and src/anomaly/workflow_inputs.py:48-63",
+      "output": "Public run_workflow routes P1 into run_attempts and consume_owner; _run_handler ignores attempt_dir and _register_sources iterates register_local_source against the live case. source_requests prevalidates only nonempty list/mapping shape and required/unknown fields, leaving later per-source path, format, availability, and inclusion validation reachable after an earlier request has succeeded."
+    },
+    {
+      "command": "read src/anomaly/acquire.py:31-132 and src/anomaly/attempts.py:21-67,87-121",
+      "output": "For a new included source, register_local_source writes raw bytes, a receipt, and data/sources.json immediately. A later exception is caught by run_attempts, which writes failure evidence and retries or marks P1 unavailable; no rollback or attempt-directory promotion restores the earlier live writes."
+    }
+  ]
+}

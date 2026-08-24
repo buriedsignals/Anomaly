@@ -11,107 +11,2150 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T07:18:45Z",
-  "updatedAt": "2026-08-24T09:32:13Z",
+  "updatedAt": "2026-08-24T10:49:29Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyResolver",
+    "implementer_agent_id": "ImplementAnomalyRecovery",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyConsolidation",
-    "green": true,
+    "authored_by_agent_id": "PlanAnomalyRecovery",
+    "green": false,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
-    ],
-    "gate": {
-      "hash": "98542737b1707cd694717e224271e3bedfb5d6da",
-      "clean": false,
-      "green": true,
-      "command": "uv run --extra test pytest tests/",
-      "at": "2026-08-24T09:25:50Z"
-    }
+    ]
   },
   "review": {
     "verdict": null,
     "reviewer_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "audit": {
     "required": true,
     "verdict": "na",
     "audit_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "commits": [],
-  "kickbacks": [],
+  "kickbacks": [
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "Invocation-wide gate decisions can bypass both required human turn boundaries.; The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation.; The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.; README projection deletes journalist-authored content that exactly matches the legacy Outputs block.; Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.; The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case.; Canonical-equivalent Unicode identities bypass reviewer independence at both gates.; A completed snapshot with missing authoritative identities is trusted as P7-complete.; The retained retry tests no longer verify credential-redacted durable failure evidence.; Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.; No public test proves that future Gate A or Gate B decisions cannot cross a turn.; README preservation coverage omits completed restart and failed recomputation transitions.; The Markdown inertness test does not contain a standalone bare URL.; Phase attempts do not stage or atomically promote owner outputs.; The resolver's missing-input boundary is schema-blind and omits required timestamps.; The multi-phase dispatcher performs whole-case containment validation only once.; The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6.; README preservation tests omit completed restart and failed recomputation with journalist content.; The inert-Markdown test does not exercise a standalone bare URL.",
+      "at": "2026-08-24T10:06:17Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 109,
+          "what": "Invocation-wide gate decisions can bypass both required human turn boundaries.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 35,
+          "what": "The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/owners.py",
+          "line": 59,
+          "what": "The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/readme.py",
+          "line": 36,
+          "what": "README projection deletes journalist-authored content that exactly matches the legacy Outputs block.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/case.py",
+          "line": 146,
+          "what": "Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow.py",
+          "line": 119,
+          "what": "The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/owners.py",
+          "line": 122,
+          "what": "Canonical-equivalent Unicode identities bypass reviewer independence at both gates.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/state.py",
+          "line": 39,
+          "what": "A completed snapshot with missing authoritative identities is trusted as P7-complete.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 263,
+          "what": "The retained retry tests no longer verify credential-redacted durable failure evidence.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 349,
+          "what": "Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 185,
+          "what": "No public test proves that future Gate A or Gate B decisions cannot cross a turn.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 438,
+          "what": "README preservation coverage omits completed restart and failed recomputation transitions.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_review.py",
+          "line": 425,
+          "what": "The Markdown inertness test does not contain a standalone bare URL.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/owners.py",
+          "line": 59,
+          "what": "Phase attempts do not stage or atomically promote owner outputs.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 29,
+          "what": "The resolver's missing-input boundary is schema-blind and omits required timestamps.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow.py",
+          "line": 111,
+          "what": "The multi-phase dispatcher performs whole-case containment validation only once.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 348,
+          "what": "The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 438,
+          "what": "README preservation tests omit completed restart and failed recomputation with journalist content.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_review.py",
+          "line": 425,
+          "what": "The inert-Markdown test does not exercise a standalone bare URL.",
+          "kickTo": "plan"
+        }
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "implement",
+      "reason": "Direct source registration can follow an existing in-case symlink and overwrite another case artifact.; The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.; A completed snapshot with missing artifact identities is trusted as complete.; Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation.; Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.; Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes.; A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.; README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+      "at": "2026-08-24T10:06:17Z",
+      "findings": [
+        {
+          "source": "audit",
+          "file": "src/anomaly/acquire.py",
+          "line": 46,
+          "what": "Direct source registration can follow an existing in-case symlink and overwrite another case artifact.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/workflow.py",
+          "line": 111,
+          "what": "The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/state.py",
+          "line": 38,
+          "what": "A completed snapshot with missing artifact identities is trusted as complete.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/owners.py",
+          "line": 122,
+          "what": "Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/workflow.py",
+          "line": 109,
+          "what": "Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/state.py",
+          "line": 15,
+          "what": "Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/owners.py",
+          "line": 92,
+          "what": "A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/readme.py",
+          "line": 36,
+          "what": "README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+          "kickTo": "implement"
+        }
+      ]
+    }
+  ],
   "blockedReason": null,
   "abandonReason": null,
   "plan": {
     "result": "red",
     "slices": [
-      "Add pure resolver and compact P0-P7 owner registry.",
-      "Add selected-owner boundary for deterministic handlers and fixed P5 skill/P6 reviewer loading with fresh resolution.",
-      "Extract durable attempt/retry/evidence/event/state promotion into attempts.py and migrate dispatcher.",
-      "Bound README projection, neutralize bare URL autolinks, retain positive completion/link proof.",
-      "Delete obsolete runner/product/alias/projection/test surfaces and update docs."
+      "Make P1-P4 clock and Gate A/Gate B capability resolution complete and schema-aware, and bind each human decision to an invocation that starts at its gate so future inputs cannot cross turns or consume attempts.",
+      "Run each resolved deterministic or dynamic owner in its numbered attempt workspace, validate and journal its declared artifacts, promote or roll back atomically, recover interrupted promotion before resolution, and retain three redacted durable attempts.",
+      "Enforce whole-case containment at public inspect/resume/direct-writer entries and after dynamic ownership; fail closed on missing required identities and canonical-equivalent separated roles; use one broad durable-error sanitizer.",
+      "Restrict README mutation to the marked Outputs block and couple P7 artifact/README promotion so authored content survives completed restart, invalidation, failed recomputation, and recompletion.",
+      "Retain focused retry, source replacement, every P3-P6 identity boundary, dynamic owner/order/demo, Gate B lifecycle, and standalone bare-URL proof while preserving deletion of runner/product/alias/duplicate surfaces."
     ],
     "testFiles": [
       "tests/test_workflow.py",
       "tests/test_pipeline_walk.py",
+      "tests/test_case.py",
+      "tests/test_acquire.py",
       "tests/test_review.py"
     ],
     "redRun": {
-      "command": "five focused resolver/demo/review tests",
-      "output": "5 failed, 1 passed: resolver/owner invocation missing, README deletes trailing content, bare HTTPS remains; positive P7 links pass."
+      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt tests/test_pipeline_walk.py::test_missing_now_pauses_before_p1_attempts_are_consumed tests/test_pipeline_walk.py::test_incomplete_gate_a_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_incomplete_gate_b_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_gate_a_decision_supplied_before_gate_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_gate_b_decision_supplied_before_review_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_public_dispatcher_retries_recommendation_failure_inside_p3 tests/test_pipeline_walk.py::test_public_dispatcher_replaces_changed_registered_source tests/test_pipeline_walk.py::test_changed_p3_p6_identity_invalidates_only_its_earliest_suffix tests/test_pipeline_walk.py::test_completed_snapshot_without_required_identities_fails_closed_from_p1 tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_gate_a_approver_as_reviewer tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_reviewer_as_gate_b_journalist tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_failed_p7_attempt_does_not_promote_outputs_or_delete_journalist_content tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_acquire.py::test_register_local_source_rejects_an_in_case_destination_symlink tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+      "output": "pytest: 19 failed, 13 passed in 2.34s\nCommand exited with code 1"
     },
     "escalation": null,
-    "refactorOpportunity": "Delete WorkflowRunner/PhaseResult/RetryLimitExceeded, handler-map machinery, aliases, competing product_workflow loop/registry, duplicate projections and synthetic test compositions; use one resolver, owner registry and focused attempt functions."
+    "refactorOpportunity": "Extend the existing fixed owner registry with bounded phase write sets so run_attempts remains the sole staging/promotion utility; centralize the duplicate state/review credential regexes in one shared sanitizer, then delete the superseded live-root mutation paths and narrow sanitizers without adding aliases, a runner, or a second phase registry."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyResolver",
+    "agent_id": "ImplementAnomalyRecovery",
     "result": "green",
     "files": [
+      "src/anomaly/_attempt_workspace.py",
+      "src/anomaly/acquire.py",
       "src/anomaly/attempts.py",
+      "src/anomaly/case.py",
       "src/anomaly/events.py",
       "src/anomaly/identities.py",
       "src/anomaly/owners.py",
-      "src/anomaly/product_workflow.py",
       "src/anomaly/readme.py",
+      "src/anomaly/report.py",
       "src/anomaly/review.py",
+      "src/anomaly/semantics.py",
       "src/anomaly/state.py",
       "src/anomaly/workflow.py",
       "src/anomaly/workflow_inputs.py"
     ],
     "greenRun": {
-      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolved_reasoning_owner_is_loaded_and_invoked_once tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
-      "output": "......                                                                   [100%]\n6 passed in 0.39s"
+      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt tests/test_pipeline_walk.py::test_missing_now_pauses_before_p1_attempts_are_consumed tests/test_pipeline_walk.py::test_incomplete_gate_a_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_incomplete_gate_b_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_gate_a_decision_supplied_before_gate_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_gate_b_decision_supplied_before_review_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_public_dispatcher_retries_recommendation_failure_inside_p3 tests/test_pipeline_walk.py::test_public_dispatcher_replaces_changed_registered_source tests/test_pipeline_walk.py::test_changed_p3_p6_identity_invalidates_only_its_earliest_suffix tests/test_pipeline_walk.py::test_completed_snapshot_without_required_identities_fails_closed_from_p1 tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_gate_a_approver_as_reviewer tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_reviewer_as_gate_b_journalist tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_failed_p7_attempt_does_not_promote_outputs_or_delete_journalist_content tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_acquire.py::test_register_local_source_rejects_an_in_case_destination_symlink tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+      "output": "................................                                         [100%]\n32 passed in 4.08s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorAnomalyResolver",
+    "agent_id": "RefactorAnomalyRecovery",
     "result": "refactored",
     "files": [
-      "src/anomaly/attempts.py",
-      "src/anomaly/owners.py",
-      "src/anomaly/state.py",
-      "src/anomaly/workflow.py"
+      "src/anomaly/_attempt_workspace.py"
     ],
     "outsideDiff": [
       ".jeff/tasks/0027-resolver-consolidation/journal.jsonl"
     ],
     "greenRun": {
-      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolved_reasoning_owner_is_loaded_and_invoked_once tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
-      "output": "......                                                                   [100%]\n6 passed in 0.58s"
+      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt tests/test_pipeline_walk.py::test_missing_now_pauses_before_p1_attempts_are_consumed tests/test_pipeline_walk.py::test_incomplete_gate_a_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_incomplete_gate_b_decision_pauses_without_consuming_an_attempt tests/test_pipeline_walk.py::test_gate_a_decision_supplied_before_gate_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_gate_b_decision_supplied_before_review_is_not_carried_across_the_turn tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_public_dispatcher_retries_recommendation_failure_inside_p3 tests/test_pipeline_walk.py::test_public_dispatcher_replaces_changed_registered_source tests/test_pipeline_walk.py::test_changed_p3_p6_identity_invalidates_only_its_earliest_suffix tests/test_pipeline_walk.py::test_completed_snapshot_without_required_identities_fails_closed_from_p1 tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_gate_a_approver_as_reviewer tests/test_pipeline_walk.py::test_public_dispatcher_rejects_canonical_reviewer_as_gate_b_journalist tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_failed_p7_attempt_does_not_promote_outputs_or_delete_journalist_content tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_acquire.py::test_register_local_source_rejects_an_in_case_destination_symlink tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+      "output": "................................                                         [100%]\n32 passed in 4.43s"
     },
     "summary": [
-      "Made the phase-to-owner registry explicitly keyed by P0-P7 and hoisted required-input policy out of the resolver hot path.",
-      "Removed the stale state parameter from success sealing, validated the shared source timestamp once per registration batch, and reused invalidation suffix/remaining-phase/redacted-reason values without changing phase, gate, retry, identity, containment, loader, or serialization behavior.",
-      "README serialization required no behavior-preserving simplification; the existing bounded projection remains unchanged.",
-      "The journal entry was pre-existing orchestration state and was not modified by this refactor."
+      "Removed the unused root dependency from promotion cleanup and all callers, making the attempt-workspace lifecycle smaller without changing behavior.",
+      "Left sanitizer, identity, and containment logic unchanged because no clearer, smaller behavior-preserving simplification was warranted.",
+      "Preserved the pre-existing Jeff journal modification listed in outsideDiff."
     ]
-  }
+  },
+  "review2": null,
+  "refutes": [
+    {
+      "agent_id": "AnRefute01",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:109 Invocation-wide gate decisions can bypass both required human turn boundaries.",
+      "verdict": "survives",
+      "rationale": "No upstream stage-aware guard exists: the public entry accepts Gate A and Gate B together, retains both decisions for the whole invocation, checks only key presence at P4/P7, and continues after successful P3/P6 seals, so both required paused returns are reachable to bypass.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:102-138",
+          "output": "run_workflow calls normalize_inputs once into supplied before entering while True; every iteration builds available from that same supplied mapping, pauses only when resolution.status == 'paused', otherwise executes the owner, and continues unless the phase becomes blocked or unavailable."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:28-68 and src/anomaly/workflow_inputs.py:11-29",
+          "output": "_REQUIRED_INPUTS maps P4 to gate_a and P7 to gate_b; _missing_input returns no pause whenever the name is present. normalize_inputs accepts both names in _PUBLIC_INPUTS, copies the whole caller mapping, and has no phase-aware rejection or deferral guard."
+        },
+        {
+          "command": "read src/anomaly/owners.py:52-70,124-134 and src/anomaly/attempts.py:52-73",
+          "output": "The P4 handler reads inputs['gate_a'] and immediately approves/detects; P7 reads inputs['gate_b'] and immediately accepts/reports. A successful non-P7 phase is sealed with status 'active', so after P3 and P6 run_workflow loops directly to the next ready owner instead of returning a human-turn pause."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md and task.json gate evidence",
+          "output": "The locked acceptance criterion requires Gate A/Gate B turn boundaries, and task state records the inspected candidate as clean and green at gated hash 4a1746f9050120df52e7845166f0ab935c4e584a."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute02",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:35 The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher passes only top-level input names to the resolver, so missing `now` and incomplete Gate A/B mappings resolve ready; the selected owners validate or index those values only inside `run_attempts`, whose broad exception path durably increments and retries through all three attempts rather than pausing without attempt consumption.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:32-138",
+          "output": "`_REQUIRED_INPUTS = {\"P1\": \"sources\", \"P4\": \"gate_a\", \"P7\": \"gate_b\"}`; `_missing_input` checks only membership in `supplied`; `run_workflow` derives `available` from top-level names, resolves, and sends every ready result directly to `run_attempts`."
+        },
+        {
+          "command": "read anomaly/src/anomaly/workflow_inputs.py:13-71",
+          "output": "`normalize_inputs` validates only mapping/key shape and unknown top-level names; `input_time` later raises unless `now` is a timezone-aware datetime; `mapping_input` accepts any subset of allowed Gate A/B fields and does not require the fields consumed by owners."
+        },
+        {
+          "command": "read anomaly/src/anomaly/owners.py:49-92,135-143",
+          "output": "P2 and P3 call `input_time(inputs)`; P4 reads `gate[\"approved_ids\"]` and `gate[\"approved_by\"]` after subset-only mapping validation, then calls `input_time`; P7 passes a subset-only Gate B mapping to `_accept_and_report`, which reads required fields. These checks occur in owner execution, after resolution."
+        },
+        {
+          "command": "read anomaly/src/anomaly/attempts.py:21-67",
+          "output": "`run_attempts` increments and persists the phase attempt before calling `execute`; `except Exception` records the failure and retries until `MAX_ATTEMPTS`, proving these ordinary missing/incomplete inputs consume attempts and can end unavailable."
+        },
+        {
+          "command": "read anomaly/.jeff/tasks/0027-resolver-consolidation/task.md; read anomaly/.jeff/tasks/0027-resolver-consolidation/notes.md",
+          "output": "The accepted contract requires the pure resolver to return missing input/human decision, and the plan states Gate A/Gate B pauses end the turn without consuming an attempt; the observed execution path contradicts that contract."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute03",
+      "source": "review",
+      "finding": "src/anomaly/owners.py:59 The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.",
+      "verdict": "survives",
+      "rationale": "The failure is reachable through the public P1 source-batch path: only request shape and duplicate IDs are prevalidated, each valid request is then persisted directly into the live case before the next request is validated, and run_attempts records failures without rolling those mutations back; the gated-hash probe confirms a later invalid source leaves the earlier source live after P1 becomes unavailable.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/attempts.py:21-105",
+          "output": "run_workflow passes the live case_root to consume_owner inside run_attempts; run_attempts creates attempt_dir but success/failure handling only writes attempt result/failure evidence and state, with no snapshot, rollback, or cleanup of owner mutations."
+        },
+        {
+          "command": "read src/anomaly/owners.py:53-103",
+          "output": "_run_handler names the staging argument _attempt_dir and does not use it. For P1, _register_sources loops over requests and calls register_local_source(root, ...) against the live root for each item."
+        },
+        {
+          "command": "read src/anomaly/workflow_inputs.py:42-57 and src/anomaly/acquire.py:25-126",
+          "output": "source_requests validates only list/mapping shape and required/unknown fields. Per-item path existence, extension, portability, and metadata validation happen later inside register_local_source, after earlier loop items may already have written raw bytes, receipts, and data/sources.json."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/review-correctness.json:115-145",
+          "output": "The supplied gated-hash public probe with a valid CSV followed by an unsupported .txt ended {\"attempts\":{\"P0\":1,\"P1\":3},\"phase\":\"P1\",\"status\":\"unavailable\",\"sources\":[{\"source_id\":\"good\",...}],\"raw\":[\"data/raw/good/good.csv\"]}, directly demonstrating reachability and durable partial promotion."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute04",
+      "source": "review",
+      "finding": "src/anomaly/readme.py:36 README projection deletes journalist-authored content that exactly matches the legacy Outputs block.",
+      "verdict": "survives",
+      "rationale": "A journalist-edited regular README can contain this exact unmarked section, and public completion, completed-case resume, or invalidation reaches the unconditional global replacement, silently deleting user-authored content in direct conflict with the preservation acceptance criterion.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/readme.py:24-48",
+          "output": "project_readme accepts any existing non-symlink README, removes the marked Anomaly block, then unconditionally executes .replace(_OUTPUTS, \"\"); Python str.replace removes every exact occurrence, with no ownership or position guard."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:101-139; src/anomaly/attempts.py:21-88; src/anomaly/state.py:34-52,133-171",
+          "output": "The public run_workflow entry repeatedly calls load_snapshot; completed P7 snapshots call project_readme, successful P7 sealing calls it, and invalidation from a previously completed P7 calls it again. The destructive branch is therefore reachable during ordinary completion, restart, and invalidation flows."
+        },
+        {
+          "command": "read src/anomaly/case.py:196-224,237-251",
+          "output": "resume_case/_load_case validates case.json and progress but imposes no README-content restriction; the initial README is ordinary journalist-facing Markdown. No upstream guard makes an exact unmarked Outputs section impossible."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep gated hash and finding evidence in task state/review return",
+          "output": "The locked acceptance criterion explicitly requires README projection to preserve journalist-authored content; gate state binds the inspected candidate to 4a1746f9050120df52e7845166f0ab935c4e584a, and the supplied pure replacement probe reports journalist_outputs_preserved=False with only the later Notes section remaining."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute07",
+      "source": "review",
+      "finding": "src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass reviewer independence at both gates.",
+      "verdict": "survives",
+      "rationale": "The public workflow accepts nonempty identity strings without Unicode normalization, both role-separation checks compare only casefolded text, and the project’s canonical identity function additionally normalizes to NFC, so canonically equivalent composed and decomposed identities can reach and pass both gates.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:34-38,101-109,266-287",
+          "output": "The task binds the reviewed candidate to gated hash 4a1746f9050120df52e7845166f0ab935c4e584a and records that reviewed product source matches that gate; the supplied review finding is at src/anomaly/owners.py:122."
+        },
+        {
+          "command": "read src/anomaly/owners.py:116-150",
+          "output": "Gate A/reviewer separation is `reviewer_id.casefold() == gate_a_approver.casefold()` and reviewer/Gate B separation is `journalist_id.casefold() == reviewer_id.casefold()`; `_required_identity` only requires a nonempty string and returns `value.strip()`."
+        },
+        {
+          "command": "read src/anomaly/semantics.py:63-79",
+          "output": "`canonical_key` returns `unicodedata.normalize(\"NFC\", unicodedata.normalize(\"NFC\", value).casefold())`, establishing NFC normalization as part of the project’s canonical identity policy."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:101-139; src/anomaly/workflow_inputs.py:10-65; src/anomaly/recommend.py:335-379; src/anomaly/review.py:249-335",
+          "output": "`run_workflow` forwards caller gate inputs and dynamic reviewer output into owners; gate mappings restrict field names but not Unicode form, Gate A accepts and persists any nonempty `approved_by`, and review recording only strips `reviewer_id` while its attestation check compares against that same unnormalized value. No upstream NFC guard makes the bypass unreachable."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute08",
+      "source": "review",
+      "finding": "src/anomaly/state.py:39 A completed snapshot with missing authoritative identities is trusted as P7-complete.",
+      "verdict": "survives",
+      "rationale": "Normal sealing captures identities, but the public portable-case entry accepts any regular state.json; load_snapshot converts a missing or non-mapping identities value to {}, changed_identities cannot notice omitted required keys, and resolve_workflow then treats a sequential completed map through P7 as terminal and even projects README completion without validating the authoritative artifacts.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/attempts.py:70-90; src/anomaly/state.py:34-49; src/anomaly/identities.py:22-31",
+          "output": "_seal_success normally calls capture_identities before write_state, but load_snapshot passes {} when identities is absent or malformed, and changed_identities compares only recorded.items(); it has no required-key check, so omitted identities produce no invalidation."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:37-49,106-128; src/anomaly/case.py:146-150,255-301",
+          "output": "run_workflow is a real public entry: its case-tree guard rejects links/special files but accepts regular files, resume_case validates the case record rather than state provenance, then load_snapshot feeds resolve_workflow; resolve_workflow returns complete solely when completed_phase is P7."
+        },
+        {
+          "command": "read src/anomaly/state.py:22-49; src/anomaly/readme.py:24-58",
+          "output": "completed_phase accepts any sequential P0-P7 key mapping; load_snapshot calls project_readme when it sees P7, and project_readme marks Status complete and adds accepted-findings/report links without checking that those artifacts or their identities exist."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute10",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:349 Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.",
+      "verdict": "survives",
+      "rationale": "Production directly trusts the unguarded identity-to-phase table to choose and destructively clear the invalidation suffix, while the candidate deleted the only P3–P6 behavioral matrix and retained public tests exercise only source/P1, prepared/P2, and Gate B/P7, so no upstream guard or equivalent coverage makes the blocker unreachable or less severe.",
+      "evidence": [
+        {
+          "command": "git rev-parse HEAD",
+          "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+        },
+        {
+          "command": "read src/anomaly/identities.py:9-30",
+          "output": "IDENTITY_PHASES maps recommendation→P3, gate_a/detector→P4, draft→P5, replay/review→P6; changed_identities compares every recorded digest and returns the minimum mapped phase without any independent validation or fallback."
+        },
+        {
+          "command": "read src/anomaly/state.py:34-45,124-162",
+          "output": "load_snapshot passes changed_identities' start directly to _invalidate_state; _invalidate_state removes every completed phase from that start onward, clears attempts/failures and identities for the same suffix, and persists the result."
+        },
+        {
+          "command": "git diff bd3d49e 61a2b7c -- tests/test_pipeline_walk.py",
+          "output": "The task-27 cutover deletes MUTATIONS entries for source/P1, prepared/P2, detector/P4, parameters/P3, draft/P5, replay/P6, review/P6, Gate A/P4, and Gate B/P7, and deletes test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase, which asserted invalidated_from, retained prefix, cleared suffix, and suffix rerun."
+        },
+        {
+          "command": "grep 'invalidat|rebuilds_stale|replaces_changed' tests",
+          "output": "Current workflow-dispatch coverage is tests/test_pipeline_walk.py:349 prepared mutation, :371 source replacement, and :438 Gate-B mutation; tests/test_m5_handoff.py detector-change cases exercise replay/acceptance rejection rather than load_snapshot's earliest workflow suffix, and no tests reference changed_identities, capture_identities, artifact_identity, or IDENTITY_PHASES."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute11",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:185 No public test proves that future Gate A or Gate B decisions cannot cross a turn.",
+      "verdict": "survives",
+      "rationale": "At the gated hash, run_workflow normalizes inputs once and reuses the same supplied mapping on every resolver iteration, with no guard that rejects or consumes a future gate decision, while the cited demo supplies Gate A and Gate B only in separate later invocations; the consumer-observable AC4 turn boundary is therefore reachable and unproved.",
+      "evidence": [
+        {
+          "command": "git rev-parse HEAD",
+          "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py",
+          "output": "109: supplied = normalize_inputs(inputs)\n119: while True:\n120:     snapshot = load_snapshot(case_root)\n122:     available = frozenset({*supplied, *({\"sources\"} if has_sources else set())})\n123:     resolution = resolve_workflow(snapshot, supplied=available)\n126:     if resolution[\"status\"] == \"paused\":\n127:         return pause_at(case_root, snapshot, resolution[\"phase\"], resolution[\"missing\"])\n131-137: consume_owner receives the unchanged resolution and supplied mapping; the loop then resolves again without clearing gate keys."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+          "output": "101: the first invocation supplies only source inputs and asserts pause at gate_a; 118-130: the next invocation supplies gate_a and asserts pause at gate_b; 142-151: a third invocation supplies gate_b and asserts completion. No invocation pre-supplies a future gate decision."
+        },
+        {
+          "command": "grep pattern 'gate_a|gate_b' path tests",
+          "output": "Public-dispatcher gate inputs occur in tests/test_pipeline_walk.py at gate_a lines 122, 334, 402 and gate_b lines 145, 425, 470, 496; the canonical demo path at lines 92-151 supplies each gate only after the prior invocation has paused."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+          "output": "Acceptance criterion 4: \"Gate A/Gate B turn boundaries, identity separation, source replacement, earliest invalidation, event-failure resume, case portability and exact P5→P6→Gate B→P7 order remain green.\""
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute13",
+      "source": "review",
+      "finding": "tests/test_review.py:425 The Markdown inertness test does not contain a standalone bare URL.",
+      "verdict": "survives",
+      "rationale": "AC6 explicitly requires bare HTTP(S) autolink coverage, but the only tested URLs are structurally embedded and arbitrary dataset statements can reach report serialization, so no upstream guard makes a standalone URL unreachable; the current generic escaping regex is fail-safe today but does not replace the missing behavioral regression proof.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep 4a1746f9050120df52e7845166f0ab935c4e584a .jeff/tasks/0027-resolver-consolidation/task.json",
+          "output": "The locked acceptance criterion says \"Dataset-derived Markdown is inert, including bare URL autolinks.\" The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a."
+        },
+        {
+          "command": "grep -n 'https?://' tests/test_review.py",
+          "output": "The only input occurrences are line 432, \"Acme [click](https://example.invalid/pixel)\", and line 433, \"<img src=https://example.invalid/pixel>\"; lines 450-453 only assert those constructs and the shared raw substring are absent. There is no standalone prose URL anywhere in the file."
+        },
+        {
+          "command": "read src/anomaly/review.py:170-235,360-465,609-703",
+          "output": "draft_findings copies signal['statement'] without a URL-shape restriction, accept_findings promotes that statement, and write_report passes it to _markdown_text. Thus a standalone dataset URL is reachable from the same public path exercised by the test."
+        },
+        {
+          "command": "read src/anomaly/review.py:647-656",
+          "output": "_markdown_text currently neutralizes every word-boundary HTTP(S) scheme with re.sub(r'(?i)\\bhttps?://', ...) after generic Markdown escaping. This makes the present implementation fail safe, but it is not an upstream impossibility guard and the existing embedded-only fixture would also pass an implementation that removed link/image constructs while leaving standalone autolinks active."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute14",
+      "source": "review2",
+      "finding": "src/anomaly/owners.py:59 Phase attempts do not stage or atomically promote owner outputs.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher reaches this path with normal phase inputs, but deterministic and dynamic owners write against the live case root while the attempt utility records only a post-hoc result and has no validation, promotion, or rollback of owner artifacts, so a later owner failure can leave partially committed case state and the high-severity AC3 violation is reachable.",
+      "evidence": [
+        {
+          "command": "read skills/anomaly/SKILL.md:49-98",
+          "output": "The installed operating contract requires every phase's outputs to be written under .anomaly/attempts/<phase>/attempt-<n>/ first, validated for hashes, schemas, safety, and relative paths, and only then moved into case folders; superseded attempts must remain auditable."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:101-145 and src/anomaly/owners.py:30-75",
+          "output": "run_workflow passes both case_root and attempt_dir into consume_owner. Handler dispatch then calls _run_handler, whose attempt parameter is named _attempt_dir and unused while every deterministic operation receives root. Dynamic dispatch invokes the reasoning owner with only case_root, and P5 rejects the result unless live root/findings/draft.json already exists."
+        },
+        {
+          "command": "read src/anomaly/attempts.py:18-114",
+          "output": "run_attempts calls execute(attempt_dir) before writing only result.json into the attempt directory. On exception it records failure.json and state evidence but performs no owner-output rollback; on success _seal_success only updates identities/state and performs no artifact validation or atomic promotion."
+        },
+        {
+          "command": "read src/anomaly/owners.py:67-76,135-144 and src/anomaly/detect.py:583-744",
+          "output": "Reachable deterministic phases perform compound live mutations: P4 seals Gate A and then executes detectors, while detector execution creates live run directories, snapshots, provenance, and appends signals inside a per-detector loop before later operations can raise; P7 likewise accepts findings, writes the report, and only then generates charts. No phase-level transaction protects these sequences."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute15",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:29 The resolver's missing-input boundary is schema-blind and omits required timestamps.",
+      "verdict": "survives",
+      "rationale": "No upstream guard makes these inputs unreachable: the public dispatcher reduces inputs to their top-level names, the resolver therefore marks missing `now` or structurally incomplete gate mappings ready, and owner-side validation failures are caught only after attempt accounting and retried until the phase becomes unavailable.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:29-62,101-138 and src/anomaly/workflow_inputs.py:15-64",
+          "output": "`_REQUIRED_INPUTS` contains only P1 `sources`, P4 `gate_a`, and P7 `gate_b`; `run_workflow` passes the keys of normalized inputs to `resolve_workflow`, while `normalize_inputs` validates only top-level names and does not validate values or require `now`, so these malformed or incomplete public inputs reach a ready resolution."
+        },
+        {
+          "command": "read src/anomaly/owners.py:37-101,136-144",
+          "output": "P1 with supplied sources and P2-P4 call `input_time(inputs)`, which raises when `now` is absent; P4 indexes `gate[\"approved_ids\"]` and `gate[\"approved_by\"]`, and P7 indexes `gate[\"accepted_claim_ids\"]`, so present-but-incomplete gate mappings fail only inside owner execution."
+        },
+        {
+          "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:1-14",
+          "output": "`run_attempts` increments and persists the attempt before executing the owner, catches every owner exception, retries while the attempt is below `MAX_ATTEMPTS`, and marks the phase unavailable at the limit; `MAX_ATTEMPTS` is 3."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute17",
+      "source": "review2",
+      "finding": "tests/test_pipeline_walk.py:348 The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher reaches identity comparison for ordinary modified case artifacts, production maps six retained P3–P6 identities to earliest-suffix invalidation, and no current test exercises that state/resolution contract for those phases, so neither reachability nor the medium blocking severity is disproved.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/identities.py:6-18; read src/anomaly/state.py:34-52,116-171; read src/anomaly/workflow.py:101-129",
+          "output": "IDENTITY_PHASES maps recommendation→P3, gate_a/detector→P4, draft→P5, and replay/review→P6; load_snapshot calls changed_identities and _invalidate_state removes the suffix from the earliest mapped phase; run_workflow calls load_snapshot on every public resolver iteration."
+        },
+        {
+          "command": "grep 'changed_identities|capture_identities|artifact_identity|IDENTITY_PHASES|invalidated_from' anomaly/tests; grep 'invalidat|_mark\\(' anomaly/tests/test_pipeline_walk.py",
+          "output": "No test imports or invokes the identity comparison/capture API; test_workflow.py only places invalidated_from=P3 in a resolver input fixture, while test_pipeline_walk.py mutates prepared/transforms.json (P2) and gate-b.json (P7), with no recommendation, Gate A, detector, draft, replay, or review mutation matrix."
+        },
+        {
+          "command": "read src/anomaly/case.py:255-303; read tests/test_m5_handoff.py:283-354",
+          "output": "The upstream case scan rejects symlinks, special files, and executable artifacts but permits changed regular case files, so the identity-change path is reachable; the detector tests in test_m5_handoff exercise replay_signals/accept_findings domain checks rather than run_workflow/load_snapshot earliest-suffix invalidation and do not replace P3–P6 matrix coverage."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute18",
+      "source": "review2",
+      "finding": "tests/test_pipeline_walk.py:438 README preservation tests omit completed restart and failed recomputation with journalist content.",
+      "verdict": "survives",
+      "rationale": "Both omitted transitions are reachable through run_workflow and invoke README projection, while the completed-restart test adds no journalist content and the P7 chart-failure test contains no preservation assertion, so no upstream guard makes the AC5 coverage gap unreachable or less severe.",
+      "evidence": [
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+          "output": "Lines 218-219 restart the completed case immediately (`resumed = run_workflow(root)`) before any journalist notes are added; lines 445-452 add `journalist_notes` only inside the later invalidation test; lines 481-508 exercise failed P7 chart recomputation but neither add journalist content nor assert its preservation."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py",
+          "output": "workflow.py:119-125 calls `load_snapshot(case_root)` before returning a complete case; state.py:49-52 calls `project_readme` whenever that snapshot is complete through P7; attempts.py:48-61 records P7 failures and calls `project_readme(root, state, completed_phase(state))` after the final failed attempt. Therefore both omitted lifecycle transitions reach README rewriting."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute19",
+      "source": "review2",
+      "finding": "tests/test_review.py:425 The inert-Markdown test does not exercise a standalone bare URL.",
+      "verdict": "survives",
+      "rationale": "The acceptance criterion explicitly requires inert bare HTTP(S) autolinks, but the fixture supplies URLs only as Markdown-link and HTML-image operands, so it can pass if those enclosing constructs are stripped while a prose-only URL still autolinks.",
+      "evidence": [
+        {
+          "command": "read tests/test_review.py:425-454",
+          "output": "The statement fixture is `Acme [click](https://example.invalid/pixel)`, `<img src=https://example.invalid/pixel>`, and a forged heading; there is no standalone prose URL, and the assertions only reject the two enclosing constructs, the heading, and the raw URL substring."
+        },
+        {
+          "command": "read task.md:13-15; read src/anomaly/review.py:655-665",
+          "output": "AC6 says dataset-derived Markdown must be inert `including bare URL autolinks`; `_markdown_text` has a dedicated context-independent HTTP(S) colon-neutralization branch, but the test never drives that branch with a prose-only bare-URL input or asserts that its visible text survives."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute20",
+      "source": "audit",
+      "finding": "src/anomaly/acquire.py:46 Direct source registration can follow an existing in-case symlink and overwrite another case artifact.",
+      "verdict": "survives",
+      "rationale": "The finding survives because this mainline registration entry calls only unscanned case/document validation, resolves an in-case destination symlink to its artifact target, and writes payload bytes to that resolved target; neither its decorator nor an upstream guard makes the overwrite unreachable or fail-safe.",
+      "evidence": [
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 31-47, 71-75, 123-131, 158-163)",
+          "output": "register_local_source calls resume_case(root) and validate_case_documents(root), builds relative = data/raw/<source_id>/<source-name>, and sets dest = _under_root(root, relative). _under_root computes candidate = (base / relative).resolve(), rejects only candidates outside base, and returns an in-case resolved candidate. For a new included source, lines 128-129 execute dest.parent.mkdir(...) and dest.write_bytes(payload), so a destination symlink resolving to case.json causes the CSV payload to be written to case.json."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py src/anomaly/semantics.py src/anomaly/events.py src/anomaly/workflow.py (targeted guard inspection)",
+          "output": "case.py:146-150 resume_case only checks _case_exists and calls _load_case; it does not call _scan_case_tree. semantics.py:180-225 validate_case_documents reads data/sources.json and scans only .anomaly/receipts. events.py:51-67 phase_event merely calls the wrapped function and logs success/failure. workflow.py:102-113 does scan in run_workflow, but that guard belongs only to that separate wrapper and does not precede a direct register_local_source call."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute22",
+      "source": "audit",
+      "finding": "src/anomaly/state.py:38 A completed snapshot with missing artifact identities is trusted as complete.",
+      "verdict": "survives",
+      "rationale": "The public workflow accepts the supplied state because missing identities become an empty mapping, the identity checker examines only recorded keys, and sequential P0-P7 completion causes an immediate terminal return without validating required artifact identities.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/state.py:18-48",
+          "output": "completed_phase advances by key presence through PHASES; load_snapshot passes {} to changed_identities when identities is missing or not a Mapping, then returns the state unchanged when no change is reported."
+        },
+        {
+          "command": "read src/anomaly/identities.py:22-31",
+          "output": "changed_identities builds changed only from `for name, digest in recorded.items()` and returns None when that list is empty; it does not require any IDENTITY_PHASES key."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:37-47,101-126",
+          "output": "resolve_workflow returns status `complete` as soon as completed_phase(snapshot) is P7; run_workflow calls load_snapshot, then returns that snapshot immediately for a complete resolution before run_attempts or any owner executes."
+        },
+        {
+          "command": "read src/anomaly/readme.py:24-62",
+          "output": "The P7 load-time README projection checks only completed/status fields and writes static output links; it does not verify that the linked artifacts exist or have identities."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute23",
+      "source": "audit",
+      "finding": "src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher accepts unnormalized role identities, both separation checks compare only whitespace-stripped casefold values, and no downstream attestation or persistence guard canonicalizes across roles, so composed and decomposed spellings let one logical identity pass both independent-role checks.",
+      "evidence": [
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/owners.py (lines 111-165)",
+          "output": "_replay_and_review obtains reviewer_id through _required_identity, reads Gate A approved_by through the same helper, and rejects equality only with reviewer_id.casefold() == gate_a_approver.casefold() at line 122; _accept_and_report performs the analogous casefold-only reviewer/Gate B comparison at line 134; _required_identity at lines 162-165 only validates non-empty string and returns value.strip()."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 102-137) and src/anomaly/workflow_inputs.py (lines 25-36, 69-76)",
+          "output": "run_workflow is the reachable public entry, copies inputs with normalize_inputs, and passes the resulting supplied mapping to consume_owner; normalize_inputs validates only top-level input names, while mapping_input copies gate mappings and rejects only unknown fields. Neither performs Unicode normalization or identity canonicalization."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/recommend.py (lines 364-377) and src/anomaly/review.py (lines 295-330, 399-407)",
+          "output": "Gate A validates approved_by only as a non-empty string and persists it verbatim. record_review only strips reviewer_id; strict attestation checks attested_by == reviewer but does not compare a canonical identity against Gate A. Gate B validates non-empty identity and optional exact configured equality, with no canonical cross-role guard."
+        },
+        {
+          "command": "python3 -c 'compare Café with Cafe\\u0301 using str.casefold and the gated canonical_key algorithm'",
+          "output": "{'casefold_equal': False, 'canonical_equal': True, 'a_nfc': True, 'b_nfc': False}"
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute24",
+      "source": "audit",
+      "finding": "src/anomaly/workflow.py:109 Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher captures every input once before its execution loop, carries that same mapping through every newly sealed phase, and treats mere key presence as sufficient to cross Gate A or Gate B; downstream artifact and identity validation does not prove that either decision was supplied in a fresh, informed human turn.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/workflow_inputs.py:16-31",
+          "output": "run_workflow calls normalize_inputs(inputs) once before while True, then on every iteration builds available from the unchanged supplied mapping and passes supplied into consume_owner; normalize_inputs copies all public inputs, including gate_a and gate_b, without phase or turn binding."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:37-69,160-167 and src/anomaly/owners.py:49-80,125-137",
+          "output": "resolve_workflow pauses only when the phase's required input name is absent. If gate_a or gate_b was supplied earlier, P4/P7 resolves ready immediately and consume_owner reads the retained mapping; neither boundary checks when the decision entered the call."
+        },
+        {
+          "command": "read src/anomaly/recommend.py:335-390 and src/anomaly/review.py:371-477",
+          "output": "Gate A validates approved IDs against the current deterministic plan and Gate B validates review/replay/identity artifacts, but neither receipt requires a post-P3/post-P6 turn token or decision timestamp. Gate B also permits an empty accepted_claim_ids list, so a future Gate B decision can remain structurally valid without knowing claim IDs in advance."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute25",
+      "source": "audit",
+      "finding": "src/anomaly/state.py:15 Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes.",
+      "verdict": "survives",
+      "rationale": "The public workflow can pass an arbitrary dynamic-owner exception directly into durable attempt recording, and the only sanitizer on that path recognizes three provider prefixes, so common credentials remain reachable and are persisted repeatedly without an upstream guard or fail-safe.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/state.py:1-121; read src/anomaly/semantics.py:44-101",
+          "output": "safe_error calls _safe_text, which applies redact_credentials and _SECRET; both credential regexes match only sk_live_, ghp_, and github_pat_, with no assignment, Bearer, AWS, Slack, or credential-bearing URL handling."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:75-136; read src/anomaly/attempts.py:21-121",
+          "output": "run_workflow is the public entry point, invokes the caller-supplied reasoning callback without constraining exception text, and run_attempts catches any Exception; _record_failure then writes the sanitized message to failure.json, events.jsonl, state.failures, and blocked_reason after the third attempt."
+        },
+        {
+          "command": "read src/anomaly/review.py:20-35,1040-1072; read skills/anomaly/SKILL.md:35-58",
+          "output": "review.py already redacts sensitive assignments, Bearer values, Slack xox tokens, and AWS AKIA keys, while the installed workflow contract requires credential-redacted failure persistence and forbids credentials in case JSON or events; no equivalent protection exists on the attempt-error path."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute26",
+      "source": "audit",
+      "finding": "src/anomaly/owners.py:92 A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.",
+      "verdict": "survives",
+      "rationale": "The defect is reachable through the public run_workflow sources input because only request shape and duplicate IDs are prevalidated, each valid earlier request commits directly to the live case before a later request can fail source-specific validation, and run_attempts records and retries the failure without restoring those mutations, so the high-severity atomicity violation is honest.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:1-180",
+          "output": "The clean green gate is bound to hash 4a1746f9050120df52e7845166f0ab935c4e584a, and task AC3 requires durable attempt staging, failure evidence, and atomic promotion."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:101-139, src/anomaly/owners.py:49-108, and src/anomaly/workflow_inputs.py:48-63",
+          "output": "Public run_workflow routes P1 into run_attempts and consume_owner; _run_handler ignores attempt_dir and _register_sources iterates register_local_source against the live case. source_requests prevalidates only nonempty list/mapping shape and required/unknown fields, leaving later per-source path, format, availability, and inclusion validation reachable after an earlier request has succeeded."
+        },
+        {
+          "command": "read src/anomaly/acquire.py:31-132 and src/anomaly/attempts.py:21-67,87-121",
+          "output": "For a new included source, register_local_source writes raw bytes, a receipt, and data/sources.json immediately. A later exception is caught by run_attempts, which writes failure evidence and retries or marks P1 unavailable; no rollback or attempt-directory promotion restores the earlier live writes."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute27",
+      "source": "audit",
+      "finding": "src/anomaly/readme.py:36 README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+      "verdict": "survives",
+      "rationale": "The public workflow reaches this projection on P7 completion, completed-case resume, and P7 invalidation, and no upstream content guard prevents a journalist-authored block from exactly matching _OUTPUTS, so the global replacement can delete valid authored Markdown and the medium data-loss severity is honest.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/readme.py:24-38",
+          "output": "project_readme reads the existing README, removes the bounded anomaly marker block, then calls .replace(_OUTPUTS, \"\") without a count or marker requirement; the only local guards are README existence and non-symlink status."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:101-126; src/anomaly/state.py:34-52,151-174; src/anomaly/attempts.py:50-88",
+          "output": "run_workflow calls load_snapshot on a real case; load_snapshot projects completed P7 READMEs, _invalidate_state projects after invalidating a previously completed P7 case, and _seal_success projects after successful P7 completion."
+        },
+        {
+          "command": "grep 'README.md|Outputs|accepted findings' src/anomaly",
+          "output": "The only README content mutation/guard in production is readme.py; no validator rejects or distinguishes an unmarked journalist-authored exact _OUTPUTS block."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+          "output": "Acceptance explicitly requires README projection to preserve journalist-authored content, making deletion of a valid unmarked matching section a contract violation."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute05",
+      "source": "review",
+      "finding": "src/anomaly/case.py:146 Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.",
+      "verdict": "survives",
+      "rationale": "The finding is reachable and honestly high severity: direct resume/inspect calls never scan, while register_local_source calls the unguarded resume path, resolves a destination symlink to an allowed in-case target, and then writes through that resolved path, permitting overwrite of another case artifact; run_workflow's upstream scan does not protect direct public calls.",
+      "evidence": [
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py (lines 139-165)",
+          "output": "139: def inspect_case(root: Path) -> ExistingCaseOffer | None:\n140:     root = Path(root)\n141:     if not _case_exists(root):\n142:         return None\n143:     return _offer(root)\n146: def resume_case(root: Path) -> Case:\n147:     root = Path(root)\n148:     if not _case_exists(root):\n149:         raise CaseNotFoundError(str(root))\n150:     return _load_case(root)\n161:     source = Path(source)\n162:     dest = Path(dest).resolve()\n163:     _scan_case_tree(source)\n165:     parent = resume_case(source)"
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 30-46, 71-75, 125-130, 158-163)",
+          "output": "30: @phase_event(\"P1\", \"register_local_source\")\n31: def register_local_source(...):\n45:     root = Path(root).resolve()\n46:     resume_case(root)\n71:     relative = _posix(\"data/raw\", persisted_source_id, source_path.name)\n72:     dest = _under_root(root, relative)\n75:     payload = source_path.read_bytes() if source_path.is_file() else None\n125:     if existing_index is None:\n126:         if included:\n128:             dest.parent.mkdir(parents=True, exist_ok=True)\n129:             dest.write_bytes(payload)\n158: def _under_root(root: Path, relative: str) -> Path:\n159:     base = Path(root).resolve()\n160:     candidate = (base / relative).resolve()\n161:     if candidate != base and base not in candidate.parents:\n162:         raise UnsafeCasePathError(relative)\n163:     return candidate"
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 102-113)",
+          "output": "102: def run_workflow(...):\n110:     case_root = Path(root)\n111:     _scan_case_tree(case_root)\n112:     case_root = case_root.resolve()\n113:     resume_case(case_root)"
+        },
+        {
+          "command": "read src/anomaly/events.py:50-68",
+          "output": "phase_event wraps the function with try/except, calls the wrapped function directly, then performs best-effort log_event; it contains no case-tree scan or path guard."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute06",
+      "source": "review",
+      "finding": "src/anomaly/workflow.py:119 The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case.",
+      "verdict": "survives",
+      "rationale": "The finding is reachable: run_workflow performs its only whole-tree scan before the loop, grants the external reasoning invoker the case root, and after that invoker returns run_attempts writes through the previously created attempt directory with no rescan or symlink-parent guard, so an owner that replaces that directory with a symlink can make the same public call write result.json outside the case.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 101-140)",
+          "output": "111: _scan_case_tree(case_root); 119: while True; 128-138: run_attempts(... lambda attempt_dir: consume_owner(...)); there is no _scan_case_tree call in the loop before or after owner execution."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 89-99); git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/owners.py (lines 37-56)",
+          "output": "workflow.py:99 passes case_root=Path(case_root) to the external invoke callable; owners.py:49-55 calls that reasoning owner for P5 and accepts its return after only checking that findings/draft.json is_file()."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py (lines 41-48,122-124); git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py (lines 102-105)",
+          "output": "attempts.py creates attempt_dir before invocation, then executes the owner and calls _write_output(attempt_dir, output); _write_output calls write_json_atomic(attempt_dir / \"result.json\", payload). state.py implements that helper as temporary.write_text(...) followed by temporary.replace(path), with no containment rescan or symlink-parent rejection."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute09",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:263 The retained retry tests no longer verify credential-redacted durable failure evidence.",
+      "verdict": "survives",
+      "rationale": "The public retry path can persist one sanitized exception message into failure.json, event error fields, state failures, and blocked_reason, but the gated retry test supplies no credential and asserts none of those redaction outcomes, while no focused retry redaction coverage exists in the retained orchestration tests.",
+      "evidence": [
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py [lines 263-288]",
+          "output": "The test sets source_id to \"../unsafe\", runs run_workflow, and asserts only blocked/unavailable status, three P1 attempts, relative attempt paths, and attempt-directory existence; it does not inject a credential or inspect persisted error text."
+        },
+        {
+          "command": "git grep -n -E 'sk_live_|ghp_|github_pat_|failure\\.json|phase_failed' 4a1746f9050120df52e7845166f0ab935c4e584a -- tests/test_pipeline_walk.py tests/test_workflow.py",
+          "output": "Exit 1 with no matches."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py [lines 91-108]",
+          "output": "_record_failure computes message = safe_error(error), writes it to attempt failure.json, appends it as the phase_failed event error, stores it in state failures, and on the third attempt assigns the same message to blocked_reason."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py [lines 120-125]",
+          "output": "safe_error returns _safe_text(value)[:2000], and _safe_text applies credential redaction; this shows the intended fail-safe exists in production but does not supply the missing public durable-evidence regression assertion."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute12",
+      "source": "review",
+      "finding": "tests/test_pipeline_walk.py:438 README preservation coverage omits completed restart and failed recomputation transitions.",
+      "verdict": "survives",
+      "rationale": "Both transitions are reachable production branches that invoke README projection, but the gated tests do not exercise either branch with journalist-authored content despite the plan explicitly requiring preservation across completed restart and failure.",
+      "evidence": [
+        {
+          "command": "grep -n \"survive completed restart\" .jeff/tasks/0027-resolver-consolidation/notes.md",
+          "output": "47|5. **README lifecycle and links — `revise`.** Consumer behavior: public P7 completion projects complete/P7 and three resolving relative links; later journalist-authored README sections survive completed restart, Gate B invalidation, failure, and recompletion. Seams: revised public demo and Gate B invalidation tests."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py (lines 185-219, 438-508)",
+          "output": "The completed-restart test calls resumed = run_workflow(root) and asserts only resumed == first_state; it never adds or checks journalist content. Journalist notes are first added at lines 446-452 inside the Gate B invalidation test and are checked through invalidation/recompletion. The chart-failure test at lines 481-508 adds no journalist content and asserts only unavailable/P7/three-attempt state plus removal of complete/P7 README claims."
+        },
+        {
+          "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py; git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py (targeted lines)",
+          "output": "state.py:49-51 calls project_readme whenever completed_phase(state) == \"P7\", so completed restart reaches projection. attempts.py:48-60 records each failure and calls project_readme after the third P7 failure, so failed recomputation also reaches projection. No upstream guard makes either lifecycle transition impossible."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute16",
+      "source": "review2",
+      "finding": "src/anomaly/workflow.py:111 The multi-phase dispatcher performs whole-case containment validation only once.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher scans only before entering its multi-phase loop, while the P5/P6 adapter receives the live case root and later state/event operations use unrescanned paths; no upstream guard prevents an adapter-created symlink from being followed, including by the post-phase event append.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:101-145",
+          "output": "run_workflow calls _scan_case_tree(case_root) once at line 111 before while True; each iteration then calls load_snapshot, resolves an owner, and invokes run_attempts without another whole-case scan. The reasoning wrapper passes the live case_root to invoke_resolved_owner."
+        },
+        {
+          "command": "read src/anomaly/owners.py:37-51 and src/anomaly/workflow.py:75-99",
+          "output": "For P5, consume_owner calls the external reason adapter, which is invoked with case_root, and accepts the result after only checking that findings/draft.json is_file; there is no post-adapter containment scan."
+        },
+        {
+          "command": "read src/anomaly/attempts.py:21-59 and src/anomaly/state.py:31-48,65-93",
+          "output": "After owner execution, run_attempts seals success and calls append_event. load_snapshot performs durable-state and identity work but no whole-case scan, while append_event directly opens root/.anomaly/events.jsonl in append mode. Therefore a valid P5 adapter can create a symlink at that path and the successful post-phase append follows it; the code does not fail safe."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:512-553",
+          "output": "Both surviving dispatcher containment tests create their symlinks before run_workflow is called and assert rejection before attempts begin; neither exercises a link introduced by P5 or P6 during the loop."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnRefute21",
+      "source": "audit",
+      "finding": "src/anomaly/workflow.py:111 The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher gives the P5/P6 invoker the live case root after its sole tree scan, and post-callback state/event operations perform ordinary path reads or appends without no-follow validation, so a callback can replace state.json or events.jsonl with a symlink and cause the same invocation to access an external target.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow.py:101-145 and src/anomaly/owners.py:37-62",
+          "output": "run_workflow calls _scan_case_tree only once before entering while True; P5 then calls reason(resolution), which reaches invoke(owner=..., instructions=..., case_root=Path(case_root)), and the loop contains no later _scan_case_tree call."
+        },
+        {
+          "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:31-110,188-203",
+          "output": "After execute returns, run_attempts writes the result, calls _seal_success/load_snapshot, and appends phase_completed. _read_state follows .anomaly/state.json via read_text, while append_event follows .anomaly/events.jsonl via open('a'); neither path is lstat-checked or opened with no-follow semantics."
+        },
+        {
+          "command": "grep 4a1746f9050120df52e7845166f0ab935c4e584a and supplied finding in .jeff/tasks/0027-resolver-consolidation/task.json",
+          "output": "The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a, and the active audit finding is the workflow.py:111 single-scan finding evaluated here."
+        }
+      ]
+    }
+  ],
+  "convergence": {
+    "cap": 2,
+    "stages": {
+      "review": {
+        "blockingKickbacks": 1
+      },
+      "audit": {
+        "blockingKickbacks": 1
+      }
+    },
+    "council": {
+      "convened": false,
+      "stage": null,
+      "members": [],
+      "findings": [],
+      "verdict": null,
+      "outcome": null
+    }
+  },
+  "judgmentHistory": [
+    {
+      "at": "2026-08-24T10:44:30Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyCorrectnessSchema",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 109,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Invocation-wide gate decisions can bypass both required human turn boundaries.",
+            "why": "run_workflow normalizes every supplied input once and carries the same gate_a/gate_b keys through every freshly resolved phase. A decision supplied before its gate is reached therefore becomes immediately consumable after P3 or P6 instead of ending the turn at Gate A or Gate B; the resolver probe returned ready P4 and P7 owners for those carried keys.",
+            "refute": {
+              "agent_id": "AnRefute01",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:109 Invocation-wide gate decisions can bypass both required human turn boundaries.",
+              "verdict": "survives",
+              "rationale": "No upstream stage-aware guard exists: the public entry accepts Gate A and Gate B together, retains both decisions for the whole invocation, checks only key presence at P4/P7, and continues after successful P3/P6 seals, so both required paused returns are reachable to bypass.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:102-138",
+                  "output": "run_workflow calls normalize_inputs once into supplied before entering while True; every iteration builds available from that same supplied mapping, pauses only when resolution.status == 'paused', otherwise executes the owner, and continues unless the phase becomes blocked or unavailable."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:28-68 and src/anomaly/workflow_inputs.py:11-29",
+                  "output": "_REQUIRED_INPUTS maps P4 to gate_a and P7 to gate_b; _missing_input returns no pause whenever the name is present. normalize_inputs accepts both names in _PUBLIC_INPUTS, copies the whole caller mapping, and has no phase-aware rejection or deferral guard."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:52-70,124-134 and src/anomaly/attempts.py:52-73",
+                  "output": "The P4 handler reads inputs['gate_a'] and immediately approves/detects; P7 reads inputs['gate_b'] and immediately accepts/reports. A successful non-P7 phase is sealed with status 'active', so after P3 and P6 run_workflow loops directly to the next ready owner instead of returning a human-turn pause."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.md and task.json gate evidence",
+                  "output": "The locked acceptance criterion requires Gate A/Gate B turn boundaries, and task state records the inspected candidate as clean and green at gated hash 4a1746f9050120df52e7845166f0ab935c4e584a."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 35,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation.",
+            "why": "_REQUIRED_INPUTS omits the timezone-aware now value required by P1-P4 and tests only whether gate_a/gate_b top-level names exist. Missing now or incomplete gate mappings consequently resolve ready and fail later inside an attempt, contradicting the complete missing-input/human-decision contract and the rule that human stops consume no attempt.",
+            "refute": {
+              "agent_id": "AnRefute02",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:35 The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher passes only top-level input names to the resolver, so missing `now` and incomplete Gate A/B mappings resolve ready; the selected owners validate or index those values only inside `run_attempts`, whose broad exception path durably increments and retries through all three attempts rather than pausing without attempt consumption.",
+              "evidence": [
+                {
+                  "command": "read anomaly/src/anomaly/workflow.py:32-138",
+                  "output": "`_REQUIRED_INPUTS = {\"P1\": \"sources\", \"P4\": \"gate_a\", \"P7\": \"gate_b\"}`; `_missing_input` checks only membership in `supplied`; `run_workflow` derives `available` from top-level names, resolves, and sends every ready result directly to `run_attempts`."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/workflow_inputs.py:13-71",
+                  "output": "`normalize_inputs` validates only mapping/key shape and unknown top-level names; `input_time` later raises unless `now` is a timezone-aware datetime; `mapping_input` accepts any subset of allowed Gate A/B fields and does not require the fields consumed by owners."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/owners.py:49-92,135-143",
+                  "output": "P2 and P3 call `input_time(inputs)`; P4 reads `gate[\"approved_ids\"]` and `gate[\"approved_by\"]` after subset-only mapping validation, then calls `input_time`; P7 passes a subset-only Gate B mapping to `_accept_and_report`, which reads required fields. These checks occur in owner execution, after resolution."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/attempts.py:21-67",
+                  "output": "`run_attempts` increments and persists the phase attempt before calling `execute`; `except Exception` records the failure and retries until `MAX_ATTEMPTS`, proving these ordinary missing/incomplete inputs consume attempts and can end unavailable."
+                },
+                {
+                  "command": "read anomaly/.jeff/tasks/0027-resolver-consolidation/task.md; read anomaly/.jeff/tasks/0027-resolver-consolidation/notes.md",
+                  "output": "The accepted contract requires the pure resolver to return missing input/human decision, and the plan states Gate A/Gate B pauses end the turn without consuming an attempt; the observed execution path contradicts that contract."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/owners.py",
+            "line": 59,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.",
+            "why": "_run_handler discards _attempt_dir, and _register_sources promotes each request inside its loop. If a later source is invalid, the attempt fails and retries while earlier source bytes, receipts, and catalogue records remain live. The supplied gated-hash probe ended P1 unavailable after three attempts with the first source already present, violating AC3 atomic promotion.",
+            "refute": {
+              "agent_id": "AnRefute03",
+              "source": "review",
+              "finding": "src/anomaly/owners.py:59 The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.",
+              "verdict": "survives",
+              "rationale": "The failure is reachable through the public P1 source-batch path: only request shape and duplicate IDs are prevalidated, each valid request is then persisted directly into the live case before the next request is validated, and run_attempts records failures without rolling those mutations back; the gated-hash probe confirms a later invalid source leaves the earlier source live after P1 becomes unavailable.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/attempts.py:21-105",
+                  "output": "run_workflow passes the live case_root to consume_owner inside run_attempts; run_attempts creates attempt_dir but success/failure handling only writes attempt result/failure evidence and state, with no snapshot, rollback, or cleanup of owner mutations."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:53-103",
+                  "output": "_run_handler names the staging argument _attempt_dir and does not use it. For P1, _register_sources loops over requests and calls register_local_source(root, ...) against the live root for each item."
+                },
+                {
+                  "command": "read src/anomaly/workflow_inputs.py:42-57 and src/anomaly/acquire.py:25-126",
+                  "output": "source_requests validates only list/mapping shape and required/unknown fields. Per-item path existence, extension, portability, and metadata validation happen later inside register_local_source, after earlier loop items may already have written raw bytes, receipts, and data/sources.json."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/review-correctness.json:115-145",
+                  "output": "The supplied gated-hash public probe with a valid CSV followed by an unsupported .txt ended {\"attempts\":{\"P0\":1,\"P1\":3},\"phase\":\"P1\",\"status\":\"unavailable\",\"sources\":[{\"source_id\":\"good\",...}],\"raw\":[\"data/raw/good/good.csv\"]}, directly demonstrating reachability and durable partial promotion."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/readme.py",
+            "line": 36,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "README projection deletes journalist-authored content that exactly matches the legacy Outputs block.",
+            "why": "After removing the marked Anomaly-owned block, project_readme globally replaces every exact _OUTPUTS occurrence. An unmarked journalist-authored Outputs section is therefore erased; the pure replacement probe preserved only the later Notes section.",
+            "refute": {
+              "agent_id": "AnRefute04",
+              "source": "review",
+              "finding": "src/anomaly/readme.py:36 README projection deletes journalist-authored content that exactly matches the legacy Outputs block.",
+              "verdict": "survives",
+              "rationale": "A journalist-edited regular README can contain this exact unmarked section, and public completion, completed-case resume, or invalidation reaches the unconditional global replacement, silently deleting user-authored content in direct conflict with the preservation acceptance criterion.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/readme.py:24-48",
+                  "output": "project_readme accepts any existing non-symlink README, removes the marked Anomaly block, then unconditionally executes .replace(_OUTPUTS, \"\"); Python str.replace removes every exact occurrence, with no ownership or position guard."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:101-139; src/anomaly/attempts.py:21-88; src/anomaly/state.py:34-52,133-171",
+                  "output": "The public run_workflow entry repeatedly calls load_snapshot; completed P7 snapshots call project_readme, successful P7 sealing calls it, and invalidation from a previously completed P7 calls it again. The destructive branch is therefore reachable during ordinary completion, restart, and invalidation flows."
+                },
+                {
+                  "command": "read src/anomaly/case.py:196-224,237-251",
+                  "output": "resume_case/_load_case validates case.json and progress but imposes no README-content restriction; the initial README is ordinary journalist-facing Markdown. No upstream guard makes an exact unmarked Outputs section impossible."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep gated hash and finding evidence in task state/review return",
+                  "output": "The locked acceptance criterion explicitly requires README projection to preserve journalist-authored content; gate state binds the inspected candidate to 4a1746f9050120df52e7845166f0ab935c4e584a, and the supplied pure replacement probe reports journalist_outputs_preserved=False with only the later Notes section remaining."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/case.py",
+            "line": 146,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.",
+            "why": "resume_case and inspect_case load selected files without _scan_case_tree, and public domain writers such as register_local_source rely on resume_case. A nested in-case symlink is accepted; in source registration, a destination symlink resolving to another in-case artifact can be followed and overwritten. Only run_workflow and fork_case currently scan the whole tree.",
+            "refute": {
+              "agent_id": "AnRefute05",
+              "source": "review",
+              "finding": "src/anomaly/case.py:146 Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.",
+              "verdict": "survives",
+              "rationale": "The finding is reachable and honestly high severity: direct resume/inspect calls never scan, while register_local_source calls the unguarded resume path, resolves a destination symlink to an allowed in-case target, and then writes through that resolved path, permitting overwrite of another case artifact; run_workflow's upstream scan does not protect direct public calls.",
+              "evidence": [
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py (lines 139-165)",
+                  "output": "139: def inspect_case(root: Path) -> ExistingCaseOffer | None:\n140:     root = Path(root)\n141:     if not _case_exists(root):\n142:         return None\n143:     return _offer(root)\n146: def resume_case(root: Path) -> Case:\n147:     root = Path(root)\n148:     if not _case_exists(root):\n149:         raise CaseNotFoundError(str(root))\n150:     return _load_case(root)\n161:     source = Path(source)\n162:     dest = Path(dest).resolve()\n163:     _scan_case_tree(source)\n165:     parent = resume_case(source)"
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 30-46, 71-75, 125-130, 158-163)",
+                  "output": "30: @phase_event(\"P1\", \"register_local_source\")\n31: def register_local_source(...):\n45:     root = Path(root).resolve()\n46:     resume_case(root)\n71:     relative = _posix(\"data/raw\", persisted_source_id, source_path.name)\n72:     dest = _under_root(root, relative)\n75:     payload = source_path.read_bytes() if source_path.is_file() else None\n125:     if existing_index is None:\n126:         if included:\n128:             dest.parent.mkdir(parents=True, exist_ok=True)\n129:             dest.write_bytes(payload)\n158: def _under_root(root: Path, relative: str) -> Path:\n159:     base = Path(root).resolve()\n160:     candidate = (base / relative).resolve()\n161:     if candidate != base and base not in candidate.parents:\n162:         raise UnsafeCasePathError(relative)\n163:     return candidate"
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 102-113)",
+                  "output": "102: def run_workflow(...):\n110:     case_root = Path(root)\n111:     _scan_case_tree(case_root)\n112:     case_root = case_root.resolve()\n113:     resume_case(case_root)"
+                },
+                {
+                  "command": "read src/anomaly/events.py:50-68",
+                  "output": "phase_event wraps the function with try/except, calls the wrapped function directly, then performs best-effort log_event; it contains no case-tree scan or path guard."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 119,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case.",
+            "why": "run_workflow scans once before entering the loop. P5/P6 invoke external adapters that write case artifacts, then the next iteration loads state and executes another owner without rescanning. A symlink introduced by an invoked owner can therefore reach later public reads or writes in the same call, contrary to AC7's every-path preflight.",
+            "refute": {
+              "agent_id": "AnRefute06",
+              "source": "review",
+              "finding": "src/anomaly/workflow.py:119 The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case.",
+              "verdict": "survives",
+              "rationale": "The finding is reachable: run_workflow performs its only whole-tree scan before the loop, grants the external reasoning invoker the case root, and after that invoker returns run_attempts writes through the previously created attempt directory with no rescan or symlink-parent guard, so an owner that replaces that directory with a symlink can make the same public call write result.json outside the case.",
+              "evidence": [
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 101-140)",
+                  "output": "111: _scan_case_tree(case_root); 119: while True; 128-138: run_attempts(... lambda attempt_dir: consume_owner(...)); there is no _scan_case_tree call in the loop before or after owner execution."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 89-99); git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/owners.py (lines 37-56)",
+                  "output": "workflow.py:99 passes case_root=Path(case_root) to the external invoke callable; owners.py:49-55 calls that reasoning owner for P5 and accepts its return after only checking that findings/draft.json is_file()."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py (lines 41-48,122-124); git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py (lines 102-105)",
+                  "output": "attempts.py creates attempt_dir before invocation, then executes the owner and calls _write_output(attempt_dir, output); _write_output calls write_json_atomic(attempt_dir / \"result.json\", payload). state.py implements that helper as temporary.write_text(...) followed by temporary.replace(path), with no containment rescan or symlink-parent rejection."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/owners.py",
+            "line": 122,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Canonical-equivalent Unicode identities bypass reviewer independence at both gates.",
+            "why": "The Gate A/reviewer and reviewer/Gate B checks compare casefold values only. Composed 'Réviewer' and decomposed 'Réviewer' compare unequal by casefold but equal under the project's canonical_key, so one logical identity can occupy separated roles.",
+            "refute": {
+              "agent_id": "AnRefute07",
+              "source": "review",
+              "finding": "src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass reviewer independence at both gates.",
+              "verdict": "survives",
+              "rationale": "The public workflow accepts nonempty identity strings without Unicode normalization, both role-separation checks compare only casefolded text, and the project’s canonical identity function additionally normalizes to NFC, so canonically equivalent composed and decomposed identities can reach and pass both gates.",
+              "evidence": [
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:34-38,101-109,266-287",
+                  "output": "The task binds the reviewed candidate to gated hash 4a1746f9050120df52e7845166f0ab935c4e584a and records that reviewed product source matches that gate; the supplied review finding is at src/anomaly/owners.py:122."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:116-150",
+                  "output": "Gate A/reviewer separation is `reviewer_id.casefold() == gate_a_approver.casefold()` and reviewer/Gate B separation is `journalist_id.casefold() == reviewer_id.casefold()`; `_required_identity` only requires a nonempty string and returns `value.strip()`."
+                },
+                {
+                  "command": "read src/anomaly/semantics.py:63-79",
+                  "output": "`canonical_key` returns `unicodedata.normalize(\"NFC\", unicodedata.normalize(\"NFC\", value).casefold())`, establishing NFC normalization as part of the project’s canonical identity policy."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:101-139; src/anomaly/workflow_inputs.py:10-65; src/anomaly/recommend.py:335-379; src/anomaly/review.py:249-335",
+                  "output": "`run_workflow` forwards caller gate inputs and dynamic reviewer output into owners; gate mappings restrict field names but not Unicode form, Gate A accepts and persists any nonempty `approved_by`, and review recording only strips `reviewer_id` while its attestation check compares against that same unnormalized value. No upstream NFC guard makes the bypass unreachable."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/state.py",
+            "line": 39,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "A completed snapshot with missing authoritative identities is trusted as P7-complete.",
+            "why": "changed_identities iterates only identity keys already recorded; a missing or malformed identities map becomes an empty mapping and yields no invalidation. A sequential completed map through P7 is then accepted without checking source, detector, gate, draft, replay, review, or Gate B artifacts; the pure probe reported completed P7 with identity_change None.",
+            "refute": {
+              "agent_id": "AnRefute08",
+              "source": "review",
+              "finding": "src/anomaly/state.py:39 A completed snapshot with missing authoritative identities is trusted as P7-complete.",
+              "verdict": "survives",
+              "rationale": "Normal sealing captures identities, but the public portable-case entry accepts any regular state.json; load_snapshot converts a missing or non-mapping identities value to {}, changed_identities cannot notice omitted required keys, and resolve_workflow then treats a sequential completed map through P7 as terminal and even projects README completion without validating the authoritative artifacts.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/attempts.py:70-90; src/anomaly/state.py:34-49; src/anomaly/identities.py:22-31",
+                  "output": "_seal_success normally calls capture_identities before write_state, but load_snapshot passes {} when identities is absent or malformed, and changed_identities compares only recorded.items(); it has no required-key check, so omitted identities produce no invalidation."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:37-49,106-128; src/anomaly/case.py:146-150,255-301",
+                  "output": "run_workflow is a real public entry: its case-tree guard rejects links/special files but accepts regular files, resume_case validates the case record rather than state provenance, then load_snapshot feeds resolve_workflow; resolve_workflow returns complete solely when completed_phase is P7."
+                },
+                {
+                  "command": "read src/anomaly/state.py:22-49; src/anomaly/readme.py:24-58",
+                  "output": "completed_phase accepts any sequential P0-P7 key mapping; load_snapshot calls project_readme when it sees P7, and project_readme marks Status complete and adds accepted-findings/report links without checking that those artifacts or their identities exist."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 263,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The retained retry tests no longer verify credential-redacted durable failure evidence.",
+            "why": "The current test asserts three attempts and relative attempt paths but injects no credential and inspects neither failure.json, event error fields, state failures, nor blocked_reason. The deleted WorkflowRunner test was the only redaction assertion. AC3's durable failure evidence is consumer-observable, so the plan's ambiguous reuse/delete claim is dominated by reuse but is not valid: a focused public replacement test is owed.",
+            "refute": {
+              "agent_id": "AnRefute09",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:263 The retained retry tests no longer verify credential-redacted durable failure evidence.",
+              "verdict": "survives",
+              "rationale": "The public retry path can persist one sanitized exception message into failure.json, event error fields, state failures, and blocked_reason, but the gated retry test supplies no credential and asserts none of those redaction outcomes, while no focused retry redaction coverage exists in the retained orchestration tests.",
+              "evidence": [
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py [lines 263-288]",
+                  "output": "The test sets source_id to \"../unsafe\", runs run_workflow, and asserts only blocked/unavailable status, three P1 attempts, relative attempt paths, and attempt-directory existence; it does not inject a credential or inspect persisted error text."
+                },
+                {
+                  "command": "git grep -n -E 'sk_live_|ghp_|github_pat_|failure\\.json|phase_failed' 4a1746f9050120df52e7845166f0ab935c4e584a -- tests/test_pipeline_walk.py tests/test_workflow.py",
+                  "output": "Exit 1 with no matches."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py [lines 91-108]",
+                  "output": "_record_failure computes message = safe_error(error), writes it to attempt failure.json, appends it as the phase_failed event error, stores it in state failures, and on the third attempt assigns the same message to blocked_reason."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py [lines 120-125]",
+                  "output": "safe_error returns _safe_text(value)[:2000], and _safe_text applies credential redaction; this shows the intended fail-safe exists in production but does not supply the missing public durable-evidence regression assertion."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 349,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.",
+            "why": "Current public tests cover source/P1, prepared/P2, and Gate B/P7, but production still maps recommendation/P3, Gate A and detector/P4, draft/P5, and replay/review/P6. Deleting their behavioral assertions without deleting those behaviors violates the remove rule; focused state/resolution tests must replace the synthetic runner composition.",
+            "refute": {
+              "agent_id": "AnRefute10",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:349 Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.",
+              "verdict": "survives",
+              "rationale": "Production directly trusts the unguarded identity-to-phase table to choose and destructively clear the invalidation suffix, while the candidate deleted the only P3–P6 behavioral matrix and retained public tests exercise only source/P1, prepared/P2, and Gate B/P7, so no upstream guard or equivalent coverage makes the blocker unreachable or less severe.",
+              "evidence": [
+                {
+                  "command": "git rev-parse HEAD",
+                  "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+                },
+                {
+                  "command": "read src/anomaly/identities.py:9-30",
+                  "output": "IDENTITY_PHASES maps recommendation→P3, gate_a/detector→P4, draft→P5, replay/review→P6; changed_identities compares every recorded digest and returns the minimum mapped phase without any independent validation or fallback."
+                },
+                {
+                  "command": "read src/anomaly/state.py:34-45,124-162",
+                  "output": "load_snapshot passes changed_identities' start directly to _invalidate_state; _invalidate_state removes every completed phase from that start onward, clears attempts/failures and identities for the same suffix, and persists the result."
+                },
+                {
+                  "command": "git diff bd3d49e 61a2b7c -- tests/test_pipeline_walk.py",
+                  "output": "The task-27 cutover deletes MUTATIONS entries for source/P1, prepared/P2, detector/P4, parameters/P3, draft/P5, replay/P6, review/P6, Gate A/P4, and Gate B/P7, and deletes test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase, which asserted invalidated_from, retained prefix, cleared suffix, and suffix rerun."
+                },
+                {
+                  "command": "grep 'invalidat|rebuilds_stale|replaces_changed' tests",
+                  "output": "Current workflow-dispatch coverage is tests/test_pipeline_walk.py:349 prepared mutation, :371 source replacement, and :438 Gate-B mutation; tests/test_m5_handoff.py detector-change cases exercise replay/acceptance rejection rather than load_snapshot's earliest workflow suffix, and no tests reference changed_identities, capture_identities, artifact_identity, or IDENTITY_PHASES."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 185,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "No public test proves that future Gate A or Gate B decisions cannot cross a turn.",
+            "why": "The demo deliberately supplies each human decision only on a later invocation, so it cannot fail when run_workflow incorrectly carries a pre-supplied future decision through the resolver loop. The exact gate-turn behavior is consumer-observable and explicitly required by AC4.",
+            "refute": {
+              "agent_id": "AnRefute11",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:185 No public test proves that future Gate A or Gate B decisions cannot cross a turn.",
+              "verdict": "survives",
+              "rationale": "At the gated hash, run_workflow normalizes inputs once and reuses the same supplied mapping on every resolver iteration, with no guard that rejects or consumes a future gate decision, while the cited demo supplies Gate A and Gate B only in separate later invocations; the consumer-observable AC4 turn boundary is therefore reachable and unproved.",
+              "evidence": [
+                {
+                  "command": "git rev-parse HEAD",
+                  "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py",
+                  "output": "109: supplied = normalize_inputs(inputs)\n119: while True:\n120:     snapshot = load_snapshot(case_root)\n122:     available = frozenset({*supplied, *({\"sources\"} if has_sources else set())})\n123:     resolution = resolve_workflow(snapshot, supplied=available)\n126:     if resolution[\"status\"] == \"paused\":\n127:         return pause_at(case_root, snapshot, resolution[\"phase\"], resolution[\"missing\"])\n131-137: consume_owner receives the unchanged resolution and supplied mapping; the loop then resolves again without clearing gate keys."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+                  "output": "101: the first invocation supplies only source inputs and asserts pause at gate_a; 118-130: the next invocation supplies gate_a and asserts pause at gate_b; 142-151: a third invocation supplies gate_b and asserts completion. No invocation pre-supplies a future gate decision."
+                },
+                {
+                  "command": "grep pattern 'gate_a|gate_b' path tests",
+                  "output": "Public-dispatcher gate inputs occur in tests/test_pipeline_walk.py at gate_a lines 122, 334, 402 and gate_b lines 145, 425, 470, 496; the canonical demo path at lines 92-151 supplies each gate only after the prior invocation has paused."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+                  "output": "Acceptance criterion 4: \"Gate A/Gate B turn boundaries, identity separation, source replacement, earliest invalidation, event-failure resume, case portability and exact P5→P6→Gate B→P7 order remain green.\""
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 438,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "README preservation coverage omits completed restart and failed recomputation transitions.",
+            "why": "The journalist notes fixture is added immediately before Gate B invalidation and covers invalidation plus recompletion, while the chart-failure test contains no journalist-authored content. The plan explicitly claims preservation across completed restart and failure too, and those observable lifecycle cases remain unproved.",
+            "refute": {
+              "agent_id": "AnRefute12",
+              "source": "review",
+              "finding": "tests/test_pipeline_walk.py:438 README preservation coverage omits completed restart and failed recomputation transitions.",
+              "verdict": "survives",
+              "rationale": "Both transitions are reachable production branches that invoke README projection, but the gated tests do not exercise either branch with journalist-authored content despite the plan explicitly requiring preservation across completed restart and failure.",
+              "evidence": [
+                {
+                  "command": "grep -n \"survive completed restart\" .jeff/tasks/0027-resolver-consolidation/notes.md",
+                  "output": "47|5. **README lifecycle and links — `revise`.** Consumer behavior: public P7 completion projects complete/P7 and three resolving relative links; later journalist-authored README sections survive completed restart, Gate B invalidation, failure, and recompletion. Seams: revised public demo and Gate B invalidation tests."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py (lines 185-219, 438-508)",
+                  "output": "The completed-restart test calls resumed = run_workflow(root) and asserts only resumed == first_state; it never adds or checks journalist content. Journalist notes are first added at lines 446-452 inside the Gate B invalidation test and are checked through invalidation/recompletion. The chart-failure test at lines 481-508 adds no journalist content and asserts only unavailable/P7/three-attempt state plus removal of complete/P7 README claims."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py; git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py (targeted lines)",
+                  "output": "state.py:49-51 calls project_readme whenever completed_phase(state) == \"P7\", so completed restart reaches projection. attempts.py:48-60 records each failure and calls project_readme after the third P7 failure, so failed recomputation also reaches projection. No upstream guard makes either lifecycle transition impossible."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_review.py",
+            "line": 425,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The Markdown inertness test does not contain a standalone bare URL.",
+            "why": "Both URL occurrences are embedded inside Markdown-link and HTML-image syntax. The assertion that the raw URL substring disappears therefore does not exercise AC6's specifically named bare HTTP(S) autolink boundary; add prose containing a standalone URL and assert it remains visible but non-linking.",
+            "refute": {
+              "agent_id": "AnRefute13",
+              "source": "review",
+              "finding": "tests/test_review.py:425 The Markdown inertness test does not contain a standalone bare URL.",
+              "verdict": "survives",
+              "rationale": "AC6 explicitly requires bare HTTP(S) autolink coverage, but the only tested URLs are structurally embedded and arbitrary dataset statements can reach report serialization, so no upstream guard makes a standalone URL unreachable; the current generic escaping regex is fail-safe today but does not replace the missing behavioral regression proof.",
+              "evidence": [
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep 4a1746f9050120df52e7845166f0ab935c4e584a .jeff/tasks/0027-resolver-consolidation/task.json",
+                  "output": "The locked acceptance criterion says \"Dataset-derived Markdown is inert, including bare URL autolinks.\" The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a."
+                },
+                {
+                  "command": "grep -n 'https?://' tests/test_review.py",
+                  "output": "The only input occurrences are line 432, \"Acme [click](https://example.invalid/pixel)\", and line 433, \"<img src=https://example.invalid/pixel>\"; lines 450-453 only assert those constructs and the shared raw substring are absent. There is no standalone prose URL anywhere in the file."
+                },
+                {
+                  "command": "read src/anomaly/review.py:170-235,360-465,609-703",
+                  "output": "draft_findings copies signal['statement'] without a URL-shape restriction, accept_findings promotes that statement, and write_report passes it to _markdown_text. Thus a standalone dataset URL is reachable from the same public path exercised by the test."
+                },
+                {
+                  "command": "read src/anomaly/review.py:647-656",
+                  "output": "_markdown_text currently neutralizes every word-boundary HTTP(S) scheme with re.sub(r'(?i)\\bhttps?://', ...) after generic Markdown escaping. This makes the present implementation fail safe, but it is not an upstream impossibility guard and the existing embedded-only fixture would also pass an implementation that removed link/image constructs while leaving standalone autolinks active."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git rev-parse HEAD; git status --short",
+            "output": "HEAD is gated hash 4a1746f9050120df52e7845166f0ab935c4e584a. Only .jeff task recording files are dirty/untracked; reviewed product and test source matches the gate."
+          },
+          {
+            "command": "read task.md, notes.md, context.md, task.json, candidate production files, tests, and bundled code-standards/testing skills",
+            "output": "Re-derived all nine AC dispositions from the locked criteria and current source. AC3's invalid multi-claim plan disposition was normalized to dominant claimed=reuse; the conflicting deletion and resulting test loss are reflected by ok=false and findings."
+          },
+          {
+            "command": ".venv/bin/python -c '<pure resolver boundary probes>'",
+            "output": "future_gate_a resolved P4 ready/approve-and-detect; future_gate_b resolved P7 ready/accept-and-report; sources_without_now resolved P1 ready/register-sources."
+          },
+          {
+            "command": ".venv/bin/python -c '<canonical identity comparison>'",
+            "output": "casefold_equal=False; canonical_equal=True for composed/decomposed Réviewer."
+          },
+          {
+            "command": ".venv/bin/python -c '<README legacy-block replacement probe>'",
+            "output": "journalist_outputs_preserved=False; only the later Notes content remained."
+          },
+          {
+            "command": ".venv/bin/python -c '<completed state with empty identity map probe>'",
+            "output": "completed='P7'; identity_change=None."
+          },
+          {
+            "command": "git diff --unified=5 9854273 61a2b7c -- tests/test_pipeline_walk.py tests/test_workflow.py",
+            "output": "Confirmed removal of the nine-class authoritative-invalidation matrix and the only credential-redaction retry assertion while the corresponding production behaviors remain."
+          },
+          {
+            "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:20-50",
+            "output": "Task-bound gate records clean=true, green=true, command 'uv run --extra test pytest tests/' at 4a1746f9050120df52e7845166f0ab935c4e584a. The green suite omits the blocking cases above."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "reuse",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "reuse",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC8",
+            "claimed": "delete",
+            "rederived": "delete",
+            "ok": true
+          },
+          {
+            "ac": "AC9",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyStandardsSchema",
+        "findings": [
+          {
+            "file": "src/anomaly/owners.py",
+            "line": 59,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Phase attempts do not stage or atomically promote owner outputs.",
+            "why": "AC3 and the installed method require outputs to be written under the attempt directory, validated, then promoted. Deterministic owners discard the attempt directory, dynamic owners receive only the live case root, and P5 requires a live findings/draft.json before the attempt result is recorded. Failures can therefore leave partially promoted case state instead of an auditable atomic attempt.",
+            "refute": {
+              "agent_id": "AnRefute14",
+              "source": "review2",
+              "finding": "src/anomaly/owners.py:59 Phase attempts do not stage or atomically promote owner outputs.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher reaches this path with normal phase inputs, but deterministic and dynamic owners write against the live case root while the attempt utility records only a post-hoc result and has no validation, promotion, or rollback of owner artifacts, so a later owner failure can leave partially committed case state and the high-severity AC3 violation is reachable.",
+              "evidence": [
+                {
+                  "command": "read skills/anomaly/SKILL.md:49-98",
+                  "output": "The installed operating contract requires every phase's outputs to be written under .anomaly/attempts/<phase>/attempt-<n>/ first, validated for hashes, schemas, safety, and relative paths, and only then moved into case folders; superseded attempts must remain auditable."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:101-145 and src/anomaly/owners.py:30-75",
+                  "output": "run_workflow passes both case_root and attempt_dir into consume_owner. Handler dispatch then calls _run_handler, whose attempt parameter is named _attempt_dir and unused while every deterministic operation receives root. Dynamic dispatch invokes the reasoning owner with only case_root, and P5 rejects the result unless live root/findings/draft.json already exists."
+                },
+                {
+                  "command": "read src/anomaly/attempts.py:18-114",
+                  "output": "run_attempts calls execute(attempt_dir) before writing only result.json into the attempt directory. On exception it records failure.json and state evidence but performs no owner-output rollback; on success _seal_success only updates identities/state and performs no artifact validation or atomic promotion."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:67-76,135-144 and src/anomaly/detect.py:583-744",
+                  "output": "Reachable deterministic phases perform compound live mutations: P4 seals Gate A and then executes detectors, while detector execution creates live run directories, snapshots, provenance, and appends signals inside a per-detector loop before later operations can raise; P7 likewise accepts findings, writes the report, and only then generates charts. No phase-level transaction protects these sequences."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 29,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The resolver's missing-input boundary is schema-blind and omits required timestamps.",
+            "why": "P1-P4 owners require now, but the resolver does not treat it as missing. Presence of gate_a or gate_b alone also counts as supplied even when required decision fields are absent. These reachable inputs resolve ready and consume three attempts through late ValueError or KeyError failures rather than returning truthful missing-input or human-decision state, breaking AC1, AC4, and explicit boundary-error standards.",
+            "refute": {
+              "agent_id": "AnRefute15",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:29 The resolver's missing-input boundary is schema-blind and omits required timestamps.",
+              "verdict": "survives",
+              "rationale": "No upstream guard makes these inputs unreachable: the public dispatcher reduces inputs to their top-level names, the resolver therefore marks missing `now` or structurally incomplete gate mappings ready, and owner-side validation failures are caught only after attempt accounting and retried until the phase becomes unavailable.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:29-62,101-138 and src/anomaly/workflow_inputs.py:15-64",
+                  "output": "`_REQUIRED_INPUTS` contains only P1 `sources`, P4 `gate_a`, and P7 `gate_b`; `run_workflow` passes the keys of normalized inputs to `resolve_workflow`, while `normalize_inputs` validates only top-level names and does not validate values or require `now`, so these malformed or incomplete public inputs reach a ready resolution."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:37-101,136-144",
+                  "output": "P1 with supplied sources and P2-P4 call `input_time(inputs)`, which raises when `now` is absent; P4 indexes `gate[\"approved_ids\"]` and `gate[\"approved_by\"]`, and P7 indexes `gate[\"accepted_claim_ids\"]`, so present-but-incomplete gate mappings fail only inside owner execution."
+                },
+                {
+                  "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:1-14",
+                  "output": "`run_attempts` increments and persists the attempt before executing the owner, catches every owner exception, retries while the attempt is below `MAX_ATTEMPTS`, and marks the phase unavailable at the limit; `MAX_ATTEMPTS` is 3."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 111,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The multi-phase dispatcher performs whole-case containment validation only once.",
+            "why": "P5 and P6 invoke an external reasoning adapter that can create case artifacts. The next loop iteration loads state and executes another owner without rescanning, so a symlink introduced between phases can reach subsequent reads or writes. This violates AC7's whole-case no-symlink guarantee; the surviving tests cover only links present before run_workflow starts.",
+            "refute": {
+              "agent_id": "AnRefute16",
+              "source": "review2",
+              "finding": "src/anomaly/workflow.py:111 The multi-phase dispatcher performs whole-case containment validation only once.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher scans only before entering its multi-phase loop, while the P5/P6 adapter receives the live case root and later state/event operations use unrescanned paths; no upstream guard prevents an adapter-created symlink from being followed, including by the post-phase event append.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:101-145",
+                  "output": "run_workflow calls _scan_case_tree(case_root) once at line 111 before while True; each iteration then calls load_snapshot, resolves an owner, and invokes run_attempts without another whole-case scan. The reasoning wrapper passes the live case_root to invoke_resolved_owner."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:37-51 and src/anomaly/workflow.py:75-99",
+                  "output": "For P5, consume_owner calls the external reason adapter, which is invoked with case_root, and accepts the result after only checking that findings/draft.json is_file; there is no post-adapter containment scan."
+                },
+                {
+                  "command": "read src/anomaly/attempts.py:21-59 and src/anomaly/state.py:31-48,65-93",
+                  "output": "After owner execution, run_attempts seals success and calls append_event. load_snapshot performs durable-state and identity work but no whole-case scan, while append_event directly opens root/.anomaly/events.jsonl in append mode. Therefore a valid P5 adapter can create a symlink at that path and the successful post-phase append follows it; the code does not fail safe."
+                },
+                {
+                  "command": "read tests/test_pipeline_walk.py:512-553",
+                  "output": "Both surviving dispatcher containment tests create their symlinks before run_workflow is called and assert rejection before attempts begin; neither exercises a link introduced by P5 or P6 during the loop."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 348,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6.",
+            "why": "Production still tracks recommendation, Gate A, detector, draft, replay, and review identities and promises earliest-suffix invalidation. Current tests cover source/P1, prepared/P2, and Gate B/P7 only. Deleting the behavioral test while retaining the behavior violates the testing skill's removal rule and makes AC4's claimed reuse disposition invalid; focused state/resolution coverage is owed.",
+            "refute": {
+              "agent_id": "AnRefute17",
+              "source": "review2",
+              "finding": "tests/test_pipeline_walk.py:348 The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher reaches identity comparison for ordinary modified case artifacts, production maps six retained P3–P6 identities to earliest-suffix invalidation, and no current test exercises that state/resolution contract for those phases, so neither reachability nor the medium blocking severity is disproved.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/identities.py:6-18; read src/anomaly/state.py:34-52,116-171; read src/anomaly/workflow.py:101-129",
+                  "output": "IDENTITY_PHASES maps recommendation→P3, gate_a/detector→P4, draft→P5, and replay/review→P6; load_snapshot calls changed_identities and _invalidate_state removes the suffix from the earliest mapped phase; run_workflow calls load_snapshot on every public resolver iteration."
+                },
+                {
+                  "command": "grep 'changed_identities|capture_identities|artifact_identity|IDENTITY_PHASES|invalidated_from' anomaly/tests; grep 'invalidat|_mark\\(' anomaly/tests/test_pipeline_walk.py",
+                  "output": "No test imports or invokes the identity comparison/capture API; test_workflow.py only places invalidated_from=P3 in a resolver input fixture, while test_pipeline_walk.py mutates prepared/transforms.json (P2) and gate-b.json (P7), with no recommendation, Gate A, detector, draft, replay, or review mutation matrix."
+                },
+                {
+                  "command": "read src/anomaly/case.py:255-303; read tests/test_m5_handoff.py:283-354",
+                  "output": "The upstream case scan rejects symlinks, special files, and executable artifacts but permits changed regular case files, so the identity-change path is reachable; the detector tests in test_m5_handoff exercise replay_signals/accept_findings domain checks rather than run_workflow/load_snapshot earliest-suffix invalidation and do not replace P3–P6 matrix coverage."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 438,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "README preservation tests omit completed restart and failed recomputation with journalist content.",
+            "why": "The AC5 disposition promises journalist-authored content survives completed restart, invalidation, failure, and recompletion. The notes fixture is added only immediately before invalidation, and the chart-failure test has no journalist content. Invalidation and recompletion are covered, but the other consumer-observable lifecycle transitions are not.",
+            "refute": {
+              "agent_id": "AnRefute18",
+              "source": "review2",
+              "finding": "tests/test_pipeline_walk.py:438 README preservation tests omit completed restart and failed recomputation with journalist content.",
+              "verdict": "survives",
+              "rationale": "Both omitted transitions are reachable through run_workflow and invoke README projection, while the completed-restart test adds no journalist content and the P7 chart-failure test contains no preservation assertion, so no upstream guard makes the AC5 coverage gap unreachable or less severe.",
+              "evidence": [
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+                  "output": "Lines 218-219 restart the completed case immediately (`resumed = run_workflow(root)`) before any journalist notes are added; lines 445-452 add `journalist_notes` only inside the later invalidation test; lines 481-508 exercise failed P7 chart recomputation but neither add journalist content nor assert its preservation."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py",
+                  "output": "workflow.py:119-125 calls `load_snapshot(case_root)` before returning a complete case; state.py:49-52 calls `project_readme` whenever that snapshot is complete through P7; attempts.py:48-61 records P7 failures and calls `project_readme(root, state, completed_phase(state))` after the final failed attempt. Therefore both omitted lifecycle transitions reach README rewriting."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_review.py",
+            "line": 425,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The inert-Markdown test does not exercise a standalone bare URL.",
+            "why": "Both URL occurrences are inside Markdown-link or HTML-image syntax. The raw-substring assertion therefore does not prove AC6's explicit bare HTTP(S) autolink boundary. A prose-only URL case is owed, with assertions that visible text remains while no autolink is produced.",
+            "refute": {
+              "agent_id": "AnRefute19",
+              "source": "review2",
+              "finding": "tests/test_review.py:425 The inert-Markdown test does not exercise a standalone bare URL.",
+              "verdict": "survives",
+              "rationale": "The acceptance criterion explicitly requires inert bare HTTP(S) autolinks, but the fixture supplies URLs only as Markdown-link and HTML-image operands, so it can pass if those enclosing constructs are stripped while a prose-only URL still autolinks.",
+              "evidence": [
+                {
+                  "command": "read tests/test_review.py:425-454",
+                  "output": "The statement fixture is `Acme [click](https://example.invalid/pixel)`, `<img src=https://example.invalid/pixel>`, and a forged heading; there is no standalone prose URL, and the assertions only reject the two enclosing constructs, the heading, and the raw URL substring."
+                },
+                {
+                  "command": "read task.md:13-15; read src/anomaly/review.py:655-665",
+                  "output": "AC6 says dataset-derived Markdown must be inert `including bare URL autolinks`; `_markdown_text` has a dedicated context-independent HTTP(S) colon-neutralization branch, but the test never drives that branch with a prose-only bare-URL input or asserts that its visible text survives."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read task.md, notes.md, context.md, and gated task.json",
+            "output": "Re-derived all nine acceptance criteria from the locked task and plan. The mixed AC3 plan label was normalized to the single consumer-behavior disposition reuse; deletion applies only to obsolete composition tests. Gated hash is 4a1746f9050120df52e7845166f0ab935c4e584a with a clean green full-suite record."
+          },
+          {
+            "command": "read src/anomaly/workflow.py:1-170, owners.py:1-220, attempts.py:1-170, workflow_inputs.py",
+            "output": "The resolver registry is compact and dynamic owner paths are fixed, satisfying AC2. The owner boundary ignores attempt_dir for deterministic phases, dynamic invocation receives only case_root, required inputs track sources/gate_a/gate_b but not now, gate mappings are validated only after an attempt begins, and the case scan occurs only before entering the loop."
+          },
+          {
+            "command": ".venv/bin/python -c '<pure resolver boundary probes>'",
+            "output": "resolver_missing_now resolved P1 status=ready with missing=null; resolver_incomplete_gate_a resolved P4 status=ready with missing=null. These probes used no filesystem mutation."
+          },
+          {
+            "command": "git diff --unified=25 9854273 4a1746f -- tests/test_pipeline_walk.py tests/test_workflow.py",
+            "output": "The nine-case earliest-invalidation matrix and the attempt redaction test were deleted. Surviving public invalidation coverage exercises source, prepared generation, and Gate B, while focused resolver tests cover one ready P3 resolution and P5/P6 owner loading."
+          },
+          {
+            "command": "read tests/test_pipeline_walk.py:185-553 and tests/test_review.py:399-454",
+            "output": "The canonical demo proves both dynamic owners, completion, relative links, resume, and P5→P6→Gate B→P7 ordering. README notes are asserted only through invalidation/recompletion; the failure path has no notes. Markdown URLs appear only inside link/image constructs."
+          },
+          {
+            "command": "grep WorkflowRunner|PhaseResult|RetryLimitExceeded|run_product_workflow|product_workflow|last_completed_phase across src, tests, PRD, and installed skill",
+            "output": "No obsolete runner, result, retry exception, or product_workflow surface remains. state.write_state only removes legacy last_completed_phase and state-level gate keys during canonical writes, so AC8's delete disposition is backed by actual production removal."
+          },
+          {
+            "command": "read .jeff/tasks/0027-resolver-consolidation/task.json",
+            "output": "Jeff's supplied gate evidence records uv run --extra test pytest tests/ as green and clean at 4a1746f9050120df52e7845166f0ab935c4e584a. The passing suite does not cover the six blockers above."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "reuse",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "reuse",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "reuse",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC8",
+            "claimed": "delete",
+            "rederived": "delete",
+            "ok": true
+          },
+          {
+            "ac": "AC9",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditAnomalySchema",
+        "evidence": [
+          {
+            "command": "read /Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-audit-20260824-092723.md",
+            "output": "The deterministic scan processed 7 files with zero regex findings and emitted PASS, but its ledger marked 10 of 12 scanner categories not_covered. Manual boundary analysis below supplies the missing reachability coverage rather than treating PASS as the audit verdict."
+          },
+          {
+            "command": "git rev-parse HEAD",
+            "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+          },
+          {
+            "command": "read task.md and task.json gate evidence",
+            "output": "Task 27 explicitly requires whole-case validation on every public resume/read/write path, strict human turn boundaries, identity/invalidation integrity, inert Markdown, journalist README preservation, atomic attempts, and audit of case containment, source mutation, detector execution, and report serialization. The supplied clean gate is 711/711 passing at the audited hash."
+          },
+          {
+            "command": "read src/anomaly/case.py:112-166,252-377 and src/anomaly/acquire.py:31-132",
+            "output": "inspect_case and resume_case do not scan the tree; _under_root resolves aliases and accepts targets that remain under the root. register_local_source enters through resume_case and its new-source branch writes directly to the resolved destination, confirming the in-case alias overwrite path."
+          },
+          {
+            "command": "read src/anomaly/workflow.py:31-139 and src/anomaly/owners.py:37-137",
+            "output": "Dynamic loader identities map only to fixed installed skill/persona paths and unknown owners are rejected, so case-selected code loading is not reachable. However, run_workflow scans only before the loop, gives dynamic invocations the live case root, never rescans between owners, and reuses all initially supplied gate inputs across fresh resolutions."
+          },
+          {
+            "command": "read src/anomaly/identities.py:8-53 and src/anomaly/state.py:22-48,184-203",
+            "output": "The identity phase map covers P1-P7 artifacts, but comparison iterates only recorded identities and state loading validates only that state is a dict. Missing identities therefore produce no invalidation before a sequential P7 completed map is honored."
+          },
+          {
+            "command": "read src/anomaly/owners.py:116-142 and src/anomaly/semantics.py:63-79",
+            "output": "Role separation uses casefold-only comparisons while the project's canonical_key normalizes NFC after case folding and portable identity validation rejects non-normalized/control-bearing components. The stronger canonical policy is not applied to reviewer or journalist identities."
+          },
+          {
+            "command": "read src/anomaly/state.py:15,93-121, src/anomaly/attempts.py:87-121, and src/anomaly/review.py:20-31,1046-1068",
+            "output": "The narrow state sanitizer is applied before writing failure.json, event records, failures, and blocked_reason. The report boundary independently handles sensitive keys, assignment forms, Bearer values, Slack/AWS/provider prefixes, demonstrating that common credentials missed by state.py are expected inputs."
+          },
+          {
+            "command": "read src/anomaly/owners.py:79-108 and src/anomaly/acquire.py:118-131",
+            "output": "P1 loops over requests and each registration commits live source bytes, its receipt, and sources.json before the next request is validated. attempt_dir is not used by this handler, so a later failure has no transactional rollback."
+          },
+          {
+            "command": "read src/anomaly/detect.py:227-254,300-370,491-515,524-660",
+            "output": "Detector metadata and query paths come from fixed installed packages; YAML uses safe_load or a restricted literal parser; detector/table identifiers are constrained; SQL is SELECT-only, parameterized, and rejects external readers; DuckDB is read-only with external access disabled; execution limits are positive integers; owned paths reject aliases. No command execution, unsafe deserialization, SQL injection, network transport, or weak crypto exploit was found in this boundary."
+          },
+          {
+            "command": "read src/anomaly/review.py:594-663 and src/anomaly/readme.py:1-65",
+            "output": "Dataset claim IDs and statements are HTML-escaped, Markdown metacharacters are escaped, and HTTP(S) colons are neutralized, so dataset-derived XSS and bare autolinks are not reachable. Separately, README projection globally deletes every exact legacy Outputs block, including journalist-authored content."
+          },
+          {
+            "command": "read scanner dependency and permissions sections plus implement-return.json",
+            "output": "The scan reported no dependency vulnerability and no insecure-permission hit; the implementation file list changes no dependency manifest. Changed runtime paths perform no outbound TLS/network activity, shell command execution, eval/exec, pickle loading, or permissive chmod."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "findings": [
+          {
+            "file": "src/anomaly/acquire.py",
+            "line": 46,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Direct source registration can follow an existing in-case symlink and overwrite another case artifact.",
+            "why": "register_local_source resumes and validates only registered documents, then _under_root resolves the destination alias and accepts it when the target remains inside the case. The new-source branch writes bytes to that resolved target. A shared case can place data/raw/new-id/payload.csv as a symlink to case.json and cause the CSV payload to replace case.json; no whole-tree scan runs on this public path.",
+            "cwe": "CWE-59",
+            "refute": {
+              "agent_id": "AnRefute20",
+              "source": "audit",
+              "finding": "src/anomaly/acquire.py:46 Direct source registration can follow an existing in-case symlink and overwrite another case artifact.",
+              "verdict": "survives",
+              "rationale": "The finding survives because this mainline registration entry calls only unscanned case/document validation, resolves an in-case destination symlink to its artifact target, and writes payload bytes to that resolved target; neither its decorator nor an upstream guard makes the overwrite unreachable or fail-safe.",
+              "evidence": [
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 31-47, 71-75, 123-131, 158-163)",
+                  "output": "register_local_source calls resume_case(root) and validate_case_documents(root), builds relative = data/raw/<source_id>/<source-name>, and sets dest = _under_root(root, relative). _under_root computes candidate = (base / relative).resolve(), rejects only candidates outside base, and returns an in-case resolved candidate. For a new included source, lines 128-129 execute dest.parent.mkdir(...) and dest.write_bytes(payload), so a destination symlink resolving to case.json causes the CSV payload to be written to case.json."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py src/anomaly/semantics.py src/anomaly/events.py src/anomaly/workflow.py (targeted guard inspection)",
+                  "output": "case.py:146-150 resume_case only checks _case_exists and calls _load_case; it does not call _scan_case_tree. semantics.py:180-225 validate_case_documents reads data/sources.json and scans only .anomaly/receipts. events.py:51-67 phase_event merely calls the wrapped function and logs success/failure. workflow.py:102-113 does scan in run_workflow, but that guard belongs only to that separate wrapper and does not precede a direct register_local_source call."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 111,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.",
+            "why": "P5 and P6 invoke external reasoning code with the live case_root. After that code returns, the loop calls load_snapshot and subsequent owners without another _scan_case_tree. A link introduced between phases can therefore redirect state, replay, review, receipt, or report reads and writes outside their intended artifact boundary during the same public invocation.",
+            "cwe": "CWE-59",
+            "refute": {
+              "agent_id": "AnRefute21",
+              "source": "audit",
+              "finding": "src/anomaly/workflow.py:111 The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher gives the P5/P6 invoker the live case root after its sole tree scan, and post-callback state/event operations perform ordinary path reads or appends without no-follow validation, so a callback can replace state.json or events.jsonl with a symlink and cause the same invocation to access an external target.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:101-145 and src/anomaly/owners.py:37-62",
+                  "output": "run_workflow calls _scan_case_tree only once before entering while True; P5 then calls reason(resolution), which reaches invoke(owner=..., instructions=..., case_root=Path(case_root)), and the loop contains no later _scan_case_tree call."
+                },
+                {
+                  "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:31-110,188-203",
+                  "output": "After execute returns, run_attempts writes the result, calls _seal_success/load_snapshot, and appends phase_completed. _read_state follows .anomaly/state.json via read_text, while append_event follows .anomaly/events.jsonl via open('a'); neither path is lstat-checked or opened with no-follow semantics."
+                },
+                {
+                  "command": "grep 4a1746f9050120df52e7845166f0ab935c4e584a and supplied finding in .jeff/tasks/0027-resolver-consolidation/task.json",
+                  "output": "The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a, and the active audit finding is the workflow.py:111 single-scan finding evaluated here."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/state.py",
+            "line": 38,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "A completed snapshot with missing artifact identities is trusted as complete.",
+            "why": "load_snapshot converts a missing or non-mapping identities field to an empty mapping, and changed_identities checks only keys that are present. A shared case can provide sequential P0-P7 completed entries, status complete, and no identities; resolve_workflow then returns terminal completion without hashing any required source, prepared data, detector plan, gate receipt, draft, replay, review, or Gate B artifact.",
+            "cwe": "CWE-345",
+            "refute": {
+              "agent_id": "AnRefute22",
+              "source": "audit",
+              "finding": "src/anomaly/state.py:38 A completed snapshot with missing artifact identities is trusted as complete.",
+              "verdict": "survives",
+              "rationale": "The public workflow accepts the supplied state because missing identities become an empty mapping, the identity checker examines only recorded keys, and sequential P0-P7 completion causes an immediate terminal return without validating required artifact identities.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/state.py:18-48",
+                  "output": "completed_phase advances by key presence through PHASES; load_snapshot passes {} to changed_identities when identities is missing or not a Mapping, then returns the state unchanged when no change is reported."
+                },
+                {
+                  "command": "read src/anomaly/identities.py:22-31",
+                  "output": "changed_identities builds changed only from `for name, digest in recorded.items()` and returns None when that list is empty; it does not require any IDENTITY_PHASES key."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:37-47,101-126",
+                  "output": "resolve_workflow returns status `complete` as soon as completed_phase(snapshot) is P7; run_workflow calls load_snapshot, then returns that snapshot immediately for a complete resolution before run_attempts or any owner executes."
+                },
+                {
+                  "command": "read src/anomaly/readme.py:24-62",
+                  "output": "The P7 load-time README projection checks only completed/status fields and writes static output links; it does not verify that the linked artifacts exist or have identities."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/owners.py",
+            "line": 122,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation.",
+            "why": "Both independence checks compare casefold values while _required_identity only strips whitespace. Composed and decomposed forms such as Café and Café remain unequal under casefold alone even though canonical_key treats them as the same identity, allowing one logical person to occupy supposedly independent roles.",
+            "cwe": "CWE-178",
+            "refute": {
+              "agent_id": "AnRefute23",
+              "source": "audit",
+              "finding": "src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher accepts unnormalized role identities, both separation checks compare only whitespace-stripped casefold values, and no downstream attestation or persistence guard canonicalizes across roles, so composed and decomposed spellings let one logical identity pass both independent-role checks.",
+              "evidence": [
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/owners.py (lines 111-165)",
+                  "output": "_replay_and_review obtains reviewer_id through _required_identity, reads Gate A approved_by through the same helper, and rejects equality only with reviewer_id.casefold() == gate_a_approver.casefold() at line 122; _accept_and_report performs the analogous casefold-only reviewer/Gate B comparison at line 134; _required_identity at lines 162-165 only validates non-empty string and returns value.strip()."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 102-137) and src/anomaly/workflow_inputs.py (lines 25-36, 69-76)",
+                  "output": "run_workflow is the reachable public entry, copies inputs with normalize_inputs, and passes the resulting supplied mapping to consume_owner; normalize_inputs validates only top-level input names, while mapping_input copies gate mappings and rejects only unknown fields. Neither performs Unicode normalization or identity canonicalization."
+                },
+                {
+                  "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/recommend.py (lines 364-377) and src/anomaly/review.py (lines 295-330, 399-407)",
+                  "output": "Gate A validates approved_by only as a non-empty string and persists it verbatim. record_review only strips reviewer_id; strict attestation checks attested_by == reviewer but does not compare a canonical identity against Gate A. Gate B validates non-empty identity and optional exact configured equality, with no canonical cross-role guard."
+                },
+                {
+                  "command": "python3 -c 'compare Café with Cafe\\u0301 using str.casefold and the gated canonical_key algorithm'",
+                  "output": "{'casefold_equal': False, 'canonical_equal': True, 'a_nfc': True, 'b_nfc': False}"
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 109,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.",
+            "why": "normalize_inputs captures all supplied decisions before execution, and the same mapping is reused after every newly completed phase. A gate_a decision supplied before P3 or gate_b supplied before P6 can become immediately actionable once the preceding phase seals, bypassing the required informed pause at each human gate.",
+            "cwe": "CWE-863",
+            "refute": {
+              "agent_id": "AnRefute24",
+              "source": "audit",
+              "finding": "src/anomaly/workflow.py:109 Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher captures every input once before its execution loop, carries that same mapping through every newly sealed phase, and treats mere key presence as sufficient to cross Gate A or Gate B; downstream artifact and identity validation does not prove that either decision was supplied in a fresh, informed human turn.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/workflow_inputs.py:16-31",
+                  "output": "run_workflow calls normalize_inputs(inputs) once before while True, then on every iteration builds available from the unchanged supplied mapping and passes supplied into consume_owner; normalize_inputs copies all public inputs, including gate_a and gate_b, without phase or turn binding."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:37-69,160-167 and src/anomaly/owners.py:49-80,125-137",
+                  "output": "resolve_workflow pauses only when the phase's required input name is absent. If gate_a or gate_b was supplied earlier, P4/P7 resolves ready immediately and consume_owner reads the retained mapping; neither boundary checks when the decision entered the call."
+                },
+                {
+                  "command": "read src/anomaly/recommend.py:335-390 and src/anomaly/review.py:371-477",
+                  "output": "Gate A validates approved IDs against the current deterministic plan and Gate B validates review/replay/identity artifacts, but neither receipt requires a post-P3/post-P6 turn token or decision timestamp. Gate B also permits an empty accepted_claim_ids list, so a future Gate B decision can remain structurally valid without knowing claim IDs in advance."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/state.py",
+            "line": 15,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes.",
+            "why": "safe_error feeds failure.json, events.jsonl, state.failures, and blocked_reason, but _SECRET covers only sk_live_, ghp_, and github_pat_. Dynamic-owner exceptions containing Authorization: Bearer values, password or token assignments, AWS keys, Slack tokens, or credential-bearing URLs are stored verbatim across retries even though review.py already has broader redaction patterns.",
+            "cwe": "CWE-532",
+            "refute": {
+              "agent_id": "AnRefute25",
+              "source": "audit",
+              "finding": "src/anomaly/state.py:15 Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes.",
+              "verdict": "survives",
+              "rationale": "The public workflow can pass an arbitrary dynamic-owner exception directly into durable attempt recording, and the only sanitizer on that path recognizes three provider prefixes, so common credentials remain reachable and are persisted repeatedly without an upstream guard or fail-safe.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/state.py:1-121; read src/anomaly/semantics.py:44-101",
+                  "output": "safe_error calls _safe_text, which applies redact_credentials and _SECRET; both credential regexes match only sk_live_, ghp_, and github_pat_, with no assignment, Bearer, AWS, Slack, or credential-bearing URL handling."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:75-136; read src/anomaly/attempts.py:21-121",
+                  "output": "run_workflow is the public entry point, invokes the caller-supplied reasoning callback without constraining exception text, and run_attempts catches any Exception; _record_failure then writes the sanitized message to failure.json, events.jsonl, state.failures, and blocked_reason after the third attempt."
+                },
+                {
+                  "command": "read src/anomaly/review.py:20-35,1040-1072; read skills/anomaly/SKILL.md:35-58",
+                  "output": "review.py already redacts sensitive assignments, Bearer values, Slack xox tokens, and AWS AKIA keys, while the installed workflow contract requires credential-redacted failure persistence and forbids credentials in case JSON or events; no equivalent protection exists on the attempt-error path."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/owners.py",
+            "line": 92,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.",
+            "why": "_register_sources calls register_local_source directly for each request, and each call mutates live raw bytes, receipts, and sources.json. If a later request is invalid, run_attempts records failure and retries but never rolls back the earlier successful registrations, leaving durable source mutation under an unavailable P1 outcome.",
+            "cwe": null,
+            "refute": {
+              "agent_id": "AnRefute26",
+              "source": "audit",
+              "finding": "src/anomaly/owners.py:92 A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics.",
+              "verdict": "survives",
+              "rationale": "The defect is reachable through the public run_workflow sources input because only request shape and duplicate IDs are prevalidated, each valid earlier request commits directly to the live case before a later request can fail source-specific validation, and run_attempts records and retries the failure without restoring those mutations, so the high-severity atomicity violation is honest.",
+              "evidence": [
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:1-180",
+                  "output": "The clean green gate is bound to hash 4a1746f9050120df52e7845166f0ab935c4e584a, and task AC3 requires durable attempt staging, failure evidence, and atomic promotion."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:101-139, src/anomaly/owners.py:49-108, and src/anomaly/workflow_inputs.py:48-63",
+                  "output": "Public run_workflow routes P1 into run_attempts and consume_owner; _run_handler ignores attempt_dir and _register_sources iterates register_local_source against the live case. source_requests prevalidates only nonempty list/mapping shape and required/unknown fields, leaving later per-source path, format, availability, and inclusion validation reachable after an earlier request has succeeded."
+                },
+                {
+                  "command": "read src/anomaly/acquire.py:31-132 and src/anomaly/attempts.py:21-67,87-121",
+                  "output": "For a new included source, register_local_source writes raw bytes, a receipt, and data/sources.json immediately. A later exception is caught by run_attempts, which writes failure evidence and retries or marks P1 unavailable; no rollback or attempt-directory promotion restores the earlier live writes."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/readme.py",
+            "line": 36,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+            "why": "After bounded marker removal, project_readme performs a global exact-string replacement of _OUTPUTS. An unmarked journalist section with the same heading and links is removed during completion or invalidation projection, violating the explicit preservation requirement and causing reachable authored-content loss.",
+            "cwe": null,
+            "refute": {
+              "agent_id": "AnRefute27",
+              "source": "audit",
+              "finding": "src/anomaly/readme.py:36 README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+              "verdict": "survives",
+              "rationale": "The public workflow reaches this projection on P7 completion, completed-case resume, and P7 invalidation, and no upstream content guard prevents a journalist-authored block from exactly matching _OUTPUTS, so the global replacement can delete valid authored Markdown and the medium data-loss severity is honest.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/readme.py:24-38",
+                  "output": "project_readme reads the existing README, removes the bounded anomaly marker block, then calls .replace(_OUTPUTS, \"\") without a count or marker requirement; the only local guards are README existence and non-symlink status."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:101-126; src/anomaly/state.py:34-52,151-174; src/anomaly/attempts.py:50-88",
+                  "output": "run_workflow calls load_snapshot on a real case; load_snapshot projects completed P7 READMEs, _invalidate_state projects after invalidating a previously completed P7 case, and _seal_success projects after successful P7 completion."
+                },
+                {
+                  "command": "grep 'README.md|Outputs|accepted findings' src/anomaly",
+                  "output": "The only README content mutation/guard in production is readme.py; no validator rejects or distinguishes an unmarked journalist-authored exact _OUTPUTS block."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+                  "output": "Acceptance explicitly requires README projection to preserve journalist-authored content, making deletion of a valid unmarked matching section a contract violation."
+                }
+              ]
+            }
+          }
+        ],
+        "scan": {
+          "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh --changes",
+          "recommendation": "PASS",
+          "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-audit-20260824-092723.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_no_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewAnomalyCorrectnessSchema",
+        "reviewer2_agent_id": "ReviewAnomalyStandardsSchema",
+        "audit_agent_id": "AuditAnomalySchema"
+      }
+    }
+  ]
 }

@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_pipeline_walk.py:438 README preservation coverage omits completed restart and failed recomputation transitions.",
+  "verdict": "survives",
+  "rationale": "Both transitions are reachable production branches that invoke README projection, but the gated tests do not exercise either branch with journalist-authored content despite the plan explicitly requiring preservation across completed restart and failure.",
+  "evidence": [
+    {
+      "command": "grep -n \"survive completed restart\" .jeff/tasks/0027-resolver-consolidation/notes.md",
+      "output": "47|5. **README lifecycle and links — `revise`.** Consumer behavior: public P7 completion projects complete/P7 and three resolving relative links; later journalist-authored README sections survive completed restart, Gate B invalidation, failure, and recompletion. Seams: revised public demo and Gate B invalidation tests."
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py (lines 185-219, 438-508)",
+      "output": "The completed-restart test calls resumed = run_workflow(root) and asserts only resumed == first_state; it never adds or checks journalist content. Journalist notes are first added at lines 446-452 inside the Gate B invalidation test and are checked through invalidation/recompletion. The chart-failure test at lines 481-508 adds no journalist content and asserts only unavailable/P7/three-attempt state plus removal of complete/P7 README claims."
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py; git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py (targeted lines)",
+      "output": "state.py:49-51 calls project_readme whenever completed_phase(state) == \"P7\", so completed restart reaches projection. attempts.py:48-60 records each failure and calls project_readme after the third P7 failure, so failed recomputation also reaches projection. No upstream guard makes either lifecycle transition impossible."
+    }
+  ]
+}

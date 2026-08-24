@@ -9,3 +9,73 @@
 {"seq":8,"at":"2026-08-24T09:28:11.033Z","event":"intent","stage":"review","note":"Standards review of deletion, boundaries, simplification and deterministic state authority"}
 {"seq":9,"at":"2026-08-24T09:28:11.055Z","event":"intent","stage":"review","note":"Correctness review of resolver, owner dispatch, durable attempts, gates, invalidation and test integrity"}
 {"seq":10,"at":"2026-08-24T09:28:11.081Z","event":"intent","stage":"audit","note":"Audit loader paths, containment, source replacement, detector execution and markdown injection after scanner"}
+{"seq":11,"at":"2026-08-24T09:32:48.487Z","event":"gate","hash":"4a1746f9050120df52e7845166f0ab935c4e584a","green":true,"clean":true}
+{"seq":12,"at":"2026-08-24T09:33:05.833Z","event":"intent","stage":"review","note":"Fresh correctness review at clean gated hash 4a1746f9"}
+{"seq":13,"at":"2026-08-24T09:33:05.857Z","event":"intent","stage":"review","note":"Fresh standards review at clean gated hash 4a1746f9"}
+{"seq":14,"at":"2026-08-24T09:33:05.874Z","event":"intent","stage":"audit","note":"Fresh security audit at clean gated hash 4a1746f9 using scanner report and manual coverage"}
+{"seq":15,"at":"2026-08-24T09:50:14.214Z","event":"intent","stage":"review","note":"Re-fire correctness judgment with recorder-valid AC disposition enums"}
+{"seq":16,"at":"2026-08-24T09:50:14.237Z","event":"intent","stage":"audit","note":"Re-fire audit with exact eleven-category recorder coverage schema"}
+{"seq":17,"at":"2026-08-24T09:50:14.255Z","event":"intent","stage":"review","note":"Re-fire standards judgment with recorder-valid AC disposition enums"}
+{"seq":18,"at":"2026-08-24T10:00:05.039Z","event":"record","stage":"review","agent":"ReviewAnomalyCorrectnessSchema"}
+{"seq":19,"at":"2026-08-24T10:00:05.104Z","event":"record","stage":"review","agent":"ReviewAnomalyStandardsSchema"}
+{"seq":20,"at":"2026-08-24T10:00:05.167Z","event":"record","stage":"audit","agent":"AuditAnomalySchema"}
+{"seq":21,"at":"2026-08-24T10:00:36.659Z","event":"intent","stage":"refute","note":"Refute review blocker 1: src/anomaly/workflow.py:109 Invocation-wide gate decisions can bypass both required human turn boundaries."}
+{"seq":22,"at":"2026-08-24T10:00:36.686Z","event":"intent","stage":"refute","note":"Refute review blocker 2: src/anomaly/workflow.py:35 The resolver treats presence-only, incomplete phase inputs as ready and can spend attempts before boundary validation."}
+{"seq":23,"at":"2026-08-24T10:00:36.695Z","event":"intent","stage":"refute","note":"Refute review blocker 4: src/anomaly/readme.py:36 README projection deletes journalist-authored content that exactly matches the legacy Outputs block."}
+{"seq":24,"at":"2026-08-24T10:00:36.719Z","event":"intent","stage":"refute","note":"Refute review blocker 3: src/anomaly/owners.py:59 The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case."}
+{"seq":25,"at":"2026-08-24T10:00:36.742Z","event":"intent","stage":"refute","note":"Refute review blocker 5: src/anomaly/case.py:146 Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan."}
+{"seq":26,"at":"2026-08-24T10:00:36.780Z","event":"intent","stage":"refute","note":"Refute review blocker 6: src/anomaly/workflow.py:119 The multi-phase loop does not recheck whole-case containment after dynamic reasoning owners mutate the case."}
+{"seq":27,"at":"2026-08-24T10:00:36.815Z","event":"intent","stage":"refute","note":"Refute review blocker 8: src/anomaly/state.py:39 A completed snapshot with missing authoritative identities is trusted as P7-complete."}
+{"seq":28,"at":"2026-08-24T10:00:36.832Z","event":"intent","stage":"refute","note":"Refute review blocker 10: tests/test_pipeline_walk.py:349 Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage."}
+{"seq":29,"at":"2026-08-24T10:00:36.854Z","event":"intent","stage":"refute","note":"Refute review blocker 7: src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass reviewer independence at both gates."}
+{"seq":30,"at":"2026-08-24T10:00:36.875Z","event":"intent","stage":"refute","note":"Refute review blocker 9: tests/test_pipeline_walk.py:263 The retained retry tests no longer verify credential-redacted durable failure evidence."}
+{"seq":31,"at":"2026-08-24T10:00:36.905Z","event":"intent","stage":"refute","note":"Refute review blocker 11: tests/test_pipeline_walk.py:185 No public test proves that future Gate A or Gate B decisions cannot cross a turn."}
+{"seq":32,"at":"2026-08-24T10:00:36.950Z","event":"intent","stage":"refute","note":"Refute review blocker 12: tests/test_pipeline_walk.py:438 README preservation coverage omits completed restart and failed recomputation transitions."}
+{"seq":33,"at":"2026-08-24T10:00:36.988Z","event":"intent","stage":"refute","note":"Refute review2 blocker 14: src/anomaly/owners.py:59 Phase attempts do not stage or atomically promote owner outputs."}
+{"seq":34,"at":"2026-08-24T10:00:36.996Z","event":"intent","stage":"refute","note":"Refute review blocker 13: tests/test_review.py:425 The Markdown inertness test does not contain a standalone bare URL."}
+{"seq":35,"at":"2026-08-24T10:00:37.025Z","event":"intent","stage":"refute","note":"Refute review2 blocker 15: src/anomaly/workflow.py:29 The resolver's missing-input boundary is schema-blind and omits required timestamps."}
+{"seq":36,"at":"2026-08-24T10:00:37.043Z","event":"intent","stage":"refute","note":"Refute audit blocker 22: src/anomaly/state.py:38 A completed snapshot with missing artifact identities is trusted as complete."}
+{"seq":37,"at":"2026-08-24T10:00:37.082Z","event":"intent","stage":"refute","note":"Refute review2 blocker 17: tests/test_pipeline_walk.py:348 The authoritative-identity invalidation matrix was deleted without replacement coverage for P3-P6."}
+{"seq":38,"at":"2026-08-24T10:00:37.092Z","event":"intent","stage":"refute","note":"Refute review2 blocker 16: src/anomaly/workflow.py:111 The multi-phase dispatcher performs whole-case containment validation only once."}
+{"seq":39,"at":"2026-08-24T10:00:37.130Z","event":"intent","stage":"refute","note":"Refute audit blocker 24: src/anomaly/workflow.py:109 Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn."}
+{"seq":40,"at":"2026-08-24T10:00:37.148Z","event":"intent","stage":"refute","note":"Refute audit blocker 20: src/anomaly/acquire.py:46 Direct source registration can follow an existing in-case symlink and overwrite another case artifact."}
+{"seq":41,"at":"2026-08-24T10:00:37.184Z","event":"intent","stage":"refute","note":"Refute audit blocker 25: src/anomaly/state.py:15 Attempt failures persist common credentials because the central error sanitizer recognizes only three token prefixes."}
+{"seq":42,"at":"2026-08-24T10:00:37.193Z","event":"intent","stage":"refute","note":"Refute review2 blocker 19: tests/test_review.py:425 The inert-Markdown test does not exercise a standalone bare URL."}
+{"seq":43,"at":"2026-08-24T10:00:37.226Z","event":"intent","stage":"refute","note":"Refute audit blocker 26: src/anomaly/owners.py:92 A failed multi-source P1 attempt partially commits earlier sources instead of preserving atomic attempt semantics."}
+{"seq":44,"at":"2026-08-24T10:00:37.248Z","event":"intent","stage":"refute","note":"Refute audit blocker 21: src/anomaly/workflow.py:111 The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow."}
+{"seq":45,"at":"2026-08-24T10:00:37.282Z","event":"intent","stage":"refute","note":"Refute review2 blocker 18: tests/test_pipeline_walk.py:438 README preservation tests omit completed restart and failed recomputation with journalist content."}
+{"seq":46,"at":"2026-08-24T10:00:37.301Z","event":"intent","stage":"refute","note":"Refute audit blocker 23: src/anomaly/owners.py:122 Canonical-equivalent Unicode identities bypass Gate A, reviewer, and Gate B role separation."}
+{"seq":47,"at":"2026-08-24T10:00:37.325Z","event":"intent","stage":"refute","note":"Refute audit blocker 27: src/anomaly/readme.py:36 README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block."}
+{"seq":48,"at":"2026-08-24T10:04:02.736Z","event":"record","stage":"refute","agent":"AnRefute01"}
+{"seq":49,"at":"2026-08-24T10:04:02.804Z","event":"record","stage":"refute","agent":"AnRefute02"}
+{"seq":50,"at":"2026-08-24T10:04:02.870Z","event":"record","stage":"refute","agent":"AnRefute03"}
+{"seq":51,"at":"2026-08-24T10:04:02.936Z","event":"record","stage":"refute","agent":"AnRefute04"}
+{"seq":52,"at":"2026-08-24T10:04:03.002Z","event":"record","stage":"refute","agent":"AnRefute07"}
+{"seq":53,"at":"2026-08-24T10:04:03.068Z","event":"record","stage":"refute","agent":"AnRefute08"}
+{"seq":54,"at":"2026-08-24T10:04:03.136Z","event":"record","stage":"refute","agent":"AnRefute10"}
+{"seq":55,"at":"2026-08-24T10:04:03.202Z","event":"record","stage":"refute","agent":"AnRefute11"}
+{"seq":56,"at":"2026-08-24T10:04:03.269Z","event":"record","stage":"refute","agent":"AnRefute13"}
+{"seq":57,"at":"2026-08-24T10:04:03.336Z","event":"record","stage":"refute","agent":"AnRefute14"}
+{"seq":58,"at":"2026-08-24T10:04:03.402Z","event":"record","stage":"refute","agent":"AnRefute15"}
+{"seq":59,"at":"2026-08-24T10:04:03.469Z","event":"record","stage":"refute","agent":"AnRefute17"}
+{"seq":60,"at":"2026-08-24T10:04:03.536Z","event":"record","stage":"refute","agent":"AnRefute18"}
+{"seq":61,"at":"2026-08-24T10:04:03.603Z","event":"record","stage":"refute","agent":"AnRefute19"}
+{"seq":62,"at":"2026-08-24T10:04:03.669Z","event":"record","stage":"refute","agent":"AnRefute20"}
+{"seq":63,"at":"2026-08-24T10:04:03.736Z","event":"record","stage":"refute","agent":"AnRefute22"}
+{"seq":64,"at":"2026-08-24T10:04:03.803Z","event":"record","stage":"refute","agent":"AnRefute23"}
+{"seq":65,"at":"2026-08-24T10:04:03.870Z","event":"record","stage":"refute","agent":"AnRefute24"}
+{"seq":66,"at":"2026-08-24T10:04:03.936Z","event":"record","stage":"refute","agent":"AnRefute25"}
+{"seq":67,"at":"2026-08-24T10:04:04.002Z","event":"record","stage":"refute","agent":"AnRefute26"}
+{"seq":68,"at":"2026-08-24T10:04:04.069Z","event":"record","stage":"refute","agent":"AnRefute27"}
+{"seq":69,"at":"2026-08-24T10:06:16.805Z","event":"record","stage":"refute","agent":"AnRefute05"}
+{"seq":70,"at":"2026-08-24T10:06:16.870Z","event":"record","stage":"refute","agent":"AnRefute06"}
+{"seq":71,"at":"2026-08-24T10:06:16.936Z","event":"record","stage":"refute","agent":"AnRefute09"}
+{"seq":72,"at":"2026-08-24T10:06:17.004Z","event":"record","stage":"refute","agent":"AnRefute12"}
+{"seq":73,"at":"2026-08-24T10:06:17.071Z","event":"record","stage":"refute","agent":"AnRefute16"}
+{"seq":74,"at":"2026-08-24T10:06:17.140Z","event":"record","stage":"refute","agent":"AnRefute21"}
+{"seq":75,"at":"2026-08-24T10:06:31.130Z","event":"intent","stage":"plan","note":"Plan first-cycle repair for surviving review/audit union; preserve resolver method and author focused behavioral RED"}
+{"seq":76,"at":"2026-08-24T10:24:27.497Z","event":"record","stage":"plan","agent":"PlanAnomalyRecovery"}
+{"seq":77,"at":"2026-08-24T10:24:52.799Z","event":"intent","stage":"implement","note":"Implement first-cycle repair for surviving gate, attempt, containment, identity, README and redaction blockers"}
+{"seq":78,"at":"2026-08-24T10:44:30.237Z","event":"record","stage":"implement","agent":"ImplementAnomalyRecovery"}
+{"seq":79,"at":"2026-08-24T10:44:45.100Z","event":"intent","stage":"refactor","note":"Simplify recovered attempt workspace, sanitization and boundary checks without behavior changes"}
+{"seq":80,"at":"2026-08-24T10:49:29.824Z","event":"record","stage":"refactor","agent":"RefactorAnomalyRecovery"}

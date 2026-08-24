@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/workflow.py:29 The resolver's missing-input boundary is schema-blind and omits required timestamps.",
+  "verdict": "survives",
+  "rationale": "No upstream guard makes these inputs unreachable: the public dispatcher reduces inputs to their top-level names, the resolver therefore marks missing `now` or structurally incomplete gate mappings ready, and owner-side validation failures are caught only after attempt accounting and retried until the phase becomes unavailable.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:29-62,101-138 and src/anomaly/workflow_inputs.py:15-64",
+      "output": "`_REQUIRED_INPUTS` contains only P1 `sources`, P4 `gate_a`, and P7 `gate_b`; `run_workflow` passes the keys of normalized inputs to `resolve_workflow`, while `normalize_inputs` validates only top-level names and does not validate values or require `now`, so these malformed or incomplete public inputs reach a ready resolution."
+    },
+    {
+      "command": "read src/anomaly/owners.py:37-101,136-144",
+      "output": "P1 with supplied sources and P2-P4 call `input_time(inputs)`, which raises when `now` is absent; P4 indexes `gate[\"approved_ids\"]` and `gate[\"approved_by\"]`, and P7 indexes `gate[\"accepted_claim_ids\"]`, so present-but-incomplete gate mappings fail only inside owner execution."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:1-14",
+      "output": "`run_attempts` increments and persists the attempt before executing the owner, catches every owner exception, retries while the attempt is below `MAX_ATTEMPTS`, and marks the phase unavailable at the limit; `MAX_ATTEMPTS` is 3."
+    }
+  ]
+}

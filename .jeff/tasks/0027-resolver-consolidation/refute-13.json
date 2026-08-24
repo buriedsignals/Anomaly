@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_review.py:425 The Markdown inertness test does not contain a standalone bare URL.",
+  "verdict": "survives",
+  "rationale": "AC6 explicitly requires bare HTTP(S) autolink coverage, but the only tested URLs are structurally embedded and arbitrary dataset statements can reach report serialization, so no upstream guard makes a standalone URL unreachable; the current generic escaping regex is fail-safe today but does not replace the missing behavioral regression proof.",
+  "evidence": [
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep 4a1746f9050120df52e7845166f0ab935c4e584a .jeff/tasks/0027-resolver-consolidation/task.json",
+      "output": "The locked acceptance criterion says \"Dataset-derived Markdown is inert, including bare URL autolinks.\" The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a."
+    },
+    {
+      "command": "grep -n 'https?://' tests/test_review.py",
+      "output": "The only input occurrences are line 432, \"Acme [click](https://example.invalid/pixel)\", and line 433, \"<img src=https://example.invalid/pixel>\"; lines 450-453 only assert those constructs and the shared raw substring are absent. There is no standalone prose URL anywhere in the file."
+    },
+    {
+      "command": "read src/anomaly/review.py:170-235,360-465,609-703",
+      "output": "draft_findings copies signal['statement'] without a URL-shape restriction, accept_findings promotes that statement, and write_report passes it to _markdown_text. Thus a standalone dataset URL is reachable from the same public path exercised by the test."
+    },
+    {
+      "command": "read src/anomaly/review.py:647-656",
+      "output": "_markdown_text currently neutralizes every word-boundary HTTP(S) scheme with re.sub(r'(?i)\\bhttps?://', ...) after generic Markdown escaping. This makes the present implementation fail safe, but it is not an upstream impossibility guard and the existing embedded-only fixture would also pass an implementation that removed link/image constructs while leaving standalone autolinks active."
+    }
+  ]
+}

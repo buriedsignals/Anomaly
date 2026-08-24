@@ -1,0 +1,18 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "tests/test_pipeline_walk.py:438 README preservation tests omit completed restart and failed recomputation with journalist content.",
+  "verdict": "survives",
+  "rationale": "Both omitted transitions are reachable through run_workflow and invoke README projection, while the completed-restart test adds no journalist content and the P7 chart-failure test contains no preservation assertion, so no upstream guard makes the AC5 coverage gap unreachable or less severe.",
+  "evidence": [
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+      "output": "Lines 218-219 restart the completed case immediately (`resumed = run_workflow(root)`) before any journalist notes are added; lines 445-452 add `journalist_notes` only inside the later invalidation test; lines 481-508 exercise failed P7 chart recomputation but neither add journalist content nor assert its preservation."
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/state.py && git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/attempts.py",
+      "output": "workflow.py:119-125 calls `load_snapshot(case_root)` before returning a complete case; state.py:49-52 calls `project_readme` whenever that snapshot is complete through P7; attempts.py:48-61 records P7 failures and calls `project_readme(root, state, completed_phase(state))` after the final failed attempt. Therefore both omitted lifecycle transitions reach README rewriting."
+    }
+  ]
+}
