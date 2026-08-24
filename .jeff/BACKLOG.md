@@ -4,10 +4,6 @@ Next free id: 29
 
 ## NOW
 
-- Task 28 — remove automatic crash rollback and finalize resolver consolidation
-
-## NEXT
-
 - Task 26 — verify installed public demo after task 28
 
 ## TODO
