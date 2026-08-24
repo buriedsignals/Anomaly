@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/_signal_projection.py:171 Valid repeated detector runs make the projection permanently unbuildable.",
+  "verdict": "survives",
+  "rationale": "A normal second execute_detectors call is reachable with the same persistent Gate A receipt and unchanged prepared table: it creates a new timestamped run_id but recomputes the same signal_id from detector_id, table_id, and candidate_id, then appends that row. Search subsequently rejects the changed JSONL as stale, while rebuild rejects the repeated signal_id before projection construction; the locked tests cover only distinct signal IDs across runs, so no upstream guard, fail-safe deduplication, or repeated-run contract makes the blocker unreachable or less than high severity.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py",
+      "output": "524-580: _require_gate_a reads and validates the persistent plan/receipt and returns scopes; it does not consume or invalidate approval. 583-590: execute_detectors is a public phase entry point accepting caller-supplied now. 653-675: candidate_id comes from the deterministic query result and signal_id is sha256(detector_id:table_id:candidate_id), with no run component. 678-684: run_id includes the timestamp and is assigned only after signal_id. 738-740: every produced row is appended to evidence/signals.jsonl."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:detectors/numeric/zscore_outliers/query.sql",
+      "output": "The real detector selects candidate_id as 'row-' || id from an unchanged prepared table and orders no mutable input into that identity, so the same qualifying row is emitted with the same candidate_id on a rerun."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py",
+      "output": "133-138: verified_projection raises StaleSignalProjectionError when evidence/signals.jsonl changes. 167-182: rebuild reads every JSONL row and validates each through one shared seen set. 249-272: _validate_signal raises SignalSearchError on the second occurrence of a signal_id. 224-245: each projected row carries one run_id but signal_ref is only {path: evidence/signals.jsonl, signal_id}; 362-377 makes signal_id the DuckDB primary key."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+      "output": "29-105 seeds three globally unique signal IDs; its two run IDs never repeat the same signal identity. 213-257 exercises run filtering and asserts signal_ref only as {path, signal_id}. 292-308 checks pagination duplicates, not a detector rerun or duplicate canonical signal identity. No supplied task-29 test covers the reachable repeated-run case."
+    }
+  ]
+}

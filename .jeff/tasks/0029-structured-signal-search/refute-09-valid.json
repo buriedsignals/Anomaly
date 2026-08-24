@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/_signal_projection.py:177 Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.",
+  "verdict": "survives",
+  "rationale": "The ordinary approve-and-detect entry point can execute an updated detector again; execution appends the new signals and preserves run provenance but overwrites the detector-global snapshot, while projection construction ignores provenance as a resolver and requires that one mutable snapshot to match every historical run, so the old projection is rejected as stale and an explicit rebuild deterministically fails, violating the locked rebuildability contract.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly grep -n execute_detectors 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- src && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/owners.py (lines 72-76)",
+      "output": "src/anomaly/owners.py:76 calls execute_detectors(root, approval[\"approved\"], now=now) from the real approve-and-detect workflow; no inspected upstream guard makes a later execution of the same detector impossible."
+    },
+    {
+      "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 58-75, 677-740)",
+      "output": "package_implementation_hash hashes every file in the detector package. execute_detectors creates a hash-bearing run_id (677-680), writes snapshot_path = detectors/used/<detector>.json via Path.write_text (698-699; _write_json at 514-518 therefore overwrites), records that same mutable path plus its then-current hash in run provenance (703-709), writes immutable per-run provenance (737), and appends signals to evidence/signals.jsonl (738-740). A later detector-package change therefore preserves old signals/provenance but replaces their referenced snapshot."
+    },
+    {
+      "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 164-204, 315-320)",
+      "output": "For every signal, _read_projection_inputs reconstructs detectors/used/<detector_id>.json rather than resolving provenance.detector_snapshot (177-181). _projection_row only accepts provenance.detector_snapshot when it equals that reconstructed path (197-199), rejects when provenance.detector_snapshot_hash differs from the current file (200-204), and independently rejects when snapshot.implementation_hash differs from the historical signal detector_hash (315-317). Thus run 1 plus an overwritten run-2 snapshot cannot be rebuilt."
+    },
+    {
+      "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 113-148, 311-351)",
+      "output": "The fixture provenance omits detector_snapshot and detector_snapshot_hash, unlike the canonical producer. The stale-input test mutates one bound input and asserts only that search_signals raises StaleSignalProjectionError; it never calls build_signal_projection after a canonical second run, so it does not cover or refute the failed-rebuild path."
+    },
+    {
+      "command": "cat /Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0029-structured-signal-search/task.md",
+      "output": "Locked AC1 requires a rebuildable projection from public signals, run provenance, and detector metadata; AC6 requires input-hash binding and rejection or rebuilding of stale projections. Permanent rejection followed by a rebuild failure does not satisfy the rebuildable half of that contract."
+    }
+  ]
+}

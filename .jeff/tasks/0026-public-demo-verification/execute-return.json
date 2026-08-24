@@ -1,0 +1,70 @@
+{
+  "stage": "execute",
+  "result": "kickback",
+  "actions": [
+    "Checked the current execute plan, repository rules, final task-28/pruned provenance, and exact-candidate full-suite receipt before mutation.",
+    "Captured the ambient OMP plugin inventory read-only.",
+    "Created fresh non-overlapping isolated HOME and portable case roots under /tmp/anomaly-public-demo.MUG1i9.",
+    "Copied the checked-in canonical demo CSV to the case-relative path input/orchestration_demo.csv.",
+    "Attempted the supported OMP local installer under isolated HOME; it failed because the candidate has no package.json.",
+    "Tried Pi's supported installer against the checked-in skill and reviewer paths under isolated HOME; Pi registered both as extensions and reported that neither could be loaded, so the dispatcher/reviewer registration precondition was not satisfied.",
+    "Removed both failed Pi registrations using the supported uninstaller.",
+    "Removed only the isolated HOME in accordance with the recovery boundary; retained the portable case for diagnosis.",
+    "Verified the retained canonical CSV by SHA-256 and verified the ambient OMP plugin inventory remained unchanged."
+  ],
+  "evidence": [
+    {
+      "command": "jj log -r 'all()' --no-graph -T 'commit_id.short() ++ \" \" ++ description.first_line() ++ \"\\n\"'",
+      "output": "af4b05cbecac task 28 · terminal bookkeeping; config.json prunedTaskIds includes 28."
+    },
+    {
+      "command": "grep exact candidate in .jeff/test-runs.jsonl",
+      "output": "{\"hash\":\"af4b05cbecac29e432d804e9dc31527ef29b8f86\",\"dirty\":false,\"result\":\"green\",\"suite\":\"uv run --extra test pytest tests/\",\"at\":\"2026-08-24T16:22:12Z\"}"
+    },
+    {
+      "command": "omp plugin list --json",
+      "output": "Ambient inventory before and after contained exactly enabled @johanthoren/jeff 6.1.2 and @every-env/compound-plugin 2.42.0, with no marketplace plugins."
+    },
+    {
+      "command": "mktemp -d /tmp/anomaly-public-demo.XXXXXX",
+      "output": "/tmp/anomaly-public-demo.MUG1i9"
+    },
+    {
+      "command": "stat isolated roots after mkdir",
+      "output": "Fresh sibling roots created at /tmp/anomaly-public-demo.MUG1i9/home and /tmp/anomaly-public-demo.MUG1i9/case."
+    },
+    {
+      "command": "sha256sum tests/fixtures/orchestration_demo.csv",
+      "output": "eab43e5de59fbcdebe54df02c4c0894924a09560079120e25ee4e373fd75d2a9"
+    },
+    {
+      "command": "omp install . --json",
+      "output": "Failed to link: package.json not found at /Users/tomvaillant/buried_signals/tools/anomaly (exit 1)."
+    },
+    {
+      "command": "pi install ./skills/anomaly; pi install ./agents; pi list",
+      "output": "Pi recorded both local paths as user packages but warned each failed to load as an extension because no loadable module exists; dispatcher and reviewer were therefore not resolvable."
+    },
+    {
+      "command": "pi uninstall ./skills/anomaly",
+      "output": "Removed ./skills/anomaly"
+    },
+    {
+      "command": "pi uninstall ./agents",
+      "output": "Removed ./agents"
+    },
+    {
+      "command": "stat /tmp/anomaly-public-demo.MUG1i9/home",
+      "output": "No such file or directory after recovery cleanup."
+    },
+    {
+      "command": "sha256sum /tmp/anomaly-public-demo.MUG1i9/case/input/orchestration_demo.csv",
+      "output": "eab43e5de59fbcdebe54df02c4c0894924a09560079120e25ee4e373fd75d2a9  /tmp/anomaly-public-demo.MUG1i9/case/input/orchestration_demo.csv"
+    }
+  ],
+  "kickback": {
+    "to": "plan",
+    "reason": "Precondition 3 and runbook step 3 are not executable for the final task-28 candidate: the repository contains no supported OMP/Pi installable package or manifest. OMP refuses the candidate because package.json is absent; Pi treats the raw skill/reviewer directories as extensions and cannot load either. The plan must name a real checked-in installer/uninstaller and a harness registration/resolution seam for both anomaly and anomaly-data-reviewer (or depend on a task that supplies them) before the canonical demo can proceed."
+  },
+  "approvalRequired": null
+}

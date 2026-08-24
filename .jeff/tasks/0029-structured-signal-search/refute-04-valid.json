@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_signal_search.py:265 Lexical tests omit three promised detector metadata fields.",
+  "verdict": "survives",
+  "rationale": "The locked plan explicitly makes detector description, assumptions, and false-positive metadata searchable, the canonical producer persists all three in required detector metadata, and the only lexical metadata case queries title, so removing any of the other three projection branches would leave the lexical contract tests green.",
+  "evidence": [
+    {
+      "command": "read .jeff/tasks/0029-structured-signal-search/notes.md:15-45",
+      "output": "The plan states lexical matching searches detector title/description/assumptions/false-positive metadata, and AC4 identifies the four-field parameter matrix as its deterministic seam."
+    },
+    {
+      "command": "read tests/test_signal_search.py:258-289",
+      "output": "The lexical matrix covers statement, warnings, detector.title, and preview.vendor only; there are no query cases for detector.description, detector.assumptions, or detector.false_positives."
+    },
+    {
+      "command": "grep 'detector\\.(description|assumptions|false_positives)|Amounts are comparable|Categories are stable|New suppliers' tests/",
+      "output": "The three omitted metadata families appear only as fixture/schema data (plus an unrelated detector handoff fixture), not as signal-search query expectations."
+    },
+    {
+      "command": "read src/anomaly/detectors/registry.py:12-21; read src/anomaly/detect.py:690-705; read src/anomaly/_signal_projection.py:316-340",
+      "output": "The registry requires description, assumptions, and false_positives; the producer serializes full metadata into the detector snapshot; and projection has distinct lexical branches for title, description, assumptions, and false_positives, making each omitted branch reachable and independently regressible."
+    }
+  ]
+}

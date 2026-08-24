@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/search.py:166 matched_on deliberately discards genuine matches and collapses query scores.",
+  "verdict": "survives",
+  "rationale": "The blocker is directly reachable: canonical signals can repeat a candidate value in both statement and preview, the gated code records every matching field but unconditionally keeps only the final one and derives query_score from that truncated list, while the locked acceptance and plan require matched_on details without defining this hidden field-order precedence.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py | lines 137-173",
+      "output": "Lines 146-150 assign matched_on = _matched_fields(fields, terms), expose it, and set query_score = len(matched_on); lines 159-170 append every matching field, but line 173 returns only matches[-1:]."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py | lines 330-351",
+      "output": "_search_fields orders statement first and flattened preview fields last; _flatten_preview emits each preview leaf as its own public field, so matches[-1:] selects by producer order rather than an explicit relevance rule."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py | lines 29-48,260-287",
+      "output": "The signal-alpha fixture contains Acme in statement at line 39 and preview.vendor at line 42, while the Acme case at line 266 and assertion at lines 281-287 require only preview.vendor, thereby codifying the truncation."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py | lines 653-676",
+      "output": "The canonical producer spreads the detector result into the signal, builds preview from that same result, and builds statement with candidate_id; candidate_id can therefore genuinely occur in both searchable statement and preview on real produced signals."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md && git show ...:notes.md | matched_on/query_score lines",
+      "output": "Locked AC5 requires matched_on details. The plan defines matched_on as an ordered list of public-field match dictionaries and query_score as a retrieval-only value ordered descending, but states no most-specific-only or last-field precedence."
+    }
+  ]
+}

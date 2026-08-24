@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_signal_search.py:282 The matched_on assertion codifies the production truncation bug.",
+  "verdict": "survives",
+  "rationale": "The blocker is reachable and high-severity for AC5: the accepted fixture puts \u201cAcme\u201d in both statement and preview.vendor, the deterministic field producer preserves both in order, production computes both matches but deliberately returns only the last, and the test requires that truncated singleton, so a correction returning complete matched-on details would fail the gate.",
+  "evidence": [
+    {
+      "command": "read tests/test_signal_search.py:29-53,259-289",
+      "output": "signal-alpha has statement \"Acme has a deterministic overbilling variance.\" and preview.vendor \"Acme\"; the Acme parameter expects matched_field=\"preview.vendor\", and lines 282-287 require matched_on to equal exactly one preview.vendor entry."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:330-352; src/anomaly/search.py:139-173",
+      "output": "_search_fields emits statement first and flattened preview fields later. _matched_fields appends every matching field, but returns matches[-1:]; _rank_rows exposes that truncated list as matched_on and derives query_score from its length."
+    },
+    {
+      "command": "read .jeff/tasks/0029-structured-signal-search/task.md; .jeff/tasks/0029-structured-signal-search/notes.md",
+      "output": "Locked AC5 requires matched-on details; the accepted plan defines matched_on as an ordered list of public field-path matches and query_score as retrieval-only, with no stated most-specific-only truncation rule."
+    },
+    {
+      "command": "read src/anomaly/detect.py:654-670,479-488",
+      "output": "The canonical producer builds preview from the detector result while also deriving statement from result category and candidate_id; the preview sanitizer preserves ordinary keys, making cross-field lexical overlap reachable from canonical signals rather than an impossible fixture state."
+    }
+  ]
+}

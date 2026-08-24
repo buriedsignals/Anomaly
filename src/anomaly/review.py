@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from anomaly import detect
+from anomaly.detectors import is_valid_snapshot_reference
 from anomaly.detectors.registry import package_implementation_hash
 from anomaly.events import phase_event
 from anomaly.semantics import (
@@ -771,7 +772,7 @@ def _verify_provenance(
                 or item.get("source_hash") != source_hashes[item["source_id"]]
                 for item in table_sources.values()
             )
-            or snapshot != f"detectors/used/{detector_id.replace('.', '__')}.json"
+            or not is_valid_snapshot_reference(detector_id, snapshot, snapshot_hash)
         ):
             raise ReviewError("incomplete table source provenance")
         snapshot_path = _owned(root, snapshot)

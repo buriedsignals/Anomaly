@@ -1,0 +1,21 @@
+{
+  "stage": "refactor",
+  "result": "refactored",
+  "files": [
+    "src/anomaly/detectors/__init__.py",
+    "src/anomaly/_signal_projection.py",
+    "src/anomaly/review.py"
+  ],
+  "outsideDiff": [
+    "src/anomaly/detectors/__init__.py"
+  ],
+  "greenRun": {
+    "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
+    "output": "...............................                                          [100%]\n31 passed in 1.20s"
+  },
+  "summary": [
+    "Centralized detector snapshot path/hash/reference validation in one pure predicate shared by strict replay and signal projection.",
+    "Preserved strict replay's exact content-addressed path requirement and projection's existing normalized legacy-snapshot allowance, including each caller's existing error mapping.",
+    "Left TOCTOU protections, snapshot payload/hash and implementation checks, composite signal/run identity, public redaction, search behavior, and tests unchanged; updated the task context for the moved validation ownership."
+  ]
+}

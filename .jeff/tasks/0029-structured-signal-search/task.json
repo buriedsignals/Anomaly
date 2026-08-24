@@ -10,76 +10,1531 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T16:18:16Z",
-  "updatedAt": "2026-08-24T16:45:47Z",
+  "updatedAt": "2026-08-24T17:43:35Z",
   "agents": {
-    "implementer_agent_id": "ImplementSignalSearch",
+    "implementer_agent_id": "ImplementSignalSearchRecovery",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanSignalSearch",
+    "authored_by_agent_id": "ReplanSignalSearch",
     "green": false,
-    "evidence": []
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ]
   },
   "review": {
     "verdict": null,
     "reviewer_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "audit": {
     "required": true,
     "verdict": "na",
     "audit_agent_id": null,
+    "findings": [],
     "evidence": []
   },
   "commits": [],
-  "kickbacks": [],
+  "kickbacks": [
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "Lexical search truncates matched_on and collapses query scores.; The combined filter test does not discriminate eight required filters.; Lexical tests omit three promised detector metadata fields.; The matched_on assertion codifies the production truncation bug.; Stale-projection tests never exercise the required rebuild path.; The score test does not prove separation from editorial attributes.; Valid repeated detector runs make the projection permanently unbuildable.; Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.; The provenance-to-detector-metadata integrity hash is optional.; The AC3 test does not prove that eight of the nine filters are applied.; The public redaction boundary is not asserted on returned payloads.; AC4's detector-metadata search coverage is incomplete.; matched_on deliberately discards genuine matches and collapses query scores.; Malformed filter keys can escape the documented SignalSearchError boundary.",
+      "at": "2026-08-24T17:07:48Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/search.py",
+          "line": 173,
+          "what": "Lexical search truncates matched_on and collapses query scores.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_signal_search.py",
+          "line": 223,
+          "what": "The combined filter test does not discriminate eight required filters.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_signal_search.py",
+          "line": 265,
+          "what": "Lexical tests omit three promised detector metadata fields.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_signal_search.py",
+          "line": 282,
+          "what": "The matched_on assertion codifies the production truncation bug.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_signal_search.py",
+          "line": 331,
+          "what": "Stale-projection tests never exercise the required rebuild path.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_signal_search.py",
+          "line": 256,
+          "what": "The score test does not prove separation from editorial attributes.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 171,
+          "what": "Valid repeated detector runs make the projection permanently unbuildable.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 177,
+          "what": "Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 200,
+          "what": "The provenance-to-detector-metadata integrity hash is optional.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_signal_search.py",
+          "line": 223,
+          "what": "The AC3 test does not prove that eight of the nine filters are applied.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_signal_search.py",
+          "line": 248,
+          "what": "The public redaction boundary is not asserted on returned payloads.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_signal_search.py",
+          "line": 261,
+          "what": "AC4's detector-metadata search coverage is incomplete.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/search.py",
+          "line": 166,
+          "what": "matched_on deliberately discards genuine matches and collapses query scores.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/search.py",
+          "line": 109,
+          "what": "Malformed filter keys can escape the documented SignalSearchError boundary.",
+          "kickTo": "implement"
+        }
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "implement",
+      "reason": "Verified projection can be replaced between verification and query.; Path containment checks are vulnerable to symlink swap races.",
+      "at": "2026-08-24T17:07:48Z",
+      "findings": [
+        {
+          "source": "audit",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 139,
+          "what": "Verified projection can be replaced between verification and query.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 428,
+          "what": "Path containment checks are vulnerable to symlink swap races.",
+          "kickTo": "implement"
+        }
+      ]
+    }
+  ],
   "blockedReason": null,
   "abandonReason": null,
   "category": "code",
   "plan": {
     "result": "red",
     "slices": [
-      "Extract and reuse the existing public-value sanitizer without changing replay, draft, or report behavior.",
-      "Add a contained, atomic, clock-free DuckDB signal projection and deterministic manifest bound to signal JSONL, run provenance, and detector snapshot hashes.",
-      "Add validated structured filters, deterministic lexical matched_on details, separate query scores, canonical references, stable keyset pagination, and explicit stale-projection rejection."
+      "Persist immutable content-addressed detector snapshots and adopt composite (signal_id, run_id) projection/reference/cursor semantics for canonical repeated runs.",
+      "Enforce the exact public redacted payload, independently discriminating filters, complete detector metadata search, full matched_on details, malformed-key errors, and retrieval-only scores.",
+      "Preserve explicit stale rejection/rebuild while pinning verified reads and canonical/derived filesystem objects across deterministic rebuild and symlink-swap interleavings."
     ],
     "testFiles": [
       "tests/test_signal_search.py"
     ],
     "redRun": {
       "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
-      "output": "10 failed in 0.12s; every collected case completed isolated fixture setup, then failed at the expected production boundary with ModuleNotFoundError: No module named 'anomaly.search' (artifact://89)."
+      "output": "10 failed, 21 passed in 0.84s; intended production seams only. Full output: artifact://186"
     },
     "escalation": null,
-    "refactorOpportunity": "Extract review._sanitize's sensitive-key removal plus credential redaction into a shared semantics.sanitize_public_value helper and reuse it unchanged from review and search, preserving the existing review field allowlist and serialized outputs."
+    "refactorOpportunity": "Harmonize schema-v2 detector snapshot path/hash validation currently duplicated between strict replay and signal projection into one shared pure validator after corrected behavior is established, preserving public outputs and errors."
   },
   "implement": {
-    "agent_id": "ImplementSignalSearch",
+    "agent_id": "ImplementSignalSearchRecovery",
     "result": "green",
     "files": [
       "src/anomaly/_signal_projection.py",
-      "src/anomaly/search.py",
-      "src/anomaly/semantics.py",
-      "src/anomaly/review.py"
+      "src/anomaly/detect.py",
+      "src/anomaly/review.py",
+      "src/anomaly/search.py"
     ],
     "greenRun": {
       "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
-      "output": "..........                                                               [100%]\n10 passed in 0.25s"
+      "output": "...............................                                          [100%]\n31 passed in 0.87s"
     }
   },
   "refactor": {
-    "agent_id": "RefactorSignalSearch",
-    "result": "clean",
-    "files": [],
-    "outsideDiff": [],
+    "agent_id": "RefactorSignalSearchRecovery",
+    "result": "refactored",
+    "files": [
+      "src/anomaly/detectors/__init__.py",
+      "src/anomaly/_signal_projection.py",
+      "src/anomaly/review.py"
+    ],
+    "outsideDiff": [
+      "src/anomaly/detectors/__init__.py"
+    ],
     "greenRun": {
       "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
-      "output": "..........                                                               [100%]\n10 passed in 0.25s"
+      "output": "...............................                                          [100%]\n31 passed in 1.20s"
     },
     "summary": [
-      "No production changes: the task already has one shared sanitize_public_value implementation in semantics.py, review.py preserves its existing _SIGNAL_FIELDS allowlist, and _signal_projection.py explicitly sanitizes its separate allowlisted signal and detector-metadata views before serialization."
+      "Centralized detector snapshot path/hash/reference validation in one pure predicate shared by strict replay and signal projection.",
+      "Preserved strict replay's exact content-addressed path requirement and projection's existing normalized legacy-snapshot allowance, including each caller's existing error mapping.",
+      "Left TOCTOU protections, snapshot payload/hash and implementation checks, composite signal/run identity, public redaction, search behavior, and tests unchanged; updated the task context for the moved validation ownership."
     ]
-  }
+  },
+  "review2": null,
+  "refutes": [
+    {
+      "agent_id": "RefuteSignal01",
+      "source": "review",
+      "finding": "src/anomaly/_signal_projection.py:310 Projection validation rejects accepted credential-shaped source identities.",
+      "verdict": "refuted",
+      "rationale": "Acquisition permits credential-shaped IDs, but it embeds the ID in the registered data/raw path and preparation rejects every path changed by credential redaction before producing detector tables; for reachable prepared inputs, detection copies the same prepared source_id into both signal evidence_refs and run provenance, while projection validation separately retains the table/source-hash binding, so the alleged mixed redacted/unredacted canonical pair is unreachable.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/acquire.py (lines 49, 67-74) and git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/prepare.py (lines 221-248)",
+          "output": "acquire.py validates source_id, preserves it as persisted_source_id, and constructs relative = data/raw/<persisted_source_id>/<basename>. prepare.py then checks `if redact_credentials(source[\"path\"]) != source[\"path\"]: reason = \"source-path-unsafe\"` and returns that failure before decoding or table construction."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/semantics.py (lines 64-67, 138-145) and git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_prepare.py (lines 517-545)",
+          "output": "The credential regex includes `ghp_` followed by at least eight token characters and replaces it with `[redacted]`, so `data/raw/ghp_TESTONLY123/...` necessarily changes. The canonical preparation test `test_credential_bearing_registered_structural_path_is_unavailable` confirms the downstream contract: result reason is `source-path-unsafe`, tables are empty, prepared files are empty, and data/index.duckdb does not exist."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/prepare.py (lines 165-199); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 654-676, 703-740); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 205-213, 303-312)",
+          "output": "Preparation writes `\"source_id\": redact_credentials(source[\"source_id\"])` into each table declaration. Detection reads that table declaration and uses the identical `table[\"source_id\"]` for signal evidence_refs (line 661) and provenance table_sources (line 722). Projection first requires provenance source_hash to equal signal source_hash (lines 208-211), then compares those same-representation source IDs (line 310); the claimed unredacted provenance side is not produced by this path."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_acquire.py (lines 240-262, 278-305)",
+          "output": "The cited test proves only the acquisition boundary: `ghp_TESTONLY123` is accepted, preserved as record.source_id, and embedded in `data/raw/<source_id>/<basename>`. It does not establish that preparation succeeds or that a signal/provenance pair is produced; the preparation guard above establishes the opposite."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal02",
+      "source": "review",
+      "finding": "src/anomaly/search.py:173 Lexical search truncates matched_on and collapses query scores.",
+      "verdict": "survives",
+      "rationale": "The locked checkpoint has a reachable overlapping match: signal-alpha contains “Acme” in both statement and preview.vendor, the deterministic producer emits both fields, but _matched_fields returns only matches[-1:] and _rank_rows scores that truncated list, so there is no upstream single-match invariant or fail-safe preventing loss of AC5 matched_on detail.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py | sed -n '137,173p'",
+          "output": "_rank_rows assigns matched_on = _matched_fields(fields, terms), then payload[\"query_score\"] = len(matched_on); _matched_fields appends every field containing all terms at lines 159-170 but returns matches[-1:] at line 173."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py | sed -n '330,351p'",
+          "output": "_search_fields emits statement first, warnings and detector metadata next, then extends flattened preview fields; _flatten_preview sorts mapping keys, so the full matching-field order is deterministic and preview.vendor is emitted after statement."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py | sed -n '33,42p;269,286p'",
+          "output": "signal-alpha's statement is \"Acme has a deterministic overbilling variance.\" and preview.vendor is \"Acme\", making the overlap reachable through the public fixture. The lexical assertion nevertheless requires a one-element matched_on list, so the test codifies rather than prevents the truncation."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md | sed -n '13,15p'",
+          "output": "AC5 requires matched_on details, and AC7 requires query scores to remain separate from severity, confidence, and editorial status; the implementation's truncation removes a real matching field before the retrieval-only score is computed."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal03",
+      "source": "review",
+      "finding": "tests/test_signal_search.py:223 The combined filter test does not discriminate eight required filters.",
+      "verdict": "survives",
+      "rationale": "AC3 requires every supplied facet to constrain results, but the sole filter test combines all nine while severity=\"high\" alone uniquely selects signal-alpha, every projected review state is hard-coded to \"unreviewed\", and no other test exercises filters, so an implementation ignoring the other eight facets would pass.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "Acceptance criterion: \"Filter by detector, group or category, severity, source, table, run, date, and review state when supplied.\""
+        },
+        {
+          "command": "read tests/test_signal_search.py:29-257",
+          "output": "The fixture has signal-alpha severity high, signal-beta severity low, and signal-gamma severity medium. Lines 223-232 submit detector_id, group, category, severity, source_id, table_id, run_id, date, and review_state together; lines 236-237 assert only [\"signal-alpha\"]. Thus severity=\"high\" alone produces the asserted result even if the other eight filters are ignored."
+        },
+        {
+          "command": "grep 'search_signals\\(' tests",
+          "output": "All search_signals callsites are in tests/test_signal_search.py; only the call at lines 221-223 supplies filters. The remaining calls exercise lexical queries, pagination, or stale projection behavior without filters."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:215-251",
+          "output": "The projected payload sets review_state to \"unreviewed\", and the projection tuple independently stores the literal \"unreviewed\" for every signal. The existing matching review_state assertion cannot distinguish applied filtering from ignored filtering; a nonmatching value is required."
+        },
+        {
+          "command": "read src/anomaly/detect.py:654-740",
+          "output": "Canonical production emits detector_id, table_id, source evidence, status, severity, run_id, and provenance executed_at, but no review_state; the search projection derives review_state. No canonical-producer guard makes any of the eight untested filter predicates unreachable."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal04",
+      "source": "review",
+      "finding": "tests/test_signal_search.py:265 Lexical tests omit three promised detector metadata fields.",
+      "verdict": "survives",
+      "rationale": "The locked plan explicitly makes detector description, assumptions, and false-positive metadata searchable, the canonical producer persists all three in required detector metadata, and the only lexical metadata case queries title, so removing any of the other three projection branches would leave the lexical contract tests green.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/notes.md:15-45",
+          "output": "The plan states lexical matching searches detector title/description/assumptions/false-positive metadata, and AC4 identifies the four-field parameter matrix as its deterministic seam."
+        },
+        {
+          "command": "read tests/test_signal_search.py:258-289",
+          "output": "The lexical matrix covers statement, warnings, detector.title, and preview.vendor only; there are no query cases for detector.description, detector.assumptions, or detector.false_positives."
+        },
+        {
+          "command": "grep 'detector\\.(description|assumptions|false_positives)|Amounts are comparable|Categories are stable|New suppliers' tests/",
+          "output": "The three omitted metadata families appear only as fixture/schema data (plus an unrelated detector handoff fixture), not as signal-search query expectations."
+        },
+        {
+          "command": "read src/anomaly/detectors/registry.py:12-21; read src/anomaly/detect.py:690-705; read src/anomaly/_signal_projection.py:316-340",
+          "output": "The registry requires description, assumptions, and false_positives; the producer serializes full metadata into the detector snapshot; and projection has distinct lexical branches for title, description, assumptions, and false_positives, making each omitted branch reachable and independently regressible."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal05",
+      "source": "review",
+      "finding": "tests/test_signal_search.py:282 The matched_on assertion codifies the production truncation bug.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable and high-severity for AC5: the accepted fixture puts “Acme” in both statement and preview.vendor, the deterministic field producer preserves both in order, production computes both matches but deliberately returns only the last, and the test requires that truncated singleton, so a correction returning complete matched-on details would fail the gate.",
+      "evidence": [
+        {
+          "command": "read tests/test_signal_search.py:29-53,259-289",
+          "output": "signal-alpha has statement \"Acme has a deterministic overbilling variance.\" and preview.vendor \"Acme\"; the Acme parameter expects matched_field=\"preview.vendor\", and lines 282-287 require matched_on to equal exactly one preview.vendor entry."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:330-352; src/anomaly/search.py:139-173",
+          "output": "_search_fields emits statement first and flattened preview fields later. _matched_fields appends every matching field, but returns matches[-1:]; _rank_rows exposes that truncated list as matched_on and derives query_score from its length."
+        },
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/task.md; .jeff/tasks/0029-structured-signal-search/notes.md",
+          "output": "Locked AC5 requires matched-on details; the accepted plan defines matched_on as an ordered list of public field-path matches and query_score as retrieval-only, with no stated most-specific-only truncation rule."
+        },
+        {
+          "command": "read src/anomaly/detect.py:654-670,479-488",
+          "output": "The canonical producer builds preview from the detector result while also deriving statement from result category and candidate_id; the preview sanitizer preserves ordinary keys, making cross-field lexical overlap reachable from canonical signals rather than an impossible fixture state."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal06",
+      "source": "review",
+      "finding": "tests/test_signal_search.py:331 Stale-projection tests never exercise the required rebuild path.",
+      "verdict": "survives",
+      "rationale": "The locked contract requires a rebuildable projection and the selected AC6 design makes an explicit second build the stale-recovery path, but the stale-input matrix builds only once, checks rejection and unchanged projection bytes, and never proves that an existing stale projection can be replaced or queried with changed canonical content; the current os.replace implementation does not supply regression coverage for that observable contract.",
+      "evidence": [
+        {
+          "command": "read anomaly/.jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "AC1 requires a rebuildable projection, and AC6 requires binding input hashes and rejecting or rebuilding stale projections."
+        },
+        {
+          "command": "read anomaly/.jeff/tasks/0029-structured-signal-search/notes.md",
+          "output": "The plan explicitly states: “Rebuilding is an explicit call to build_signal_projection; a read never silently rebuilds,” and AC6 says “an explicit build is the rebuild path.”"
+        },
+        {
+          "command": "read anomaly/tests/test_signal_search.py:331-352",
+          "output": "Each stale-input case calls build_signal_projection once, mutates one canonical input, asserts search_signals raises StaleSignalProjectionError, and asserts the projection digest is unchanged; there is no second build or post-rebuild query."
+        },
+        {
+          "command": "grep 'build_signal_projection\\(' anomaly/tests",
+          "output": "All successful build calls are initial builds in separate tests; no test calls build_signal_projection twice on the same case root."
+        },
+        {
+          "command": "read anomaly/src/anomaly/_signal_projection.py:55-86",
+          "output": "The current builder allows existing owned artifacts and replaces staged projection and manifest files with os.replace, so the implementation presently supports replacement, but no test would fail if that replacement behavior regressed or were changed to reject an existing stale projection."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal07",
+      "source": "review",
+      "finding": "tests/test_signal_search.py:256 The score test does not prove separation from editorial attributes.",
+      "verdict": "survives",
+      "rationale": "AC7 and the locked plan require a retrieval-only score and zero for every empty-query result, but the suite asserts only numeric type and an ID order that a reachable severity-derived mapping such as high=2, low=1, medium=0 would preserve, so no test prevents editorial coupling even though the checkpoint implementation is currently correct.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "Line 15: `Keep query scores separate from severity, confidence, and editorial status.` The locked plan further states: `query_score is a retrieval-only numeric value` and `an empty query gives every row score zero.`"
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+          "output": "The fixtures vary editorial values: alpha severity=high/confidence=0.73, beta severity=low/confidence=0.25, gamma severity=medium/confidence=0.51. Line 256 asserts only `isinstance(item[\"query_score\"], (int, float))`. The empty-query pagination test asserts IDs alpha,beta then gamma but never asserts score values; scores high=2, low=1, medium=0 would satisfy both that order and the numeric assertion."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py",
+          "output": "`_projection_row` spreads `public_signal` into the payload, exposing severity, confidence, and status to `_rank_rows`; no upstream guard prevents severity-derived scoring. The current implementation at search.py:150 is correct—`len(matched_on) if terms else 0`—but that producer behavior is not defended by a discriminating test."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal08",
+      "source": "review2",
+      "finding": "src/anomaly/_signal_projection.py:171 Valid repeated detector runs make the projection permanently unbuildable.",
+      "verdict": "survives",
+      "rationale": "A normal second execute_detectors call is reachable with the same persistent Gate A receipt and unchanged prepared table: it creates a new timestamped run_id but recomputes the same signal_id from detector_id, table_id, and candidate_id, then appends that row. Search subsequently rejects the changed JSONL as stale, while rebuild rejects the repeated signal_id before projection construction; the locked tests cover only distinct signal IDs across runs, so no upstream guard, fail-safe deduplication, or repeated-run contract makes the blocker unreachable or less than high severity.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py",
+          "output": "524-580: _require_gate_a reads and validates the persistent plan/receipt and returns scopes; it does not consume or invalidate approval. 583-590: execute_detectors is a public phase entry point accepting caller-supplied now. 653-675: candidate_id comes from the deterministic query result and signal_id is sha256(detector_id:table_id:candidate_id), with no run component. 678-684: run_id includes the timestamp and is assigned only after signal_id. 738-740: every produced row is appended to evidence/signals.jsonl."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:detectors/numeric/zscore_outliers/query.sql",
+          "output": "The real detector selects candidate_id as 'row-' || id from an unchanged prepared table and orders no mutable input into that identity, so the same qualifying row is emitted with the same candidate_id on a rerun."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py",
+          "output": "133-138: verified_projection raises StaleSignalProjectionError when evidence/signals.jsonl changes. 167-182: rebuild reads every JSONL row and validates each through one shared seen set. 249-272: _validate_signal raises SignalSearchError on the second occurrence of a signal_id. 224-245: each projected row carries one run_id but signal_ref is only {path: evidence/signals.jsonl, signal_id}; 362-377 makes signal_id the DuckDB primary key."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+          "output": "29-105 seeds three globally unique signal IDs; its two run IDs never repeat the same signal identity. 213-257 exercises run filtering and asserts signal_ref only as {path, signal_id}. 292-308 checks pagination duplicates, not a detector rerun or duplicate canonical signal identity. No supplied task-29 test covers the reachable repeated-run case."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal09",
+      "source": "review2",
+      "finding": "src/anomaly/_signal_projection.py:177 Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.",
+      "verdict": "survives",
+      "rationale": "The ordinary approve-and-detect entry point can execute an updated detector again; execution appends the new signals and preserves run provenance but overwrites the detector-global snapshot, while projection construction ignores provenance as a resolver and requires that one mutable snapshot to match every historical run, so the old projection is rejected as stale and an explicit rebuild deterministically fails, violating the locked rebuildability contract.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly grep -n execute_detectors 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- src && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/owners.py (lines 72-76)",
+          "output": "src/anomaly/owners.py:76 calls execute_detectors(root, approval[\"approved\"], now=now) from the real approve-and-detect workflow; no inspected upstream guard makes a later execution of the same detector impossible."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 58-75, 677-740)",
+          "output": "package_implementation_hash hashes every file in the detector package. execute_detectors creates a hash-bearing run_id (677-680), writes snapshot_path = detectors/used/<detector>.json via Path.write_text (698-699; _write_json at 514-518 therefore overwrites), records that same mutable path plus its then-current hash in run provenance (703-709), writes immutable per-run provenance (737), and appends signals to evidence/signals.jsonl (738-740). A later detector-package change therefore preserves old signals/provenance but replaces their referenced snapshot."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 164-204, 315-320)",
+          "output": "For every signal, _read_projection_inputs reconstructs detectors/used/<detector_id>.json rather than resolving provenance.detector_snapshot (177-181). _projection_row only accepts provenance.detector_snapshot when it equals that reconstructed path (197-199), rejects when provenance.detector_snapshot_hash differs from the current file (200-204), and independently rejects when snapshot.implementation_hash differs from the historical signal detector_hash (315-317). Thus run 1 plus an overwritten run-2 snapshot cannot be rebuilt."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 113-148, 311-351)",
+          "output": "The fixture provenance omits detector_snapshot and detector_snapshot_hash, unlike the canonical producer. The stale-input test mutates one bound input and asserts only that search_signals raises StaleSignalProjectionError; it never calls build_signal_projection after a canonical second run, so it does not cover or refute the failed-rebuild path."
+        },
+        {
+          "command": "cat /Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "Locked AC1 requires a rebuildable projection from public signals, run provenance, and detector metadata; AC6 requires input-hash binding and rejection or rebuilding of stale projections. Permanent rejection followed by a rebuild failure does not satisfy the rebuildable half of that contract."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal10",
+      "source": "review2",
+      "finding": "src/anomaly/_signal_projection.py:200 The provenance-to-detector-metadata integrity hash is optional.",
+      "verdict": "survives",
+      "rationale": "The public projection builder is directly reachable, treats detector_snapshot_hash as optional, and exposes/indexes snapshot metadata after checking only its claimable implementation_hash, while the canonical schema-version-2 producer and existing strict provenance validator both require the snapshot path and hash, so malformed or modified metadata can cross the projection's integrity boundary.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 186-204, 315-338)",
+          "output": "_projection_row defaults a missing detector_snapshot to detector_relative, reads snapshot_hash = provenance.get(\"detector_snapshot_hash\"), and validates the snapshot digest only inside `if snapshot_hash is not None`; _validated_metadata then accepts a snapshot when implementation_hash equals signal[\"detector_hash\"] and metadata.id matches, and _search_fields indexes title, description, assumptions, and false_positives."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 691-709)",
+          "output": "The canonical producer serializes the detector snapshot, computes snapshot_hash over its canonical JSON, emits schema_version 2 provenance, and unconditionally records both detector_snapshot and detector_snapshot_hash."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/review.py (lines 729-786)",
+          "output": "For schema_version 2, the established provenance validator requires detector_snapshot to be a string, detector_snapshot_hash to be a valid SHA-256, the canonical snapshot path to match the detector id, and the snapshot's canonical JSON hash to equal detector_snapshot_hash."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 115-145)",
+          "output": "Both schema_version 2 provenance fixtures include run_id, detector_id, detector_hash, executed_at, table_ids, and table_sources but omit detector_snapshot and detector_snapshot_hash, so the passing projection contract exercises and normalizes the malformed binding instead of rejecting it."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal11",
+      "source": "review2",
+      "finding": "tests/test_signal_search.py:223 The AC3 test does not prove that eight of the nine filters are applied.",
+      "verdict": "survives",
+      "rationale": "AC3 requires every supplied facet to filter, but the checkpoint's sole filtered query is a nine-way conjunction in which severity=\"high\" alone uniquely selects signal-alpha; signal-beta shares alpha's other eight queried facet values and all projected rows are unreviewed, so ignoring or misrouting any of those eight filters leaves the asserted result unchanged, while producer and projection validation only establish data consistency rather than discriminating test coverage.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "Lines 7-15 include AC3: \"Filter by detector, group or category, severity, source, table, run, date, and review state when supplied.\""
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+          "output": "The fixture gives signal-alpha severity high and signal-beta severity low, but both have detector numeric.zscore_outliers, category outlier, source payments, TABLE_ALPHA, run-alpha, date 2026-08-21, group numeric, and review_state unreviewed; signal-gamma differs but has severity medium. Lines 223-232 submit all nine filters together, line 239 only asserts [\"signal-alpha\"], and source inspection found this is the only filters= call in the test file. Therefore severity alone produces the expected assertion even if the other eight filters are ignored."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py",
+          "output": "search.py lines 23-32 map nine public filter keys and lines 68-71 pass all supplied mappings to read_rows; _signal_projection.py lines 149-150 build conjunctive SQL, lines 233-243 project the nine corresponding facet values, and line 229 hard-codes current review_state to unreviewed. This shows the implementation is presently wired, but supplies no upstream guard that would make a missing individual-filter regression fail the AC3 test."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal12",
+      "source": "review2",
+      "finding": "tests/test_signal_search.py:248 The public redaction boundary is not asserted on returned payloads.",
+      "verdict": "survives",
+      "rationale": "The canonical detector path can persist arbitrary detector-result keys, and search returns the projection payload verbatim; the tests only prove that private_context is not indexed and never assert the returned key/value shape, so a regression that copies raw signal fields into payload_json while retaining the public search_fields allowlist is reachable and would evade the suite.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+          "output": "Lines 32-56 seed signal-alpha with top-level private_context='classified-swordfish'; lines 42 and 67 use previews containing only vendor/amount, so no credential-bearing nested fixture exists. Lines 239-256 assert selected returned values but never assert the complete item key set or absence/redaction of sensitive values. Lines 281-289 assert matched_on and that searching for 'classified-swordfish' returns no items, which covers indexing only."
+        },
+        {
+          "command": "git grep -n private_context 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- tests",
+          "output": "8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py:55:            \"private_context\": \"classified-swordfish\","
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py",
+          "output": "Lines 654-676 construct each canonical signal as {**result, ...} and append it after credential text redaction; lines 738-740 write those rows to evidence/signals.jsonl. Arbitrary non-public detector-result keys are therefore reachable inputs to the projection."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py",
+          "output": "_signal_projection.py lines 218-231 currently protect the boundary by allowlisting _PUBLIC_SIGNAL_FIELDS and recursively sanitizing public signal/metadata before serializing payload_json, while lines 232-245 build search_fields separately. search.py lines 141-151 deserialize payload_json, add only matched_on/query_score, and return it. Thus changing payload construction to include raw signal keys would leak them without making private_context searchable, exactly the regression the existing assertions miss."
+        },
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/notes.md",
+          "output": "Acceptance-criterion disposition 1 promises that the deterministic seam test_projection_filters_every_structured_facet_without_mutating_evidence 'checks ... allowlisted result shape'; the locked test asserts individual required fields but not an allowlisted/exact shape."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal13",
+      "source": "review2",
+      "finding": "tests/test_signal_search.py:261 AC4's detector-metadata search coverage is incomplete.",
+      "verdict": "survives",
+      "rationale": "AC4's locked plan explicitly promises title, description, assumptions, and false-positive metadata as separately observable searchable fields, but the sole detector-metadata test queries only title, so removing any of the other field names from the production projection remains reachable and green; no upstream guard or fail-safe supplies coverage for those omissions.",
+      "evidence": [
+        {
+          "command": "grep task.json for gate hash; read task.md and notes.md:19-23,39-44",
+          "output": "task.json binds the clean green gate to checkpoint 8d6157f854c2ed7d0b9527ec57d922e745f37a53. task.md AC4 requires lexical search of detector metadata, and the locked plan makes that concrete as detector title/description/assumptions/false-positive metadata with matched_on reporting."
+        },
+        {
+          "command": "read tests/test_signal_search.py:29-205,257-291",
+          "output": "The canonical fixture gives detector metadata distinct searchable values for title, description, assumptions, and false_positives, but the parameter matrix has only one detector-metadata case: ('allocation', ['signal-alpha', 'signal-beta'], 'detector.title'). No query or matched_on assertion exercises detector.description, detector.assumptions, or detector.false_positives."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:315-342",
+          "output": "_validated_metadata separately accepts title/description as strings and assumptions/false_positives as string lists; _search_fields enumerates ('title', 'description', 'assumptions', 'false_positives') and joins list values before emitting detector.<field>. Deleting description, assumptions, or false_positives from that tuple would remove a promised consumer-visible search path without affecting the existing title case."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal14",
+      "source": "review2",
+      "finding": "src/anomaly/search.py:166 matched_on deliberately discards genuine matches and collapses query scores.",
+      "verdict": "survives",
+      "rationale": "The blocker is directly reachable: canonical signals can repeat a candidate value in both statement and preview, the gated code records every matching field but unconditionally keeps only the final one and derives query_score from that truncated list, while the locked acceptance and plan require matched_on details without defining this hidden field-order precedence.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py | lines 137-173",
+          "output": "Lines 146-150 assign matched_on = _matched_fields(fields, terms), expose it, and set query_score = len(matched_on); lines 159-170 append every matching field, but line 173 returns only matches[-1:]."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py | lines 330-351",
+          "output": "_search_fields orders statement first and flattened preview fields last; _flatten_preview emits each preview leaf as its own public field, so matches[-1:] selects by producer order rather than an explicit relevance rule."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py | lines 29-48,260-287",
+          "output": "The signal-alpha fixture contains Acme in statement at line 39 and preview.vendor at line 42, while the Acme case at line 266 and assertion at lines 281-287 require only preview.vendor, thereby codifying the truncation."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py | lines 653-676",
+          "output": "The canonical producer spreads the detector result into the signal, builds preview from that same result, and builds statement with candidate_id; candidate_id can therefore genuinely occur in both searchable statement and preview on real produced signals."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md && git show ...:notes.md | matched_on/query_score lines",
+          "output": "Locked AC5 requires matched_on details. The plan defines matched_on as an ordered list of public-field match dictionaries and query_score as a retrieval-only value ordered descending, but states no most-specific-only or last-field precedence."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal15",
+      "source": "review2",
+      "finding": "src/anomaly/search.py:109 Malformed filter keys can escape the documented SignalSearchError boundary.",
+      "verdict": "survives",
+      "rationale": "The exported public entry point passes caller-supplied mappings directly to `_validate_filters`, where `{1: \"x\", \"bogus\": \"x\"}` reaches `sorted(unknown)` with incomparable `int` and `str` keys before any key-type guard or exception translation, so a raw `TypeError` violates the plan's explicit `SignalSearchError` contract; the failure occurs before projection access, and no canonical producer or upstream guard makes the input unreachable.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/search.py:31-119",
+          "output": "`search_signals` is exported in `__all__`; lines 49-60 call `_validate_filters(filters)` directly. Lines 104-114 accept any runtime `Mapping`, compute `unknown = set(filters) - set(_FILTER_COLUMNS)`, and evaluate `sorted(unknown)[0]` before iterating or validating values. There is no key-type guard or catch around this path."
+        },
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/notes.md",
+          "output": "The locked plan names `search_signals(..., filters=None, ...)` as the public boundary and explicitly states that `SignalSearchError` covers malformed query contracts and that unknown filter keys raise `SignalSearchError`."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:14-22",
+          "output": "`SignalSearchError` is a `RuntimeError` subclass; `StaleSignalProjectionError` subclasses it. A Python sorting `TypeError` is therefore outside the documented exception family."
+        },
+        {
+          "command": "grep \"search_signals\\\\(\" anomaly",
+          "output": "The only production definition is `src/anomaly/search.py:49`; no production wrapper or canonical filter producer validates keys before this exported API. Other matches are task documentation and direct test calls."
+        },
+        {
+          "command": "grep \"8d6157f854c2ed7d0b9527ec57d922e745f37a53|\\\"gate\\\"|\\\"hash\\\"\" .jeff/tasks/0029-structured-signal-search/task.json",
+          "output": "The task ledger records gate hash `8d6157f854c2ed7d0b9527ec57d922e745f37a53` with `clean: true` and `green: true`, identifying the inspected gated checkpoint."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal16",
+      "source": "audit",
+      "finding": "src/anomaly/_signal_projection.py:139 Verified projection can be replaced between verification and query.",
+      "verdict": "survives",
+      "rationale": "The blocker survives because the exact checkpoint exposes an unsynchronized public rebuild that can replace the verified pathname before read_rows reopens it, so a completed canonical-input update and rebuild can make search_signals return projection-B rows while retaining projection-A's manifest identity without any fail-closed post-read check, directly violating the required input-hash binding and stale-projection rejection.",
+      "evidence": [
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 68-160); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py (lines 44-83)",
+          "output": "At the locked checkpoint, build_projection writes staged artifacts and independently replaces signals.duckdb at line 93 and its manifest at line 94; verified_projection hashes the current database at line 139 but returns only Path plus manifest at line 143; read_rows later opens that path anew at line 155. search_signals obtains the manifest at line 61, calls read_rows only at line 71, and uses that earlier manifest identity for cursor binding at lines 62-66 and 82-83."
+        },
+        {
+          "command": "Inspect exact-checkpoint synchronization and post-read guards in src/anomaly/_signal_projection.py and src/anomaly/search.py",
+          "output": "The exact blobs contain no Lock, RLock, Semaphore, flock, mutex, portalocker, or filelock synchronization; search.py calls verified_projection once, calls read_rows once, and contains zero projection_hash references, so neither synchronization nor a post-read projection-identity/hash check closes the interval."
+        },
+        {
+          "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 685-740); read tests/test_signal_search.py:292-368",
+          "output": "The canonical producer legitimately updates all bound input families: detector snapshot at lines 698-699, run provenance at line 737, and evidence/signals.jsonl at lines 738-740. After that producer completes, the public build_signal_projection entry point can build and swap a new valid projection during the verified_projection/read_rows gap. Existing tests cover repeatable sequential pagination, sequential stale-input rejection, and a pre-existing symlink only; they provide no concurrent rebuild/read guard."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignal17",
+      "source": "audit",
+      "finding": "src/anomaly/_signal_projection.py:428 Path containment checks are vulnerable to symlink swap races.",
+      "verdict": "survives",
+      "rationale": "The public build entry point reaches pathname-only checks followed by separate opens and fixed-name staging writes with no lock, private-directory guarantee, no-follow open, directory descriptor, or pinned file handle, so a process able to mutate a shared case can swap an input or staging component after validation and cause out-of-root reads or victim-privileged writes, including writes to canonical evidence, contrary to the locked immutability criterion.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/search.py:44-66",
+          "output": "build_signal_projection(root) directly calls build_projection(root); search_signals likewise calls verified_projection(root) and then separately read_rows(projection, ...). There is no upstream lock, case-tree pin, or private-directory guard."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:68-148",
+          "output": "build_projection uses predictable .signals.duckdb.tmp and .signals-manifest.json.tmp names, runs _reset_stage checks, then separately calls duckdb.connect through _write_projection, read_bytes, write_text, and os.replace. verified_projection separately validates paths and later calls read_bytes; _read_projection_inputs similarly returns a checked Path and then calls read_bytes."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:418-500",
+          "output": "_safe_input_file, _prepare_search_root, _existing_search_root, _required_owned_file, _prepare_owned_artifact, and _reset_stage inspect pathnames with is_symlink/is_file/is_dir/resolve/exists and return or continue; none pins an opened object or uses O_NOFOLLOW, openat/dir_fd operations, unique secure staging, locking, or restrictive directory permissions."
+        },
+        {
+          "command": "read tests/test_signal_search.py:354-372",
+          "output": "The containment test creates the search symlink before build_signal_projection is called and only proves rejection of a pre-existing symlink; it does not cover replacement between validation and use."
+        },
+        {
+          "command": "read .jeff/tasks/0029-structured-signal-search/task.md:3-18; read PRD.md:499-516",
+          "output": "The locked acceptance criteria require never modifying canonical data/index.duckdb, evidence/signals.jsonl, or detector-run artifacts, while the security model explicitly supports importing shared cases and rejects links; a post-validation link swap remains within that real shared-case scenario and defeats the required immutability boundary."
+        }
+      ]
+    }
+  ],
+  "convergence": {
+    "cap": 2,
+    "stages": {
+      "review": {
+        "blockingKickbacks": 1
+      },
+      "audit": {
+        "blockingKickbacks": 1
+      }
+    },
+    "council": {
+      "convened": false,
+      "stage": null,
+      "members": [],
+      "findings": [],
+      "verdict": null,
+      "outcome": null
+    }
+  },
+  "judgmentHistory": [
+    {
+      "at": "2026-08-24T17:37:35Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewSignalSearchCorrectnessValid",
+        "findings": [
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 310,
+            "severity": "high",
+            "class": "follow-up",
+            "kickTo": "implement",
+            "what": "Projection validation rejects accepted credential-shaped source identities.",
+            "why": "The projection rejects a canonical public signal/provenance pair that the existing pipeline can produce. detect.py:676 and :740 recursively redact credential-shaped strings in signal evidence_refs, while provenance retains the structural source_id; test_acquire.py:262 explicitly permits credential-shaped structural source IDs. Requiring evidence_ref.source_id to equal the unredacted provenance source_id therefore makes build_signal_projection fail for accepted source IDs such as ghp_TESTONLY123, violating AC1's public-redacted-contract input and AC5's canonical-reference contract. Validate against the public-redacted representation while retaining table/source-hash binding, and add an end-to-end canonical fixture for an accepted credential-shaped source identity.",
+            "refute": {
+              "agent_id": "RefuteSignal01",
+              "source": "review",
+              "finding": "src/anomaly/_signal_projection.py:310 Projection validation rejects accepted credential-shaped source identities.",
+              "verdict": "refuted",
+              "rationale": "Acquisition permits credential-shaped IDs, but it embeds the ID in the registered data/raw path and preparation rejects every path changed by credential redaction before producing detector tables; for reachable prepared inputs, detection copies the same prepared source_id into both signal evidence_refs and run provenance, while projection validation separately retains the table/source-hash binding, so the alleged mixed redacted/unredacted canonical pair is unreachable.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/acquire.py (lines 49, 67-74) and git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/prepare.py (lines 221-248)",
+                  "output": "acquire.py validates source_id, preserves it as persisted_source_id, and constructs relative = data/raw/<persisted_source_id>/<basename>. prepare.py then checks `if redact_credentials(source[\"path\"]) != source[\"path\"]: reason = \"source-path-unsafe\"` and returns that failure before decoding or table construction."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/semantics.py (lines 64-67, 138-145) and git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_prepare.py (lines 517-545)",
+                  "output": "The credential regex includes `ghp_` followed by at least eight token characters and replaces it with `[redacted]`, so `data/raw/ghp_TESTONLY123/...` necessarily changes. The canonical preparation test `test_credential_bearing_registered_structural_path_is_unavailable` confirms the downstream contract: result reason is `source-path-unsafe`, tables are empty, prepared files are empty, and data/index.duckdb does not exist."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/prepare.py (lines 165-199); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 654-676, 703-740); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 205-213, 303-312)",
+                  "output": "Preparation writes `\"source_id\": redact_credentials(source[\"source_id\"])` into each table declaration. Detection reads that table declaration and uses the identical `table[\"source_id\"]` for signal evidence_refs (line 661) and provenance table_sources (line 722). Projection first requires provenance source_hash to equal signal source_hash (lines 208-211), then compares those same-representation source IDs (line 310); the claimed unredacted provenance side is not produced by this path."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_acquire.py (lines 240-262, 278-305)",
+                  "output": "The cited test proves only the acquisition boundary: `ghp_TESTONLY123` is accepted, preserved as record.source_id, and embedded in `data/raw/<source_id>/<basename>`. It does not establish that preparation succeeds or that a signal/provenance pair is produced; the preparation guard above establishes the opposite."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/search.py",
+            "line": 173,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Lexical search truncates matched_on and collapses query scores.",
+            "why": "_matched_fields computes every matching public field and then discards all but the last. For the existing Acme fixture both statement and preview.vendor match, but the API reports only preview.vendor and query_score is consequently collapsed to 1 for every nonempty match. This loses the matched_on details required by AC5 and makes the retrieval score incapable of reflecting the matches it purports to count. Return the deterministic full match list and revise the overlapping-field expectation.",
+            "refute": {
+              "agent_id": "RefuteSignal02",
+              "source": "review",
+              "finding": "src/anomaly/search.py:173 Lexical search truncates matched_on and collapses query scores.",
+              "verdict": "survives",
+              "rationale": "The locked checkpoint has a reachable overlapping match: signal-alpha contains “Acme” in both statement and preview.vendor, the deterministic producer emits both fields, but _matched_fields returns only matches[-1:] and _rank_rows scores that truncated list, so there is no upstream single-match invariant or fail-safe preventing loss of AC5 matched_on detail.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py | sed -n '137,173p'",
+                  "output": "_rank_rows assigns matched_on = _matched_fields(fields, terms), then payload[\"query_score\"] = len(matched_on); _matched_fields appends every field containing all terms at lines 159-170 but returns matches[-1:] at line 173."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py | sed -n '330,351p'",
+                  "output": "_search_fields emits statement first, warnings and detector metadata next, then extends flattened preview fields; _flatten_preview sorts mapping keys, so the full matching-field order is deterministic and preview.vendor is emitted after statement."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py | sed -n '33,42p;269,286p'",
+                  "output": "signal-alpha's statement is \"Acme has a deterministic overbilling variance.\" and preview.vendor is \"Acme\", making the overlap reachable through the public fixture. The lexical assertion nevertheless requires a one-element matched_on list, so the test codifies rather than prevents the truncation."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md | sed -n '13,15p'",
+                  "output": "AC5 requires matched_on details, and AC7 requires query scores to remain separate from severity, confidence, and editorial status; the implementation's truncation removes a real matching field before the retrieval-only score is computed."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 223,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The combined filter test does not discriminate eight required filters.",
+            "why": "AC3's only filter test supplies all nine filters together, and signal-alpha is uniquely selected by severity='high' alone. An implementation that ignores detector, group, category, source, table, run, date, and review_state would still pass. Parameterize each filter independently with fixtures or values that change the result set, including a nonmatching review_state.",
+            "refute": {
+              "agent_id": "RefuteSignal03",
+              "source": "review",
+              "finding": "tests/test_signal_search.py:223 The combined filter test does not discriminate eight required filters.",
+              "verdict": "survives",
+              "rationale": "AC3 requires every supplied facet to constrain results, but the sole filter test combines all nine while severity=\"high\" alone uniquely selects signal-alpha, every projected review state is hard-coded to \"unreviewed\", and no other test exercises filters, so an implementation ignoring the other eight facets would pass.",
+              "evidence": [
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "Acceptance criterion: \"Filter by detector, group or category, severity, source, table, run, date, and review state when supplied.\""
+                },
+                {
+                  "command": "read tests/test_signal_search.py:29-257",
+                  "output": "The fixture has signal-alpha severity high, signal-beta severity low, and signal-gamma severity medium. Lines 223-232 submit detector_id, group, category, severity, source_id, table_id, run_id, date, and review_state together; lines 236-237 assert only [\"signal-alpha\"]. Thus severity=\"high\" alone produces the asserted result even if the other eight filters are ignored."
+                },
+                {
+                  "command": "grep 'search_signals\\(' tests",
+                  "output": "All search_signals callsites are in tests/test_signal_search.py; only the call at lines 221-223 supplies filters. The remaining calls exercise lexical queries, pagination, or stale projection behavior without filters."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:215-251",
+                  "output": "The projected payload sets review_state to \"unreviewed\", and the projection tuple independently stores the literal \"unreviewed\" for every signal. The existing matching review_state assertion cannot distinguish applied filtering from ignored filtering; a nonmatching value is required."
+                },
+                {
+                  "command": "read src/anomaly/detect.py:654-740",
+                  "output": "Canonical production emits detector_id, table_id, source evidence, status, severity, run_id, and provenance executed_at, but no review_state; the search projection derives review_state. No canonical-producer guard makes any of the eight untested filter predicates unreachable."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 265,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Lexical tests omit three promised detector metadata fields.",
+            "why": "AC4 and the plan promise lexical search across detector title, description, assumptions, and false-positive metadata, but the matrix exercises only detector.title. A projection that omits the other three consumer-observable metadata fields passes. Add discriminating cases for each promised metadata field; keep the existing statement, warning, and preview cases.",
+            "refute": {
+              "agent_id": "RefuteSignal04",
+              "source": "review",
+              "finding": "tests/test_signal_search.py:265 Lexical tests omit three promised detector metadata fields.",
+              "verdict": "survives",
+              "rationale": "The locked plan explicitly makes detector description, assumptions, and false-positive metadata searchable, the canonical producer persists all three in required detector metadata, and the only lexical metadata case queries title, so removing any of the other three projection branches would leave the lexical contract tests green.",
+              "evidence": [
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/notes.md:15-45",
+                  "output": "The plan states lexical matching searches detector title/description/assumptions/false-positive metadata, and AC4 identifies the four-field parameter matrix as its deterministic seam."
+                },
+                {
+                  "command": "read tests/test_signal_search.py:258-289",
+                  "output": "The lexical matrix covers statement, warnings, detector.title, and preview.vendor only; there are no query cases for detector.description, detector.assumptions, or detector.false_positives."
+                },
+                {
+                  "command": "grep 'detector\\.(description|assumptions|false_positives)|Amounts are comparable|Categories are stable|New suppliers' tests/",
+                  "output": "The three omitted metadata families appear only as fixture/schema data (plus an unrelated detector handoff fixture), not as signal-search query expectations."
+                },
+                {
+                  "command": "read src/anomaly/detectors/registry.py:12-21; read src/anomaly/detect.py:690-705; read src/anomaly/_signal_projection.py:316-340",
+                  "output": "The registry requires description, assumptions, and false_positives; the producer serializes full metadata into the detector snapshot; and projection has distinct lexical branches for title, description, assumptions, and false_positives, making each omitted branch reachable and independently regressible."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 282,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The matched_on assertion codifies the production truncation bug.",
+            "why": "The Acme matched_on assertion encodes the production truncation bug: Acme occurs in both statement and preview.vendor, yet the test requires only preview.vendor. It would reject a correct implementation that reports all deterministic matching fields, weakening AC5 rather than defending it.",
+            "refute": {
+              "agent_id": "RefuteSignal05",
+              "source": "review",
+              "finding": "tests/test_signal_search.py:282 The matched_on assertion codifies the production truncation bug.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable and high-severity for AC5: the accepted fixture puts “Acme” in both statement and preview.vendor, the deterministic field producer preserves both in order, production computes both matches but deliberately returns only the last, and the test requires that truncated singleton, so a correction returning complete matched-on details would fail the gate.",
+              "evidence": [
+                {
+                  "command": "read tests/test_signal_search.py:29-53,259-289",
+                  "output": "signal-alpha has statement \"Acme has a deterministic overbilling variance.\" and preview.vendor \"Acme\"; the Acme parameter expects matched_field=\"preview.vendor\", and lines 282-287 require matched_on to equal exactly one preview.vendor entry."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:330-352; src/anomaly/search.py:139-173",
+                  "output": "_search_fields emits statement first and flattened preview fields later. _matched_fields appends every matching field, but returns matches[-1:]; _rank_rows exposes that truncated list as matched_on and derives query_score from its length."
+                },
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/task.md; .jeff/tasks/0029-structured-signal-search/notes.md",
+                  "output": "Locked AC5 requires matched-on details; the accepted plan defines matched_on as an ordered list of public field-path matches and query_score as retrieval-only, with no stated most-specific-only truncation rule."
+                },
+                {
+                  "command": "read src/anomaly/detect.py:654-670,479-488",
+                  "output": "The canonical producer builds preview from the detector result while also deriving statement from result category and candidate_id; the preview sanitizer preserves ordinary keys, making cross-field lexical overlap reachable from canonical signals rather than an impossible fixture state."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 331,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Stale-projection tests never exercise the required rebuild path.",
+            "why": "AC6's explicit rebuild path is untested. The matrix proves only that reads reject three changed input families; a builder that works once but refuses to replace an existing stale projection would pass. After each stale rejection, rebuild and prove the changed canonical input is reflected and the new projection is queryable.",
+            "refute": {
+              "agent_id": "RefuteSignal06",
+              "source": "review",
+              "finding": "tests/test_signal_search.py:331 Stale-projection tests never exercise the required rebuild path.",
+              "verdict": "survives",
+              "rationale": "The locked contract requires a rebuildable projection and the selected AC6 design makes an explicit second build the stale-recovery path, but the stale-input matrix builds only once, checks rejection and unchanged projection bytes, and never proves that an existing stale projection can be replaced or queried with changed canonical content; the current os.replace implementation does not supply regression coverage for that observable contract.",
+              "evidence": [
+                {
+                  "command": "read anomaly/.jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "AC1 requires a rebuildable projection, and AC6 requires binding input hashes and rejecting or rebuilding stale projections."
+                },
+                {
+                  "command": "read anomaly/.jeff/tasks/0029-structured-signal-search/notes.md",
+                  "output": "The plan explicitly states: “Rebuilding is an explicit call to build_signal_projection; a read never silently rebuilds,” and AC6 says “an explicit build is the rebuild path.”"
+                },
+                {
+                  "command": "read anomaly/tests/test_signal_search.py:331-352",
+                  "output": "Each stale-input case calls build_signal_projection once, mutates one canonical input, asserts search_signals raises StaleSignalProjectionError, and asserts the projection digest is unchanged; there is no second build or post-rebuild query."
+                },
+                {
+                  "command": "grep 'build_signal_projection\\(' anomaly/tests",
+                  "output": "All successful build calls are initial builds in separate tests; no test calls build_signal_projection twice on the same case root."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/_signal_projection.py:55-86",
+                  "output": "The current builder allows existing owned artifacts and replaces staged projection and manifest files with os.replace, so the implementation presently supports replacement, but no test would fail if that replacement behavior regressed or were changed to reject an existing stale projection."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 256,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The score test does not prove separation from editorial attributes.",
+            "why": "The sole AC7 assertion checks only that query_score is numeric. Setting query_score equal to confidence or another editorial/severity-derived number would pass while violating score separation. Assert a retrieval-defined score across signals with different confidence, severity, and status values; for example, all empty-query scores are zero and equal lexical matches receive equal retrieval scores.",
+            "refute": {
+              "agent_id": "RefuteSignal07",
+              "source": "review",
+              "finding": "tests/test_signal_search.py:256 The score test does not prove separation from editorial attributes.",
+              "verdict": "survives",
+              "rationale": "AC7 and the locked plan require a retrieval-only score and zero for every empty-query result, but the suite asserts only numeric type and an ID order that a reachable severity-derived mapping such as high=2, low=1, medium=0 would preserve, so no test prevents editorial coupling even though the checkpoint implementation is currently correct.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "Line 15: `Keep query scores separate from severity, confidence, and editorial status.` The locked plan further states: `query_score is a retrieval-only numeric value` and `an empty query gives every row score zero.`"
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+                  "output": "The fixtures vary editorial values: alpha severity=high/confidence=0.73, beta severity=low/confidence=0.25, gamma severity=medium/confidence=0.51. Line 256 asserts only `isinstance(item[\"query_score\"], (int, float))`. The empty-query pagination test asserts IDs alpha,beta then gamma but never asserts score values; scores high=2, low=1, medium=0 would satisfy both that order and the numeric assertion."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py",
+                  "output": "`_projection_row` spreads `public_signal` into the payload, exposing severity, confidence, and status to `_rank_rows`; no upstream guard prevents severity-derived scoring. The current implementation at search.py:150 is correct—`len(matched_on) if terms else 0`—but that producer behavior is not defended by a discriminating test."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 1,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "implement",
+            "what": "The projection module exceeds the module-size standard and mixes responsibilities.",
+            "why": "The new 566-line module exceeds the authoritative code-standards module-size directive and combines path containment, canonical-input parsing, manifest integrity, DuckDB persistence, and row projection and validation. Split these cohesive responsibilities after the correctness fixes so the trust boundaries remain independently testable."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git show --format=fuller --stat --summary 8d6157f854c2ed7d0b9527ec57d922e745f37a53",
+            "output": "Inspected the exact clean checkpoint: 39 files changed, 2103 insertions and 31 deletions; task production additions are _signal_projection.py (566 lines), search.py (264 lines), semantics/review sanitizer changes, and test_signal_search.py (368 lines)."
+          },
+          {
+            "command": "git diff --name-status 8d6157f854c2ed7d0b9527ec57d922e745f37a53^ 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- src/anomaly tests/test_signal_search.py",
+            "output": "A src/anomaly/_signal_projection.py; M src/anomaly/review.py; A src/anomaly/search.py; M src/anomaly/semantics.py; A tests/test_signal_search.py. No existing test file was modified or deleted."
+          },
+          {
+            "command": "static inspection: detect.py:676,740; _signal_projection.py:309-312; test_acquire.py:234-304",
+            "output": "Canonical signals recursively redact credential-shaped evidence-reference strings, accepted structural source IDs remain exact in provenance, and projection validation requires exact equality; the reachable mismatch is not represented by the new fixture."
+          },
+          {
+            "command": "static inspection: search.py:151-173; tests/test_signal_search.py:213-351",
+            "output": "matched_on is truncated to one field; the all-filters test is isolated by severity alone; detector metadata coverage is title-only; stale tests never rebuild; score separation is asserted only as numeric type. Tests were not run, per the review constraint; the supplied gate records 781 passing tests at this exact checkpoint."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewSignalSearchStandardsValid",
+        "findings": [
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 171,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Valid repeated detector runs make the projection permanently unbuildable.",
+            "why": "The canonical producer derives signal_id only from detector_id, table_id, and candidate_id (src/anomaly/detect.py:674-675) and appends every run to evidence/signals.jsonl (src/anomaly/detect.py:738-740). A normal rerun over the same table/candidate therefore appends the same stable identity, but the builder rejects the second row as a duplicate. That breaks AC1's rebuildable projection, makes AC3's run filter unable to represent both runs, and makes AC5's {path, signal_id} reference ambiguous. The plan must define run-aware row identity/reference or deterministic version/deduplication semantics and cover a repeated run.",
+            "refute": {
+              "agent_id": "RefuteSignal08",
+              "source": "review2",
+              "finding": "src/anomaly/_signal_projection.py:171 Valid repeated detector runs make the projection permanently unbuildable.",
+              "verdict": "survives",
+              "rationale": "A normal second execute_detectors call is reachable with the same persistent Gate A receipt and unchanged prepared table: it creates a new timestamped run_id but recomputes the same signal_id from detector_id, table_id, and candidate_id, then appends that row. Search subsequently rejects the changed JSONL as stale, while rebuild rejects the repeated signal_id before projection construction; the locked tests cover only distinct signal IDs across runs, so no upstream guard, fail-safe deduplication, or repeated-run contract makes the blocker unreachable or less than high severity.",
+              "evidence": [
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py",
+                  "output": "524-580: _require_gate_a reads and validates the persistent plan/receipt and returns scopes; it does not consume or invalidate approval. 583-590: execute_detectors is a public phase entry point accepting caller-supplied now. 653-675: candidate_id comes from the deterministic query result and signal_id is sha256(detector_id:table_id:candidate_id), with no run component. 678-684: run_id includes the timestamp and is assigned only after signal_id. 738-740: every produced row is appended to evidence/signals.jsonl."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:detectors/numeric/zscore_outliers/query.sql",
+                  "output": "The real detector selects candidate_id as 'row-' || id from an unchanged prepared table and orders no mutable input into that identity, so the same qualifying row is emitted with the same candidate_id on a rerun."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py",
+                  "output": "133-138: verified_projection raises StaleSignalProjectionError when evidence/signals.jsonl changes. 167-182: rebuild reads every JSONL row and validates each through one shared seen set. 249-272: _validate_signal raises SignalSearchError on the second occurrence of a signal_id. 224-245: each projected row carries one run_id but signal_ref is only {path: evidence/signals.jsonl, signal_id}; 362-377 makes signal_id the DuckDB primary key."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+                  "output": "29-105 seeds three globally unique signal IDs; its two run IDs never repeat the same signal identity. 213-257 exercises run filtering and asserts signal_ref only as {path, signal_id}. 292-308 checks pagination duplicates, not a detector rerun or duplicate canonical signal identity. No supplied task-29 test covers the reachable repeated-run case."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 177,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.",
+            "why": "The builder reconstructs one global detectors/used/<detector>.json path from detector_id instead of resolving immutable metadata owned by each run. The canonical producer overwrites that same path on later executions (src/anomaly/detect.py:698-699). Once a detector changes, the old signals remain append-only while their snapshot is gone: an existing query becomes stale and an explicit rebuild fails the old detector-hash/snapshot checks. This directly breaks AC1 and AC6's reject-or-rebuild contract under ordinary six-month evolution. The plan needs immutable per-run/content-addressed snapshots and validated provenance-path resolution.",
+            "refute": {
+              "agent_id": "RefuteSignal09",
+              "source": "review2",
+              "finding": "src/anomaly/_signal_projection.py:177 Detector metadata is not actually run-bound and cannot be rebuilt after a detector update.",
+              "verdict": "survives",
+              "rationale": "The ordinary approve-and-detect entry point can execute an updated detector again; execution appends the new signals and preserves run provenance but overwrites the detector-global snapshot, while projection construction ignores provenance as a resolver and requires that one mutable snapshot to match every historical run, so the old projection is rejected as stale and an explicit rebuild deterministically fails, violating the locked rebuildability contract.",
+              "evidence": [
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly grep -n execute_detectors 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- src && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/owners.py (lines 72-76)",
+                  "output": "src/anomaly/owners.py:76 calls execute_detectors(root, approval[\"approved\"], now=now) from the real approve-and-detect workflow; no inspected upstream guard makes a later execution of the same detector impossible."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 58-75, 677-740)",
+                  "output": "package_implementation_hash hashes every file in the detector package. execute_detectors creates a hash-bearing run_id (677-680), writes snapshot_path = detectors/used/<detector>.json via Path.write_text (698-699; _write_json at 514-518 therefore overwrites), records that same mutable path plus its then-current hash in run provenance (703-709), writes immutable per-run provenance (737), and appends signals to evidence/signals.jsonl (738-740). A later detector-package change therefore preserves old signals/provenance but replaces their referenced snapshot."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 164-204, 315-320)",
+                  "output": "For every signal, _read_projection_inputs reconstructs detectors/used/<detector_id>.json rather than resolving provenance.detector_snapshot (177-181). _projection_row only accepts provenance.detector_snapshot when it equals that reconstructed path (197-199), rejects when provenance.detector_snapshot_hash differs from the current file (200-204), and independently rejects when snapshot.implementation_hash differs from the historical signal detector_hash (315-317). Thus run 1 plus an overwritten run-2 snapshot cannot be rebuilt."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 113-148, 311-351)",
+                  "output": "The fixture provenance omits detector_snapshot and detector_snapshot_hash, unlike the canonical producer. The stale-input test mutates one bound input and asserts only that search_signals raises StaleSignalProjectionError; it never calls build_signal_projection after a canonical second run, so it does not cover or refute the failed-rebuild path."
+                },
+                {
+                  "command": "cat /Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "Locked AC1 requires a rebuildable projection from public signals, run provenance, and detector metadata; AC6 requires input-hash binding and rejection or rebuilding of stale projections. Permanent rejection followed by a rebuild failure does not satisfy the rebuildable half of that contract."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 200,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The provenance-to-detector-metadata integrity hash is optional.",
+            "why": "A schema-version-2 provenance record without detector_snapshot_hash is accepted, and the new fixture intentionally omits this canonical field. Modified metadata can then retain the claimed implementation_hash and be exposed/searched without proof that it is the snapshot bound by the run. This violates the projection's data-integrity boundary; require and validate the canonical snapshot path/hash rather than treating the hash as legacy-optional, and add the malformed-binding test.",
+            "refute": {
+              "agent_id": "RefuteSignal10",
+              "source": "review2",
+              "finding": "src/anomaly/_signal_projection.py:200 The provenance-to-detector-metadata integrity hash is optional.",
+              "verdict": "survives",
+              "rationale": "The public projection builder is directly reachable, treats detector_snapshot_hash as optional, and exposes/indexes snapshot metadata after checking only its claimable implementation_hash, while the canonical schema-version-2 producer and existing strict provenance validator both require the snapshot path and hash, so malformed or modified metadata can cross the projection's integrity boundary.",
+              "evidence": [
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 186-204, 315-338)",
+                  "output": "_projection_row defaults a missing detector_snapshot to detector_relative, reads snapshot_hash = provenance.get(\"detector_snapshot_hash\"), and validates the snapshot digest only inside `if snapshot_hash is not None`; _validated_metadata then accepts a snapshot when implementation_hash equals signal[\"detector_hash\"] and metadata.id matches, and _search_fields indexes title, description, assumptions, and false_positives."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 691-709)",
+                  "output": "The canonical producer serializes the detector snapshot, computes snapshot_hash over its canonical JSON, emits schema_version 2 provenance, and unconditionally records both detector_snapshot and detector_snapshot_hash."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/review.py (lines 729-786)",
+                  "output": "For schema_version 2, the established provenance validator requires detector_snapshot to be a string, detector_snapshot_hash to be a valid SHA-256, the canonical snapshot path to match the detector id, and the snapshot's canonical JSON hash to equal detector_snapshot_hash."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 115-145)",
+                  "output": "Both schema_version 2 provenance fixtures include run_id, detector_id, detector_hash, executed_at, table_ids, and table_sources but omit detector_snapshot and detector_snapshot_hash, so the passing projection contract exercises and normalizes the malformed binding instead of rejecting it."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 223,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The AC3 test does not prove that eight of the nine filters are applied.",
+            "why": "All filters are supplied in one conjunctive query, but severity='high' alone selects signal-alpha; detector, group, category, source, table, run, date, and review-state may each be ignored or mapped incorrectly without making the test fail. These are consumer-observable public API behaviors, so the testing skill requires discriminating coverage rather than a single redundant conjunction. Use per-filter cases or rows constructed so each filter independently excludes a near-match.",
+            "refute": {
+              "agent_id": "RefuteSignal11",
+              "source": "review2",
+              "finding": "tests/test_signal_search.py:223 The AC3 test does not prove that eight of the nine filters are applied.",
+              "verdict": "survives",
+              "rationale": "AC3 requires every supplied facet to filter, but the checkpoint's sole filtered query is a nine-way conjunction in which severity=\"high\" alone uniquely selects signal-alpha; signal-beta shares alpha's other eight queried facet values and all projected rows are unreviewed, so ignoring or misrouting any of those eight filters leaves the asserted result unchanged, while producer and projection validation only establish data consistency rather than discriminating test coverage.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "Lines 7-15 include AC3: \"Filter by detector, group or category, severity, source, table, run, date, and review state when supplied.\""
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+                  "output": "The fixture gives signal-alpha severity high and signal-beta severity low, but both have detector numeric.zscore_outliers, category outlier, source payments, TABLE_ALPHA, run-alpha, date 2026-08-21, group numeric, and review_state unreviewed; signal-gamma differs but has severity medium. Lines 223-232 submit all nine filters together, line 239 only asserts [\"signal-alpha\"], and source inspection found this is the only filters= call in the test file. Therefore severity alone produces the expected assertion even if the other eight filters are ignored."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py",
+                  "output": "search.py lines 23-32 map nine public filter keys and lines 68-71 pass all supplied mappings to read_rows; _signal_projection.py lines 149-150 build conjunctive SQL, lines 233-243 project the nine corresponding facet values, and line 229 hard-codes current review_state to unreviewed. This shows the implementation is presently wired, but supplies no upstream guard that would make a missing individual-filter regression fail the AC3 test."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 248,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The public redaction boundary is not asserted on returned payloads.",
+            "why": "The fixture includes private_context, but the test only proves that its value is not lexically searchable. A regression could copy private_context into every returned item while omitting it from search_fields and the entire suite would still pass. AC1 and the required redaction boundary are consumer-observable and security-sensitive; assert that non-public keys and credential-bearing nested fields are absent/redacted in result payloads.",
+            "refute": {
+              "agent_id": "RefuteSignal12",
+              "source": "review2",
+              "finding": "tests/test_signal_search.py:248 The public redaction boundary is not asserted on returned payloads.",
+              "verdict": "survives",
+              "rationale": "The canonical detector path can persist arbitrary detector-result keys, and search returns the projection payload verbatim; the tests only prove that private_context is not indexed and never assert the returned key/value shape, so a regression that copies raw signal fields into payload_json while retaining the public search_fields allowlist is reachable and would evade the suite.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py",
+                  "output": "Lines 32-56 seed signal-alpha with top-level private_context='classified-swordfish'; lines 42 and 67 use previews containing only vendor/amount, so no credential-bearing nested fixture exists. Lines 239-256 assert selected returned values but never assert the complete item key set or absence/redaction of sensitive values. Lines 281-289 assert matched_on and that searching for 'classified-swordfish' returns no items, which covers indexing only."
+                },
+                {
+                  "command": "git grep -n private_context 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- tests",
+                  "output": "8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py:55:            \"private_context\": \"classified-swordfish\","
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py",
+                  "output": "Lines 654-676 construct each canonical signal as {**result, ...} and append it after credential text redaction; lines 738-740 write those rows to evidence/signals.jsonl. Arbitrary non-public detector-result keys are therefore reachable inputs to the projection."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py && git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py",
+                  "output": "_signal_projection.py lines 218-231 currently protect the boundary by allowlisting _PUBLIC_SIGNAL_FIELDS and recursively sanitizing public signal/metadata before serializing payload_json, while lines 232-245 build search_fields separately. search.py lines 141-151 deserialize payload_json, add only matched_on/query_score, and return it. Thus changing payload construction to include raw signal keys would leak them without making private_context searchable, exactly the regression the existing assertions miss."
+                },
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/notes.md",
+                  "output": "Acceptance-criterion disposition 1 promises that the deterministic seam test_projection_filters_every_structured_facet_without_mutating_evidence 'checks ... allowlisted result shape'; the locked test asserts individual required fields but not an allowlisted/exact shape."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_signal_search.py",
+            "line": 261,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "AC4's detector-metadata search coverage is incomplete.",
+            "why": "The matrix exercises only detector.title. The advertised searchable detector metadata also includes description, assumptions, and false-positive text, each with distinct list/string projection logic. Omitting any of those production branches would stay green. Add behavior cases for every promised metadata family; these are not change-detector tests because callers observe whether each documented field is searchable and how matched_on identifies it.",
+            "refute": {
+              "agent_id": "RefuteSignal13",
+              "source": "review2",
+              "finding": "tests/test_signal_search.py:261 AC4's detector-metadata search coverage is incomplete.",
+              "verdict": "survives",
+              "rationale": "AC4's locked plan explicitly promises title, description, assumptions, and false-positive metadata as separately observable searchable fields, but the sole detector-metadata test queries only title, so removing any of the other field names from the production projection remains reachable and green; no upstream guard or fail-safe supplies coverage for those omissions.",
+              "evidence": [
+                {
+                  "command": "grep task.json for gate hash; read task.md and notes.md:19-23,39-44",
+                  "output": "task.json binds the clean green gate to checkpoint 8d6157f854c2ed7d0b9527ec57d922e745f37a53. task.md AC4 requires lexical search of detector metadata, and the locked plan makes that concrete as detector title/description/assumptions/false-positive metadata with matched_on reporting."
+                },
+                {
+                  "command": "read tests/test_signal_search.py:29-205,257-291",
+                  "output": "The canonical fixture gives detector metadata distinct searchable values for title, description, assumptions, and false_positives, but the parameter matrix has only one detector-metadata case: ('allocation', ['signal-alpha', 'signal-beta'], 'detector.title'). No query or matched_on assertion exercises detector.description, detector.assumptions, or detector.false_positives."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:315-342",
+                  "output": "_validated_metadata separately accepts title/description as strings and assumptions/false_positives as string lists; _search_fields enumerates ('title', 'description', 'assumptions', 'false_positives') and joins list values before emitting detector.<field>. Deleting description, assumptions, or false_positives from that tuple would remove a promised consumer-visible search path without affecting the existing title case."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/search.py",
+            "line": 166,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "matched_on deliberately discards genuine matches and collapses query scores.",
+            "why": "_matched_fields collects every matching public field and then returns only the last one. The existing 'Acme' fixture already matches both statement and preview.vendor, yet the API reports only preview.vendor and scores the row as one match. The locked acceptance asks for matched_on details, while neither the task nor plan defines a hidden 'most specific only' precedence rule. Return complete deterministic match details (and derive the separate retrieval score from the defined contract), then revise the test that currently codifies this truncation.",
+            "refute": {
+              "agent_id": "RefuteSignal14",
+              "source": "review2",
+              "finding": "src/anomaly/search.py:166 matched_on deliberately discards genuine matches and collapses query scores.",
+              "verdict": "survives",
+              "rationale": "The blocker is directly reachable: canonical signals can repeat a candidate value in both statement and preview, the gated code records every matching field but unconditionally keeps only the final one and derives query_score from that truncated list, while the locked acceptance and plan require matched_on details without defining this hidden field-order precedence.",
+              "evidence": [
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py | lines 137-173",
+                  "output": "Lines 146-150 assign matched_on = _matched_fields(fields, terms), expose it, and set query_score = len(matched_on); lines 159-170 append every matching field, but line 173 returns only matches[-1:]."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py | lines 330-351",
+                  "output": "_search_fields orders statement first and flattened preview fields last; _flatten_preview emits each preview leaf as its own public field, so matches[-1:] selects by producer order rather than an explicit relevance rule."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py | lines 29-48,260-287",
+                  "output": "The signal-alpha fixture contains Acme in statement at line 39 and preview.vendor at line 42, while the Acme case at line 266 and assertion at lines 281-287 require only preview.vendor, thereby codifying the truncation."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py | lines 653-676",
+                  "output": "The canonical producer spreads the detector result into the signal, builds preview from that same result, and builds statement with candidate_id; candidate_id can therefore genuinely occur in both searchable statement and preview on real produced signals."
+                },
+                {
+                  "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:.jeff/tasks/0029-structured-signal-search/task.md && git show ...:notes.md | matched_on/query_score lines",
+                  "output": "Locked AC5 requires matched_on details. The plan defines matched_on as an ordered list of public-field match dictionaries and query_score as a retrieval-only value ordered descending, but states no most-specific-only or last-field precedence."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/search.py",
+            "line": 109,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Malformed filter keys can escape the documented SignalSearchError boundary.",
+            "why": "Unknown keys are sorted before their types are validated. A mapping containing incomparable unknown keys such as 1 and 'bogus' raises raw TypeError instead of SignalSearchError. This is reachable public-input behavior and contradicts the plan's explicit unknown-filter error contract and the code standard's boundary-validation rule. Validate every key as a supported string before sorting and add an error-contract case.",
+            "refute": {
+              "agent_id": "RefuteSignal15",
+              "source": "review2",
+              "finding": "src/anomaly/search.py:109 Malformed filter keys can escape the documented SignalSearchError boundary.",
+              "verdict": "survives",
+              "rationale": "The exported public entry point passes caller-supplied mappings directly to `_validate_filters`, where `{1: \"x\", \"bogus\": \"x\"}` reaches `sorted(unknown)` with incomparable `int` and `str` keys before any key-type guard or exception translation, so a raw `TypeError` violates the plan's explicit `SignalSearchError` contract; the failure occurs before projection access, and no canonical producer or upstream guard makes the input unreachable.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/search.py:31-119",
+                  "output": "`search_signals` is exported in `__all__`; lines 49-60 call `_validate_filters(filters)` directly. Lines 104-114 accept any runtime `Mapping`, compute `unknown = set(filters) - set(_FILTER_COLUMNS)`, and evaluate `sorted(unknown)[0]` before iterating or validating values. There is no key-type guard or catch around this path."
+                },
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/notes.md",
+                  "output": "The locked plan names `search_signals(..., filters=None, ...)` as the public boundary and explicitly states that `SignalSearchError` covers malformed query contracts and that unknown filter keys raise `SignalSearchError`."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:14-22",
+                  "output": "`SignalSearchError` is a `RuntimeError` subclass; `StaleSignalProjectionError` subclasses it. A Python sorting `TypeError` is therefore outside the documented exception family."
+                },
+                {
+                  "command": "grep \"search_signals\\\\(\" anomaly",
+                  "output": "The only production definition is `src/anomaly/search.py:49`; no production wrapper or canonical filter producer validates keys before this exported API. Other matches are task documentation and direct test calls."
+                },
+                {
+                  "command": "grep \"8d6157f854c2ed7d0b9527ec57d922e745f37a53|\\\"gate\\\"|\\\"hash\\\"\" .jeff/tasks/0029-structured-signal-search/task.json",
+                  "output": "The task ledger records gate hash `8d6157f854c2ed7d0b9527ec57d922e745f37a53` with `clean: true` and `green: true`, identifying the inspected gated checkpoint."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 1,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "capture",
+            "what": "The projection module exceeds the maintainability boundary and owns too many concerns.",
+            "why": "The checkpoint adds a 566-line module (and a 264-line public search module) despite the authoritative <200-line module directive. _signal_projection.py combines path containment, manifest integrity, canonical-input parsing, provenance/metadata validation, public mapping, DuckDB persistence, and filesystem staging. After correctness is repaired, split along those existing responsibility boundaries without adding wrapper abstractions."
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 93,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "capture",
+            "what": "The two derived artifacts are not replaced atomically as a pair.",
+            "why": "Replacing the DuckDB file and manifest in separate os.replace calls can leave a new projection with the old manifest if the second replacement fails. Canonical evidence remains safe and an explicit rebuild can recover, so this is a degenerate-filesystem follow-up rather than a ship blocker, but the public docstring and plan currently claim an atomic rebuild."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git show --no-renames --format=fuller --name-status 8d6157f854c2ed7d0b9527ec57d922e745f37a53",
+            "output": "Inspected the exact checkpoint file set: new _signal_projection.py, search.py, and test_signal_search.py; semantics.py and review.py sanitizer refactor; task artifacts and backlog records. No existing test file was weakened or deleted."
+          },
+          {
+            "command": "git show --format= --numstat 8d6157f854c2ed7d0b9527ec57d922e745f37a53 -- src/anomaly/_signal_projection.py src/anomaly/search.py src/anomaly/semantics.py src/anomaly/review.py tests/test_signal_search.py",
+            "output": "566/0 _signal_projection.py; 264/0 search.py; 26/0 semantics.py; 13/27 review.py; 368/0 test_signal_search.py."
+          },
+          {
+            "command": "read task.md plan-return.json notes.md context.md task.json implement-return.json refactor-return.json",
+            "output": "Re-derived all seven locked acceptance dispositions as write. The supplied task record reports a clean green full-suite gate at the exact checkpoint; implementation/refactor evidence reports 10 targeted tests passing. Per the assignment, this review did not rerun tests."
+          },
+          {
+            "command": "read src/anomaly/_signal_projection.py src/anomaly/search.py src/anomaly/semantics.py src/anomaly/review.py tests/test_signal_search.py plus canonical producer sections in detect.py",
+            "output": "Static contract trace established that signals.jsonl is append-only, signal IDs omit run_id, detector snapshots use one overwriteable per-detector path, duplicate IDs are rejected by the projection, snapshot hashes are optional, matched fields are truncated to one, and the all-filter test is non-discriminating."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditSignalSearchValid",
+        "evidence": [
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/security-scan/security-audit-20260824-164628.md",
+            "output": "Scanner inspected 16 files and reported zero regex findings, recommendation PASS, 12 categories, with github_actions and xss not_covered. Its PASS label conflicts with its own zero-debt decision rule. Gitleaks had an optional parse_failure; semgrep was absent; pip-audit reported no vulnerabilities."
+          },
+          {
+            "command": "git diff 8d6157f854c2ed7d0b9527ec57d922e745f37a53^ 8d6157f854c2ed7d0b9527ec57d922e745f37a53 --",
+            "output": "Inspected the complete 2,450-line checkpoint diff covering 39 changed files. Production changes are src/anomaly/_signal_projection.py, review.py, search.py, and semantics.py, plus tests/test_signal_search.py; no dependency manifest or lockfile changed."
+          },
+          {
+            "command": "read src/anomaly/_signal_projection.py:68-566; read src/anomaly/search.py:44-264",
+            "output": "SQL identifiers are selected only from the fixed _FILTER_COLUMNS map, filter values are parameter-bound, query text is matched in Python rather than interpolated into SQL, DuckDB reads are read-only with external access disabled, cursors are bounded and canonically decoded, inputs are allowlisted, and manifest/projection hashes are checked. Manual tracing exposed the two check/use races recorded as blockers."
+          },
+          {
+            "command": "read src/anomaly/review.py:20-55,1018-1055; read src/anomaly/semantics.py:66-139; read src/anomaly/detect.py:630-738",
+            "output": "Search projects an explicit top-level public signal allowlist, recursively strips sensitive-key fields and redacts credential-shaped strings, excludes arbitrary top-level detector result fields, and binds signal/run/source/detector metadata. Canonical detection writes remain outside the new module. No unredacted field or sensitive logging sink was found."
+          },
+          {
+            "command": "git diff --name-only 8d6157f854c2ed7d0b9527ec57d922e745f37a53^ 8d6157f854c2ed7d0b9527ec57d922e745f37a53; grep duckdb pyproject.toml",
+            "output": "No .github workflow, HTML/JS/template, dependency manifest, or lockfile changed, manually resolving the scanner's github_actions and xss gaps as no-hit/no-surface. DuckDB was already declared as duckdb>=1.1; the change adds no dependency."
+          },
+          {
+            "command": "read tests/test_signal_search.py:raw",
+            "output": "The 10 targeted contracts cover static symlink rejection, canonical-file digest preservation, SQL-injection-shaped literal queries, stale signal/provenance/snapshot inputs, filters, redaction exclusion, and pagination. They do not exercise concurrent rebuild/read or symlink replacement between validation and use. Tests were not rerun, per the audit brief; the supplied exact-checkpoint evidence reports 781 passing tests."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "findings": [
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 139,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Verified projection can be replaced between verification and query.",
+            "why": "verified_projection hashes signals.duckdb and returns only its pathname; search_signals later reopens that pathname through read_rows. A concurrent explicit rebuild can replace the projection and then its manifest after verification but before the read. If canonical inputs change in that interval, the query can silently return rows from the new projection while using the old verified manifest identity for cursor and query binding. Those rows were never checked against that manifest or its input hashes, violating required stale-projection rejection and coherent atomic replacement. Hold a single verified database snapshot or connection through the query, or add synchronization plus a post-read identity or hash check that fails closed before returning results.",
+            "cwe": "CWE-367",
+            "refute": {
+              "agent_id": "RefuteSignal16",
+              "source": "audit",
+              "finding": "src/anomaly/_signal_projection.py:139 Verified projection can be replaced between verification and query.",
+              "verdict": "survives",
+              "rationale": "The blocker survives because the exact checkpoint exposes an unsynchronized public rebuild that can replace the verified pathname before read_rows reopens it, so a completed canonical-input update and rebuild can make search_signals return projection-B rows while retaining projection-A's manifest identity without any fail-closed post-read check, directly violating the required input-hash binding and stale-projection rejection.",
+              "evidence": [
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 68-160); git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/search.py (lines 44-83)",
+                  "output": "At the locked checkpoint, build_projection writes staged artifacts and independently replaces signals.duckdb at line 93 and its manifest at line 94; verified_projection hashes the current database at line 139 but returns only Path plus manifest at line 143; read_rows later opens that path anew at line 155. search_signals obtains the manifest at line 61, calls read_rows only at line 71, and uses that earlier manifest identity for cursor binding at lines 62-66 and 82-83."
+                },
+                {
+                  "command": "Inspect exact-checkpoint synchronization and post-read guards in src/anomaly/_signal_projection.py and src/anomaly/search.py",
+                  "output": "The exact blobs contain no Lock, RLock, Semaphore, flock, mutex, portalocker, or filelock synchronization; search.py calls verified_projection once, calls read_rows once, and contains zero projection_hash references, so neither synchronization nor a post-read projection-identity/hash check closes the interval."
+                },
+                {
+                  "command": "git show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 685-740); read tests/test_signal_search.py:292-368",
+                  "output": "The canonical producer legitimately updates all bound input families: detector snapshot at lines 698-699, run provenance at line 737, and evidence/signals.jsonl at lines 738-740. After that producer completes, the public build_signal_projection entry point can build and swap a new valid projection during the verified_projection/read_rows gap. Existing tests cover repeatable sequential pagination, sequential stale-input rejection, and a pre-existing symlink only; they provide no concurrent rebuild/read guard."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 428,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Path containment checks are vulnerable to symlink swap races.",
+            "why": "Containment relies on pathname prechecks in _safe_input_file and the derived-artifact helpers, but callers subsequently reopen those names with read_bytes, mkdir, write_text, duckdb.connect, unlink, and os.replace. The staging names are fixed and predictable. A process that can mutate a shared case directory can replace a checked input or staging component with a symlink between check and use, causing an out-of-root read or a DuckDB or manifest write outside .anomaly/search, including a canonical-evidence target. The existing test covers only a symlink present before the check, not the reachable swap race. Use a locked private derived directory and no-follow, directory-fd-based operations with unique secure staging names, and keep the validated object pinned through use.",
+            "cwe": "CWE-59/CWE-367",
+            "refute": {
+              "agent_id": "RefuteSignal17",
+              "source": "audit",
+              "finding": "src/anomaly/_signal_projection.py:428 Path containment checks are vulnerable to symlink swap races.",
+              "verdict": "survives",
+              "rationale": "The public build entry point reaches pathname-only checks followed by separate opens and fixed-name staging writes with no lock, private-directory guarantee, no-follow open, directory descriptor, or pinned file handle, so a process able to mutate a shared case can swap an input or staging component after validation and cause out-of-root reads or victim-privileged writes, including writes to canonical evidence, contrary to the locked immutability criterion.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/search.py:44-66",
+                  "output": "build_signal_projection(root) directly calls build_projection(root); search_signals likewise calls verified_projection(root) and then separately read_rows(projection, ...). There is no upstream lock, case-tree pin, or private-directory guard."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:68-148",
+                  "output": "build_projection uses predictable .signals.duckdb.tmp and .signals-manifest.json.tmp names, runs _reset_stage checks, then separately calls duckdb.connect through _write_projection, read_bytes, write_text, and os.replace. verified_projection separately validates paths and later calls read_bytes; _read_projection_inputs similarly returns a checked Path and then calls read_bytes."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:418-500",
+                  "output": "_safe_input_file, _prepare_search_root, _existing_search_root, _required_owned_file, _prepare_owned_artifact, and _reset_stage inspect pathnames with is_symlink/is_file/is_dir/resolve/exists and return or continue; none pins an opened object or uses O_NOFOLLOW, openat/dir_fd operations, unique secure staging, locking, or restrictive directory permissions."
+                },
+                {
+                  "command": "read tests/test_signal_search.py:354-372",
+                  "output": "The containment test creates the search symlink before build_signal_projection is called and only proves rejection of a pre-existing symlink; it does not cover replacement between validation and use."
+                },
+                {
+                  "command": "read .jeff/tasks/0029-structured-signal-search/task.md:3-18; read PRD.md:499-516",
+                  "output": "The locked acceptance criteria require never modifying canonical data/index.duckdb, evidence/signals.jsonl, or detector-run artifacts, while the security model explicitly supports importing shared cases and rejects links; a post-validation link swap remains within that real shared-case scenario and defeats the required immutability boundary."
+                }
+              ]
+            }
+          }
+        ],
+        "scan": {
+          "command": "review-security.sh --changes --report-dir .jeff/tasks/0029-structured-signal-search/security-scan",
+          "recommendation": "PASS",
+          "reportPath": ".jeff/tasks/0029-structured-signal-search/security-scan/security-audit-20260824-164628.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_no_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewSignalSearchCorrectnessValid",
+        "reviewer2_agent_id": "ReviewSignalSearchStandardsValid",
+        "audit_agent_id": "AuditSignalSearchValid"
+      }
+    }
+  ]
 }

@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/_signal_projection.py:200 The provenance-to-detector-metadata integrity hash is optional.",
+  "verdict": "survives",
+  "rationale": "The public projection builder is directly reachable, treats detector_snapshot_hash as optional, and exposes/indexes snapshot metadata after checking only its claimable implementation_hash, while the canonical schema-version-2 producer and existing strict provenance validator both require the snapshot path and hash, so malformed or modified metadata can cross the projection's integrity boundary.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/_signal_projection.py (lines 186-204, 315-338)",
+      "output": "_projection_row defaults a missing detector_snapshot to detector_relative, reads snapshot_hash = provenance.get(\"detector_snapshot_hash\"), and validates the snapshot digest only inside `if snapshot_hash is not None`; _validated_metadata then accepts a snapshot when implementation_hash equals signal[\"detector_hash\"] and metadata.id matches, and _search_fields indexes title, description, assumptions, and false_positives."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/detect.py (lines 691-709)",
+      "output": "The canonical producer serializes the detector snapshot, computes snapshot_hash over its canonical JSON, emits schema_version 2 provenance, and unconditionally records both detector_snapshot and detector_snapshot_hash."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:src/anomaly/review.py (lines 729-786)",
+      "output": "For schema_version 2, the established provenance validator requires detector_snapshot to be a string, detector_snapshot_hash to be a valid SHA-256, the canonical snapshot path to match the detector id, and the snapshot's canonical JSON hash to equal detector_snapshot_hash."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 8d6157f854c2ed7d0b9527ec57d922e745f37a53:tests/test_signal_search.py (lines 115-145)",
+      "output": "Both schema_version 2 provenance fixtures include run_id, detector_id, detector_hash, executed_at, table_ids, and table_sources but omit detector_snapshot and detector_snapshot_hash, so the passing projection contract exercises and normalizes the malformed binding instead of rejecting it."
+    }
+  ]
+}

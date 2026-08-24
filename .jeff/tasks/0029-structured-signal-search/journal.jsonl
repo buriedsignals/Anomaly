@@ -4,3 +4,53 @@
 {"seq":3,"at":"2026-08-24T16:43:06.770Z","event":"record","stage":"implement","agent":"ImplementSignalSearch"}
 {"seq":4,"at":"2026-08-24T16:43:28.097Z","event":"intent","stage":"refactor","note":"Simplify structured signal search without behavior change"}
 {"seq":5,"at":"2026-08-24T16:45:47.890Z","event":"record","stage":"refactor","agent":"RefactorSignalSearch"}
+{"seq":6,"at":"2026-08-24T16:47:05.598Z","event":"gate","hash":"8d6157f854c2ed7d0b9527ec57d922e745f37a53","green":true,"clean":true}
+{"seq":7,"at":"2026-08-24T16:47:21.594Z","event":"intent","stage":"review","note":"Correctness and test-integrity review of gated checkpoint"}
+{"seq":8,"at":"2026-08-24T16:47:26.476Z","event":"intent","stage":"review","note":"Maintainability and boundary-safety review of gated checkpoint"}
+{"seq":9,"at":"2026-08-24T16:47:33.263Z","event":"intent","stage":"audit","note":"Adversarial audit using scanner report and manual coverage"}
+{"seq":10,"at":"2026-08-24T16:58:36.865Z","event":"intent","stage":"review","note":"Reissue correctness judgment against authoritative return schema"}
+{"seq":11,"at":"2026-08-24T16:58:42.268Z","event":"intent","stage":"review","note":"Reissue standards judgment against authoritative return schema"}
+{"seq":12,"at":"2026-08-24T16:58:49.076Z","event":"intent","stage":"audit","note":"Reissue audit judgment against authoritative return schema"}
+{"seq":13,"at":"2026-08-24T17:01:23.622Z","event":"record","stage":"review","agent":"ReviewSignalSearchCorrectnessValid"}
+{"seq":14,"at":"2026-08-24T17:01:30.251Z","event":"record","stage":"review","agent":"ReviewSignalSearchStandardsValid"}
+{"seq":15,"at":"2026-08-24T17:01:35.571Z","event":"record","stage":"audit","agent":"AuditSignalSearchValid"}
+{"seq":16,"at":"2026-08-24T17:02:01.043Z","event":"intent","stage":"refute","note":"Refute review blocker 1: Projection validation rejects accepted credential-shaped source identities."}
+{"seq":17,"at":"2026-08-24T17:02:01.105Z","event":"intent","stage":"refute","note":"Refute review blocker 2: Lexical search truncates matched_on and collapses query scores."}
+{"seq":18,"at":"2026-08-24T17:02:01.167Z","event":"intent","stage":"refute","note":"Refute review blocker 3: The combined filter test does not discriminate eight required filters."}
+{"seq":19,"at":"2026-08-24T17:02:01.233Z","event":"intent","stage":"refute","note":"Refute review blocker 4: Lexical tests omit three promised detector metadata fields."}
+{"seq":20,"at":"2026-08-24T17:02:01.293Z","event":"intent","stage":"refute","note":"Refute review blocker 5: The matched_on assertion codifies the production truncation bug."}
+{"seq":21,"at":"2026-08-24T17:02:01.355Z","event":"intent","stage":"refute","note":"Refute review blocker 6: Stale-projection tests never exercise the required rebuild path."}
+{"seq":22,"at":"2026-08-24T17:02:01.417Z","event":"intent","stage":"refute","note":"Refute review blocker 7: The score test does not prove separation from editorial attributes."}
+{"seq":23,"at":"2026-08-24T17:02:01.481Z","event":"intent","stage":"refute","note":"Refute review2 blocker 1: Valid repeated detector runs make the projection permanently unbuildable."}
+{"seq":24,"at":"2026-08-24T17:02:01.544Z","event":"intent","stage":"refute","note":"Refute review2 blocker 2: Detector metadata is not actually run-bound and cannot be rebuilt after a detector update."}
+{"seq":25,"at":"2026-08-24T17:02:01.608Z","event":"intent","stage":"refute","note":"Refute review2 blocker 3: The provenance-to-detector-metadata integrity hash is optional."}
+{"seq":26,"at":"2026-08-24T17:02:01.672Z","event":"intent","stage":"refute","note":"Refute review2 blocker 4: The AC3 test does not prove that eight of the nine filters are applied."}
+{"seq":27,"at":"2026-08-24T17:02:01.735Z","event":"intent","stage":"refute","note":"Refute review2 blocker 5: The public redaction boundary is not asserted on returned payloads."}
+{"seq":28,"at":"2026-08-24T17:02:01.796Z","event":"intent","stage":"refute","note":"Refute review2 blocker 6: AC4's detector-metadata search coverage is incomplete."}
+{"seq":29,"at":"2026-08-24T17:02:01.858Z","event":"intent","stage":"refute","note":"Refute review2 blocker 7: matched_on deliberately discards genuine matches and collapses query scores."}
+{"seq":30,"at":"2026-08-24T17:02:01.921Z","event":"intent","stage":"refute","note":"Refute review2 blocker 8: Malformed filter keys can escape the documented SignalSearchError boundary."}
+{"seq":31,"at":"2026-08-24T17:02:01.985Z","event":"intent","stage":"refute","note":"Refute audit blocker 1: Verified projection can be replaced between verification and query."}
+{"seq":32,"at":"2026-08-24T17:02:02.048Z","event":"intent","stage":"refute","note":"Refute audit blocker 2: Path containment checks are vulnerable to symlink swap races."}
+{"seq":33,"at":"2026-08-24T17:07:47.539Z","event":"record","stage":"refute","agent":"RefuteSignal01"}
+{"seq":34,"at":"2026-08-24T17:07:47.614Z","event":"record","stage":"refute","agent":"RefuteSignal02"}
+{"seq":35,"at":"2026-08-24T17:07:47.689Z","event":"record","stage":"refute","agent":"RefuteSignal03"}
+{"seq":36,"at":"2026-08-24T17:07:47.763Z","event":"record","stage":"refute","agent":"RefuteSignal04"}
+{"seq":37,"at":"2026-08-24T17:07:47.843Z","event":"record","stage":"refute","agent":"RefuteSignal05"}
+{"seq":38,"at":"2026-08-24T17:07:47.916Z","event":"record","stage":"refute","agent":"RefuteSignal06"}
+{"seq":39,"at":"2026-08-24T17:07:47.992Z","event":"record","stage":"refute","agent":"RefuteSignal07"}
+{"seq":40,"at":"2026-08-24T17:07:48.067Z","event":"record","stage":"refute","agent":"RefuteSignal08"}
+{"seq":41,"at":"2026-08-24T17:07:48.141Z","event":"record","stage":"refute","agent":"RefuteSignal09"}
+{"seq":42,"at":"2026-08-24T17:07:48.215Z","event":"record","stage":"refute","agent":"RefuteSignal10"}
+{"seq":43,"at":"2026-08-24T17:07:48.292Z","event":"record","stage":"refute","agent":"RefuteSignal11"}
+{"seq":44,"at":"2026-08-24T17:07:48.366Z","event":"record","stage":"refute","agent":"RefuteSignal12"}
+{"seq":45,"at":"2026-08-24T17:07:48.442Z","event":"record","stage":"refute","agent":"RefuteSignal13"}
+{"seq":46,"at":"2026-08-24T17:07:48.516Z","event":"record","stage":"refute","agent":"RefuteSignal14"}
+{"seq":47,"at":"2026-08-24T17:07:48.593Z","event":"record","stage":"refute","agent":"RefuteSignal15"}
+{"seq":48,"at":"2026-08-24T17:07:48.666Z","event":"record","stage":"refute","agent":"RefuteSignal16"}
+{"seq":49,"at":"2026-08-24T17:07:48.745Z","event":"record","stage":"refute","agent":"RefuteSignal17"}
+{"seq":50,"at":"2026-08-24T17:08:17.232Z","event":"intent","stage":"plan","note":"Revise test contract for surviving review and audit blockers"}
+{"seq":51,"at":"2026-08-24T17:23:56.287Z","event":"record","stage":"plan","agent":"ReplanSignalSearch"}
+{"seq":52,"at":"2026-08-24T17:24:01.272Z","event":"intent","stage":"implement","note":"Implement revised run identity, provenance, filter, and TOCTOU contract"}
+{"seq":53,"at":"2026-08-24T17:37:35.774Z","event":"record","stage":"implement","agent":"ImplementSignalSearchRecovery"}
+{"seq":54,"at":"2026-08-24T17:37:46.544Z","event":"intent","stage":"refactor","note":"Harmonize snapshot validation after recovery"}
+{"seq":55,"at":"2026-08-24T17:43:35.579Z","event":"record","stage":"refactor","agent":"RefactorSignalSearchRecovery"}

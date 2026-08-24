@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/search.py:109 Malformed filter keys can escape the documented SignalSearchError boundary.",
+  "verdict": "survives",
+  "rationale": "The exported public entry point passes caller-supplied mappings directly to `_validate_filters`, where `{1: \"x\", \"bogus\": \"x\"}` reaches `sorted(unknown)` with incomparable `int` and `str` keys before any key-type guard or exception translation, so a raw `TypeError` violates the plan's explicit `SignalSearchError` contract; the failure occurs before projection access, and no canonical producer or upstream guard makes the input unreachable.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/search.py:31-119",
+      "output": "`search_signals` is exported in `__all__`; lines 49-60 call `_validate_filters(filters)` directly. Lines 104-114 accept any runtime `Mapping`, compute `unknown = set(filters) - set(_FILTER_COLUMNS)`, and evaluate `sorted(unknown)[0]` before iterating or validating values. There is no key-type guard or catch around this path."
+    },
+    {
+      "command": "read .jeff/tasks/0029-structured-signal-search/notes.md",
+      "output": "The locked plan names `search_signals(..., filters=None, ...)` as the public boundary and explicitly states that `SignalSearchError` covers malformed query contracts and that unknown filter keys raise `SignalSearchError`."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:14-22",
+      "output": "`SignalSearchError` is a `RuntimeError` subclass; `StaleSignalProjectionError` subclasses it. A Python sorting `TypeError` is therefore outside the documented exception family."
+    },
+    {
+      "command": "grep \"search_signals\\\\(\" anomaly",
+      "output": "The only production definition is `src/anomaly/search.py:49`; no production wrapper or canonical filter producer validates keys before this exported API. Other matches are task documentation and direct test calls."
+    },
+    {
+      "command": "grep \"8d6157f854c2ed7d0b9527ec57d922e745f37a53|\\\"gate\\\"|\\\"hash\\\"\" .jeff/tasks/0029-structured-signal-search/task.json",
+      "output": "The task ledger records gate hash `8d6157f854c2ed7d0b9527ec57d922e745f37a53` with `clean: true` and `green: true`, identifying the inspected gated checkpoint."
+    }
+  ]
+}

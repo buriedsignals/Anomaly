@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/_signal_projection.py:428 Path containment checks are vulnerable to symlink swap races.",
+  "verdict": "survives",
+  "rationale": "The public build entry point reaches pathname-only checks followed by separate opens and fixed-name staging writes with no lock, private-directory guarantee, no-follow open, directory descriptor, or pinned file handle, so a process able to mutate a shared case can swap an input or staging component after validation and cause out-of-root reads or victim-privileged writes, including writes to canonical evidence, contrary to the locked immutability criterion.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/search.py:44-66",
+      "output": "build_signal_projection(root) directly calls build_projection(root); search_signals likewise calls verified_projection(root) and then separately read_rows(projection, ...). There is no upstream lock, case-tree pin, or private-directory guard."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:68-148",
+      "output": "build_projection uses predictable .signals.duckdb.tmp and .signals-manifest.json.tmp names, runs _reset_stage checks, then separately calls duckdb.connect through _write_projection, read_bytes, write_text, and os.replace. verified_projection separately validates paths and later calls read_bytes; _read_projection_inputs similarly returns a checked Path and then calls read_bytes."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:418-500",
+      "output": "_safe_input_file, _prepare_search_root, _existing_search_root, _required_owned_file, _prepare_owned_artifact, and _reset_stage inspect pathnames with is_symlink/is_file/is_dir/resolve/exists and return or continue; none pins an opened object or uses O_NOFOLLOW, openat/dir_fd operations, unique secure staging, locking, or restrictive directory permissions."
+    },
+    {
+      "command": "read tests/test_signal_search.py:354-372",
+      "output": "The containment test creates the search symlink before build_signal_projection is called and only proves rejection of a pre-existing symlink; it does not cover replacement between validation and use."
+    },
+    {
+      "command": "read .jeff/tasks/0029-structured-signal-search/task.md:3-18; read PRD.md:499-516",
+      "output": "The locked acceptance criteria require never modifying canonical data/index.duckdb, evidence/signals.jsonl, or detector-run artifacts, while the security model explicitly supports importing shared cases and rejects links; a post-validation link swap remains within that real shared-case scenario and defeats the required immutability boundary."
+    }
+  ]
+}
