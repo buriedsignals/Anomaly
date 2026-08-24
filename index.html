@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anomaly — find anomalies in structured data</title>
+  <meta name="description" content="Anomaly is an agent workflow for acquiring, profiling, and investigating structured data with deterministic detectors, replay, and independent review.">
+  <style>
+    :root {
+      --paper: #fff;
+      --ink: #080808;
+      --muted: #565656;
+      --line: #cfcfcf;
+      --soft: #f3f3f3;
+      --max: 76rem;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      color-scheme: light;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    a:hover { text-decoration-thickness: 2px; }
+
+    a:focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: 4px;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 10;
+      padding: 0.6rem 0.8rem;
+      background: var(--ink);
+      color: var(--paper);
+      transform: translateY(-180%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .wrap {
+      width: min(calc(100% - 2rem), var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 1px solid var(--ink);
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .nav {
+      min-height: 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .nav-links a { text-underline-offset: 0.25rem; }
+
+    .nav-links .button {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links .button:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    main { overflow: hidden; }
+
+    .hero {
+      min-height: calc(100svh - 4rem);
+      display: grid;
+      align-content: space-between;
+      padding-block: clamp(3.5rem, 9vw, 8rem) 2rem;
+    }
+
+    .hero h1 {
+      max-width: 16ch;
+      margin: 0;
+      font-size: clamp(3rem, 8.6vw, 8rem);
+      font-weight: 700;
+      line-height: 0.94;
+      letter-spacing: -0.065em;
+    }
+
+    .hero-bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 31rem);
+      gap: 2rem;
+      align-items: end;
+      padding-top: 4rem;
+    }
+
+    .hero-label,
+    .section-label,
+    .minor-label {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy p { margin: 0; }
+
+    .hero-copy .description {
+      font-size: clamp(1.25rem, 2vw, 1.65rem);
+      line-height: 1.3;
+      letter-spacing: -0.025em;
+    }
+
+    .hero-copy .explanation {
+      margin-top: 1.25rem;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.75rem;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.9rem;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .action.primary {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .action:hover {
+      background: var(--soft);
+      color: var(--ink);
+    }
+
+    .section {
+      padding-block: clamp(4rem, 8vw, 7rem);
+      border-top: 1px solid var(--ink);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 12rem minmax(0, 1fr);
+      gap: 2rem;
+      margin-bottom: clamp(2.5rem, 6vw, 5rem);
+    }
+
+    .section h2 {
+      max-width: 18ch;
+      margin: 0;
+      font-size: clamp(2.25rem, 5.3vw, 5rem);
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .problem-copy {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+    }
+
+    .problem-copy p {
+      margin: 0;
+      padding: clamp(1.5rem, 4vw, 3rem);
+      background: var(--paper);
+      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+    }
+
+    .definition {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.6fr);
+      gap: 3rem;
+      align-items: start;
+      margin-bottom: 3rem;
+    }
+
+    .definition .lead {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2.4rem);
+      line-height: 1.25;
+      letter-spacing: -0.035em;
+    }
+
+    .definition .aside {
+      margin: 0;
+      padding-left: 1rem;
+      border-left: 3px solid var(--ink);
+      color: var(--muted);
+    }
+
+    .detector-stream {
+      overflow: hidden;
+      margin-block: 3rem;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .detector-track {
+      display: flex;
+      width: max-content;
+      animation: detector-scroll 32s linear infinite;
+    }
+
+    .detector-track + .detector-track {
+      border-top: 1px solid var(--ink);
+      animation-direction: reverse;
+      animation-duration: 38s;
+    }
+
+    .detector-stream:hover .detector-track { animation-play-state: paused; }
+
+    .detector-chip {
+      width: 15rem;
+      flex: 0 0 15rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem;
+      border-right: 1px solid var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+    }
+
+    .detector-chip span { color: var(--muted); }
+
+    @keyframes detector-scroll {
+      to { transform: translateX(-50%); }
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .detail-grid article {
+      padding-top: 1rem;
+      border-top: 1px solid var(--ink);
+    }
+
+    .detail-grid h3 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+    }
+
+    .detail-grid p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .source-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      margin: 3rem 0 0;
+      padding: 0;
+      border-top: 1px solid var(--line);
+      list-style: none;
+    }
+
+    .source-list li {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--line);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .source-list li:nth-child(3n + 2) { text-align: center; }
+    .source-list li:nth-child(3n) { text-align: right; }
+
+    .findings-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 3rem;
+      border: 1px solid var(--ink);
+    }
+
+    .flow-step {
+      position: relative;
+      min-height: 13rem;
+      padding: 1rem;
+      border-right: 1px solid var(--ink);
+    }
+
+    .flow-step:last-child { border-right: 0; }
+
+    .flow-step::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      transform: translate(50%, -50%);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      z-index: 1;
+    }
+
+    .flow-step:last-child::after { display: none; }
+
+    .flow-step .number {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+    }
+
+    .flow-step h3 {
+      margin: 3.5rem 0 0;
+      font-size: 1.1rem;
+    }
+
+    .flow-step p {
+      margin: 0.5rem 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .roles {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 3rem;
+      border-top: 1px solid var(--ink);
+    }
+
+    .role {
+      padding: 1.25rem 1.25rem 0 0;
+    }
+
+    .role + .role {
+      padding-left: 1.25rem;
+      border-left: 1px solid var(--line);
+    }
+
+    .role h3 { margin: 0 0 0.6rem; }
+    .role p { margin: 0; color: var(--muted); }
+
+
+
+    .site-footer {
+      border-top: 1px solid var(--ink);
+      padding-block: 1.25rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    @media (max-width: 760px) {
+      .wrap { width: min(calc(100% - 1.25rem), var(--max)); }
+      .nav { min-height: 3.5rem; }
+      .nav-links > a:first-child { display: none; }
+      .hero { min-height: calc(100svh - 3.5rem); }
+      .hero-bottom,
+      .section-head,
+      .definition { grid-template-columns: 1fr; }
+      .hero-bottom { gap: 1rem; }
+      .section-head { gap: 1rem; }
+      .problem-copy { grid-template-columns: 1fr; }
+      .detector-chip { width: 12rem; flex-basis: 12rem; }
+      .detail-grid,
+      .roles { grid-template-columns: 1fr; }
+      .source-list { grid-template-columns: 1fr; }
+      .source-list li,
+      .source-list li:nth-child(3n + 2),
+      .source-list li:nth-child(3n) { text-align: left; }
+      .findings-flow { grid-template-columns: 1fr; }
+      .flow-step {
+        min-height: auto;
+        padding: 1.25rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--ink);
+      }
+      .flow-step:last-child { border-bottom: 0; }
+      .flow-step::after {
+        top: auto;
+        right: 50%;
+        bottom: 0;
+        content: "↓";
+        transform: translate(50%, 50%);
+      }
+      .flow-step h3 { margin-top: 1.5rem; }
+      .role { padding: 1.25rem 0; }
+      .role + .role {
+        padding-left: 0;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .detector-stream { overflow: visible; }
+      .detector-track {
+        width: auto;
+        flex-wrap: wrap;
+        animation: none;
+      }
+      .detector-track [aria-hidden="true"] { display: none; }
+    }
+
+    @media print {
+      .site-header { position: static; }
+      .hero { min-height: auto; }
+      .section { break-inside: avoid; }
+      .action[href]::after { content: " (" attr(href) ")"; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav wrap" aria-label="Primary navigation">
+      <a class="brand" href="/">Anomaly</a>
+      <div class="nav-links">
+        <a href="docs/flow.html">Full workflow</a>
+        <a class="button" href="https://github.com/tomvaillant/Anomaly">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="content">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <h1 id="hero-title">An agent workflow for finding anomalies in structured data.</h1>
+      <div class="hero-bottom">
+        <p class="hero-label">Anomaly / open source</p>
+        <div class="hero-copy">
+          <p class="description">Turn your agent into a structured-data investigation system.</p>
+          <p class="explanation">A portable skill that acquires or registers data, profiles it with Python and DuckDB, recommends relevant anomaly detectors, runs the tests you approve, and checks proposed findings through replay and independent review.</p>
+          <div class="actions">
+            <a class="action primary" href="https://github.com/tomvaillant/Anomaly">View on GitHub →</a>
+            <a class="action" href="docs/flow.html">Read the full workflow →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="problem-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="section-label">The problem</p>
+          <h2 id="problem-title">One dataset can contain many kinds of anomalies.</h2>
+        </div>
+        <div class="problem-copy">
+          <p>An unusual value, a sudden change over time, a repeated payment, a shared address, a network cluster, and a copied passage are different patterns. Each requires a detector built for that kind of data.</p>
+          <p>Before any test runs, the system needs to understand the dataset, identify which detectors are compatible, and make their assumptions and known false positives visible.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="detectors" aria-labelledby="detectors-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="section-label">Anomaly detectors</p>
+          <h2 id="detectors-title">Run the right tests for the data in front of you.</h2>
+        </div>
+        <div class="definition">
+          <p class="lead">A detector is a reusable test for one pattern: duplicate payments, unusual timing, shared entities, geographic clusters, copied text, and more.</p>
+          <p class="aside">Anomaly profiles the dataset, recommends up to ten compatible detectors, and shows why each was selected before you approve the run.</p>
+        </div>
+      </div>
+      <div class="detector-stream" aria-label="Examples from the detector registry">
+        <div class="detector-track">
+          <div class="detector-chip"><span>Table</span> Duplicate rows</div>
+          <div class="detector-chip"><span>Numeric</span> Level shifts</div>
+          <div class="detector-chip"><span>Temporal</span> Backdated records</div>
+          <div class="detector-chip"><span>Network</span> Shared infrastructure</div>
+          <div class="detector-chip"><span>Text</span> Portfolio cloning</div>
+          <div class="detector-chip"><span>Relational</span> Shared identifiers</div>
+          <div class="detector-chip"><span>Domain</span> Procurement clusters</div>
+          <div class="detector-chip"><span>Credential</span> Secret patterns</div>
+          <div class="detector-chip" aria-hidden="true"><span>Table</span> Duplicate rows</div>
+          <div class="detector-chip" aria-hidden="true"><span>Numeric</span> Level shifts</div>
+          <div class="detector-chip" aria-hidden="true"><span>Temporal</span> Backdated records</div>
+          <div class="detector-chip" aria-hidden="true"><span>Network</span> Shared infrastructure</div>
+          <div class="detector-chip" aria-hidden="true"><span>Text</span> Portfolio cloning</div>
+          <div class="detector-chip" aria-hidden="true"><span>Relational</span> Shared identifiers</div>
+          <div class="detector-chip" aria-hidden="true"><span>Domain</span> Procurement clusters</div>
+          <div class="detector-chip" aria-hidden="true"><span>Credential</span> Secret patterns</div>
+        </div>
+        <div class="detector-track">
+          <div class="detector-chip"><span>Table</span> Missingness clusters</div>
+          <div class="detector-chip"><span>Numeric</span> Z-score outliers</div>
+          <div class="detector-chip"><span>Categorical</span> Rare levels</div>
+          <div class="detector-chip"><span>Temporal</span> Activity shifts</div>
+          <div class="detector-chip"><span>Cross-data</span> Location conflicts</div>
+          <div class="detector-chip"><span>Text</span> Hostname leakage</div>
+          <div class="detector-chip"><span>Network</span> Cross-commit overlap</div>
+          <div class="detector-chip"><span>Domain</span> Contractor concentration</div>
+          <div class="detector-chip" aria-hidden="true"><span>Table</span> Missingness clusters</div>
+          <div class="detector-chip" aria-hidden="true"><span>Numeric</span> Z-score outliers</div>
+          <div class="detector-chip" aria-hidden="true"><span>Categorical</span> Rare levels</div>
+          <div class="detector-chip" aria-hidden="true"><span>Temporal</span> Activity shifts</div>
+          <div class="detector-chip" aria-hidden="true"><span>Cross-data</span> Location conflicts</div>
+          <div class="detector-chip" aria-hidden="true"><span>Text</span> Hostname leakage</div>
+          <div class="detector-chip" aria-hidden="true"><span>Network</span> Cross-commit overlap</div>
+          <div class="detector-chip" aria-hidden="true"><span>Domain</span> Contractor concentration</div>
+        </div>
+      </div>
+      <div class="wrap">
+        <div class="detail-grid">
+          <article>
+            <h3>Matched automatically</h3>
+            <p>Detectors that cannot run on the available fields, types, or coverage are removed.</p>
+          </article>
+          <article>
+            <h3>Explained before execution</h3>
+            <p>Every recommendation includes its parameters, assumptions, and known false positives.</p>
+          </article>
+          <article>
+            <h3>Built to expand</h3>
+            <p>New detector packages join the same registry without loading the whole catalogue into the agent context.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sources" aria-labelledby="sources-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="section-label">Public-data skills</p>
+          <h2 id="sources-title">Bring public records into the same case.</h2>
+        </div>
+        <div class="definition">
+          <p class="lead">Choose a source skill and Anomaly handles the source-specific query, validation, normalization, and provenance.</p>
+          <p class="aside">Add your own files alongside public data. Everything is profiled and tested through the same workflow.</p>
+        </div>
+        <ul class="source-list" aria-label="Sources in the public-data catalogue">
+          <li>USAspending</li>
+          <li>SEC EDGAR</li>
+          <li>OpenFEC</li>
+          <li>TED procurement</li>
+          <li>Companies House</li>
+          <li>OpenCorporates</li>
+          <li>CourtListener</li>
+          <li>OpenSanctions</li>
+          <li>Wikidata</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="findings" aria-labelledby="findings-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="section-label">Findings and report</p>
+          <h2 id="findings-title">Every proposed finding points back to the data.</h2>
+        </div>
+        <div class="definition">
+          <p class="lead">Anomaly turns detector signals into draft claims with evidence references, source and detector hashes, recorded runs, previews, and calculations.</p>
+          <p class="aside">Replay checks the math. A separate reviewer challenges the draft. You decide what becomes a finding.</p>
+        </div>
+        <div class="findings-flow" aria-label="Path from signal to finding">
+          <article class="flow-step">
+            <span class="number">01</span>
+            <h3>Signal</h3>
+            <p>A recorded pattern linked to its detector run.</p>
+          </article>
+          <article class="flow-step">
+            <span class="number">02</span>
+            <h3>Proposed finding</h3>
+            <p>A draft claim linked to evidence and calculations.</p>
+          </article>
+          <article class="flow-step">
+            <span class="number">03</span>
+            <h3>Replay and review</h3>
+            <p>Calculations and wording are checked independently.</p>
+          </article>
+          <article class="flow-step">
+            <span class="number">04</span>
+            <h3>Your decision</h3>
+            <p>Accept, revise, reject, or leave the claim unresolved.</p>
+          </article>
+        </div>
+        <div class="detail-grid" aria-label="Report outputs">
+          <article>
+            <h3>Traceable claims</h3>
+            <p>Claims retain signal IDs, source and detector hashes, run IDs, evidence references, and replayable calculations.</p>
+          </article>
+          <article>
+            <h3>Reviewed findings</h3>
+            <p>Only claims accepted after replay and independent review enter the final findings file.</p>
+          </article>
+          <article>
+            <h3>Report and charts</h3>
+            <p>Anomaly writes a Markdown report, unresolved questions, and deterministic SVG charts from accepted findings.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="run-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="section-label">Run Anomaly</p>
+          <h2 id="run-title">Run Anomaly on your data.</h2>
+        </div>
+        <div class="definition">
+          <p class="lead">Start a case with your own files or choose a source from the public-data catalogue.</p>
+          <div class="actions">
+            <a class="action primary" href="https://github.com/tomvaillant/Anomaly">Open Anomaly on GitHub →</a>
+            <a class="action" href="docs/flow.html">Read the full workflow →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-row wrap">
+      <span>Anomaly</span>
+      <a href="https://github.com/tomvaillant/Anomaly">GitHub</a>
+    </div>
+  </footer>
+</body>
+</html>
