@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review",
+  "finding": "src/anomaly/workflow_inputs.py:61 The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.",
+  "verdict": "survives",
+  "rationale": "The public run_workflow path is reachable at P1, P4, and P7 with these malformed values, because capability detection accepts them before run_attempts invokes stricter downstream validators whose exceptions consume all three attempts, and no upstream guard makes that path unreachable or fail-safe.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow_inputs.py:20-119",
+      "output": "normalize_inputs validates only top-level names; source_requests requires source-field presence but does not validate an empty source_id or the included=False reason condition; _is_complete_mapping requires only an outer list/tuple and nonblank identity, without validating sequence elements."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:85-204; src/anomaly/attempts.py:29-92; src/anomaly/owners.py:37-140",
+      "output": "run_workflow derives capabilities from input_capabilities and resolves P1/P4/P7 ready, then run_attempts calls consume_owner with the original supplied values; downstream owner exceptions are caught and retried until MAX_ATTEMPTS, so malformed values consume attempts instead of pausing."
+    },
+    {
+      "command": "read src/anomaly/acquire.py:31-65; src/anomaly/recommend.py:335-374; src/anomaly/review.py:366-447",
+      "output": "The missing guards exist only after attempt entry: register_local_source rejects an empty source_id and requires reason when included is false; approve_detector_plan rejects non-string detector IDs; accept_findings rejects non-string claim IDs."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/review-recovered-correctness.json:95-102",
+      "output": "The gated reviewer probe reports blank_source_id ['sources'], non_string_gate_id ['gate_a'], non_string_claim_id ['gate_b'], and included=False without reason ['sources'], confirming each malformed payload is advertised as a capability."
+    }
+  ]
+}

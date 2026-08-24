@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "src/anomaly/workflow_inputs.py:39 The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.",
+  "verdict": "survives",
+  "rationale": "The public path is concretely reachable: malformed but shape-complete source and gate values become capabilities, make P1/P4/P7 ready, and reach run_attempts before the owner performs the missing value validation; run_attempts increments and persists the attempt first, retries the same invalid input through all three attempts, and marks the phase unavailable, so no upstream guard makes the failure unreachable or less severe.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow_inputs.py:39-130",
+      "output": "input_capabilities adds sources whenever source_requests accepts the container, but source_requests checks only list/nonempty, mapping, and field names; it does not validate field values. _is_complete_mapping adds gate_a/gate_b when the decision field is merely a list/tuple and the identity is a nonblank string; it neither validates collection elements nor requires Gate A approved_ids to be nonempty."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:158-205",
+      "output": "run_workflow is the public dispatcher. It derives capabilities from the supplied values, resolves the phase from those capabilities, and, for a ready resolution, calls run_attempts with consume_owner; there is no intervening schema validation."
+    },
+    {
+      "command": "read src/anomaly/owners.py:52-91,129-136; src/anomaly/recommend.py:343-362; src/anomaly/review.py:428-432",
+      "output": "The P4 owner passes approved_ids to approve_detector_plan, which rejects an empty collection or non-string entries; the P7 owner passes accepted_claim_ids to accept_findings, which rejects non-string entries. These owner checks occur inside the callback already handed to run_attempts. Source requests likewise reach _register_sources after being classified complete."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:29-83,153-203",
+      "output": "run_attempts increments attempts[phase], writes active state, and records phase_started before execute(workspace). An owner exception is recorded as a failed attempt and retried while attempt < MAX_ATTEMPTS; at attempt 3 the phase is persisted as unavailable and blocked."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/notes.md:9-18; tests/test_pipeline_walk.py:209-318",
+      "output": "The locked approach says schema validation must produce complete input capabilities and keep human pauses attempt-free. Existing public tests cover missing now and missing gate keys, but the shown gate tests do not cover malformed decision elements, Gate A's empty selection at a Gate A entry, or malformed source-field values."
+    }
+  ]
+}

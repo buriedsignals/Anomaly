@@ -84,3 +84,34 @@
 {"seq":83,"at":"2026-08-24T10:54:12.877Z","event":"record","stage":"plan","agent":"PlanAnomalyGateTestRepair"}
 {"seq":84,"at":"2026-08-24T10:54:20.226Z","event":"intent","stage":"implement","note":"Confirm test-only stale-fixture repair requires no production change and targeted resolver tests are green"}
 {"seq":85,"at":"2026-08-24T10:55:39.141Z","event":"record","stage":"implement","agent":"ImplementAnomalyGateTestCheck"}
+{"seq":86,"at":"2026-08-24T10:56:36.003Z","event":"gate","hash":"8500ab972190cc5d83fc37344fede3a24816dfe2","green":true,"clean":true}
+{"seq":87,"at":"2026-08-24T10:56:58.194Z","event":"intent","stage":"review","note":"Fresh post-recovery correctness review at clean gate 8500ab97"}
+{"seq":88,"at":"2026-08-24T10:56:58.228Z","event":"intent","stage":"audit","note":"Fresh post-recovery audit at clean gate 8500ab97 using recovered scanner report"}
+{"seq":89,"at":"2026-08-24T10:56:58.251Z","event":"intent","stage":"review","note":"Fresh post-recovery standards review at clean gate 8500ab97"}
+{"seq":90,"at":"2026-08-24T11:09:02.020Z","event":"record","stage":"review","agent":"ReviewAnomalyRecoveredCorrect"}
+{"seq":91,"at":"2026-08-24T11:09:02.087Z","event":"record","stage":"review","agent":"ReviewAnomalyRecoveredStandards"}
+{"seq":92,"at":"2026-08-24T11:09:02.156Z","event":"record","stage":"audit","agent":"AuditAnomalyRecovered"}
+{"seq":93,"at":"2026-08-24T11:09:17.728Z","event":"intent","stage":"refute","note":"Post-recovery refute review blocker 2: src/anomaly/attempts.py:48 A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop."}
+{"seq":94,"at":"2026-08-24T11:09:17.753Z","event":"intent","stage":"refute","note":"Post-recovery refute review blocker 1: src/anomaly/workflow_inputs.py:61 The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities."}
+{"seq":95,"at":"2026-08-24T11:09:17.775Z","event":"intent","stage":"refute","note":"Post-recovery refute review2 blocker 4: src/anomaly/case.py:101 The recovered whole-case containment boundary still omits the public create path."}
+{"seq":96,"at":"2026-08-24T11:09:17.817Z","event":"intent","stage":"refute","note":"Post-recovery refute review2 blocker 5: src/anomaly/identities.py:17 P7 completion does not validate the identities or existence of the outputs that README advertises."}
+{"seq":97,"at":"2026-08-24T11:09:17.835Z","event":"intent","stage":"refute","note":"Post-recovery refute review blocker 3: tests/test_skill.py:76 The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract."}
+{"seq":98,"at":"2026-08-24T11:09:17.868Z","event":"intent","stage":"refute","note":"Post-recovery refute review2 blocker 8: skills/anomaly/SKILL.md:46 Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner."}
+{"seq":99,"at":"2026-08-24T11:09:17.895Z","event":"intent","stage":"refute","note":"Post-recovery refute review2 blocker 6: src/anomaly/workflow_inputs.py:39 The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values."}
+{"seq":100,"at":"2026-08-24T11:09:17.919Z","event":"intent","stage":"refute","note":"Post-recovery refute review2 blocker 7: tests/test_pipeline_walk.py:518 No behavioral test proves journalled promotion rollback or interrupted-promotion recovery."}
+{"seq":101,"at":"2026-08-24T11:09:17.970Z","event":"intent","stage":"refute","note":"Post-recovery refute audit blocker 9: src/anomaly/_attempt_workspace.py:109 A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery."}
+{"seq":102,"at":"2026-08-24T11:09:17.996Z","event":"intent","stage":"refute","note":"Post-recovery refute audit blocker 10: src/anomaly/semantics.py:52 The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY."}
+{"seq":103,"at":"2026-08-24T11:10:55.094Z","event":"record","stage":"refute","agent":"AnPostRefute8"}
+{"seq":104,"at":"2026-08-24T11:11:23.288Z","event":"record","stage":"refute","agent":"AnPostRefute1"}
+{"seq":105,"at":"2026-08-24T11:11:23.357Z","event":"record","stage":"refute","agent":"AnPostRefute5"}
+{"seq":106,"at":"2026-08-24T11:11:29.687Z","event":"record","stage":"refute","agent":"AnPostRefute3"}
+{"seq":107,"at":"2026-08-24T11:11:39.650Z","event":"record","stage":"refute","agent":"AnPostRefute4"}
+{"seq":108,"at":"2026-08-24T11:11:39.719Z","event":"record","stage":"refute","agent":"AnPostRefute6"}
+{"seq":109,"at":"2026-08-24T11:11:39.790Z","event":"record","stage":"refute","agent":"AnPostRefute7"}
+{"seq":110,"at":"2026-08-24T11:11:46.966Z","event":"record","stage":"refute","agent":"AnPostRefute9"}
+{"seq":111,"at":"2026-08-24T11:11:47.034Z","event":"record","stage":"refute","agent":"AnPostRefute10"}
+{"seq":112,"at":"2026-08-24T11:11:53.328Z","event":"record","stage":"refute","agent":"AnPostRefute2"}
+{"seq":113,"at":"2026-08-24T11:12:05.532Z","event":"intent","stage":"plan","note":"Plan second repair for complete input schema, interruption recovery, promotion journal validation, P7 identities, sanitizer, create containment and stale skill contract"}
+{"seq":114,"at":"2026-08-24T11:29:48.818Z","event":"record","stage":"plan","agent":"PlanAnomalySecondRepair"}
+{"seq":115,"at":"2026-08-24T11:30:00.963Z","event":"intent","stage":"implement","note":"Implement value schemas, interruption/promotion recovery, P7 identities, sanitizer, create containment and stale skill cleanup"}
+{"seq":116,"at":"2026-08-24T12:01:44.367Z","event":"record","stage":"implement","agent":"ImplementAnomalySecondRepair"}

@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review",
+  "finding": "src/anomaly/attempts.py:48 A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.",
+  "verdict": "survives",
+  "rationale": "The public dispatcher reaches an interruption window after durably incrementing the phase attempt but before any failure evidence or promotion journal exists; because BaseException interruptions bypass both Exception handlers, three such interruptions leave active attempts at the limit, where the resolver still returns ready while run_attempts executes nothing, so run_workflow has no terminal path.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/attempts.py:1-180",
+      "output": "run_attempts increments attempts[phase], writes active state, creates the attempt directory, and appends phase_started before entering owner execution; both failure paths catch only Exception, while the bounded loop is `while attempt < MAX_ATTEMPTS` and falls through by returning the unchanged state."
+    },
+    {
+      "command": "read anomaly/src/anomaly/_attempt_workspace.py:1-190",
+      "output": "promote_workspace creates `.anomaly/promotion.json` only after owner execution and output validation reach promotion; recover_interrupted_promotion immediately returns when that journal does not exist, so it cannot rewind an interruption during workspace creation or owner execution."
+    },
+    {
+      "command": "read anomaly/src/anomaly/workflow.py:70-225",
+      "output": "resolve_workflow treats only status blocked/unavailable as terminal and otherwise reports ready with `attempts + 1` without enforcing MAX_ATTEMPTS; run_workflow repeatedly calls run_attempts and returns only for complete, unavailable, paused, blocked, or unavailable state, so active attempts==3 repeats ready/no-op indefinitely."
+    },
+    {
+      "command": "read anomaly/src/anomaly/owners.py:1-155",
+      "output": "The public run_workflow path passes its resolved owner through consume_owner, which directly invokes deterministic handlers or the supplied reasoning callback; there is no upstream BaseException guard that makes an interruption unreachable."
+    },
+    {
+      "command": "grep 'KeyboardInterrupt|BaseException|interrupted attempt|promotion recovery|recover_interrupted_promotion|attempt 4 of 3' anomaly/tests anomaly/src/anomaly",
+      "output": "KeyboardInterrupt/BaseException coverage exists for prepare/profile commit restoration, but no attempt-runner interruption or exhausted-active recovery test appears; the only workflow-level recovery hit is recover_interrupted_promotion."
+    }
+  ]
+}

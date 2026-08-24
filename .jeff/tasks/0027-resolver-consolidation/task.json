@@ -5,21 +5,21 @@
   "slug": "resolver-consolidation",
   "title": "Consolidate Anomaly on resolver plus durable attempt mechanics",
   "status": "in_progress",
-  "stage": "review",
+  "stage": "refactor",
   "category": "code",
   "priority": "p1",
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T07:18:45Z",
-  "updatedAt": "2026-08-24T10:55:39Z",
+  "updatedAt": "2026-08-24T12:01:44Z",
   "agents": {
-    "implementer_agent_id": "ImplementAnomalyGateTestCheck",
+    "implementer_agent_id": "ImplementAnomalySecondRepair",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
   },
   "tests": {
-    "authored_by_agent_id": "PlanAnomalyGateTestRepair",
+    "authored_by_agent_id": "PlanAnomalySecondRepair",
     "green": false,
     "evidence": [
       {
@@ -33,6 +33,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ]
   },
@@ -261,6 +265,92 @@
       "to": "plan",
       "reason": "The recovered full-suite gate is 735/736 green; the sole failure is the original pure-resolver fixture still expecting P3 ready without supplying the newly required now input. Production correctly pauses before attempts. Plan must migrate that stale existing assertion to the accepted schema-aware boundary without changing production.",
       "at": "2026-08-24T10:50:39Z"
+    },
+    {
+      "from": "review",
+      "to": "plan",
+      "reason": "The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.; A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.; The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract.; The recovered whole-case containment boundary still omits the public create path.; P7 completion does not validate the identities or existence of the outputs that README advertises.; The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.; No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.; Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner.",
+      "at": "2026-08-24T11:11:53Z",
+      "findings": [
+        {
+          "source": "review",
+          "file": "src/anomaly/workflow_inputs.py",
+          "line": 61,
+          "what": "The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "src/anomaly/attempts.py",
+          "line": 48,
+          "what": "A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review",
+          "file": "tests/test_skill.py",
+          "line": 76,
+          "what": "The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/case.py",
+          "line": 101,
+          "what": "The recovered whole-case containment boundary still omits the public create path.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/identities.py",
+          "line": 17,
+          "what": "P7 completion does not validate the identities or existence of the outputs that README advertises.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "src/anomaly/workflow_inputs.py",
+          "line": 39,
+          "what": "The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "tests/test_pipeline_walk.py",
+          "line": 518,
+          "what": "No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.",
+          "kickTo": "plan"
+        },
+        {
+          "source": "review2",
+          "file": "skills/anomaly/SKILL.md",
+          "line": 46,
+          "what": "Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner.",
+          "kickTo": "implement"
+        }
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "implement",
+      "reason": "A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.; The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+      "at": "2026-08-24T11:11:53Z",
+      "findings": [
+        {
+          "source": "audit",
+          "file": "src/anomaly/_attempt_workspace.py",
+          "line": 109,
+          "what": "A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/semantics.py",
+          "line": 52,
+          "what": "The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+          "kickTo": "implement"
+        }
+      ]
     }
   ],
   "blockedReason": null,
@@ -268,25 +358,40 @@
   "plan": {
     "result": "red",
     "slices": [
-      "Migrate only tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail to supply the required now capability while preserving its exact P3 ready/resume-attempt-3 result and purity assertion; reuse the existing missing-now resolver test as the absence-pause proof."
+      "Complete source/Gate A/Gate B value validation before capability creation and scan unresolved create_case paths before any write.",
+      "Reconcile unfinished attempts into bounded durable evidence; preserve valid promotion rollback/restart; reject promotion journals whose path set, status, or original metadata is not registry-bound and valid.",
+      "Bind every authoritative P7 product and receipt to completion identity/README truth and redact compound environment credential assignments through the shared sanitizer.",
+      "Delete stale runner/verb/event-resume/MAX_ATTEMPTS skill prose and its obsolete test assertion while preserving all prior orchestration deletions and existing demo/order proofs."
     ],
     "testFiles": [
-      "tests/test_workflow.py"
+      "tests/test_pipeline_walk.py",
+      "tests/test_case.py",
+      "tests/test_skill.py"
     ],
     "redRun": {
-      "command": "uv run --extra test pytest tests/",
-      "output": "735 passed, 1 failed; sole failure tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail (exit 1)."
+      "command": "uv run --extra test pytest tests/test_pipeline_walk.py::test_value_invalid_source_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_a_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_b_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit tests/test_pipeline_walk.py::test_public_restart_rolls_back_an_interrupted_promotion_before_retry tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_changed_or_missing_p7_output_demotes_completion_and_readme tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_skill.py::test_skill_contracts_durable_state_bounded_retries_and_portable_paths",
+      "output": "30 failed, 4 passed in 3.71s (exit 1)"
     },
     "escalation": null,
-    "refactorOpportunity": null
+    "refactorOpportunity": "Delete the obsolete skill Verbs and runner/event-resume contract instead of replacing it; derive promotion-journal validation from the existing _OWNER_REGISTRY write tuples rather than adding a second phase map; reuse complete source/gate predicates at capability and owner boundaries and remove superseded shape-only helpers after migration."
   },
   "implement": {
-    "agent_id": "ImplementAnomalyGateTestCheck",
+    "agent_id": "ImplementAnomalySecondRepair",
     "result": "green",
-    "files": [],
+    "files": [
+      "skills/anomaly/SKILL.md",
+      "src/anomaly/_attempt_workspace.py",
+      "src/anomaly/attempts.py",
+      "src/anomaly/case.py",
+      "src/anomaly/identities.py",
+      "src/anomaly/owners.py",
+      "src/anomaly/semantics.py",
+      "src/anomaly/workflow.py",
+      "src/anomaly/workflow_inputs.py"
+    ],
     "greenRun": {
-      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt",
-      "output": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/tomvaillant/buried_signals/tools/anomaly\nconfigfile: pyproject.toml\ncollected 6 items\n\ntests/test_workflow.py ......                                            [100%]\n\n============================== 6 passed in 0.05s ===============================\n\nWall time: 0.18 seconds"
+      "command": "uv run --extra test pytest tests/test_pipeline_walk.py::test_value_invalid_source_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_a_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_b_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit tests/test_pipeline_walk.py::test_public_restart_rolls_back_an_interrupted_promotion_before_retry tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_changed_or_missing_p7_output_demotes_completion_and_readme tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_skill.py::test_skill_contracts_durable_state_bounded_retries_and_portable_paths",
+      "output": "34 passed in 2.81s"
     }
   },
   "refactor": {
@@ -936,16 +1041,266 @@
           "output": "The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a, and the active audit finding is the workflow.py:111 single-scan finding evaluated here."
         }
       ]
+    },
+    {
+      "agent_id": "AnPostRefute8",
+      "source": "review2",
+      "finding": "skills/anomaly/SKILL.md:46 Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner.",
+      "verdict": "survives",
+      "rationale": "The installed P5 skill is loaded verbatim with no correcting guard, yet it names a durable runner, treats the last completed event as resume authority, and assigns MAX_ATTEMPTS to workflow.py even though resolution derives progress from state.completed and attempt enforcement imports the constant from state.py, directly violating the task's no-runner and stale-expectation criteria.",
+      "evidence": [
+        {
+          "command": "grep -n 'durable runner\\|last completed event\\|MAX_ATTEMPTS' skills/anomaly/SKILL.md",
+          "output": "46: `.anomaly/receipts/`, and `.anomaly/attempts/`. The durable runner records each; 232: resumes from file presence instead of the last completed event; 247: `MAX_ATTEMPTS` ... `src/anomaly/workflow.py` (the runner refuses any other value)."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:1-93,94-210 and src/anomaly/owners.py:30-65",
+          "output": "P5 maps to owner (`skill`, `anomaly`); `_OWNER_INSTRUCTIONS` maps that owner to `skills/anomaly/SKILL.md`; `invoke_resolved_owner` reads the entire file as instructions; `consume_owner` invokes it for P5. `resolve_workflow` calls `completed_phase(snapshot)` to choose the next phase, and `run_workflow` delegates execution to `run_attempts`."
+        },
+        {
+          "command": "read src/anomaly/state.py:1-35 and src/anomaly/attempts.py:1-125",
+          "output": "`MAX_ATTEMPTS = 3` is defined in state.py; `completed_phase` walks snapshot[`completed`]. attempts.py imports MAX_ATTEMPTS and enforces `while attempt < MAX_ATTEMPTS`, then records success in state[`completed`]; events are appended after state/promotion logic and are not consulted for resume."
+        },
+        {
+          "command": "grep -n 'No shared runner\\|stale expectations\\|Durable attempt staging' .jeff/tasks/0027-resolver-consolidation/task.md",
+          "output": "11: durable attempt staging and retries remain separate execution utilities rather than a second orchestration API; 16: stale expectations are removed; 21: No shared runner."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute1",
+      "source": "review",
+      "finding": "src/anomaly/workflow_inputs.py:61 The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.",
+      "verdict": "survives",
+      "rationale": "The public run_workflow path is reachable at P1, P4, and P7 with these malformed values, because capability detection accepts them before run_attempts invokes stricter downstream validators whose exceptions consume all three attempts, and no upstream guard makes that path unreachable or fail-safe.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow_inputs.py:20-119",
+          "output": "normalize_inputs validates only top-level names; source_requests requires source-field presence but does not validate an empty source_id or the included=False reason condition; _is_complete_mapping requires only an outer list/tuple and nonblank identity, without validating sequence elements."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:85-204; src/anomaly/attempts.py:29-92; src/anomaly/owners.py:37-140",
+          "output": "run_workflow derives capabilities from input_capabilities and resolves P1/P4/P7 ready, then run_attempts calls consume_owner with the original supplied values; downstream owner exceptions are caught and retried until MAX_ATTEMPTS, so malformed values consume attempts instead of pausing."
+        },
+        {
+          "command": "read src/anomaly/acquire.py:31-65; src/anomaly/recommend.py:335-374; src/anomaly/review.py:366-447",
+          "output": "The missing guards exist only after attempt entry: register_local_source rejects an empty source_id and requires reason when included is false; approve_detector_plan rejects non-string detector IDs; accept_findings rejects non-string claim IDs."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/review-recovered-correctness.json:95-102",
+          "output": "The gated reviewer probe reports blank_source_id ['sources'], non_string_gate_id ['gate_a'], non_string_claim_id ['gate_b'], and included=False without reason ['sources'], confirming each malformed payload is advertised as a capability."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute5",
+      "source": "review2",
+      "finding": "src/anomaly/identities.py:17 P7 completion does not validate the identities or existence of the outputs that README advertises.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable because load_snapshot derives completion invalidation solely from changed_identities, P7 requires only the gate_b identity, and that identity hashes only .anomaly/receipts/gate-b.json; no upstream guard revalidates findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, or .anomaly/receipts/charts.json before project_readme preserves Status: complete and its output links.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/identities.py:8-18,22-39,74-101",
+          "output": "IDENTITY_PHASES assigns only \"gate_b\": \"P7\". changed_identities iterates that table and invalidates only when artifact_identity differs or is absent. _identity_files maps gate_b solely to (\".anomaly/receipts/gate-b.json\",)."
+        },
+        {
+          "command": "read anomaly/src/anomaly/state.py:32-50",
+          "output": "load_snapshot calls changed_identities(... through_phase=completed_phase(state)); if no mapped identity changed, completed remains P7 and project_readme(root, state, completed) runs."
+        },
+        {
+          "command": "read anomaly/src/anomaly/readme.py:7-17,24-58",
+          "output": "The complete projection advertises findings/findings.json, findings/report.md, and findings/unresolved.md, and sets Status to complete whenever completed is P7 and snapshot status is complete; it performs no existence or digest validation of those targets."
+        },
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:65-79",
+          "output": "The P7 owner write set explicitly includes findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, .anomaly/receipts/gate-b.json, .anomaly/receipts/charts.json, events, and README, confirming the omitted artifacts are authoritative P7 outputs."
+        },
+        {
+          "command": "read anomaly/tests/test_pipeline_walk.py:319-381,748-789",
+          "output": "The completion test checks output existence only immediately after generation and resumes without mutating outputs; the P7 invalidation test mutates only gate-b.json. There is no consumer test deleting or changing each advertised/authoritative P7 output after completion."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute3",
+      "source": "review",
+      "finding": "tests/test_skill.py:76 The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable and high-severity because the public P5 path loads the entire installed skill without filtering, while that skill and its test still encode deleted runner, verb-binding, event-resume, and MAX_ATTEMPTS-location claims that directly contradict the completed-phase-map authority required by the task and PRD.",
+      "evidence": [
+        {
+          "command": "read anomaly/tests/test_skill.py:69-79; read anomaly/skills/anomaly/SKILL.md:207-247",
+          "output": "test_skill.py requires `resume.{0,120}(event|receipt|state)` and `last completed event|resume from`; SKILL.md satisfies the latter with `resumes from file presence instead of the last completed event`, claims abstract read-file/write-file/search/execute-shell/invoke-skill plus spawn-agent/wait-agent bindings, and says MAX_ATTEMPTS is enforced by workflow.py's runner."
+        },
+        {
+          "command": "read anomaly/PRD.md:202-230; read anomaly/src/anomaly/state.py:12-25",
+          "output": "PRD.md says state.json is authoritative, events.jsonl is best-effort and never resume authority, and restart follows the canonical completed-phase map; state.completed_phase walks the snapshot `completed` mapping to determine the last completed phase."
+        },
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:51-84,94-154; read anomaly/src/anomaly/owners.py:37-53",
+          "output": "P5 resolves to owner `{kind: skill, id: anomaly}`; invoke_resolved_owner reads all of `skills/anomaly/SKILL.md` and passes it unchanged to the caller-supplied invoker; consume_owner invokes that reasoning owner for P5, so no upstream guard makes the stale installed instructions unreachable."
+        },
+        {
+          "command": "read anomaly/.jeff/tasks/0027-resolver-consolidation/task.md",
+          "output": "Acceptance explicitly requires `stale expectations ... removed`, and the non-goals explicitly prohibit a shared runner."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute4",
+      "source": "review2",
+      "finding": "src/anomaly/case.py:101 The recovered whole-case containment boundary still omits the public create path.",
+      "verdict": "survives",
+      "rationale": "The public create_case entry is directly reachable and resolves a symlinked root before mkdir and every write without ever calling _scan_case_tree, while inspect_case and resume_case scan the unresolved caller path first; therefore creation can follow a root symlink or preserve an unrelated nested symlink and produce/write through a case boundary that the other public paths reject.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/case.py:102-151",
+          "output": "create_case starts with `root = Path(root).resolve()`, then creates directories and writes AGENTS.md, README.md, case.json, instruction, data, findings, state, and event files with no `_scan_case_tree` call. By contrast, inspect_case and resume_case retain `Path(root)` and call `_scan_case_tree(root)` before existence checks or loads."
+        },
+        {
+          "command": "read anomaly/src/anomaly/case.py:257-288",
+          "output": "`_scan_case_tree` converts the caller path with abspath rather than resolve, rejects symlinks in the root/ancestor chain via lstat, and walks existing descendants rejecting nested symlinks and special files; create_case bypasses this guard entirely."
+        },
+        {
+          "command": "read anomaly/tests/test_case.py:227-238",
+          "output": "The whole-case nested-symlink behavioral test is parametrized only over `[inspect_case, resume_case]`; create_case is not covered."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute6",
+      "source": "review2",
+      "finding": "src/anomaly/workflow_inputs.py:39 The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.",
+      "verdict": "survives",
+      "rationale": "The public path is concretely reachable: malformed but shape-complete source and gate values become capabilities, make P1/P4/P7 ready, and reach run_attempts before the owner performs the missing value validation; run_attempts increments and persists the attempt first, retries the same invalid input through all three attempts, and marks the phase unavailable, so no upstream guard makes the failure unreachable or less severe.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/workflow_inputs.py:39-130",
+          "output": "input_capabilities adds sources whenever source_requests accepts the container, but source_requests checks only list/nonempty, mapping, and field names; it does not validate field values. _is_complete_mapping adds gate_a/gate_b when the decision field is merely a list/tuple and the identity is a nonblank string; it neither validates collection elements nor requires Gate A approved_ids to be nonempty."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:158-205",
+          "output": "run_workflow is the public dispatcher. It derives capabilities from the supplied values, resolves the phase from those capabilities, and, for a ready resolution, calls run_attempts with consume_owner; there is no intervening schema validation."
+        },
+        {
+          "command": "read src/anomaly/owners.py:52-91,129-136; src/anomaly/recommend.py:343-362; src/anomaly/review.py:428-432",
+          "output": "The P4 owner passes approved_ids to approve_detector_plan, which rejects an empty collection or non-string entries; the P7 owner passes accepted_claim_ids to accept_findings, which rejects non-string entries. These owner checks occur inside the callback already handed to run_attempts. Source requests likewise reach _register_sources after being classified complete."
+        },
+        {
+          "command": "read src/anomaly/attempts.py:29-83,153-203",
+          "output": "run_attempts increments attempts[phase], writes active state, and records phase_started before execute(workspace). An owner exception is recorded as a failed attempt and retried while attempt < MAX_ATTEMPTS; at attempt 3 the phase is persisted as unavailable and blocked."
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/notes.md:9-18; tests/test_pipeline_walk.py:209-318",
+          "output": "The locked approach says schema validation must produce complete input capabilities and keep human pauses attempt-free. Existing public tests cover missing now and missing gate keys, but the shown gate tests do not cover malformed decision elements, Gate A's empty selection at a Gate A entry, or malformed source-field values."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute7",
+      "source": "review2",
+      "finding": "tests/test_pipeline_walk.py:518 No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.",
+      "verdict": "survives",
+      "rationale": "The blocker survives because the line-518 test fails during owner execution before promotion starts, while the public workflow can be interrupted after an entry is applied and invokes durable recovery on the next run; no test reaches or observes that restart contract.",
+      "evidence": [
+        {
+          "command": "grep -RniE 'promotion|recover_interrupted|rollback|_apply|attempt_workspace|promote' tests",
+          "output": "The only relevant test hits are tests/test_pipeline_walk.py:518 and :791, both pre-promotion failure-isolation cases, plus tests/test_case.py:426, which only checks fork cleanup; no test references recover_interrupted_promotion, _apply, rollback, or a promotion journal."
+        },
+        {
+          "command": "read src/anomaly/_attempt_workspace.py:25-69,75-105; src/anomaly/workflow.py:163-170",
+          "output": "promote_workspace writes .anomaly/promotion.json, _apply journals each entry as applying/applied around live replacements, and recover_interrupted_promotion rolls back an unsealed journal, rewinds the attempt, and removes recovery artifacts. run_workflow calls recover_interrupted_promotion at every public entry, so interruption after replacement and restart is reachable."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:518-551,791-828",
+          "output": "The line-518 invalid-source case raises while consuming the source batch in the workspace, and the P7 case makes findings/charts a file so phase execution fails in the workspace; neither forces a failure after _apply begins, restarts with a journal, checks restoration to the sealed live case, checks attempt rewind, or proves a fresh resolution succeeds."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute9",
+      "source": "audit",
+      "finding": "src/anomaly/_attempt_workspace.py:109 A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable: run_workflow accepts a portable case whose promotion journal and target are ordinary files, then recovery trusts the journal's unbound original/status fields, and an unsealed applied entry with original=false and no backup causes _rollback to call discard_workspace on the attacker-selected in-case path.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:158-166",
+          "output": "run_workflow calls resume_case(case_root), resolves the root, and then calls recover_interrupted_promotion(case_root) before loading the workflow snapshot."
+        },
+        {
+          "command": "read anomaly/src/anomaly/case.py:257-290",
+          "output": "_scan_case_tree rejects symlinks, non-regular artifacts, and executable files, but accepts ordinary .anomaly/promotion.json and README.md files; it does not validate promotion-journal semantics."
+        },
+        {
+          "command": "read anomaly/src/anomaly/_attempt_workspace.py:57-69,109-119,159-193",
+          "output": "Recovery reads the journal, treats a non-sealed/non-rolled-back journal as rollback work, and _rollback skips only status=pending; when backup.exists() is false and entry['original'] is false, it calls discard_workspace(live). _read_journal validates schema_version, entry object/list shape, relative path syntax, and phase/attempt path spelling, but does not bind paths to _OWNER_REGISTRY write sets or validate original/status transitions."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute10",
+      "source": "audit",
+      "finding": "src/anomaly/semantics.py:52 The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+      "verdict": "survives",
+      "rationale": "The blocker survives because the gated sanitizer's leading word boundary cannot start at SECRET or API after an underscore, no other sanitizer pattern covers these compound assignment names, and real P5/P6 invoker exceptions are caught and copied through safe_error into every named durable failure surface without an upstream guard.",
+      "evidence": [
+        {
+          "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/semantics.py",
+          "output": "58:_SECRET_ASSIGNMENT = re.compile(\n59:    r\"(?i)\\b(api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|\"\n60:    r\"credential|password|passwd|secret|token|private[_-]?key)\"\n61:    r\"\\s*[:=]\\s*(?:Bearer\\s+)?[^,;\\s]+\"\n63:_BEARER = re.compile(r\"(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]{8,}\")\n64:_TOKEN_PREFIX = re.compile(\n65:    r\"\\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}\"\n67:_URL_USERINFO = re.compile(r\"(?i)\\b(https?://)[^/\\s:@]+:[^@\\s/]+@\")"
+        },
+        {
+          "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/workflow.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+          "output": "workflow.py:155:return invoke(owner=selected, instructions=instructions, case_root=Path(case_root)); workflow.py:198-206 passes consume_owner into run_attempts. attempts.py:63-68 catches Exception from execute(workspace) and sends it to _finish_failure."
+        },
+        {
+          "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/state.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+          "output": "state.py:122-127 safe_error returns str(redact_credentials(str(value)))[:2000]. attempts.py:172-196 assigns that message to failure.json, phase_failed events.jsonl, state.failures, and final-attempt blocked_reason; lines 197-205 also emit it in phase_unavailable."
+        },
+        {
+          "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:tests/test_pipeline_walk.py",
+          "output": "test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence covers Authorization: Bearer, password=, AKIA under aws=, xoxb under slack=, and URL userinfo, but contains no AWS_SECRET_ACCESS_KEY or OPENAI_API_KEY assignment."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnPostRefute2",
+      "source": "review",
+      "finding": "src/anomaly/attempts.py:48 A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.",
+      "verdict": "survives",
+      "rationale": "The public dispatcher reaches an interruption window after durably incrementing the phase attempt but before any failure evidence or promotion journal exists; because BaseException interruptions bypass both Exception handlers, three such interruptions leave active attempts at the limit, where the resolver still returns ready while run_attempts executes nothing, so run_workflow has no terminal path.",
+      "evidence": [
+        {
+          "command": "read anomaly/src/anomaly/attempts.py:1-180",
+          "output": "run_attempts increments attempts[phase], writes active state, creates the attempt directory, and appends phase_started before entering owner execution; both failure paths catch only Exception, while the bounded loop is `while attempt < MAX_ATTEMPTS` and falls through by returning the unchanged state."
+        },
+        {
+          "command": "read anomaly/src/anomaly/_attempt_workspace.py:1-190",
+          "output": "promote_workspace creates `.anomaly/promotion.json` only after owner execution and output validation reach promotion; recover_interrupted_promotion immediately returns when that journal does not exist, so it cannot rewind an interruption during workspace creation or owner execution."
+        },
+        {
+          "command": "read anomaly/src/anomaly/workflow.py:70-225",
+          "output": "resolve_workflow treats only status blocked/unavailable as terminal and otherwise reports ready with `attempts + 1` without enforcing MAX_ATTEMPTS; run_workflow repeatedly calls run_attempts and returns only for complete, unavailable, paused, blocked, or unavailable state, so active attempts==3 repeats ready/no-op indefinitely."
+        },
+        {
+          "command": "read anomaly/src/anomaly/owners.py:1-155",
+          "output": "The public run_workflow path passes its resolved owner through consume_owner, which directly invokes deterministic handlers or the supplied reasoning callback; there is no upstream BaseException guard that makes an interruption unreachable."
+        },
+        {
+          "command": "grep 'KeyboardInterrupt|BaseException|interrupted attempt|promotion recovery|recover_interrupted_promotion|attempt 4 of 3' anomaly/tests anomaly/src/anomaly",
+          "output": "KeyboardInterrupt/BaseException coverage exists for prepare/profile commit restoration, but no attempt-runner interruption or exhausted-active recovery test appears; the only workflow-level recovery hit is recover_interrupted_promotion."
+        }
+      ]
     }
   ],
   "convergence": {
     "cap": 2,
     "stages": {
       "review": {
-        "blockingKickbacks": 1
+        "blockingKickbacks": 2
       },
       "audit": {
-        "blockingKickbacks": 1
+        "blockingKickbacks": 2
       }
     },
     "council": {
@@ -2141,6 +2496,644 @@
         "reviewer_agent_id": "ReviewAnomalyCorrectnessSchema",
         "reviewer2_agent_id": "ReviewAnomalyStandardsSchema",
         "audit_agent_id": "AuditAnomalySchema"
+      }
+    },
+    {
+      "at": "2026-08-24T12:01:44Z",
+      "review": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyRecoveredCorrect",
+        "findings": [
+          {
+            "file": "src/anomaly/workflow_inputs.py",
+            "line": 61,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.",
+            "why": "source_requests validates only key presence, while _is_complete_mapping validates only the outer sequence and a nonblank actor identity. Empty source IDs, included=False sources without the conditionally required reason, and gate ID lists containing non-strings all become sources/gate_a/gate_b capabilities and therefore enter three execution attempts instead of pausing before an attempt. Independent probes returned ['sources'], ['gate_a'], and ['gate_b'] for those invalid payloads. This leaves the prior schema-blind-input blocker partially unresolved and requires focused public tests for value types and the conditional source schema before production repair.",
+            "refute": {
+              "agent_id": "AnPostRefute1",
+              "source": "review",
+              "finding": "src/anomaly/workflow_inputs.py:61 The repaired schema-aware input boundary still treats unconsumable source and gate values as complete capabilities.",
+              "verdict": "survives",
+              "rationale": "The public run_workflow path is reachable at P1, P4, and P7 with these malformed values, because capability detection accepts them before run_attempts invokes stricter downstream validators whose exceptions consume all three attempts, and no upstream guard makes that path unreachable or fail-safe.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow_inputs.py:20-119",
+                  "output": "normalize_inputs validates only top-level names; source_requests requires source-field presence but does not validate an empty source_id or the included=False reason condition; _is_complete_mapping requires only an outer list/tuple and nonblank identity, without validating sequence elements."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:85-204; src/anomaly/attempts.py:29-92; src/anomaly/owners.py:37-140",
+                  "output": "run_workflow derives capabilities from input_capabilities and resolves P1/P4/P7 ready, then run_attempts calls consume_owner with the original supplied values; downstream owner exceptions are caught and retried until MAX_ATTEMPTS, so malformed values consume attempts instead of pausing."
+                },
+                {
+                  "command": "read src/anomaly/acquire.py:31-65; src/anomaly/recommend.py:335-374; src/anomaly/review.py:366-447",
+                  "output": "The missing guards exist only after attempt entry: register_local_source rejects an empty source_id and requires reason when included is false; approve_detector_plan rejects non-string detector IDs; accept_findings rejects non-string claim IDs."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/review-recovered-correctness.json:95-102",
+                  "output": "The gated reviewer probe reports blank_source_id ['sources'], non_string_gate_id ['gate_a'], non_string_claim_id ['gate_b'], and included=False without reason ['sources'], confirming each malformed payload is advertised as a capability."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/attempts.py",
+            "line": 48,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.",
+            "why": "run_attempts persists the incremented attempt count before a promotion journal exists, and catches only Exception. KeyboardInterrupt, process termination, or a crash during workspace creation/owner execution therefore leaves active state with a consumed attempt and no failure record or recovery marker. At attempts[phase] == 3, resolve_workflow still returns ready with 'attempt 4 of 3', while run_attempts skips its loop and returns the same active state; run_workflow repeats forever. The suite has no interrupted-attempt or promotion-recovery seam—its atomicity tests cover owner failure before promotion only—so AC3's durable attempts, failure evidence, atomic promotion, and finite retry contract need a new behavior test plus recovery implementation.",
+            "refute": {
+              "agent_id": "AnPostRefute2",
+              "source": "review",
+              "finding": "src/anomaly/attempts.py:48 A process interruption can consume an attempt without failure evidence and eventually strand run_workflow in an infinite ready/no-op loop.",
+              "verdict": "survives",
+              "rationale": "The public dispatcher reaches an interruption window after durably incrementing the phase attempt but before any failure evidence or promotion journal exists; because BaseException interruptions bypass both Exception handlers, three such interruptions leave active attempts at the limit, where the resolver still returns ready while run_attempts executes nothing, so run_workflow has no terminal path.",
+              "evidence": [
+                {
+                  "command": "read anomaly/src/anomaly/attempts.py:1-180",
+                  "output": "run_attempts increments attempts[phase], writes active state, creates the attempt directory, and appends phase_started before entering owner execution; both failure paths catch only Exception, while the bounded loop is `while attempt < MAX_ATTEMPTS` and falls through by returning the unchanged state."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/_attempt_workspace.py:1-190",
+                  "output": "promote_workspace creates `.anomaly/promotion.json` only after owner execution and output validation reach promotion; recover_interrupted_promotion immediately returns when that journal does not exist, so it cannot rewind an interruption during workspace creation or owner execution."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/workflow.py:70-225",
+                  "output": "resolve_workflow treats only status blocked/unavailable as terminal and otherwise reports ready with `attempts + 1` without enforcing MAX_ATTEMPTS; run_workflow repeatedly calls run_attempts and returns only for complete, unavailable, paused, blocked, or unavailable state, so active attempts==3 repeats ready/no-op indefinitely."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/owners.py:1-155",
+                  "output": "The public run_workflow path passes its resolved owner through consume_owner, which directly invokes deterministic handlers or the supplied reasoning callback; there is no upstream BaseException guard that makes an interruption unreachable."
+                },
+                {
+                  "command": "grep 'KeyboardInterrupt|BaseException|interrupted attempt|promotion recovery|recover_interrupted_promotion|attempt 4 of 3' anomaly/tests anomaly/src/anomaly",
+                  "output": "KeyboardInterrupt/BaseException coverage exists for prepare/profile commit restoration, but no attempt-runner interruption or exhausted-active recovery test appears; the only workflow-level recovery hit is recover_interrupted_promotion."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_skill.py",
+            "line": 76,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract.",
+            "why": "The test still requires 'last completed event|resume from', and skills/anomaly/SKILL.md satisfies it by claiming resume authority is the last completed event at line 232 even though PRD.md and state.py make the completed-phase map authoritative and events best-effort. The skill also documents a durable runner, nonexistent read-file/write-file/execute-shell/invoke-skill and spawn-agent/wait-agent verb bindings (lines 46 and 209-220), and locates MAX_ATTEMPTS in deleted runner code (line 247). These are procedure/prose change-detector assertions for behavior removed with product_workflow.py, contradict users of the installed skill and violating AC8's explicit removal of stale expectations. Revise/delete the stale test and migrate the skill to the actual resolver, owner invoker, and state authority.",
+            "refute": {
+              "agent_id": "AnPostRefute3",
+              "source": "review",
+              "finding": "tests/test_skill.py:76 The deleted runner/verb/event-resume model remains as a stale test expectation and installed skill contract.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable and high-severity because the public P5 path loads the entire installed skill without filtering, while that skill and its test still encode deleted runner, verb-binding, event-resume, and MAX_ATTEMPTS-location claims that directly contradict the completed-phase-map authority required by the task and PRD.",
+              "evidence": [
+                {
+                  "command": "read anomaly/tests/test_skill.py:69-79; read anomaly/skills/anomaly/SKILL.md:207-247",
+                  "output": "test_skill.py requires `resume.{0,120}(event|receipt|state)` and `last completed event|resume from`; SKILL.md satisfies the latter with `resumes from file presence instead of the last completed event`, claims abstract read-file/write-file/search/execute-shell/invoke-skill plus spawn-agent/wait-agent bindings, and says MAX_ATTEMPTS is enforced by workflow.py's runner."
+                },
+                {
+                  "command": "read anomaly/PRD.md:202-230; read anomaly/src/anomaly/state.py:12-25",
+                  "output": "PRD.md says state.json is authoritative, events.jsonl is best-effort and never resume authority, and restart follows the canonical completed-phase map; state.completed_phase walks the snapshot `completed` mapping to determine the last completed phase."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/workflow.py:51-84,94-154; read anomaly/src/anomaly/owners.py:37-53",
+                  "output": "P5 resolves to owner `{kind: skill, id: anomaly}`; invoke_resolved_owner reads all of `skills/anomaly/SKILL.md` and passes it unchanged to the caller-supplied invoker; consume_owner invokes that reasoning owner for P5, so no upstream guard makes the stale installed instructions unreachable."
+                },
+                {
+                  "command": "read anomaly/.jeff/tasks/0027-resolver-consolidation/task.md",
+                  "output": "Acceptance explicitly requires `stale expectations ... removed`, and the non-goals explicitly prohibit a shared runner."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:24-49",
+            "output": "Recorded gate is clean=true, green=true at 8500ab972190cc5d83fc37344fede3a24816dfe2 with command `uv run --extra test pytest tests/`; the supplied gate result is 736/736 passed."
+          },
+          {
+            "command": ".venv/bin/python -c '<input_capabilities probes>'",
+            "output": "blank_source_id ['sources']\nnon_string_gate_id ['gate_a']\nnon_string_claim_id ['gate_b']\nincluded=False without reason also returned ['sources']."
+          },
+          {
+            "command": ".venv/bin/python -c '<resolve active P1 snapshot with attempts=3>'",
+            "output": "{'phase': 'P1', 'status': 'ready', 'owner': {'kind': 'handler', 'id': 'register-sources'}, 'missing': None, 'attempts': 3, 'invalidated_from': None, 'resume': 'Resume P1 after P0; attempt 4 of 3.'}"
+          },
+          {
+            "command": "grep tool: `last completed event|durable runner|Supported in local runs|spawn-agent|wait-agent|MAX_ATTEMPTS.*workflow.py` in skills/anomaly/SKILL.md plus tests/test_skill.py",
+            "output": "SKILL.md:46 documents a durable runner; 209-220 document removed verb bindings; 232 says resume uses the last completed event; 247 points MAX_ATTEMPTS to workflow.py. tests/test_skill.py:76 explicitly requires the stale last-completed-event/resume phrase."
+          },
+          {
+            "command": "read current recovery-owned tests and source boundaries",
+            "output": "Verified repaired proofs for fresh Gate A/B turns, required now and missing gate fields, P1/P7 owner-failure atomicity, redacted three-attempt evidence, all six P3-P6 invalidation classes, missing identities, canonical role separation, README restart/invalidation/failure/recompletion, standalone bare URL escaping, public/direct/post-dynamic symlink rejection, source replacement, event-store resume, relative links, and canonical demo order. No test exercises invalid value schemas, interrupted attempt reconciliation, or promotion-journal rollback/recovery."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC7",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": true
+          },
+          {
+            "ac": "AC8",
+            "claimed": "delete",
+            "rederived": "delete",
+            "ok": false
+          },
+          {
+            "ac": "AC9",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewAnomalyRecoveredStandards",
+        "findings": [
+          {
+            "file": "src/anomaly/case.py",
+            "line": 101,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The recovered whole-case containment boundary still omits the public create path.",
+            "why": "create_case resolves the caller's root before any _scan_case_tree call and never scans the prospective case. A symlinked root is followed and an unrelated nested symlink can remain inside a newly created case, so the public writer can create/write through a case path that inspect_case, resume_case, and decorated writers correctly reject. AC7 says every public resume/read/write path is protected, and the plan-owned tests cover inspect/resume/register/dynamic continuation but not create_case. Add a behavioral create-case root/nested-link test, then scan the unresolved path before resolve or any write.",
+            "refute": {
+              "agent_id": "AnPostRefute4",
+              "source": "review2",
+              "finding": "src/anomaly/case.py:101 The recovered whole-case containment boundary still omits the public create path.",
+              "verdict": "survives",
+              "rationale": "The public create_case entry is directly reachable and resolves a symlinked root before mkdir and every write without ever calling _scan_case_tree, while inspect_case and resume_case scan the unresolved caller path first; therefore creation can follow a root symlink or preserve an unrelated nested symlink and produce/write through a case boundary that the other public paths reject.",
+              "evidence": [
+                {
+                  "command": "read anomaly/src/anomaly/case.py:102-151",
+                  "output": "create_case starts with `root = Path(root).resolve()`, then creates directories and writes AGENTS.md, README.md, case.json, instruction, data, findings, state, and event files with no `_scan_case_tree` call. By contrast, inspect_case and resume_case retain `Path(root)` and call `_scan_case_tree(root)` before existence checks or loads."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/case.py:257-288",
+                  "output": "`_scan_case_tree` converts the caller path with abspath rather than resolve, rejects symlinks in the root/ancestor chain via lstat, and walks existing descendants rejecting nested symlinks and special files; create_case bypasses this guard entirely."
+                },
+                {
+                  "command": "read anomaly/tests/test_case.py:227-238",
+                  "output": "The whole-case nested-symlink behavioral test is parametrized only over `[inspect_case, resume_case]`; create_case is not covered."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/identities.py",
+            "line": 17,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "P7 completion does not validate the identities or existence of the outputs that README advertises.",
+            "why": "The sole P7 identity is gate_b, and _identity_files maps it only to .anomaly/receipts/gate-b.json. findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, and the charts receipt are absent from resume invalidation. Deleting or modifying a completed report therefore leaves completed_phase=P7; load_snapshot projects Status: complete and links to a missing or stale output. This breaks complete invalidation and truthful README completion in AC4/AC5. Add a consumer test that removes or changes each authoritative P7 output after completion and expects invalidation from P7 plus README demotion, then bind those outputs into the P7 identity/receipt validation.",
+            "refute": {
+              "agent_id": "AnPostRefute5",
+              "source": "review2",
+              "finding": "src/anomaly/identities.py:17 P7 completion does not validate the identities or existence of the outputs that README advertises.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable because load_snapshot derives completion invalidation solely from changed_identities, P7 requires only the gate_b identity, and that identity hashes only .anomaly/receipts/gate-b.json; no upstream guard revalidates findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, or .anomaly/receipts/charts.json before project_readme preserves Status: complete and its output links.",
+              "evidence": [
+                {
+                  "command": "read anomaly/src/anomaly/identities.py:8-18,22-39,74-101",
+                  "output": "IDENTITY_PHASES assigns only \"gate_b\": \"P7\". changed_identities iterates that table and invalidates only when artifact_identity differs or is absent. _identity_files maps gate_b solely to (\".anomaly/receipts/gate-b.json\",)."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/state.py:32-50",
+                  "output": "load_snapshot calls changed_identities(... through_phase=completed_phase(state)); if no mapped identity changed, completed remains P7 and project_readme(root, state, completed) runs."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/readme.py:7-17,24-58",
+                  "output": "The complete projection advertises findings/findings.json, findings/report.md, and findings/unresolved.md, and sets Status to complete whenever completed is P7 and snapshot status is complete; it performs no existence or digest validation of those targets."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/workflow.py:65-79",
+                  "output": "The P7 owner write set explicitly includes findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, .anomaly/receipts/gate-b.json, .anomaly/receipts/charts.json, events, and README, confirming the omitted artifacts are authoritative P7 outputs."
+                },
+                {
+                  "command": "read anomaly/tests/test_pipeline_walk.py:319-381,748-789",
+                  "output": "The completion test checks output existence only immediately after generation and resumes without mutating outputs; the P7 invalidation test mutates only gate-b.json. There is no consumer test deleting or changing each advertised/authoritative P7 output after completion."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow_inputs.py",
+            "line": 39,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.",
+            "why": "source_requests accepts any values when the required keys are present, while _is_complete_mapping accepts list/tuple decision collections without validating their elements or Gate A's required non-empty selection. Inputs such as approved_ids=[1] or accepted_claim_ids=[None] are classified as complete, enter run_attempts, and are rejected only by the owner after an attempt has been consumed; equivalent malformed source fields do the same. That contradicts the locked schema-aware-input/human-turn repair and boundary-validation standard. Add malformed-value public tests proving no attempt is spent, and make capability derivation perform the complete input schema check (or reject explicitly before execution).",
+            "refute": {
+              "agent_id": "AnPostRefute6",
+              "source": "review2",
+              "finding": "src/anomaly/workflow_inputs.py:39 The input-capability boundary remains only shape-aware, not schema-aware, for source and human-decision values.",
+              "verdict": "survives",
+              "rationale": "The public path is concretely reachable: malformed but shape-complete source and gate values become capabilities, make P1/P4/P7 ready, and reach run_attempts before the owner performs the missing value validation; run_attempts increments and persists the attempt first, retries the same invalid input through all three attempts, and marks the phase unavailable, so no upstream guard makes the failure unreachable or less severe.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/workflow_inputs.py:39-130",
+                  "output": "input_capabilities adds sources whenever source_requests accepts the container, but source_requests checks only list/nonempty, mapping, and field names; it does not validate field values. _is_complete_mapping adds gate_a/gate_b when the decision field is merely a list/tuple and the identity is a nonblank string; it neither validates collection elements nor requires Gate A approved_ids to be nonempty."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:158-205",
+                  "output": "run_workflow is the public dispatcher. It derives capabilities from the supplied values, resolves the phase from those capabilities, and, for a ready resolution, calls run_attempts with consume_owner; there is no intervening schema validation."
+                },
+                {
+                  "command": "read src/anomaly/owners.py:52-91,129-136; src/anomaly/recommend.py:343-362; src/anomaly/review.py:428-432",
+                  "output": "The P4 owner passes approved_ids to approve_detector_plan, which rejects an empty collection or non-string entries; the P7 owner passes accepted_claim_ids to accept_findings, which rejects non-string entries. These owner checks occur inside the callback already handed to run_attempts. Source requests likewise reach _register_sources after being classified complete."
+                },
+                {
+                  "command": "read src/anomaly/attempts.py:29-83,153-203",
+                  "output": "run_attempts increments attempts[phase], writes active state, and records phase_started before execute(workspace). An owner exception is recorded as a failed attempt and retried while attempt < MAX_ATTEMPTS; at attempt 3 the phase is persisted as unavailable and blocked."
+                },
+                {
+                  "command": "read .jeff/tasks/0027-resolver-consolidation/notes.md:9-18; tests/test_pipeline_walk.py:209-318",
+                  "output": "The locked approach says schema validation must produce complete input capabilities and keep human pauses attempt-free. Existing public tests cover missing now and missing gate keys, but the shown gate tests do not cover malformed decision elements, Gate A's empty selection at a Gate A entry, or malformed source-field values."
+                }
+              ]
+            }
+          },
+          {
+            "file": "tests/test_pipeline_walk.py",
+            "line": 518,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "plan",
+            "what": "No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.",
+            "why": "The revised AC3 tests demonstrate that an owner failure before promotion cannot leak an earlier source or P7 output, but none exercises a failure/interruption after _apply begins or the new recover_interrupted_promotion path. The acceptance criterion explicitly requires atomic promotion and durable recovery, so this consumer-observable restart contract is owed. Add deterministic failure/restart coverage that observes the live case restored to the last sealed state, the attempt rewound consistently, and a fresh resolution succeeding; do not assert private call order.",
+            "refute": {
+              "agent_id": "AnPostRefute7",
+              "source": "review2",
+              "finding": "tests/test_pipeline_walk.py:518 No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.",
+              "verdict": "survives",
+              "rationale": "The blocker survives because the line-518 test fails during owner execution before promotion starts, while the public workflow can be interrupted after an entry is applied and invokes durable recovery on the next run; no test reaches or observes that restart contract.",
+              "evidence": [
+                {
+                  "command": "grep -RniE 'promotion|recover_interrupted|rollback|_apply|attempt_workspace|promote' tests",
+                  "output": "The only relevant test hits are tests/test_pipeline_walk.py:518 and :791, both pre-promotion failure-isolation cases, plus tests/test_case.py:426, which only checks fork cleanup; no test references recover_interrupted_promotion, _apply, rollback, or a promotion journal."
+                },
+                {
+                  "command": "read src/anomaly/_attempt_workspace.py:25-69,75-105; src/anomaly/workflow.py:163-170",
+                  "output": "promote_workspace writes .anomaly/promotion.json, _apply journals each entry as applying/applied around live replacements, and recover_interrupted_promotion rolls back an unsealed journal, rewinds the attempt, and removes recovery artifacts. run_workflow calls recover_interrupted_promotion at every public entry, so interruption after replacement and restart is reachable."
+                },
+                {
+                  "command": "read tests/test_pipeline_walk.py:518-551,791-828",
+                  "output": "The line-518 invalid-source case raises while consuming the source batch in the workspace, and the P7 case makes findings/charts a file so phase execution fails in the workspace; neither forces a failure after _apply begins, restarts with a journal, checks restoration to the sealed live case, checks attempt rewind, or proves a fresh resolution succeeds."
+                }
+              ]
+            }
+          },
+          {
+            "file": "skills/anomaly/SKILL.md",
+            "line": 46,
+            "severity": "medium",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner.",
+            "why": "The skill says a durable runner records phases, later tells readers to resume from the last completed event, and at lines 246-247 says MAX_ATTEMPTS lives in workflow.py where 'the runner' enforces it. Current code has no runner, events are explicitly observational, completion comes from state.completed, and MAX_ATTEMPTS is owned by state.py/run_attempts. Incorrect method documentation is a bug and violates AC8's runner/stale-expectation removal. Rewrite these claims to the resolver → owner → run_attempts/state model.",
+            "refute": {
+              "agent_id": "AnPostRefute8",
+              "source": "review2",
+              "finding": "skills/anomaly/SKILL.md:46 Installed documentation still resurrects the removed runner and states the wrong resume authority and constant owner.",
+              "verdict": "survives",
+              "rationale": "The installed P5 skill is loaded verbatim with no correcting guard, yet it names a durable runner, treats the last completed event as resume authority, and assigns MAX_ATTEMPTS to workflow.py even though resolution derives progress from state.completed and attempt enforcement imports the constant from state.py, directly violating the task's no-runner and stale-expectation criteria.",
+              "evidence": [
+                {
+                  "command": "grep -n 'durable runner\\|last completed event\\|MAX_ATTEMPTS' skills/anomaly/SKILL.md",
+                  "output": "46: `.anomaly/receipts/`, and `.anomaly/attempts/`. The durable runner records each; 232: resumes from file presence instead of the last completed event; 247: `MAX_ATTEMPTS` ... `src/anomaly/workflow.py` (the runner refuses any other value)."
+                },
+                {
+                  "command": "read src/anomaly/workflow.py:1-93,94-210 and src/anomaly/owners.py:30-65",
+                  "output": "P5 maps to owner (`skill`, `anomaly`); `_OWNER_INSTRUCTIONS` maps that owner to `skills/anomaly/SKILL.md`; `invoke_resolved_owner` reads the entire file as instructions; `consume_owner` invokes it for P5. `resolve_workflow` calls `completed_phase(snapshot)` to choose the next phase, and `run_workflow` delegates execution to `run_attempts`."
+                },
+                {
+                  "command": "read src/anomaly/state.py:1-35 and src/anomaly/attempts.py:1-125",
+                  "output": "`MAX_ATTEMPTS = 3` is defined in state.py; `completed_phase` walks snapshot[`completed`]. attempts.py imports MAX_ATTEMPTS and enforces `while attempt < MAX_ATTEMPTS`, then records success in state[`completed`]; events are appended after state/promotion logic and are not consulted for resume."
+                },
+                {
+                  "command": "grep -n 'No shared runner\\|stale expectations\\|Durable attempt staging' .jeff/tasks/0027-resolver-consolidation/task.md",
+                  "output": "11: durable attempt staging and retries remain separate execution utilities rather than a second orchestration API; 16: stale expectations are removed; 21: No shared runner."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/workflow.py",
+            "line": 185,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "refactor",
+            "what": "run_workflow resolves every snapshot twice even after the invocation entry phase is already known.",
+            "why": "The first result is used only to initialize entry_phase, yet both resolve_workflow calls run on every later loop iteration. Restrict the preliminary resolution to entry_phase is None, then perform the capability-filtered resolution once; this is a behavior-preserving simplification and removes avoidable computation."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; notes.md; context.md; task.json:1-50; journal.jsonl:70-110",
+            "output": "Locked AC1-AC9 and recovery union were read. The ledger binds the clean green full-suite gate to 8500ab972190cc5d83fc37344fede3a24816dfe2 with command `uv run --extra test pytest tests/`; journal seq 86 records that gate and seq 87-89 record fresh post-recovery judgments. Supplied gate evidence reports 736/736 passed."
+          },
+          {
+            "command": "git log --oneline --max-count=15 8500ab972190cc5d83fc37344fede3a24816dfe2; git diff --stat 9854273..8500ab9 -- src/anomaly tests PRD.md skills/anomaly/SKILL.md",
+            "output": "The full reviewed lineage is 9854273 task-25 baseline → 61a2b7c → 4a1746f → 747df42 recovered candidate → 709b177 recovery tests → 8500ab9 gate-test repair. Product/test/doc diff removes product_workflow.py and rewrites workflow.py while adding attempts/workspace/owners/state/identity/input modules and focused tests."
+          },
+          {
+            "command": "grep `WorkflowRunner|PhaseResult|RetryLimitExceeded|product_workflow|runner` across src/tests/PRD/skills/agents; read workflow.py:22-203 and owners.py:1-164",
+            "output": "No removed runner/result/retry/product-workflow symbols remain in source or tests. One fixed _OWNER_REGISTRY selects all P0-P7 deterministic, skill, and persona owners and their bounded writes; consume_owner is the sole owner consumer and run_attempts the dispatcher execution utility. Remaining runner references are stale installed-skill prose, including lines 46 and 247."
+          },
+          {
+            "command": "read identities.py:8-105; grep P7 output deletion/mutation tests",
+            "output": "IDENTITY_PHASES has only `gate_b: P7`; `_identity_files` maps gate_b solely to `.anomaly/receipts/gate-b.json`. No test deletes or mutates report.md, findings.json, charts, or their receipt after successful completion."
+          },
+          {
+            "command": "read case.py:96-170,257-290; grep `_scan_case_tree(` in src/anomaly; grep create_case/symlink tests",
+            "output": "inspect_case and resume_case scan before reads; phase_event scans direct decorated writers; attempt workspaces scan post-owner. create_case resolves and writes without scanning, and no create-case symlink test exists."
+          },
+          {
+            "command": "read workflow_inputs.py:39-119; read recommend.py:334-374; grep malformed decision/source tests",
+            "output": "Capability checks validate top-level mapping/key/container shape only. Gate A element/non-empty validation and Gate B element validation occur later inside owner APIs; plan-owned workflow tests cover missing keys/timestamps but no malformed collection elements or malformed source-field types."
+          },
+          {
+            "command": "grep promotion/interrupted/rollback/workspace in tests; read attempts.py:29-105 and _attempt_workspace.py:13-185",
+            "output": "New production code creates case-shaped workspaces, journals entry-by-entry promotion, rolls back before sealing state, and exposes interrupted-promotion recovery. Tests prove pre-promotion owner-failure isolation only; no test invokes or behaviorally reaches promotion recovery/rollback."
+          },
+          {
+            "command": "read test_workflow.py:1-124; test_pipeline_walk.py:180-909; test_case.py:227-246; test_acquire.py:188-211; test_review.py:425-456",
+            "output": "AC1 purity/resume, AC2 dynamic selection, gate-turn binding, bounded redacted retries, pre-promotion isolation, P3-P6 identity invalidation, canonical role separation, Gate-B receipt invalidation, README authored-block preservation, inspect/resume/direct-writer containment, demo order/relative links, and standalone bare-URL inertness are genuine consumer-observable tests. AC8 correctly avoids symbol-absence change-detector tests."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC2",
+            "claimed": "reuse",
+            "rederived": "reuse",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC7",
+            "claimed": "write",
+            "rederived": "write",
+            "ok": false
+          },
+          {
+            "ac": "AC8",
+            "claimed": "delete",
+            "rederived": "delete",
+            "ok": false
+          },
+          {
+            "ac": "AC9",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditAnomalyRecovered",
+        "findings": [
+          {
+            "file": "src/anomaly/_attempt_workspace.py",
+            "line": 109,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.",
+            "why": "run_workflow calls recover_interrupted_promotion after the whole-tree scan, but _read_journal validates only schema_version, relative path syntax, and the phase/attempt spelling. It does not bind entries to the fixed phase write set or validate each entry's original/status transition. A portable case can supply a regular .anomaly/promotion.json with an unsealed P0-P7 attempt, an entry such as {\"path\":\"README.md\",\"original\":false,\"status\":\"applied\"}, and no backup. _rollback then reaches discard_workspace(live) and removes README.md before rewinding state. The same path can target data/raw, instructions, or other in-case evidence, making this reachable case-data loss rather than a path-escape false positive.",
+            "cwe": "CWE-73",
+            "refute": {
+              "agent_id": "AnPostRefute9",
+              "source": "audit",
+              "finding": "src/anomaly/_attempt_workspace.py:109 A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable: run_workflow accepts a portable case whose promotion journal and target are ordinary files, then recovery trusts the journal's unbound original/status fields, and an unsealed applied entry with original=false and no backup causes _rollback to call discard_workspace on the attacker-selected in-case path.",
+              "evidence": [
+                {
+                  "command": "read anomaly/src/anomaly/workflow.py:158-166",
+                  "output": "run_workflow calls resume_case(case_root), resolves the root, and then calls recover_interrupted_promotion(case_root) before loading the workflow snapshot."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/case.py:257-290",
+                  "output": "_scan_case_tree rejects symlinks, non-regular artifacts, and executable files, but accepts ordinary .anomaly/promotion.json and README.md files; it does not validate promotion-journal semantics."
+                },
+                {
+                  "command": "read anomaly/src/anomaly/_attempt_workspace.py:57-69,109-119,159-193",
+                  "output": "Recovery reads the journal, treats a non-sealed/non-rolled-back journal as rollback work, and _rollback skips only status=pending; when backup.exists() is false and entry['original'] is false, it calls discard_workspace(live). _read_journal validates schema_version, entry object/list shape, relative path syntax, and phase/attempt path spelling, but does not bind paths to _OWNER_REGISTRY write sets or validate original/status transitions."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/semantics.py",
+            "line": 52,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+            "why": "_SECRET_ASSIGNMENT requires a word boundary immediately before api_key, secret, or token. In environment-style names the preceding underscore is a word character, so the match never starts; _TOKEN_PREFIX catches only a small prefix list. The direct probe returned AWS_SECRET_ACCESS_KEY=abcdEFGHijklMNOPqrstUVWXyz0123456789ABCD unchanged. A dynamic P5/P6 owner exception containing that standard configuration spelling flows through safe_error into failure.json, events.jsonl, state.failures, and blocked_reason for all three attempts. The recovered test covers an AKIA-prefixed access-key ID labeled only aws=, not an AWS secret-access-key assignment, so durable secret exposure remains reachable.",
+            "cwe": "CWE-532",
+            "refute": {
+              "agent_id": "AnPostRefute10",
+              "source": "audit",
+              "finding": "src/anomaly/semantics.py:52 The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+              "verdict": "survives",
+              "rationale": "The blocker survives because the gated sanitizer's leading word boundary cannot start at SECRET or API after an underscore, no other sanitizer pattern covers these compound assignment names, and real P5/P6 invoker exceptions are caught and copied through safe_error into every named durable failure surface without an upstream guard.",
+              "evidence": [
+                {
+                  "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/semantics.py",
+                  "output": "58:_SECRET_ASSIGNMENT = re.compile(\n59:    r\"(?i)\\b(api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|\"\n60:    r\"credential|password|passwd|secret|token|private[_-]?key)\"\n61:    r\"\\s*[:=]\\s*(?:Bearer\\s+)?[^,;\\s]+\"\n63:_BEARER = re.compile(r\"(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]{8,}\")\n64:_TOKEN_PREFIX = re.compile(\n65:    r\"\\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}\"\n67:_URL_USERINFO = re.compile(r\"(?i)\\b(https?://)[^/\\s:@]+:[^@\\s/]+@\")"
+                },
+                {
+                  "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/workflow.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+                  "output": "workflow.py:155:return invoke(owner=selected, instructions=instructions, case_root=Path(case_root)); workflow.py:198-206 passes consume_owner into run_attempts. attempts.py:63-68 catches Exception from execute(workspace) and sends it to _finish_failure."
+                },
+                {
+                  "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/state.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+                  "output": "state.py:122-127 safe_error returns str(redact_credentials(str(value)))[:2000]. attempts.py:172-196 assigns that message to failure.json, phase_failed events.jsonl, state.failures, and final-attempt blocked_reason; lines 197-205 also emit it in phase_unavailable."
+                },
+                {
+                  "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:tests/test_pipeline_walk.py",
+                  "output": "test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence covers Authorization: Bearer, password=, AKIA under aws=, xoxb under slack=, and URL userinfo, but contains no AWS_SECRET_ACCESS_KEY or OPENAI_API_KEY assignment."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "read /Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-recovered/security-audit-20260824-105650.md",
+            "output": "Scanner covered 25 src/anomaly files, reported six high regex hits, two coverage gaps, zero audit-tool failures, and REVIEW. The six hits were one ast.literal_eval and five interpolated DuckDB statements; GitHub Actions and XSS were the two scanner gaps."
+          },
+          {
+            "command": "read src/anomaly/detect.py:92-129,227-388,583-660; src/anomaly/prepare.py:459-495; src/anomaly/profile.py:80-220",
+            "output": "All six machine hits are refuted as exploits. ast.literal_eval parses only quoted scalar literals and cannot execute code. Detector memory_mb and threads are type-checked positive integers before interpolation. Prepared table IDs are generated as tbl_ plus a SHA-256 hex digest and view names come from enumerate. Profile table IDs must match tbl_[0-9a-f]{64} before interpolation. Detector SQL is fixed package-owned SELECT-only text, rejects comments, extra statements, mutating words, implicit file relations, and external reader functions; DuckDB opens the index read-only with external access disabled."
+          },
+          {
+            "command": "read src/anomaly/_attempt_workspace.py:57-69,109-145,166-205 and src/anomaly/workflow.py:158-176",
+            "output": "Public dispatch scans through resume_case and then immediately invokes recovery. Recovery accepts journal-controlled relative entries without binding them to _OWNER_REGISTRY writes. For every non-pending entry, rollback restores a backup when present, otherwise deletes the live target whenever journal.original is false. The parser does not validate original/status fields or require a genuine backup/workspace, confirming the crafted-journal deletion path."
+          },
+          {
+            "command": "uv run python -c 'from anomaly.semantics import redact_credentials; print(redact_credentials(\"AWS_SECRET_ACCESS_KEY=abcdEFGHijklMNOPqrstUVWXyz0123456789ABCD\"))'",
+            "output": "AWS_SECRET_ACCESS_KEY=abcdEFGHijklMNOPqrstUVWXyz0123456789ABCD"
+          },
+          {
+            "command": "read src/anomaly/semantics.py:52-119; src/anomaly/state.py:73-127,164-181; src/anomaly/attempts.py:138-204; tests/test_pipeline_walk.py:443-481",
+            "output": "The unchanged credential string reaches the common safe_error/safe_json boundary used by attempt failure files, API/workflow events, state failures, and blocked_reason. The recovered test proves Bearer, password, AKIA, xoxb, and URL-userinfo forms, but its AWS value is prefix-detected and does not exercise compound environment-variable names or an unprefixed secret-access-key value."
+          },
+          {
+            "command": "read src/anomaly/case.py:139-180,257-378; src/anomaly/events.py:25-80; src/anomaly/attempts.py:29-104; src/anomaly/acquire.py:31-132; tests/test_case.py:227-245; tests/test_acquire.py:188-210; tests/test_pipeline_walk.py:827-909",
+            "output": "The recovered containment repairs otherwise hold: public inspect/resume and every phase_event-decorated mainline writer perform a whole-tree no-link/no-special-file scan before access; direct source registration also resumes through that scan; dynamic owners receive a staged case-shaped workspace; the workspace is rescanned before output or promotion; unsafe links escape without failure writes; and only declared artifacts are promoted with state sealed last. Tests exercise public readers, direct destination links, durable namespace links, and a link introduced by a dynamic owner."
+          },
+          {
+            "command": "read src/anomaly/workflow_inputs.py:24-119; src/anomaly/workflow.py:85-228; src/anomaly/owners.py:37-164; src/anomaly/identities.py:8-116; src/anomaly/state.py:20-181",
+            "output": "Schema-aware capabilities require a timezone-aware clock and complete gate mappings; entry-phase binding discards future Gate A/B capabilities; fixed dynamic owners load only installed skill/persona paths; canonical_key enforces reviewer separation; and changed_identities derives every required identity through the completed phase, invalidating missing or changed artifacts from the earliest owner phase."
+          },
+          {
+            "command": "read src/anomaly/review.py:589-658,1030-1117; src/anomaly/report.py:221-280; src/anomaly/readme.py:1-65; tests/test_review.py:425-463; tests/test_pipeline_walk.py:319-382,748-826",
+            "output": "The XSS gap is manually covered with no finding: dataset claim text is credential-redacted, whitespace-collapsed, HTML-escaped, Markdown metacharacter-escaped, and HTTP(S) colons are neutralized to prevent bare autolinks; SVG labels/titles are XML-escaped. README mutation removes only bounded anomaly markers and tests preserve exact journalist-authored legacy-shaped Outputs content across completion, invalidation, P7 failure, and recompletion while positively resolving relative links."
+          },
+          {
+            "command": "read pyproject.toml; read implement-recovery-return.json; supplied clean gate evidence",
+            "output": "Runtime dependencies remain the existing pyarrow, duckdb, and pytz set; recovery changed no dependency manifest. The scanner reported no dependency vulnerabilities and zero tool failures. GitHub Actions is outside the supplied src/anomaly scan/change scope, while its other uncovered category, XSS, was covered manually. The authoritative clean gated hash is 8500ab972190cc5d83fc37344fede3a24816dfe2 with the supplied full-suite result 736/736."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "scan": {
+          "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly --report-dir scratchpads/security-recovered",
+          "recommendation": "REVIEW",
+          "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-recovered/security-audit-20260824-105650.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_no_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewAnomalyRecoveredCorrect",
+        "reviewer2_agent_id": "ReviewAnomalyRecoveredStandards",
+        "audit_agent_id": "AuditAnomalyRecovered"
       }
     }
   ]
