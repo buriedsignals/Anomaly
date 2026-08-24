@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from anomaly.attempts import run_attempts
-from anomaly.case import _scan_case_tree, resume_case
+from anomaly._attempt_workspace import recover_interrupted_promotion
+from anomaly.case import resume_case
 from anomaly.owners import consume_owner
 from anomaly.state import (
     MAX_ATTEMPTS,
@@ -14,25 +15,80 @@ from anomaly.state import (
     load_snapshot,
     pause_at,
 )
-from anomaly.workflow_inputs import normalize_inputs, registered_sources
+from anomaly.workflow_inputs import input_capabilities, normalize_inputs, registered_sources
 
 Owner = dict[str, str]
 OwnerInvoker = Callable[..., Any]
-_OWNER_REGISTRY: Mapping[str, tuple[str, str]] = {
-    "P0": ("handler", "resume-case"),
-    "P1": ("handler", "register-sources"),
-    "P2": ("handler", "prepare-and-profile"),
-    "P3": ("handler", "recommend-detectors"),
-    "P4": ("handler", "approve-and-detect"),
-    "P5": ("skill", "anomaly"),
-    "P6": ("persona", "anomaly-data-reviewer"),
-    "P7": ("handler", "accept-and-report"),
+_OWNER_REGISTRY: Mapping[str, tuple[str, str, tuple[str, ...]]] = {
+    "P0": ("handler", "resume-case", ()),
+    "P1": (
+        "handler",
+        "register-sources",
+        ("data/sources.json", "data/raw", ".anomaly/receipts", ".anomaly/events.jsonl"),
+    ),
+    "P2": (
+        "handler",
+        "prepare-and-profile",
+        ("data/prepared", "data/index.duckdb", "instructions", ".anomaly/events.jsonl"),
+    ),
+    "P3": (
+        "handler",
+        "recommend-detectors",
+        ("detectors/plan.json", ".anomaly/events.jsonl"),
+    ),
+    "P4": (
+        "handler",
+        "approve-and-detect",
+        (
+            "detectors/plan.json",
+            "detectors/used",
+            "evidence/runs",
+            "evidence/signals.jsonl",
+            ".anomaly/receipts/gate-a.json",
+            ".anomaly/events.jsonl",
+        ),
+    ),
+    "P5": (
+        "skill",
+        "anomaly",
+        ("findings/draft.json", ".anomaly/events.jsonl"),
+    ),
+    "P6": (
+        "persona",
+        "anomaly-data-reviewer",
+        (
+            "evidence/replay.json",
+            "findings/review.json",
+            ".anomaly/receipts/replay.json",
+            ".anomaly/events.jsonl",
+        ),
+    ),
+    "P7": (
+        "handler",
+        "accept-and-report",
+        (
+            "findings/findings.json",
+            "findings/report.md",
+            "findings/unresolved.md",
+            "findings/charts",
+            ".anomaly/receipts/gate-b.json",
+            ".anomaly/receipts/charts.json",
+            ".anomaly/events.jsonl",
+            "README.md",
+        ),
+    ),
 }
 _OWNER_INSTRUCTIONS = {
     ("skill", "anomaly"): "skills/anomaly/SKILL.md",
     ("persona", "anomaly-data-reviewer"): "agents/anomaly-data-reviewer.md",
 }
-_REQUIRED_INPUTS = {"P1": "sources", "P4": "gate_a", "P7": "gate_b"}
+_REQUIRED_INPUTS: Mapping[str, tuple[str, ...]] = {
+    "P1": ("sources", "now"),
+    "P2": ("now",),
+    "P3": ("now",),
+    "P4": ("gate_a", "now"),
+    "P7": ("gate_b",),
+}
 
 
 def resolve_workflow(
@@ -64,7 +120,7 @@ def resolve_workflow(
             missing,
             f"Await {missing} for {phase}{previous}; no attempt consumed.",
         )
-    kind, owner_id = _OWNER_REGISTRY[phase]
+    kind, owner_id, _writes = _OWNER_REGISTRY[phase]
     owner = {"kind": kind, "id": owner_id}
     if last is None:
         resume = f"Start P0; attempt {attempts + 1} of {MAX_ATTEMPTS}."
@@ -108,33 +164,47 @@ def run_workflow(
     """Resolve, execute, seal, and freshly resolve the installed P0-P7 flow."""
     supplied = normalize_inputs(inputs)
     case_root = Path(root)
-    _scan_case_tree(case_root)
-    case_root = case_root.resolve()
     resume_case(case_root)
+    case_root = case_root.resolve()
+    recover_interrupted_promotion(case_root)
     reason = (
         None
         if invoke is None
-        else lambda resolution: invoke_resolved_owner(resolution, case_root=case_root, invoke=invoke)
+        else lambda resolution, owner_root: invoke_resolved_owner(
+            resolution,
+            case_root=owner_root,
+            invoke=invoke,
+        )
     )
+    entry_phase: str | None = None
     while True:
         snapshot = load_snapshot(case_root)
-        has_sources = bool(registered_sources(case_root, required=False))
-        available = frozenset({*supplied, *({"sources"} if has_sources else set())})
-        resolution = resolve_workflow(snapshot, supplied=available)
+        capabilities = set(input_capabilities(supplied))
+        if "sources" not in supplied and registered_sources(case_root, required=False):
+            capabilities.add("sources")
+        resolution = resolve_workflow(snapshot, supplied=frozenset(capabilities))
+        if entry_phase is None:
+            entry_phase = resolution["phase"]
+        if entry_phase != "P4":
+            capabilities.discard("gate_a")
+        if entry_phase != "P7":
+            capabilities.discard("gate_b")
+        resolution = resolve_workflow(snapshot, supplied=frozenset(capabilities))
         if resolution["status"] in {"complete", "unavailable"}:
             return snapshot
         if resolution["status"] == "paused":
             return pause_at(case_root, snapshot, resolution["phase"], resolution["missing"])
+        phase = resolution["phase"]
         state = run_attempts(
             case_root,
-            resolution["phase"],
-            lambda attempt_dir: consume_owner(
+            phase,
+            lambda workspace: consume_owner(
                 resolution,
-                case_root,
-                attempt_dir,
+                workspace,
                 supplied,
                 reason,
             ),
+            writes=_OWNER_REGISTRY[phase][2],
         )
         if state.get("status") in {"blocked", "unavailable"}:
             return state
@@ -165,5 +235,7 @@ def _attempt_count(snapshot: Mapping[str, Any], phase: str) -> int:
 
 
 def _missing_input(phase: str, supplied: frozenset[str]) -> str | None:
-    required = _REQUIRED_INPUTS.get(phase)
-    return required if required is not None and required not in supplied else None
+    return next(
+        (required for required in _REQUIRED_INPUTS.get(phase, ()) if required not in supplied),
+        None,
+    )

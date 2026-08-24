@@ -55,9 +55,16 @@ _ISO_DATETIME = re.compile(
     r"\d{2}:\d{2}:\d{2}(?:\.\d+)?"
     r"(?:Z|[+-]\d{2}:\d{2})?\Z"
 )
-_CREDENTIAL = re.compile(
-    r"(?:sk_live_|ghp_|github_pat_)[A-Za-z0-9_]+"
+_SECRET_ASSIGNMENT = re.compile(
+    r"(?i)\b(api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|"
+    r"credential|password|passwd|secret|token|private[_-]?key)"
+    r"\s*[:=]\s*(?:Bearer\s+)?[^,;\s]+"
 )
+_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
+_TOKEN_PREFIX = re.compile(
+    r"\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}"
+)
+_URL_USERINFO = re.compile(r"(?i)\b(https?://)[^/\s:@]+:[^@\s/]+@")
 
 
 def canonical_key(value: str) -> str:
@@ -93,12 +100,22 @@ def reject_unsafe_recursive_paths(value: object) -> None:
 
 def redact_credentials(value: Any) -> Any:
     if isinstance(value, str):
-        return _CREDENTIAL.sub("[redacted]", value)
+        return _redact_text(value)
     if isinstance(value, dict):
         return {key: redact_credentials(item) for key, item in value.items()}
     if isinstance(value, list):
         return [redact_credentials(item) for item in value]
     return value
+
+
+def _redact_text(value: str) -> str:
+    value = _SECRET_ASSIGNMENT.sub(
+        lambda match: f"{match.group(1)}=[redacted]",
+        value,
+    )
+    value = _BEARER.sub("Bearer [redacted]", value)
+    value = _TOKEN_PREFIX.sub("[redacted]", value)
+    return _URL_USERINFO.sub(r"\1[redacted]@", value)
 
 
 def validate_case_record(payload: object) -> dict[str, Any]:

@@ -138,6 +138,7 @@ def create_case(
 
 def inspect_case(root: Path) -> ExistingCaseOffer | None:
     root = Path(root)
+    _scan_case_tree(root)
     if not _case_exists(root):
         return None
     return _offer(root)
@@ -145,6 +146,7 @@ def inspect_case(root: Path) -> ExistingCaseOffer | None:
 
 def resume_case(root: Path) -> Case:
     root = Path(root)
+    _scan_case_tree(root)
     if not _case_exists(root):
         raise CaseNotFoundError(str(root))
     return _load_case(root)

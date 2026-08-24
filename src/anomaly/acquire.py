@@ -42,8 +42,9 @@ def register_local_source(
     reason: str | None = None,
     replace_existing: bool = False,
 ) -> dict[str, Any]:
-    root = Path(root).resolve()
+    root = Path(root)
     resume_case(root)
+    root = root.resolve()
     sources, reserved_receipt_keys = validate_case_documents(root)
     validate_portable_component(source_id)
     requested_key = canonical_key(source_id)

@@ -25,11 +25,6 @@ _SENSITIVE_KEY = re.compile(
     r"(?:api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|credential|password|passwd|secret|token|private[_-]?key)",
     re.I,
 )
-_SECRET_ASSIGNMENT = re.compile(
-    r"(?i)(api[_-]?key|access[_-]?token|authorization|password|secret|token|private[_-]?key)\s*[:=]\s*(?:Bearer\s+)?[^,;\s]+"
-)
-_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
-_TOKEN_PREFIX = re.compile(r"\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}")
 
 # The fields below are the public, redacted signal contract.  In particular, a
 # preview is retained only as a redacted, useful reading and never as a source
@@ -641,10 +636,10 @@ def write_report(root: Path) -> dict[str, Any]:
     _write_text(
         root,
         "findings/report.md",
-        _redact_text("\n".join(lines)),
+        str(redact_credentials("\n".join(lines))),
     )
     unresolved = unresolved_path.read_text(encoding="utf-8")
-    _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
+    _write_text(root, "findings/unresolved.md", str(redact_credentials(unresolved)))
     return {
         "status": "complete",
         "report": "findings/report.md",
@@ -653,7 +648,7 @@ def write_report(root: Path) -> dict[str, Any]:
 
 
 def _markdown_text(value: Any) -> str:
-    collapsed = " ".join(_redact_text(_text(value)).split())
+    collapsed = " ".join(str(redact_credentials(_text(value))).split())
     escaped = html.escape(collapsed, quote=False)
     escaped = re.sub(r"([\\`*_[\]{}()#+!|~-])", r"\\\1", escaped)
     return re.sub(
@@ -1054,14 +1049,9 @@ def _sanitize(value: Any, key: str | None = None) -> Any:
     if isinstance(value, list):
         return [_sanitize(item) for item in value]
     if isinstance(value, str):
-        return _redact_text(str(redact_credentials(value)))
+        return str(redact_credentials(value))
     return value
 
-
-def _redact_text(text: str) -> str:
-    value = _SECRET_ASSIGNMENT.sub(lambda match: f"{match.group(1)}=[redacted]", text)
-    value = _BEARER.sub("Bearer [redacted]", value)
-    return _TOKEN_PREFIX.sub("[redacted]", value)
 
 def _read_json(path: Path) -> Any:
     try:

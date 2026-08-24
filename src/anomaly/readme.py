@@ -33,7 +33,7 @@ def project_readme(root: Path, snapshot: Mapping[str, Any], completed: str | Non
         r"(?ms)<!-- anomaly:outputs:start -->\n.*?<!-- anomaly:outputs:end -->\n?",
         "",
         original,
-    ).replace(_OUTPUTS, "")
+    )
     phase = completed or "P0"
     values = {
         "Status": "complete" if phase == "P7" and snapshot.get("status") == "complete" else "active",

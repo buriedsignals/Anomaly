@@ -431,6 +431,7 @@ def test_write_report_serializes_dataset_text_as_inert_markdown(
     preview[0]["statement"] = (
         "Acme [click](https://example.invalid/pixel)\n"
         "<img src=https://example.invalid/pixel>\n"
+        "Visit https://standalone.example.invalid/context for context.\n"
         "## Forged heading"
     )
     preview_path.write_text(json.dumps(preview, indent=2) + "\n", encoding="utf-8")
@@ -451,6 +452,8 @@ def test_write_report_serializes_dataset_text_as_inert_markdown(
     assert "<img src=https://example.invalid/pixel>" not in report
     assert "\n## Forged heading" not in report
     assert "https://example.invalid/pixel" not in report
+    assert "Visit https\\://standalone.example.invalid/context for context." in report
+    assert "Visit https://standalone.example.invalid/context for context." not in report
 
 
 def test_credentials_never_persist_in_review_findings_or_report(tmp_path: Path) -> None:

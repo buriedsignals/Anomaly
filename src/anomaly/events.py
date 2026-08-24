@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
+from anomaly.case import _scan_case_tree
 from anomaly.semantics import redact_credentials
 
 _MAX_DETAIL = 300
@@ -58,6 +59,7 @@ def phase_event(phase: str, event: str) -> Callable[[F], F]:
     def decorate(func: F) -> F:
         @functools.wraps(func)
         def wrapper(root: Path, *args: Any, **kwargs: Any) -> Any:
+            _scan_case_tree(Path(root))
             try:
                 result = func(root, *args, **kwargs)
             except Exception as error:

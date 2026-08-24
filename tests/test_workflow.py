@@ -34,6 +34,49 @@ def test_resolver_is_pure_and_reports_durable_resume_detail() -> None:
         "resume": "Resume P3 after P2; attempt 3 of 3.",
     }
 
+@pytest.mark.parametrize(
+    ("completed", "supplied", "expected_phase", "expected_missing"),
+    [
+        ({"P0": {}}, frozenset({"sources"}), "P1", "now"),
+        ({"P0": {}, "P1": {}}, frozenset(), "P2", "now"),
+        ({"P0": {}, "P1": {}, "P2": {}}, frozenset(), "P3", "now"),
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}},
+            frozenset({"now"}),
+            "P4",
+            "gate_a",
+        ),
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}, "P4": {}, "P5": {}, "P6": {}},
+            frozenset(),
+            "P7",
+            "gate_b",
+        ),
+    ],
+)
+def test_resolver_reports_incomplete_phase_input_before_attempt(
+    completed: dict[str, Any],
+    supplied: frozenset[str],
+    expected_phase: str,
+    expected_missing: str,
+) -> None:
+    snapshot = {
+        "phase": tuple(completed)[-1],
+        "status": "active",
+        "completed": completed,
+        "attempts": {},
+    }
+    original = copy.deepcopy(snapshot)
+
+    resolution = workflow.resolve_workflow(snapshot, supplied=supplied)
+
+    assert snapshot == original
+    assert resolution["phase"] == expected_phase
+    assert resolution["status"] == "paused"
+    assert resolution["owner"] is None
+    assert resolution["missing"] == expected_missing
+    assert resolution["attempts"] == 0
+
 
 @pytest.mark.parametrize(
     ("completed", "expected_owner", "marker"),

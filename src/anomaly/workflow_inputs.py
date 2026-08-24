@@ -36,6 +36,35 @@ def normalize_inputs(value: Mapping[str, Any] | None) -> dict[str, Any]:
     return supplied
 
 
+def input_capabilities(inputs: Mapping[str, Any]) -> frozenset[str]:
+    """Return only complete, phase-consumable input names."""
+    capabilities: set[str] = set()
+    if _is_input_time(inputs.get("now")):
+        capabilities.add("now")
+    if "sources" in inputs:
+        try:
+            source_requests(inputs["sources"])
+        except ValueError:
+            pass
+        else:
+            capabilities.add("sources")
+    if _is_complete_mapping(
+        inputs.get("gate_a"),
+        required={"approved_ids", "approved_by"},
+        sequence="approved_ids",
+        identity="approved_by",
+    ):
+        capabilities.add("gate_a")
+    if _is_complete_mapping(
+        inputs.get("gate_b"),
+        required={"accepted_claim_ids", "journalist_id"},
+        sequence="accepted_claim_ids",
+        identity="journalist_id",
+    ):
+        capabilities.add("gate_b")
+    return frozenset(capabilities)
+
+
 def registered_sources(root: Path, *, required: bool = True) -> list[dict[str, Any]]:
     value = read_case_json(root, "data/sources.json")
     valid = isinstance(value, list) and all(isinstance(item, dict) for item in value)
@@ -46,7 +75,7 @@ def registered_sources(root: Path, *, required: bool = True) -> list[dict[str, A
 
 def input_time(inputs: Mapping[str, Any]) -> datetime:
     value = inputs.get("now")
-    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+    if not _is_input_time(value):
         raise ValueError("now must be an explicit timezone-aware datetime")
     return value
 
@@ -74,6 +103,30 @@ def mapping_input(inputs: Mapping[str, Any], name: str, allowed: set[str]) -> di
     if set(result) - allowed:
         raise ValueError(f"{name} input has unknown fields")
     return result
+
+
+def _is_input_time(value: Any) -> bool:
+    return (
+        isinstance(value, datetime)
+        and value.tzinfo is not None
+        and value.utcoffset() is not None
+    )
+
+
+def _is_complete_mapping(
+    value: Any,
+    *,
+    required: set[str],
+    sequence: str,
+    identity: str,
+) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and set(value) == required
+        and isinstance(value.get(sequence), (list, tuple))
+        and isinstance(value.get(identity), str)
+        and bool(value[identity].strip())
+    )
 
 
 def read_case_json(root: Path, relative: str) -> Any:

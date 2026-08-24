@@ -19,12 +19,21 @@ IDENTITY_PHASES = {
 _NON_SOURCE_RECEIPTS = {"charts.json", "gate-a.json", "gate-b.json", "replay.json"}
 
 
-def changed_identities(root: Path, recorded: Mapping[str, Any]) -> tuple[str, list[str]] | None:
-    changed = [
-        name
-        for name, digest in recorded.items()
-        if name in IDENTITY_PHASES and digest != artifact_identity(root, name)
-    ]
+def changed_identities(
+    root: Path,
+    recorded: Mapping[str, Any],
+    *,
+    through_phase: str | None = None,
+) -> tuple[str, list[str]] | None:
+    through_index = _phase_index(through_phase) if through_phase is not None else -1
+    changed = []
+    for name, phase in IDENTITY_PHASES.items():
+        required = _phase_index(phase) <= through_index
+        if not required and name not in recorded:
+            continue
+        current = artifact_identity(root, name)
+        if name not in recorded or current is None or recorded[name] != current:
+            changed.append(name)
     if not changed:
         return None
     return min((IDENTITY_PHASES[name] for name in changed), key=_phase_index), changed

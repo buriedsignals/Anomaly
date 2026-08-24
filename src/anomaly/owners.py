@@ -20,7 +20,7 @@ from anomaly.workflow_inputs import (
     source_requests,
 )
 
-ReasoningCall = Callable[[Mapping[str, Any]], Any]
+ReasoningCall = Callable[[Mapping[str, Any], Path], Any]
 _REVIEW_FIELDS = {
     "reviewer_id",
     "verdicts",
@@ -37,17 +37,16 @@ _REVIEW_FIELDS = {
 def consume_owner(
     resolution: Mapping[str, Any],
     root: Path,
-    attempt_dir: Path,
     inputs: Mapping[str, Any],
     reason: ReasoningCall | None,
 ) -> Any:
     owner = resolution["owner"]
     if owner["kind"] == "handler":
-        return _run_handler(owner["id"], root, attempt_dir, inputs)
+        return _run_handler(owner["id"], root, inputs)
     if reason is None:
         raise WorkflowError("reasoning owner invocation is unavailable")
     if resolution["phase"] == "P5":
-        draft = reason(resolution)
+        draft = reason(resolution, root)
         if not isinstance(draft, Mapping) or draft.get("status") != "draft":
             raise WorkflowError("anomaly reasoning owner returned an invalid draft")
         if not (root / "findings" / "draft.json").is_file():
@@ -56,7 +55,7 @@ def consume_owner(
     return _replay_and_review(resolution, root, reason)
 
 
-def _run_handler(owner_id: str, root: Path, _attempt_dir: Path, inputs: Mapping[str, Any]) -> Any:
+def _run_handler(owner_id: str, root: Path, inputs: Mapping[str, Any]) -> Any:
     if owner_id == "resume-case":
         from anomaly.case import resume_case
 
@@ -116,10 +115,10 @@ def _replay_and_review(
     replay = replay_signals(root)
     if replay.get("status") != "replayed":
         raise WorkflowError(str(replay.get("reason") or "replay is unavailable"))
-    review_input = _review_owner_result(reason(resolution))
+    review_input = _review_owner_result(reason(resolution, root))
     reviewer_id = _required_identity(review_input.get("reviewer_id"), "reviewer_id")
     gate_a_approver = _artifact_identity_field(root, ".anomaly/receipts/gate-a.json", "approved_by")
-    if reviewer_id.casefold() == gate_a_approver.casefold():
+    if canonical_key(reviewer_id) == canonical_key(gate_a_approver):
         raise WorkflowError("independent reviewer must differ from the Gate A journalist")
     review = record_review(root, **review_input)
     if review.get("status") != "recorded" or review.get("independent") is not True:
@@ -131,7 +130,7 @@ def _accept_and_report(root: Path, inputs: Mapping[str, Any]) -> dict[str, Any]:
     gate = mapping_input(inputs, "gate_b", {"accepted_claim_ids", "journalist_id"})
     journalist_id = _required_identity(gate.get("journalist_id"), "journalist_id")
     reviewer_id = _artifact_identity_field(root, "findings/review.json", "reviewer_id")
-    if journalist_id.casefold() == reviewer_id.casefold():
+    if canonical_key(journalist_id) == canonical_key(reviewer_id):
         raise WorkflowError("Gate B journalist must differ from the independent reviewer")
     findings = accept_findings(root, gate["accepted_claim_ids"], journalist_id=journalist_id)
     return {"findings": findings, "report": write_report(root), "charts": generate_charts(root)}

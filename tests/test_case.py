@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Callable
 
 import json
 from datetime import datetime, timezone
@@ -221,6 +222,22 @@ def test_inspect_case_offers_resume_or_fork(tmp_path: Path) -> None:
     assert {"resume", "fork"} <= set(offer.actions)
     assert offer.case.progress.phase == "P0"
 
+
+@pytest.mark.parametrize("entry", [inspect_case, resume_case], ids=["inspect", "resume"])
+def test_public_case_reader_rejects_a_nested_symlink(
+    tmp_path: Path,
+    entry: Callable[[Path], object],
+) -> None:
+    root = tmp_path / "case"
+    _create(root)
+    external = tmp_path / "outside.txt"
+    external.write_text("outside\n", encoding="utf-8")
+    (root / "findings" / "case-controlled-link").symlink_to(external)
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        entry(root)
+
+    assert external.read_text(encoding="utf-8") == "outside\n"
 
 def test_create_case_on_existing_offers_resume_or_fork(tmp_path: Path) -> None:
     root = tmp_path / "case"

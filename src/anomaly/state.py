@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -12,7 +11,6 @@ from anomaly.semantics import redact_credentials
 
 PHASES: tuple[str, ...] = tuple(f"P{index}" for index in range(8))
 MAX_ATTEMPTS = 3
-_SECRET = re.compile(r"(?:sk_live_|ghp_|github_pat_)[A-Za-z0-9_]+")
 
 
 class WorkflowError(RuntimeError):
@@ -36,7 +34,11 @@ def load_snapshot(root: Path) -> dict[str, Any]:
     _ensure_durable_tree(root)
     state = _read_state(root)
     identities = state.get("identities")
-    change = changed_identities(root, identities if isinstance(identities, Mapping) else {})
+    change = changed_identities(
+        root,
+        identities if isinstance(identities, Mapping) else {},
+        through_phase=completed_phase(state),
+    )
     if change is not None:
         start, changed = change
         state = _invalidate_state(
@@ -122,7 +124,7 @@ def safe_error(value: Any) -> str:
 
 
 def _safe_text(value: Any) -> str:
-    return _SECRET.sub("[redacted]", str(redact_credentials(value)))
+    return str(redact_credentials(str(value)))
 
 
 def _invalidate_state(
