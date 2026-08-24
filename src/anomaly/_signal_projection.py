@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import math
@@ -8,6 +7,7 @@ import os
 import re
 import secrets
 import stat
+import tempfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -27,6 +27,28 @@ class SignalSearchError(RuntimeError):
 
 class StaleSignalProjectionError(SignalSearchError):
     """The derived projection no longer matches its canonical inputs."""
+
+
+class _PrivateProjection:
+    def __init__(
+        self,
+        connection: duckdb.DuckDBPyConnection,
+        temporary_directory: tempfile.TemporaryDirectory[str],
+    ) -> None:
+        self._connection = connection
+        self._temporary_directory = temporary_directory
+
+    def execute(
+        self, query: str, parameters: list[str]
+    ) -> duckdb.DuckDBPyConnection:
+        return self._connection.execute(query, parameters)
+
+    def close(self) -> None:
+        try:
+            self._connection.close()
+        finally:
+            self._temporary_directory.cleanup()
+
 
 class _PinnedInput:
     def __init__(self, root: Path, relative: str, descriptor: int) -> None:
@@ -60,7 +82,6 @@ class _PinnedInput:
     def __del__(self) -> None:
         if self._descriptor >= 0:
             os.close(self._descriptor)
-
 
 
 _SCHEMA_VERSION = 1
@@ -116,12 +137,9 @@ def build_projection(root: Path) -> dict[str, Any]:
         stage_descriptor = os.open(
             stage_name, _directory_open_flags(), dir_fd=search_descriptor
         )
-        stage_root = _descriptor_path(stage_descriptor)
-        projection_stage = stage_root / "signals.duckdb"
-        _write_projection(projection_stage, rows)
-        projection_hash = _sha256(
-            _read_owned_bytes(stage_descriptor, "signals.duckdb")
-        )
+        projection_bytes = _build_private_projection(rows)
+        _write_owned_bytes(stage_descriptor, "signals.duckdb", projection_bytes)
+        projection_hash = _sha256(projection_bytes)
         manifest = {
             "schema_version": _SCHEMA_VERSION,
             "projection_identity": identity,
@@ -165,11 +183,11 @@ def build_projection(root: Path) -> dict[str, Any]:
         os.close(search_descriptor)
 
 
-def verified_projection(root: Path) -> tuple[duckdb.DuckDBPyConnection, dict[str, Any]]:
+def verified_projection(root: Path) -> tuple[_PrivateProjection, dict[str, Any]]:
     base = _case_root(root)
     search_root = _existing_search_root(base)
     search_descriptor = _pin_search_root(base, search_root)
-    connection: duckdb.DuckDBPyConnection | None = None
+    projection: _PrivateProjection | None = None
     try:
         manifest = _decode_json(
             _read_owned_bytes(search_descriptor, "signals-manifest.json"),
@@ -204,26 +222,18 @@ def verified_projection(root: Path) -> tuple[duckdb.DuckDBPyConnection, dict[str
                 raise StaleSignalProjectionError(
                     f"stale signal search projection input: {relative}"
                 )
-        projection_hash = _sha256(
-            _read_owned_bytes(search_descriptor, "signals.duckdb")
+        projection_bytes = _read_owned_bytes(
+            search_descriptor, "signals.duckdb"
         )
-        if projection_hash != manifest["projection_hash"]:
+        if _sha256(projection_bytes) != manifest["projection_hash"]:
             raise SignalSearchError("signal search projection is corrupt")
         if not isinstance(manifest["signal_count"], int) or manifest["signal_count"] < 0:
             raise SignalSearchError("invalid signal count in search manifest")
-        projection_path = _descriptor_path(search_descriptor) / "signals.duckdb"
-        connection = duckdb.connect(str(projection_path), read_only=True)
-        connection.execute("PRAGMA enable_external_access=false")
-        if _sha256(
-            _read_owned_bytes(search_descriptor, "signals.duckdb")
-        ) != manifest["projection_hash"]:
-            raise StaleSignalProjectionError(
-                "stale signal search projection changed during verification"
-            )
-        return connection, manifest
+        projection = _open_private_projection(projection_bytes)
+        return projection, manifest
     except (OSError, duckdb.Error, SignalSearchError) as error:
-        if connection is not None:
-            connection.close()
+        if projection is not None:
+            projection.close()
         if isinstance(error, SignalSearchError):
             raise
         raise SignalSearchError("could not verify signal search projection") from error
@@ -232,7 +242,7 @@ def verified_projection(root: Path) -> tuple[duckdb.DuckDBPyConnection, dict[str
 
 
 def read_rows(
-    projection: duckdb.DuckDBPyConnection,
+    projection: _PrivateProjection,
     filter_columns: list[tuple[str, str]],
 ) -> list[tuple[str, str]]:
     where = " AND ".join(f"{column} = ?" for column, _ in filter_columns)
@@ -478,8 +488,19 @@ def _leaf_text(value: Any) -> str:
     return str(value)
 
 
+def _build_private_projection(rows: list[tuple[Any, ...]]) -> bytes:
+    with tempfile.TemporaryDirectory(
+        prefix="anomaly-signal-projection-"
+    ) as temporary_directory:
+        os.chmod(temporary_directory, 0o700)
+        path = Path(temporary_directory) / "signals.duckdb"
+        _write_projection(path, rows)
+        return path.read_bytes()
+
+
 def _write_projection(path: Path, rows: list[tuple[Any, ...]]) -> None:
     with duckdb.connect(str(path)) as connection:
+        os.chmod(path, 0o600)
         connection.execute("PRAGMA enable_external_access=false")
         connection.execute(
             "CREATE TABLE signals ("
@@ -497,6 +518,36 @@ def _write_projection(path: Path, rows: list[tuple[Any, ...]]) -> None:
                 rows,
             )
         connection.execute("CHECKPOINT")
+
+
+def _open_private_projection(raw: bytes) -> _PrivateProjection:
+    temporary_directory = tempfile.TemporaryDirectory(
+        prefix="anomaly-signal-projection-"
+    )
+    connection: duckdb.DuckDBPyConnection | None = None
+    try:
+        os.chmod(temporary_directory.name, 0o700)
+        path = Path(temporary_directory.name) / "signals.duckdb"
+        descriptor = os.open(
+            path,
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_EXCL
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+        )
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(raw)
+        connection = duckdb.connect(str(path), read_only=True)
+        connection.execute("PRAGMA enable_external_access=false")
+        os.unlink(path)
+        return _PrivateProjection(connection, temporary_directory)
+    except (OSError, duckdb.Error):
+        if connection is not None:
+            connection.close()
+        temporary_directory.cleanup()
+        raise
 
 
 def _cached_json(
@@ -647,22 +698,6 @@ def _directory_open_flags() -> int:
 
 def _file_open_flags() -> int:
     return os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
-
-
-def _descriptor_path(descriptor: int) -> Path:
-    proc_descriptor = Path("/proc/self/fd") / str(descriptor)
-    try:
-        if proc_descriptor.exists():
-            return Path(os.readlink(proc_descriptor))
-        raw = fcntl.fcntl(descriptor, 50, b"\0" * 1024)
-    except (OSError, ValueError) as error:
-        raise SignalSearchError(
-            "platform cannot pin the derived search boundary"
-        ) from error
-    resolved = raw.split(b"\0", 1)[0].decode("utf-8")
-    if not resolved:
-        raise SignalSearchError("platform cannot pin the derived search boundary")
-    return Path(resolved)
 
 
 def _validate_owned_artifact(directory: int, name: str) -> None:

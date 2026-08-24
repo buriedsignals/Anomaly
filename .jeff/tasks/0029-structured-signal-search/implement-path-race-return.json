@@ -1,0 +1,12 @@
+{
+  "stage": "implement",
+  "result": "green",
+  "files": [
+    "src/anomaly/_signal_projection.py"
+  ],
+  "greenRun": {
+    "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q\n.venv/bin/python -m pytest tests/test_pipeline_walk.py -q",
+    "output": "31 passed in 0.99s\n62 passed in 7.86s"
+  },
+  "kickback": null
+}

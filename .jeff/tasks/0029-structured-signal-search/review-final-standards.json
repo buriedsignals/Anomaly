@@ -1,0 +1,100 @@
+{
+  "stage": "review",
+  "cycle": 1,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_signal_projection.py",
+      "line": 214,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+      "why": "Both lifecycle paths defeat their descriptor pin at the DuckDB boundary: build resolves the pinned staging descriptor to a pathname at lines 119-121, and verification resolves the pinned search descriptor at lines 214-215. A concurrent rename and symlink replacement after _descriptor_path returns can therefore make DuckDB write outside the private derived directory or open a different database. The post-open hash at lines 217-221 reads through the still-pinned directory descriptor, not the database object that DuckDB opened, so an attacker-controlled database can pass the old manifest/hash check and supply unverified rows. This is reachable under the same shared-case mutation model as the prior TOCTOU blocker, breaks AC2 containment and AC6 coherent hash binding, and is not exercised by the tests, which swap the search directory before _pin_search_root rather than after pathname conversion."
+    },
+    {
+      "file": "src/anomaly/_signal_projection.py",
+      "line": 1,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "refactor",
+      "what": "The projection implementation still exceeds the maintainability boundary and combines unrelated responsibilities.",
+      "why": "The recovered module grew from the previously reported 566 lines to 789 lines, while the public search module is 285 lines. _signal_projection.py owns descriptor/path containment, manifest verification, canonical parsing, provenance and metadata policy, public mapping, DuckDB persistence, and staging. This remains six-month maintenance debt under the authoritative less-than-200-line module directive, but it is not itself a reachable correctness, security, data-loss, or acceptance failure, so it remains a follow-up rather than a blocker."
+    },
+    {
+      "file": "src/anomaly/_signal_projection.py",
+      "line": 137,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "plan",
+      "what": "The DuckDB file and manifest are still replaced separately despite the public atomic-rebuild claim.",
+      "why": "build_projection performs two independent os.replace calls at lines 137-148, while build_signal_projection still documents an atomic rebuild. Failure after the database replacement can leave a new database paired with the old manifest. Verification fails closed and a later explicit rebuild can recover without modifying canonical evidence, so this degenerate-filesystem edge remains a follow-up rather than a ship blocker; either publish one generation through a single atomic indirection or remove the inaccurate atomicity claim."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git diff --name-status --stat af4b05c 801f0e139307523a5341713fd483a358c6ae3503 -- src tests/test_signal_search.py",
+      "output": "The exact task checkpoint adds _signal_projection.py (789 lines), search.py (285 lines), and test_signal_search.py (781 lines), and changes detect.py, detectors/__init__.py, review.py, and semantics.py; no pre-existing test file was weakened or deleted."
+    },
+    {
+      "command": "read task.md; read notes.md; read plan-recovery-return.json; read tests/test_signal_search.py:283-781",
+      "output": "Re-derived all seven recovery dispositions as revise. The tests defend consumer-observable contracts rather than implementation literals: exact public redacted shape and canonical digests; nine independently discriminating filters; every promised lexical field and complete matched_on; repeated-run composite references and bounded cursor traversal; explicit stale rejection/rebuild for all input families; Event-scheduled rebuild/read concurrency; and retrieval-only scores across differing editorial attributes. Fixtures use isolated tmp_path roots, fixed injected time, and threading.Event rather than sleeps, wall-clock reads, network, timestamps, randomness, or shared state."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:104-224,524-675; read tests/test_signal_search.py:654-781",
+      "output": "Input reads and ordinary artifact reads use no-follow descriptors, and the prior pre-pin search-directory swap is rejected. However, the pinned staging/search descriptors are resolved to ordinary filesystem paths immediately before both DuckDB connections. The tests swap after _prepare_search_root but before _pin_search_root and do not cover a rename/symlink rebind after _descriptor_path; the final hash check reads the pinned descriptor rather than proving the DuckDB connection target."
+    },
+    {
+      "command": "read src/anomaly/detect.py:637-776; read src/anomaly/detectors/__init__.py; read src/anomaly/review.py:699-780; read src/anomaly/search.py:44-285; read src/anomaly/semantics.py:96-139",
+      "output": "The prior functional blockers are otherwise repaired coherently: canonical execution writes content-addressed snapshot names and required provenance hashes; replay and projection share one pure reference predicate; projection keys rows and references by signal_id plus run_id; search validates malformed keys, reports every matched field, uses retrieval-only scores, and holds one verified DuckDB connection through row retrieval; public values use the shared sanitizer."
+    },
+    {
+      "command": "read .jeff/tasks/0029-structured-signal-search/task.json:20-44; read .jeff/tasks/0029-structured-signal-search/journal.jsonl:56-64",
+      "output": "The ledger binds the configured full-suite gate to exact checkpoint 801f0e139307523a5341713fd483a358c6ae3503 with clean=true and green=true. Per the assignment, the 802-test gate was not rerun during this read-only review."
+    }
+  ]
+}

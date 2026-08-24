@@ -10,9 +10,9 @@
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T16:18:16Z",
-  "updatedAt": "2026-08-24T17:54:54Z",
+  "updatedAt": "2026-08-24T18:25:49Z",
   "agents": {
-    "implementer_agent_id": "ImplementSignalSearchGateRepair",
+    "implementer_agent_id": "ImplementSignalSearchPathRace",
     "reviewer_agent_id": null,
     "reviewer2_agent_id": null,
     "audit_agent_id": null
@@ -28,6 +28,10 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify red (exit 1): uv run --extra test pytest tests/"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
       }
     ]
   },
@@ -173,6 +177,43 @@
           "kickTo": "implement"
         }
       ]
+    },
+    {
+      "from": "review",
+      "to": "implement",
+      "reason": "Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+      "at": "2026-08-24T18:14:32Z",
+      "findings": [
+        {
+          "source": "review2",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 214,
+          "what": "Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+          "kickTo": "implement"
+        }
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "implement",
+      "reason": "The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.; Projection staging reintroduces a path-escape write after pinning the private directory.",
+      "at": "2026-08-24T18:14:32Z",
+      "findings": [
+        {
+          "source": "audit",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 215,
+          "what": "The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.",
+          "kickTo": "implement"
+        },
+        {
+          "source": "audit",
+          "file": "src/anomaly/_signal_projection.py",
+          "line": 121,
+          "what": "Projection staging reintroduces a path-escape write after pinning the private directory.",
+          "kickTo": "implement"
+        }
+      ]
     }
   ],
   "blockedReason": null,
@@ -196,30 +237,28 @@
     "refactorOpportunity": "Harmonize schema-v2 detector snapshot path/hash validation currently duplicated between strict replay and signal projection into one shared pure validator after corrected behavior is established, preserving public outputs and errors."
   },
   "implement": {
-    "agent_id": "ImplementSignalSearchGateRepair",
+    "agent_id": "ImplementSignalSearchPathRace",
     "result": "green",
     "files": [
-      "src/anomaly/review.py"
+      "src/anomaly/_signal_projection.py"
     ],
     "greenRun": {
       "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q\n.venv/bin/python -m pytest tests/test_pipeline_walk.py -q",
-      "output": "...............................                                          [100%]\n31 passed in 1.30s\n..............................................................           [100%]\n62 passed in 7.77s"
-    }
+      "output": "31 passed in 0.99s\n62 passed in 7.86s"
+    },
+    "repairRound": 4
   },
   "refactor": {
-    "agent_id": "RefactorSignalSearchGateRepair",
-    "result": "refactored",
-    "files": [
-      "src/anomaly/review.py"
-    ],
+    "agent_id": "RefactorSignalSearchPathRace",
+    "result": "clean",
+    "files": [],
     "outsideDiff": [],
     "greenRun": {
       "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q\n.venv/bin/python -m pytest tests/test_pipeline_walk.py -q",
-      "output": "...............................                                          [100%]\n31 passed in 1.03s\n..............................................................           [100%]\n62 passed in 7.03s"
+      "output": "31 passed in 1.28s\n62 passed in 7.71s"
     },
     "summary": [
-      "Collapsed strict-versus-legacy provenance handling into one explicit if/else, preserving the provenance-selected strict snapshot and legacy detector-global lookup.",
-      "Removed an unused strict-replay query-path allocation; no tests or unrelated files were edited."
+      "No behavior-preserving simplification was safe: the private temporary directory, 0700/0600 permissions, unlink-after-open step, and _PrivateProjection owner make the no-case-path DuckDB invariant and connection-before-directory cleanup order explicit. Removing or compressing those pieces would obscure or weaken the repaired boundary. No files were edited."
     ]
   },
   "review2": null,
@@ -660,16 +699,99 @@
           "output": "The locked acceptance criteria require never modifying canonical data/index.duckdb, evidence/signals.jsonl, or detector-run artifacts, while the security model explicitly supports importing shared cases and rejects links; a post-validation link swap remains within that real shared-case scenario and defeats the required immutability boundary."
         }
       ]
+    },
+    {
+      "agent_id": "RefuteSignalFinalStandards",
+      "source": "review2",
+      "finding": "src/anomaly/_signal_projection.py:214 Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+      "verdict": "survives",
+      "rationale": "The shared-case race remains reachable because both lifecycle paths turn a pinned directory descriptor into a pathname that DuckDB reopens without locking or descriptor/inode binding; after a pathname swap, verification hashes the old descriptor-backed artifact rather than the database DuckDB actually opened, and the public search path can return structurally valid rows from that unverified connection.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/_signal_projection.py:104-224",
+          "output": "build_projection resolves stage_descriptor through _descriptor_path at line 119 and passes the resulting pathname to _write_projection; verified_projection resolves search_descriptor through _descriptor_path at line 214 and calls duckdb.connect(path, read_only=True) at line 215. The only post-open check at lines 217-221 rereads signals.duckdb through search_descriptor, not through the DuckDB connection or its opened file identity."
+        },
+        {
+          "command": "grep 'lock|flock|fcntl|descriptor_path|connect\\(' src/anomaly/_signal_projection.py src/anomaly/search.py tests/test_signal_search.py",
+          "output": "No lock or flock guard exists. fcntl is used only by _descriptor_path to recover a pathname (command 50 on macOS); DuckDB is opened with that pathname at lines 215 and 482."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:588-675",
+          "output": "_pin_search_root and _directory_still_pinned compare directory device/inode identities only before pathname resolution. _descriptor_path returns an ordinary Path from /proc/self/fd readlink or macOS F_GETPATH; it does not preserve descriptor-relative resolution after returning, so a subsequent rename/symlink replacement can rebind the pathname before DuckDB opens it."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:234-251; read src/anomaly/search.py:44-187",
+          "output": "search_signals obtains the verified connection and read_rows queries that connection directly. Downstream validation checks only JSON container types, string signal_id/run_id, and lexical-field shapes; it neither binds returned rows to manifest hashes nor checks the opened database object's device/inode, so a replacement database with the expected signals schema can supply unverified results."
+        },
+        {
+          "command": "read tests/test_signal_search.py:654-781",
+          "output": "The concurrency test pauses only after verified_projection returns, while the derived-directory swap test replaces search after _prepare_search_root but before _pin_search_root. No test or guard covers a swap after _descriptor_path returns and before duckdb.connect opens the pathname."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignalFinalAudit",
+      "source": "audit",
+      "finding": "src/anomaly/_signal_projection.py:215 The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.",
+      "verdict": "survives",
+      "rationale": "The public search path is reachable, and the verified file descriptor is closed after hashing before DuckDB reopens `signals.duckdb` by name, so a POSIX rename/ABA swap can make DuckDB retain an attacker-controlled inode while the post-open hash rechecks the restored verified pathname through `search_descriptor`; no connection-to-inode check or lock closes that interval.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/_signal_projection.py:202-229",
+          "output": "Lines 207-215 hash `signals.duckdb` via `_read_owned_bytes(search_descriptor, ...)`, then derive `projection_path = _descriptor_path(search_descriptor) / \"signals.duckdb\"` and call `duckdb.connect(str(projection_path), read_only=True)`; lines 217-222 re-hash the filename through `search_descriptor`, not the inode held by the DuckDB connection."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:642-690",
+          "output": "`_descriptor_path` converts the pinned directory descriptor back to a filesystem path; `_read_owned_bytes` separately opens the named artifact relative to the directory descriptor and closes that file descriptor after reading, so the verified database inode is not retained for DuckDB."
+        },
+        {
+          "command": "read src/anomaly/search.py:44-74,143-160",
+          "output": "`search_signals` directly calls `verified_projection(root)`, passes the returned connection to `read_rows`, and `_rank_rows` accepts projection-controlled JSON dictionaries when `signal_id` and `run_id` are strings, making rows from a swapped compatible database observable at the public entry point."
+        },
+        {
+          "command": "grep descriptor_path|signals.duckdb|verified_projection|ABA|swap tests/test_signal_search.py",
+          "output": "The final tests cover concurrent rebuild retention and input/search-directory symlink swaps, but contain no test that ABA-swaps `signals.duckdb` between its descriptor-based hash and DuckDB's pathname reopen."
+        }
+      ]
+    },
+    {
+      "agent_id": "RefuteSignalFinalStaging",
+      "source": "audit",
+      "finding": "src/anomaly/_signal_projection.py:121 Projection staging reintroduces a path-escape write after pinning the private directory.",
+      "verdict": "survives",
+      "rationale": "The blocker is reachable because an observer with rename rights on an existing shared search directory can discover and replace the random stage entry after its descriptor is opened, while the builder converts that pinned descriptor back to a mutable pathname and gives it to DuckDB without no-follow or descriptor-relative protection; the later pinned read can detect failure but cannot undo the already completed out-of-root write.",
+      "evidence": [
+        {
+          "command": "read src/anomaly/_signal_projection.py:107-145",
+          "output": "The builder creates `.build-<128-bit token>` with mode 0700, opens it as `stage_descriptor`, then converts that descriptor through `_descriptor_path`, appends `signals.duckdb`, and calls `_write_projection` by pathname. Only after that write and a descriptor-relative read does it call `_directory_still_pinned`, so detection occurs after the side effect."
+        },
+        {
+          "command": "read src/anomaly/_signal_projection.py:481-496,588-674; grep 'flock|lockf|chmod|fchmod|st_uid|O_NOFOLLOW' src/anomaly/_signal_projection.py",
+          "output": "`_write_projection` immediately calls `duckdb.connect(str(path))`, creates the table, inserts rows, and checkpoints. `_prepare_search_root` accepts existing real directories without checking or tightening ownership/mode; O_NOFOLLOW is used for descriptor opens but not the DuckDB pathname, and the file contains no locking or chmod/fchmod protection. Thus stage mode 0700 does not protect its directory entry when the containing search directory is writable."
+        },
+        {
+          "command": "read .venv/lib/python3.12/site-packages/_duckdb-stubs/__init__.pyi:899-904",
+          "output": "DuckDB 1.5.5 exposes `connect(database: str | pathlib.Path, read_only=False, config=...)`; there is no file-descriptor, dir_fd, or no-follow argument. The production call therefore asks DuckDB to resolve and create/open the supplied mutable pathname."
+        },
+        {
+          "command": "read https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS",
+          "output": "The rename manual states that authorization is based on write permission for the directories containing the old and new paths (plus path search permission), and that open descriptors for the renamed object remain unaffected. Consequently, mode 0700 on the stage directory itself does not stop a permitted parent-directory mutator from renaming its entry while `stage_descriptor` remains valid."
+        },
+        {
+          "command": "read src/anomaly/search.py:35-49; read .jeff/tasks/0029-structured-signal-search/task.md",
+          "output": "`build_signal_projection` is a public exported entry point that directly invokes `build_projection`, and the locked task explicitly requires derived-index containment. A failed build after DuckDB has created or modified an out-of-root `signals.duckdb` is therefore an observable containment violation, not a fail-safe outcome."
+        }
+      ]
     }
   ],
   "convergence": {
     "cap": 2,
     "stages": {
       "review": {
-        "blockingKickbacks": 1
+        "blockingKickbacks": 2
       },
       "audit": {
-        "blockingKickbacks": 1
+        "blockingKickbacks": 2
       }
     },
     "council": {
@@ -1530,6 +1652,394 @@
         "reviewer_agent_id": "ReviewSignalSearchCorrectnessValid",
         "reviewer2_agent_id": "ReviewSignalSearchStandardsValid",
         "audit_agent_id": "AuditSignalSearchValid"
+      }
+    },
+    {
+      "at": "2026-08-24T18:23:34Z",
+      "review": {
+        "verdict": "pass",
+        "reportedVerdict": "pass",
+        "reviewer_agent_id": "ReviewSignalSearchFinalCorrect",
+        "findings": [],
+        "evidence": [
+          {
+            "command": "git diff --stat --summary af4b05c 801f0e139307523a5341713fd483a358c6ae3503; git diff --name-status af4b05c 801f0e139307523a5341713fd483a358c6ae3503",
+            "output": "Inspected the full task-29 range from task-28 terminal checkpoint af4b05c through final checkpoint 801f0e1: 75 files, 6,074 insertions, 65 deletions. The production/test surface is new _signal_projection.py, search.py, and test_signal_search.py plus detect.py, detectors/__init__.py, review.py, and semantics.py; the remaining changes are Jeff/task records and concurrently recorded roadmap/task state."
+          },
+          {
+            "command": "read task.md, notes.md, context.md, task.json:1-250, review-correctness-valid.json, review-standards-valid.json, audit-valid.json, and refute-01-valid.json",
+            "output": "Re-derived all seven criteria and checked every kicked review/test/audit obligation. The final ledger binds a clean green gate to 801f0e139307523a5341713fd483a358c6ae3503. Recovery evidence records 31/31 targeted search tests and 62/62 pipeline-walk tests passing; per the assignment, no tests, formatter, linter, or project-wide command was rerun. The supplied exact-checkpoint gate result is all 802 tests passing."
+          },
+          {
+            "command": "read src/anomaly/detect.py:475-775; src/anomaly/detectors/__init__.py:1-39; src/anomaly/_signal_projection.py:1-789; src/anomaly/search.py:1-285; src/anomaly/review.py changed provenance/sanitizer sections; src/anomaly/semantics.py sanitizer section",
+            "output": "Static end-to-end trace confirms canonical signal_id remains evidence-stable while projection identity is (signal_id, run_id); detector execution writes canonical-hash-suffixed immutable snapshots and binds path/hash in schema-v2 provenance; projection manifests hash signals, each referenced provenance, and each selected snapshot; payload construction uses explicit signal/metadata allowlists plus recursive sensitive-key removal and credential redaction; all filter values are parameter-bound; a verified DuckDB connection remains open through row retrieval; query_score derives only from complete deterministic matched_on fields; and projection writes are confined to .anomaly/search rather than canonical evidence."
+          },
+          {
+            "command": "read tests/test_signal_search.py:1-781 and tests/test_pipeline_walk.py:1-100,500-590",
+            "output": "The 31 targeted cases defend the corrected observable contracts rather than implementation text: exact redacted result equality and canonical digests; nine independently discriminating filters; statement, warning, four detector-metadata, and preview matching; full overlapping matched_on and retrieval-only scores; explicit stale rejection/rebuild for all three input families; required snapshot bindings; malformed filter keys; content-addressed repeated detector runs; run-aware references/cursors; Event-scheduled rebuild/read coherence; and pre/post-validation symlink swaps. No tests were deleted or weakened, and the concurrency tests use Events rather than sleeps."
+          },
+          {
+            "command": "git show --format=%H%n%P%n%s --no-patch 801f0e139307523a5341713fd483a358c6ae3503; git status --porcelain=v1",
+            "output": "HEAD is the requested final verification checkpoint 801f0e139307523a5341713fd483a358c6ae3503 with parent 97514da610d41d7c0f08390cc489ae70d4c66d78. Only task-29 journal/task ledger bookkeeping is modified in the working tree by active judgment dispatch; production code and tests match the reviewed checkpoint."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC2",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC7",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "review2": {
+        "verdict": "needs-work",
+        "reportedVerdict": "needs-work",
+        "reviewer_agent_id": "ReviewSignalSearchFinalStandards",
+        "findings": [
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 214,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+            "why": "Both lifecycle paths defeat their descriptor pin at the DuckDB boundary: build resolves the pinned staging descriptor to a pathname at lines 119-121, and verification resolves the pinned search descriptor at lines 214-215. A concurrent rename and symlink replacement after _descriptor_path returns can therefore make DuckDB write outside the private derived directory or open a different database. The post-open hash at lines 217-221 reads through the still-pinned directory descriptor, not the database object that DuckDB opened, so an attacker-controlled database can pass the old manifest/hash check and supply unverified rows. This is reachable under the same shared-case mutation model as the prior TOCTOU blocker, breaks AC2 containment and AC6 coherent hash binding, and is not exercised by the tests, which swap the search directory before _pin_search_root rather than after pathname conversion.",
+            "refute": {
+              "agent_id": "RefuteSignalFinalStandards",
+              "source": "review2",
+              "finding": "src/anomaly/_signal_projection.py:214 Pinned derived artifacts are converted back to mutable pathnames before DuckDB opens them.",
+              "verdict": "survives",
+              "rationale": "The shared-case race remains reachable because both lifecycle paths turn a pinned directory descriptor into a pathname that DuckDB reopens without locking or descriptor/inode binding; after a pathname swap, verification hashes the old descriptor-backed artifact rather than the database DuckDB actually opened, and the public search path can return structurally valid rows from that unverified connection.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/_signal_projection.py:104-224",
+                  "output": "build_projection resolves stage_descriptor through _descriptor_path at line 119 and passes the resulting pathname to _write_projection; verified_projection resolves search_descriptor through _descriptor_path at line 214 and calls duckdb.connect(path, read_only=True) at line 215. The only post-open check at lines 217-221 rereads signals.duckdb through search_descriptor, not through the DuckDB connection or its opened file identity."
+                },
+                {
+                  "command": "grep 'lock|flock|fcntl|descriptor_path|connect\\(' src/anomaly/_signal_projection.py src/anomaly/search.py tests/test_signal_search.py",
+                  "output": "No lock or flock guard exists. fcntl is used only by _descriptor_path to recover a pathname (command 50 on macOS); DuckDB is opened with that pathname at lines 215 and 482."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:588-675",
+                  "output": "_pin_search_root and _directory_still_pinned compare directory device/inode identities only before pathname resolution. _descriptor_path returns an ordinary Path from /proc/self/fd readlink or macOS F_GETPATH; it does not preserve descriptor-relative resolution after returning, so a subsequent rename/symlink replacement can rebind the pathname before DuckDB opens it."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:234-251; read src/anomaly/search.py:44-187",
+                  "output": "search_signals obtains the verified connection and read_rows queries that connection directly. Downstream validation checks only JSON container types, string signal_id/run_id, and lexical-field shapes; it neither binds returned rows to manifest hashes nor checks the opened database object's device/inode, so a replacement database with the expected signals schema can supply unverified results."
+                },
+                {
+                  "command": "read tests/test_signal_search.py:654-781",
+                  "output": "The concurrency test pauses only after verified_projection returns, while the derived-directory swap test replaces search after _prepare_search_root but before _pin_search_root. No test or guard covers a swap after _descriptor_path returns and before duckdb.connect opens the pathname."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 1,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "refactor",
+            "what": "The projection implementation still exceeds the maintainability boundary and combines unrelated responsibilities.",
+            "why": "The recovered module grew from the previously reported 566 lines to 789 lines, while the public search module is 285 lines. _signal_projection.py owns descriptor/path containment, manifest verification, canonical parsing, provenance and metadata policy, public mapping, DuckDB persistence, and staging. This remains six-month maintenance debt under the authoritative less-than-200-line module directive, but it is not itself a reachable correctness, security, data-loss, or acceptance failure, so it remains a follow-up rather than a blocker."
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 137,
+            "severity": "low",
+            "class": "follow-up",
+            "kickTo": "plan",
+            "what": "The DuckDB file and manifest are still replaced separately despite the public atomic-rebuild claim.",
+            "why": "build_projection performs two independent os.replace calls at lines 137-148, while build_signal_projection still documents an atomic rebuild. Failure after the database replacement can leave a new database paired with the old manifest. Verification fails closed and a later explicit rebuild can recover without modifying canonical evidence, so this degenerate-filesystem edge remains a follow-up rather than a ship blocker; either publish one generation through a single atomic indirection or remove the inaccurate atomicity claim."
+          }
+        ],
+        "evidence": [
+          {
+            "command": "git diff --name-status --stat af4b05c 801f0e139307523a5341713fd483a358c6ae3503 -- src tests/test_signal_search.py",
+            "output": "The exact task checkpoint adds _signal_projection.py (789 lines), search.py (285 lines), and test_signal_search.py (781 lines), and changes detect.py, detectors/__init__.py, review.py, and semantics.py; no pre-existing test file was weakened or deleted."
+          },
+          {
+            "command": "read task.md; read notes.md; read plan-recovery-return.json; read tests/test_signal_search.py:283-781",
+            "output": "Re-derived all seven recovery dispositions as revise. The tests defend consumer-observable contracts rather than implementation literals: exact public redacted shape and canonical digests; nine independently discriminating filters; every promised lexical field and complete matched_on; repeated-run composite references and bounded cursor traversal; explicit stale rejection/rebuild for all input families; Event-scheduled rebuild/read concurrency; and retrieval-only scores across differing editorial attributes. Fixtures use isolated tmp_path roots, fixed injected time, and threading.Event rather than sleeps, wall-clock reads, network, timestamps, randomness, or shared state."
+          },
+          {
+            "command": "read src/anomaly/_signal_projection.py:104-224,524-675; read tests/test_signal_search.py:654-781",
+            "output": "Input reads and ordinary artifact reads use no-follow descriptors, and the prior pre-pin search-directory swap is rejected. However, the pinned staging/search descriptors are resolved to ordinary filesystem paths immediately before both DuckDB connections. The tests swap after _prepare_search_root but before _pin_search_root and do not cover a rename/symlink rebind after _descriptor_path; the final hash check reads the pinned descriptor rather than proving the DuckDB connection target."
+          },
+          {
+            "command": "read src/anomaly/detect.py:637-776; read src/anomaly/detectors/__init__.py; read src/anomaly/review.py:699-780; read src/anomaly/search.py:44-285; read src/anomaly/semantics.py:96-139",
+            "output": "The prior functional blockers are otherwise repaired coherently: canonical execution writes content-addressed snapshot names and required provenance hashes; replay and projection share one pure reference predicate; projection keys rows and references by signal_id plus run_id; search validates malformed keys, reports every matched field, uses retrieval-only scores, and holds one verified DuckDB connection through row retrieval; public values use the shared sanitizer."
+          },
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/task.json:20-44; read .jeff/tasks/0029-structured-signal-search/journal.jsonl:56-64",
+            "output": "The ledger binds the configured full-suite gate to exact checkpoint 801f0e139307523a5341713fd483a358c6ae3503 with clean=true and green=true. Per the assignment, the 802-test gate was not rerun during this read-only review."
+          }
+        ],
+        "acLedger": [
+          {
+            "ac": "AC1",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC2",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC3",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC4",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC5",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          },
+          {
+            "ac": "AC6",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": false
+          },
+          {
+            "ac": "AC7",
+            "claimed": "revise",
+            "rederived": "revise",
+            "ok": true
+          }
+        ]
+      },
+      "audit": {
+        "required": true,
+        "verdict": "needs-work",
+        "audit_agent_id": "AuditSignalSearchFinal",
+        "findings": [
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 215,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.",
+            "why": "The manifest and projection hash are read with O_NOFOLLOW through search_descriptor, but line 214 converts that descriptor back to a pathname and line 215 asks DuckDB to reopen it. A process able to mutate a shared case can rename or ABA-swap .anomaly/search or signals.duckdb after _descriptor_path returns, make DuckDB open a different database, and restore the descriptor-owned artifact before the post-open hash read. That postcheck hashes the name under search_descriptor, not the inode held by the DuckDB connection, so it can pass while search returns attacker-controlled payload rows under the previously verified manifest identity. No shared/exclusive lock or connection-to-file identity check closes this interval; the earlier normal os.replace rebuild race is improved by keeping one connection, but the prior CWE-367/CWE-59 obligation is not fully resolved.",
+            "cwe": "CWE-59/CWE-367",
+            "refute": {
+              "agent_id": "RefuteSignalFinalAudit",
+              "source": "audit",
+              "finding": "src/anomaly/_signal_projection.py:215 The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.",
+              "verdict": "survives",
+              "rationale": "The public search path is reachable, and the verified file descriptor is closed after hashing before DuckDB reopens `signals.duckdb` by name, so a POSIX rename/ABA swap can make DuckDB retain an attacker-controlled inode while the post-open hash rechecks the restored verified pathname through `search_descriptor`; no connection-to-inode check or lock closes that interval.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/_signal_projection.py:202-229",
+                  "output": "Lines 207-215 hash `signals.duckdb` via `_read_owned_bytes(search_descriptor, ...)`, then derive `projection_path = _descriptor_path(search_descriptor) / \"signals.duckdb\"` and call `duckdb.connect(str(projection_path), read_only=True)`; lines 217-222 re-hash the filename through `search_descriptor`, not the inode held by the DuckDB connection."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:642-690",
+                  "output": "`_descriptor_path` converts the pinned directory descriptor back to a filesystem path; `_read_owned_bytes` separately opens the named artifact relative to the directory descriptor and closes that file descriptor after reading, so the verified database inode is not retained for DuckDB."
+                },
+                {
+                  "command": "read src/anomaly/search.py:44-74,143-160",
+                  "output": "`search_signals` directly calls `verified_projection(root)`, passes the returned connection to `read_rows`, and `_rank_rows` accepts projection-controlled JSON dictionaries when `signal_id` and `run_id` are strings, making rows from a swapped compatible database observable at the public entry point."
+                },
+                {
+                  "command": "grep descriptor_path|signals.duckdb|verified_projection|ABA|swap tests/test_signal_search.py",
+                  "output": "The final tests cover concurrent rebuild retention and input/search-directory symlink swaps, but contain no test that ABA-swaps `signals.duckdb` between its descriptor-based hash and DuckDB's pathname reopen."
+                }
+              ]
+            }
+          },
+          {
+            "file": "src/anomaly/_signal_projection.py",
+            "line": 121,
+            "severity": "high",
+            "class": "blocking",
+            "kickTo": "implement",
+            "what": "Projection staging reintroduces a path-escape write after pinning the private directory.",
+            "why": "The builder creates and pins a random stage directory, then converts its descriptor to stage_root and passes stage_root/signals.duckdb to DuckDB by pathname. In an existing shared case whose derived directories can be renamed, a local mutator can observe the random entry, rename it, and place a symlink at the pathname before DuckDB opens it. DuckDB does not receive O_NOFOLLOW or a dir_fd, so it can create or modify an out-of-root signals.duckdb before the later descriptor-based read notices that the pinned stage lacks the file. Random naming narrows prediction but does not prevent an observable swap, and the module contains no flock/lockf or equivalent lock. This leaves the prior canonical-containment blocker reachable and can cause out-of-root data corruption even though the build ultimately raises.",
+            "cwe": "CWE-59/CWE-367",
+            "refute": {
+              "agent_id": "RefuteSignalFinalStaging",
+              "source": "audit",
+              "finding": "src/anomaly/_signal_projection.py:121 Projection staging reintroduces a path-escape write after pinning the private directory.",
+              "verdict": "survives",
+              "rationale": "The blocker is reachable because an observer with rename rights on an existing shared search directory can discover and replace the random stage entry after its descriptor is opened, while the builder converts that pinned descriptor back to a mutable pathname and gives it to DuckDB without no-follow or descriptor-relative protection; the later pinned read can detect failure but cannot undo the already completed out-of-root write.",
+              "evidence": [
+                {
+                  "command": "read src/anomaly/_signal_projection.py:107-145",
+                  "output": "The builder creates `.build-<128-bit token>` with mode 0700, opens it as `stage_descriptor`, then converts that descriptor through `_descriptor_path`, appends `signals.duckdb`, and calls `_write_projection` by pathname. Only after that write and a descriptor-relative read does it call `_directory_still_pinned`, so detection occurs after the side effect."
+                },
+                {
+                  "command": "read src/anomaly/_signal_projection.py:481-496,588-674; grep 'flock|lockf|chmod|fchmod|st_uid|O_NOFOLLOW' src/anomaly/_signal_projection.py",
+                  "output": "`_write_projection` immediately calls `duckdb.connect(str(path))`, creates the table, inserts rows, and checkpoints. `_prepare_search_root` accepts existing real directories without checking or tightening ownership/mode; O_NOFOLLOW is used for descriptor opens but not the DuckDB pathname, and the file contains no locking or chmod/fchmod protection. Thus stage mode 0700 does not protect its directory entry when the containing search directory is writable."
+                },
+                {
+                  "command": "read .venv/lib/python3.12/site-packages/_duckdb-stubs/__init__.pyi:899-904",
+                  "output": "DuckDB 1.5.5 exposes `connect(database: str | pathlib.Path, read_only=False, config=...)`; there is no file-descriptor, dir_fd, or no-follow argument. The production call therefore asks DuckDB to resolve and create/open the supplied mutable pathname."
+                },
+                {
+                  "command": "read https://man7.org/linux/man-pages/man2/rename.2.html#ERRORS",
+                  "output": "The rename manual states that authorization is based on write permission for the directories containing the old and new paths (plus path search permission), and that open descriptors for the renamed object remain unaffected. Consequently, mode 0700 on the stage directory itself does not stop a permitted parent-directory mutator from renaming its entry while `stage_descriptor` remains valid."
+                },
+                {
+                  "command": "read src/anomaly/search.py:35-49; read .jeff/tasks/0029-structured-signal-search/task.md",
+                  "output": "`build_signal_projection` is a public exported entry point that directly invokes `build_projection`, and the locked task explicitly requires derived-index containment. A failed build after DuckDB has created or modified an out-of-root `signals.duckdb` is therefore an observable containment violation, not a fail-safe outcome."
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh --changes --report-dir .jeff/tasks/0029-structured-signal-search/security-scan-final",
+            "output": "Supplied final scan returned PASS: 3 files scanned, zero findings, 12 categories with github_actions and xss uncovered, and no tool failures; report .jeff/tasks/0029-structured-signal-search/security-scan-final/security-audit-20260824-175504.md."
+          },
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/security-scan/security-audit-20260824-164628.md",
+            "output": "Initial full-task scan covered 16 files, reported zero findings and PASS, found no dependency vulnerabilities, and recorded optional gitleaks parse failure/absent semgrep without audit debt."
+          },
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/security-scan-recovery/security-audit-20260824-174355.md",
+            "output": "Recovery scan covered 35 files and reported REVIEW for ast.literal_eval at detect.py:99 plus interpolated DuckDB PRAGMAs at detect.py:666-667. Manual tracing refutes execution/injection reachability: literal_eval is called only for an already quote-delimited scalar and cannot evaluate calls, while _validate_limits requires positive non-bool integers before memory_mb and threads are formatted. Projection filter identifiers come only from the fixed _FILTER_COLUMNS mapping and every filter value is bound."
+          },
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/security-scan-final/security-audit-20260824-175504.md",
+            "output": "Raw final report confirms recommendation PASS, zero findings, no dependency audit failure, and no suppressions. Its three-file scope is not treated as full-task coverage; the initial and recovery reports seed the full ledger."
+          },
+          {
+            "command": "git diff --stat af4b05c..801f0e139307523a5341713fd483a358c6ae3503 -- src/anomaly/_signal_projection.py src/anomaly/search.py src/anomaly/detect.py src/anomaly/detectors/__init__.py src/anomaly/review.py src/anomaly/semantics.py tests/test_signal_search.py",
+            "output": "Inspected the full task production/test surface: 7 files, 1,993 insertions and 55 deletions. _signal_projection.py, search.py, and test_signal_search.py were read in full; modified detector, snapshot-reference, replay, and redaction diffs were read against task-28 terminal parent af4b05c."
+          },
+          {
+            "command": "read src/anomaly/_signal_projection.py:1-789; grep projection locking primitives",
+            "output": "Canonical inputs are allowlisted, opened component-by-component with O_NOFOLLOW and dir_fd, read from pinned descriptors, identity-rechecked, and hash-bound. Derived artifact byte reads also use O_NOFOLLOW. However, _descriptor_path is used before both DuckDB write and read opens, and grep found no flock, LOCK_EX/LOCK_SH, lockf, portalocker, filelock, or in-process lock. Lines 119-121 and 214-215 establish the two exploitable check/use intervals recorded above."
+          },
+          {
+            "command": "read src/anomaly/detect.py:93-105,330-410,450-560,637-750; read src/anomaly/detectors/__init__.py:1-38; read src/anomaly/review.py:715-822",
+            "output": "The canonical producer hashes sanitized snapshot JSON with SHA-256, names new snapshots with that digest, creates them O_EXCL|O_NOFOLLOW at mode 0600, records path plus hash in schema-v2 provenance, and strict replay requires the exact detector/hash-derived path and verifies canonical JSON hash plus implementation identity. Projection legacy-name acceptance remains hash-bound and cannot silently substitute bytes, while new canonical runs are content-addressed."
+          },
+          {
+            "command": "read src/anomaly/semantics.py:54-150; read src/anomaly/_signal_projection.py:291-477; read tests/test_signal_search.py:1-781",
+            "output": "Projection constructs results from an explicit public signal/metadata allowlist, recursively removes sensitive-key fields, redacts credential-shaped text, and never projects private_context. Tests assert exact returned redacted payloads, unchanged canonical digests, stale input rejection/rebuild, content-addressed producer snapshots, concurrent rebuild behavior, and pre/post-validation symlink cases. The tests do not cover a swap after a pinned descriptor is converted back to the pathname DuckDB opens."
+          },
+          {
+            "command": "git diff --name-only af4b05c..801f0e139307523a5341713fd483a358c6ae3503 -- pyproject.toml uv.lock requirements.txt requirements-dev.txt",
+            "output": "No dependency manifest or lockfile changed. DuckDB was already declared as duckdb>=1.1, and the supplied scanner dependency audit reports no vulnerabilities."
+          },
+          {
+            "command": "git diff --name-only af4b05c..801f0e139307523a5341713fd483a358c6ae3503 -- '*.html' '*.htm' '*.js' '*.jsx' '*.ts' '*.tsx' 'templates/**'",
+            "output": "No browser-rendered or template surface changed, manually closing the scanner's xss coverage gap as covered_no_hits."
+          },
+          {
+            "command": "read .jeff/tasks/0029-structured-signal-search/audit-valid.json:19-105",
+            "output": "Cycle-0 audit obligations were CWE-367 verified-read/rebuild coherence and CWE-59/CWE-367 symlink-swap containment. The final code fixes ordinary concurrent rebuild coherence by retaining one DuckDB connection, and it pins/no-follows canonical reads, but both DuckDB opens still cross back through mutable pathnames; the two final findings preserve the still-reachable parts of those obligations."
+          }
+        ],
+        "reportedVerdict": "needs-work",
+        "scan": {
+          "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh --changes --report-dir .jeff/tasks/0029-structured-signal-search/security-scan-final",
+          "recommendation": "PASS",
+          "reportPath": ".jeff/tasks/0029-structured-signal-search/security-scan-final/security-audit-20260824-175504.md"
+        },
+        "coverage": [
+          {
+            "category": "secrets",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "injection_sql",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "injection_command",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "path_traversal",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "insecure_deserialization",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "weak_crypto",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "dynamic_execution",
+            "status": "covered_with_hits"
+          },
+          {
+            "category": "tls_transport",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "xss",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "sensitive_logging",
+            "status": "covered_no_hits"
+          },
+          {
+            "category": "insecure_permissions",
+            "status": "covered_no_hits"
+          }
+        ]
+      },
+      "agents": {
+        "reviewer_agent_id": "ReviewSignalSearchFinalCorrect",
+        "reviewer2_agent_id": "ReviewSignalSearchFinalStandards",
+        "audit_agent_id": "AuditSignalSearchFinal"
       }
     }
   ]

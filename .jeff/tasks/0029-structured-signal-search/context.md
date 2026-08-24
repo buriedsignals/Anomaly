@@ -24,16 +24,16 @@
 - `src/anomaly/search.py:143` — retrieval ranking with composite signal/run ordering.
 - `src/anomaly/search.py:169` — complete matched-field calculation.
 - `src/anomaly/search.py:187` — composite keyset continuation comparison.
-- `src/anomaly/_signal_projection.py:104` — private staged derived projection construction and manifest replacement through a pinned search directory.
-- `src/anomaly/_signal_projection.py:168` — input and projection verification plus a read connection opened against the verified database object.
-- `src/anomaly/_signal_projection.py:234` — DuckDB row read boundary using the verified connection.
-- `src/anomaly/_signal_projection.py:251` — signal, provenance, and provenance-selected detector snapshot input collection.
-- `src/anomaly/_signal_projection.py:269` — required schema-v2 snapshot path/hash discrimination through the shared pure reference predicate.
-- `src/anomaly/_signal_projection.py:291` — signal/provenance/snapshot binding and exact public run-aware row construction.
-- `src/anomaly/_signal_projection.py:363` — composite signal/run identity and public field validation.
-- `src/anomaly/_signal_projection.py:449` — statement, warning, detector metadata, and preview search-field construction.
-- `src/anomaly/_signal_projection.py:544` — no-follow pinned canonical-input reads.
-- `src/anomaly/_signal_projection.py:588` — pinned derived-directory containment helpers.
+- `src/anomaly/_signal_projection.py:125` — private DuckDB construction followed by descriptor-relative no-follow staging and manifest replacement through the pinned search directory.
+- `src/anomaly/_signal_projection.py:186` — verified descriptor-relative projection bytes copied into an unlinked process-private database, opened read-only with external access disabled, and retained through query close.
+- `src/anomaly/_signal_projection.py:244` — DuckDB row read boundary using the verified private connection.
+- `src/anomaly/_signal_projection.py:261` — signal, provenance, and provenance-selected detector snapshot input collection.
+- `src/anomaly/_signal_projection.py:279` — required schema-v2 snapshot path/hash discrimination through the shared pure reference predicate.
+- `src/anomaly/_signal_projection.py:301` — signal/provenance/snapshot binding and exact public run-aware row construction.
+- `src/anomaly/_signal_projection.py:373` — composite signal/run identity and public field validation.
+- `src/anomaly/_signal_projection.py:459` — statement, warning, detector metadata, and preview search-field construction.
+- `src/anomaly/_signal_projection.py:595` — no-follow pinned canonical-input reads.
+- `src/anomaly/_signal_projection.py:639` — pinned derived-directory containment helpers.
 - `tests/test_signal_search.py:53` — isolated structured-search fixture with schema-v2 snapshot path/hash bindings and canonical sentinels.
 - `tests/test_signal_search.py:237` — isolated canonical acquisition/prepare/profile/recommend/approve fixture.
 - `tests/test_signal_search.py:283` — exact public result shape, full detector metadata shape, manifest inputs, and canonical digest assertions.

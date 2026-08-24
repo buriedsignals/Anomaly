@@ -69,3 +69,7 @@ No approval boundary: all mutations must remain inside the isolated HOME and por
 5. **Fresh reviewer and draft-hash attestation:** covered by runbook 7; verified by P5/V5.
 6. **Relative paths, receipts, outputs, and secret/path hygiene:** covered by runbook 8–9; verified by P6/V6.
 7. **Exact-candidate green suite and case-preserving cleanup:** covered by runbook 1 and 10; verified by P1 and P7/V1 and V7.
+
+## Blocked after execute
+
+The supported installer/uninstaller and harness registration seam named by precondition 3 and runbook step 3 do not exist in the checked-in candidate. OMP rejects the repository because `package.json` is absent; Pi cannot load the raw skill and reviewer directories as extensions. Task 26 is blocked until a real installable package and resolution seam are supplied and the operation plan is revised.

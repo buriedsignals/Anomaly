@@ -4,7 +4,7 @@
   "id": 26,
   "slug": "public-demo-verification",
   "title": "Verify Anomaly public demo in the installed agent pipeline",
-  "status": "in_progress",
+  "status": "blocked",
   "stage": "plan",
   "priority": "p1",
   "deps": [
@@ -12,7 +12,7 @@
   ],
   "complexity": "complex",
   "createdAt": "2026-08-23T12:25:52Z",
-  "updatedAt": "2026-08-24T17:29:13Z",
+  "updatedAt": "2026-08-24T18:15:53Z",
   "agents": {
     "executor_agent_id": "ExecuteAnomalyPublicDemo",
     "verifier_agent_id": null,
@@ -33,7 +33,7 @@
       "at": "2026-08-24T17:29:13Z"
     }
   ],
-  "blockedReason": null,
+  "blockedReason": "Awaiting a supported checked-in Anomaly installer/uninstaller and harness registration/resolution seam; the recorded execute return proved the current candidate is not installable by OMP or Pi.",
   "abandonReason": null,
   "category": "operation",
   "operationStateVersion": 1,

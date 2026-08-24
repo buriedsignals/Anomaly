@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "audit",
+  "finding": "src/anomaly/_signal_projection.py:215 The verified DuckDB connection is still opened through a mutable pathname rather than the verified file object.",
+  "verdict": "survives",
+  "rationale": "The public search path is reachable, and the verified file descriptor is closed after hashing before DuckDB reopens `signals.duckdb` by name, so a POSIX rename/ABA swap can make DuckDB retain an attacker-controlled inode while the post-open hash rechecks the restored verified pathname through `search_descriptor`; no connection-to-inode check or lock closes that interval.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/_signal_projection.py:202-229",
+      "output": "Lines 207-215 hash `signals.duckdb` via `_read_owned_bytes(search_descriptor, ...)`, then derive `projection_path = _descriptor_path(search_descriptor) / \"signals.duckdb\"` and call `duckdb.connect(str(projection_path), read_only=True)`; lines 217-222 re-hash the filename through `search_descriptor`, not the inode held by the DuckDB connection."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:642-690",
+      "output": "`_descriptor_path` converts the pinned directory descriptor back to a filesystem path; `_read_owned_bytes` separately opens the named artifact relative to the directory descriptor and closes that file descriptor after reading, so the verified database inode is not retained for DuckDB."
+    },
+    {
+      "command": "read src/anomaly/search.py:44-74,143-160",
+      "output": "`search_signals` directly calls `verified_projection(root)`, passes the returned connection to `read_rows`, and `_rank_rows` accepts projection-controlled JSON dictionaries when `signal_id` and `run_id` are strings, making rows from a swapped compatible database observable at the public entry point."
+    },
+    {
+      "command": "grep descriptor_path|signals.duckdb|verified_projection|ABA|swap tests/test_signal_search.py",
+      "output": "The final tests cover concurrent rebuild retention and input/search-directory symlink swaps, but contain no test that ABA-swaps `signals.duckdb` between its descriptor-based hash and DuckDB's pathname reopen."
+    }
+  ]
+}
