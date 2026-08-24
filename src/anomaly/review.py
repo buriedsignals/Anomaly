@@ -10,9 +10,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from anomaly import detect
+from anomaly.detectors import is_valid_snapshot_reference
 from anomaly.detectors.registry import package_implementation_hash
 from anomaly.events import phase_event
-from anomaly.semantics import UnsafeCasePathError, redact_credentials, validate_case_documents
+from anomaly.semantics import (
+    UnsafeCasePathError,
+    redact_credentials,
+    sanitize_public_value,
+    validate_case_documents,
+)
 
 
 class ReviewError(RuntimeError):
@@ -21,10 +27,6 @@ class ReviewError(RuntimeError):
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _TABLE_ID = re.compile(r"tbl_[0-9a-f]{64}\Z")
 _DETECTOR_ID = re.compile(r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+\Z")
-_SENSITIVE_KEY = re.compile(
-    r"(?:api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|credential|password|passwd|secret|token|private[_-]?key)",
-    re.I,
-)
 
 # The fields below are the public, redacted signal contract.  In particular, a
 # preview is retained only as a redacted, useful reading and never as a source
@@ -234,7 +236,7 @@ def draft_findings(root: Path) -> dict[str, Any]:
             claim["provenance"].append(provenance_view)
 
     claims = sorted(grouped.values(), key=lambda item: (item["rank"], item["claim_id"]))
-    payload = {"schema_version": 1, "status": "draft", "claims": _sanitize(claims)}
+    payload = {"schema_version": 1, "status": "draft", "claims": sanitize_public_value(claims)}
     _write_json(root, "findings/draft.json", payload)
     return payload
 
@@ -311,7 +313,7 @@ def record_review(
     strict = _strict_case(root)
     attestation: dict[str, Any] | None = None
     if isinstance(independent_attestation, dict):
-        attestation = _sanitize(dict(independent_attestation))
+        attestation = sanitize_public_value(dict(independent_attestation))
     independent = bool(reviewer)
     if strict:
         independent = bool(
@@ -331,7 +333,7 @@ def record_review(
         "availability": "available" if reviewer else "unavailable",
         "draft_hash": draft_hash,
         "review_basis_hash": _review_basis_hash(root),
-        "verdicts": _sanitize(normalized),
+        "verdicts": sanitize_public_value(normalized),
         **context_fields,
         "recorded_at": _now(),
     }
@@ -447,7 +449,7 @@ def accept_findings(
             continue
         promoted.append({**claim, "status": "accepted"})
     promoted.sort(key=lambda item: (item.get("rank", 10**9), item.get("claim_id", "")))
-    findings = {"schema_version": 1, "status": "accepted", "claims": _sanitize(promoted)}
+    findings = {"schema_version": 1, "status": "accepted", "claims": sanitize_public_value(promoted)}
     _write_json(root, "findings/findings.json", findings)
     receipt = {
         "kind": "review",
@@ -770,7 +772,7 @@ def _verify_provenance(
                 or item.get("source_hash") != source_hashes[item["source_id"]]
                 for item in table_sources.values()
             )
-            or snapshot != f"detectors/used/{detector_id.replace('.', '__')}.json"
+            or not is_valid_snapshot_reference(detector_id, snapshot, snapshot_hash)
         ):
             raise ReviewError("incomplete table source provenance")
         snapshot_path = _owned(root, snapshot)
@@ -783,7 +785,6 @@ def _verify_provenance(
             or _hash_json(snapshot_payload) != snapshot_hash
         ):
             raise ReviewError("detector snapshot does not match provenance")
-        query_path = _detector_query_path(detector_id)
         current = _current_detector_identity(detector_id)
         if current is None:
             raise ReviewError("detector dependency is unavailable")
@@ -793,17 +794,18 @@ def _verify_provenance(
             raise ReviewError(
                 "detector implementation identity does not match provenance"
             )
-    elif source_list and any(item not in source_hashes.values() for item in source_list):
-        raise ReviewError("source provenance hash is not registered")
-    # Legacy provenance remains readable, but never weakens the live detector
-    # identity gate. Without a complete identity, replay is unavailable.
-    detector_id = provenance.get("detector_id")
-    if not isinstance(detector_id, str) or _DETECTOR_ID.fullmatch(detector_id) is None:
-        raise ReviewError("detector identity is unavailable")
-    snapshot = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
-    if not snapshot.is_file() or snapshot.is_symlink():
-        raise ReviewError("detector provenance snapshot is missing")
-    snapshot_payload = _read_json(snapshot)
+    else:
+        if source_list and any(item not in source_hashes.values() for item in source_list):
+            raise ReviewError("source provenance hash is not registered")
+        # Legacy provenance remains readable, but never weakens the live detector
+        # identity gate. Without a complete identity, replay is unavailable.
+        detector_id = provenance.get("detector_id")
+        if not isinstance(detector_id, str) or _DETECTOR_ID.fullmatch(detector_id) is None:
+            raise ReviewError("detector identity is unavailable")
+        snapshot_path = _owned(root, f"detectors/used/{detector_id.replace('.', '__')}.json")
+        if not snapshot_path.is_file() or snapshot_path.is_symlink():
+            raise ReviewError("detector provenance snapshot is missing")
+        snapshot_payload = _read_json(snapshot_path)
     if (
         not isinstance(snapshot_payload, dict)
         or snapshot_payload.get("implementation_hash") != detector_hash
@@ -1026,7 +1028,7 @@ def _verify_source_bytes(root: Path, sources: list[dict[str, Any]]) -> None:
 
 
 def _safe_signal(raw: dict[str, Any]) -> dict[str, Any]:
-    return _sanitize({key: raw[key] for key in _SIGNAL_FIELDS if key in raw})
+    return sanitize_public_value({key: raw[key] for key in _SIGNAL_FIELDS if key in raw})
 
 
 def _review_context_field(value: Any) -> list[Any]:
@@ -1034,23 +1036,8 @@ def _review_context_field(value: Any) -> list[Any]:
         return []
     if not isinstance(value, (list, tuple)):
         raise ReviewError("review context fields must be lists")
-    return _sanitize(list(value))
+    return sanitize_public_value(list(value))
 
-def _sanitize(value: Any, key: str | None = None) -> Any:
-    if key is not None and _SENSITIVE_KEY.search(key):
-        return None
-    if isinstance(value, dict):
-        output: dict[str, Any] = {}
-        for name, item in value.items():
-            if not isinstance(name, str) or _SENSITIVE_KEY.search(name):
-                continue
-            output[name] = _sanitize(item, name)
-        return output
-    if isinstance(value, list):
-        return [_sanitize(item) for item in value]
-    if isinstance(value, str):
-        return str(redact_credentials(value))
-    return value
 
 
 def _read_json(path: Path) -> Any:
@@ -1061,7 +1048,7 @@ def _read_json(path: Path) -> Any:
 
 
 def _write_json(root: Path, relative: str, payload: Any) -> None:
-    _write_text(root, relative, json.dumps(_sanitize(payload), sort_keys=True, indent=2) + "\n")
+    _write_text(root, relative, json.dumps(sanitize_public_value(payload), sort_keys=True, indent=2) + "\n")
 
 
 def _write_text(root: Path, relative: str, text: str) -> None:

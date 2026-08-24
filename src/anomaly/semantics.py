@@ -66,6 +66,11 @@ _TOKEN_PREFIX = re.compile(
     r"\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}"
 )
 _URL_USERINFO = re.compile(r"(?i)\b(https?://)[^/\s:@]+:[^@\s/]+@")
+_SENSITIVE_KEY = re.compile(
+    r"(?:api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|"
+    r"credential|password|passwd|secret|token|private[_-]?key)",
+    re.IGNORECASE,
+)
 
 
 def canonical_key(value: str) -> str:
@@ -106,6 +111,27 @@ def redact_credentials(value: Any) -> Any:
         return {key: redact_credentials(item) for key, item in value.items()}
     if isinstance(value, list):
         return [redact_credentials(item) for item in value]
+    return value
+
+def sanitize_public_value(value: Any) -> Any:
+    """Recursively remove sensitive keys and redact credentials from strings."""
+    return _sanitize_public_value(value)
+
+
+def _sanitize_public_value(value: Any, key: str | None = None) -> Any:
+    if key is not None and _SENSITIVE_KEY.search(key):
+        return None
+    if isinstance(value, dict):
+        output: dict[str, Any] = {}
+        for name, item in value.items():
+            if not isinstance(name, str) or _SENSITIVE_KEY.search(name):
+                continue
+            output[name] = _sanitize_public_value(item, name)
+        return output
+    if isinstance(value, list):
+        return [_sanitize_public_value(item) for item in value]
+    if isinstance(value, str):
+        return str(redact_credentials(value))
     return value
 
 

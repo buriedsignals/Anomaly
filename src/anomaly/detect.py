@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
 import threading
 from datetime import datetime
@@ -511,11 +512,36 @@ def _run_query(
         timer.cancel()
 
 
+def _json_bytes(payload: Any) -> bytes:
+    public = redact_credentials(_json_safe(payload))
+    return (
+        json.dumps(public, sort_keys=True, indent=2) + "\n"
+    ).encode("utf-8")
+
+
 def _write_json(path: Path, payload: Any) -> None:
-    path.write_text(
-        json.dumps(redact_credentials(_json_safe(payload)), sort_keys=True, indent=2) + "\n",
-        encoding="utf-8",
+    path.write_bytes(_json_bytes(payload))
+
+
+def _write_immutable_json(path: Path, payload: Any) -> None:
+    raw = _json_bytes(payload)
+    flags = (
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_EXCL
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
     )
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except FileExistsError:
+        if path.is_symlink() or not path.is_file() or path.read_bytes() != raw:
+            raise DetectorError("detector snapshot identity collision")
+        return
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(raw)
+
+
 def _canonical_plan_hash(plan: dict[str, Any]) -> str:
     encoded = json.dumps(plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
@@ -688,24 +714,30 @@ def execute_detectors(
         else:
             parquet.write_table(pa.table({"status": pa.array([], type=pa.string())}), output_path, compression="zstd")
         _write_json(run_dir / "preview.json", rows)
-        snapshot = {
-            "schema_version": 1,
-            "metadata": meta,
-            "implementation_hash": implementation_hash,
-            "parameters": meta.get("parameters", {}),
-            "version": meta["version"],
-        }
-        snapshot_path = used_root / f"{detector_id.replace('.', '__')}.json"
-        _write_json(snapshot_path, snapshot)
-        snapshot_hash = _sha256_bytes(
-            json.dumps(snapshot, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        snapshot = redact_credentials(
+            _json_safe(
+                {
+                    "schema_version": 1,
+                    "metadata": meta,
+                    "implementation_hash": implementation_hash,
+                    "parameters": meta.get("parameters", {}),
+                    "version": meta["version"],
+                }
+            )
         )
+        snapshot_hash = _canonical_plan_hash(snapshot)
+        snapshot_name = (
+            f"{detector_id.replace('.', '__')}__"
+            f"{snapshot_hash.removeprefix('sha256:')}.json"
+        )
+        snapshot_path = used_root / snapshot_name
+        _write_immutable_json(snapshot_path, snapshot)
         provenance = {
             "schema_version": 2,
             "run_id": run_dir.name,
             "detector_version": meta["version"],
             "detector_id": detector_id,
-            "detector_snapshot": f"detectors/used/{detector_id.replace('.', '__')}.json",
+            "detector_snapshot": f"detectors/used/{snapshot_name}",
             "detector_snapshot_hash": snapshot_hash,
             "table_ids": [table["table_id"] for table in detector_tables],
             "prepared_manifest_hash": _prepared_manifest_hash(root),
