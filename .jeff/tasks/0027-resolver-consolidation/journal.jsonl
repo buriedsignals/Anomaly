@@ -115,3 +115,49 @@
 {"seq":114,"at":"2026-08-24T11:29:48.818Z","event":"record","stage":"plan","agent":"PlanAnomalySecondRepair"}
 {"seq":115,"at":"2026-08-24T11:30:00.963Z","event":"intent","stage":"implement","note":"Implement value schemas, interruption/promotion recovery, P7 identities, sanitizer, create containment and stale skill cleanup"}
 {"seq":116,"at":"2026-08-24T12:01:44.367Z","event":"record","stage":"implement","agent":"ImplementAnomalySecondRepair"}
+{"seq":117,"at":"2026-08-24T12:02:12.275Z","event":"intent","stage":"refactor","note":"Simplify second repair predicates, promotion validation and stale skill deletion without behavior changes"}
+{"seq":118,"at":"2026-08-24T12:09:18.371Z","event":"record","stage":"refactor","agent":"RefactorAnomalySecondRepair"}
+{"seq":119,"at":"2026-08-24T12:14:57.034Z","event":"gate","hash":"429c34deae1b9f5a92252147ec16acebfcb4812b","green":true,"clean":true}
+{"seq":120,"at":"2026-08-24T12:15:24.558Z","event":"intent","stage":"review","note":"Final cycle-2 correctness review at clean gate 429c34de"}
+{"seq":121,"at":"2026-08-24T12:15:24.584Z","event":"intent","stage":"review","note":"Final cycle-2 standards review at clean gate 429c34de"}
+{"seq":122,"at":"2026-08-24T12:15:24.596Z","event":"intent","stage":"audit","note":"Final cycle-2 audit of promotion, containment, identities and sanitization at 429c34de"}
+{"seq":123,"at":"2026-08-24T12:30:41.140Z","event":"record","stage":"review","agent":"ReviewAnomalyFinalCorrect"}
+{"seq":124,"at":"2026-08-24T12:30:41.212Z","event":"record","stage":"review","agent":"ReviewAnomalyFinalStandards"}
+{"seq":125,"at":"2026-08-24T12:30:41.286Z","event":"record","stage":"audit","agent":"AuditAnomalyFinal"}
+{"seq":126,"at":"2026-08-24T12:31:32.886Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 2: src/anomaly/case.py:166 The public fork writer still follows a symlinked destination ancestor and can create the child case outside the caller-selected path."}
+{"seq":127,"at":"2026-08-24T12:31:32.920Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 1: src/anomaly/_attempt_workspace.py:262 Registry binding still lets an untrusted promotion journal delete a legitimate phase-owned artifact by lying that it did not originally exist."}
+{"seq":128,"at":"2026-08-24T12:31:32.935Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 4: tests/test_pipeline_walk.py:605 The interrupted-attempt test never exercises restart reconciliation for a counted attempt with no failure evidence."}
+{"seq":129,"at":"2026-08-24T12:31:32.990Z","event":"intent","stage":"refute","note":"Final-cycle refute review2 blocker 7: src/anomaly/case.py:166 The public fork writer follows a symlinked destination namespace and can copy a case outside the caller's requested tree."}
+{"seq":130,"at":"2026-08-24T12:31:33.022Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 6: tests/test_pipeline_walk.py:196 The P7 identity matrix does not prove that a changed chart descendant invalidates completion."}
+{"seq":131,"at":"2026-08-24T12:31:33.036Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 5: tests/test_pipeline_walk.py:644 The claimed valid interrupted-promotion test constructs a journal state the sequential promoter cannot produce."}
+{"seq":132,"at":"2026-08-24T12:31:33.055Z","event":"intent","stage":"refute","note":"Final-cycle refute review blocker 3: src/anomaly/workflow_inputs.py:168 Whitespace-only Gate A and Gate B IDs are still classified as complete human decisions."}
+{"seq":133,"at":"2026-08-24T12:31:33.098Z","event":"intent","stage":"refute","note":"Final-cycle refute review2 blocker 8: src/anomaly/_attempt_workspace.py:112 A second interruption during promotion rollback leaves a valid recovery state that the next restart rejects permanently."}
+{"seq":134,"at":"2026-08-24T12:31:33.131Z","event":"intent","stage":"refute","note":"Final-cycle refute audit blocker 9: src/anomaly/_attempt_workspace.py:261 A schema-valid, registry-bound forged P7 promotion journal can still delete the case README and its journalist-authored content during restart."}
+{"seq":135,"at":"2026-08-24T12:31:33.182Z","event":"intent","stage":"refute","note":"Final-cycle refute audit blocker 10: src/anomaly/attempts.py:29 The documented public run_attempts utility writes before enforcing whole-case no-symlink containment."}
+{"seq":136,"at":"2026-08-24T12:31:33.206Z","event":"intent","stage":"refute","note":"Final-cycle refute audit blocker 11: src/anomaly/events.py:25 The standalone public log_event writer follows case-controlled symlinks outside the case."}
+{"seq":137,"at":"2026-08-24T12:47:20.969Z","event":"record","stage":"refute","agent":"AnFinalRefute1"}
+{"seq":138,"at":"2026-08-24T12:47:21.038Z","event":"record","stage":"refute","agent":"AnFinalRefute2"}
+{"seq":139,"at":"2026-08-24T12:47:21.110Z","event":"record","stage":"refute","agent":"AnFinalRefute3"}
+{"seq":140,"at":"2026-08-24T12:47:21.184Z","event":"record","stage":"refute","agent":"AnFinalRefute4"}
+{"seq":141,"at":"2026-08-24T12:47:21.254Z","event":"record","stage":"refute","agent":"AnFinalRefute5"}
+{"seq":142,"at":"2026-08-24T12:47:21.324Z","event":"record","stage":"refute","agent":"AnFinalRefute6"}
+{"seq":143,"at":"2026-08-24T12:47:21.393Z","event":"record","stage":"refute","agent":"AnFinalRefute7"}
+{"seq":144,"at":"2026-08-24T12:47:21.461Z","event":"record","stage":"refute","agent":"AnFinalRefute8"}
+{"seq":145,"at":"2026-08-24T12:47:21.532Z","event":"record","stage":"refute","agent":"AnFinalRefute9"}
+{"seq":146,"at":"2026-08-24T12:47:21.599Z","event":"record","stage":"refute","agent":"AnFinalRefute10"}
+{"seq":147,"at":"2026-08-24T12:47:21.668Z","event":"record","stage":"refute","agent":"AnFinalRefute11"}
+{"seq":148,"at":"2026-08-24T12:49:14.876Z","event":"intent","stage":"council","note":"Council security inquiry over final eleven-blocker union"}
+{"seq":149,"at":"2026-08-24T12:49:14.901Z","event":"intent","stage":"council","note":"Council integrity inquiry over final eleven-blocker union"}
+{"seq":150,"at":"2026-08-24T12:49:14.933Z","event":"intent","stage":"council","note":"Council pragmatist inquiry over final eleven-blocker union"}
+{"seq":151,"at":"2026-08-24T13:00:11.429Z","event":"intent","stage":"council","note":"Council synthesis dispatch: eleven sustained blockers across three lenses"}
+{"seq":152,"at":"2026-08-24T13:26:58.344Z","event":"record","stage":"council","agent":"CouncilAnomalyIntegrity-2"}
+{"seq":153,"at":"2026-08-24T13:26:58.344Z","event":"record","stage":"council","agent":"CouncilAnomalySecurity-2"}
+{"seq":154,"at":"2026-08-24T13:26:58.344Z","event":"record","stage":"council","agent":"CouncilAnomalyPragmatist-2"}
+{"seq":155,"at":"2026-08-24T13:26:58.344Z","event":"record","stage":"council","agent":"SynthesizeAnomalyCouncil-2"}
+{"seq":156,"at":"2026-08-24T13:27:41.365Z","event":"intent","stage":"plan","note":"Council-selected causal-subgraph reconstruction for promotion trust, containment chokepoint and proof seams"}
+{"seq":157,"at":"2026-08-24T13:30:18.075Z","event":"intent","stage":"plan","note":"Fresh dispatch of council-recovery planner after non-yield"}
+{"seq":158,"at":"2026-08-24T13:40:22.902Z","event":"intent","stage":"plan","note":"Retry recovery planner after transient provider stalls"}
+{"seq":159,"at":"2026-08-24T13:56:43.215Z","event":"intent","stage":"plan","note":"Fresh provider dispatch for council recovery plan"}
+{"seq":160,"at":"2026-08-24T14:06:43.282Z","event":"record","stage":"plan","agent":"PlanAnomalyCouncilRecoverySol"}
+{"seq":161,"at":"2026-08-24T14:06:56.473Z","event":"intent","stage":"implement","note":"Implement council-selected promotion trust and containment reconstruction"}
+{"seq":162,"at":"2026-08-24T14:16:17.543Z","event":"record","stage":"implement","agent":"ImplementAnomalyCouncilRecovery-2"}

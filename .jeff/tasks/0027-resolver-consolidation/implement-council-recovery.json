@@ -1,0 +1,16 @@
+{
+  "stage": "implement",
+  "result": "green",
+  "files": [
+    "src/anomaly/_attempt_workspace.py",
+    "src/anomaly/attempts.py",
+    "src/anomaly/case.py",
+    "src/anomaly/events.py",
+    "src/anomaly/workflow_inputs.py"
+  ],
+  "greenRun": {
+    "command": "uv run --extra test pytest tests/test_pipeline_walk.py tests/test_case.py tests/test_events.py -q",
+    "output": "214 passed in 8.33s"
+  },
+  "kickback": null
+}

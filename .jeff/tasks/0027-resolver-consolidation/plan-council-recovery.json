@@ -1,0 +1,23 @@
+{
+  "stage": "plan",
+  "result": "red",
+  "complexity": "complex",
+  "auditRequired": true,
+  "slices": [
+    "Validate whitespace gate IDs and enforce pre-write containment for fork destinations, direct attempts, and direct event logging.",
+    "Fail closed on forged non-original promotion provenance and require producer-reachable journal ordering.",
+    "Persist rollback progress so a second interruption can restart, restore in reverse producer order, rewind, and clean up.",
+    "Implement against the focused public-behavior proofs, then rerun the requested three-module suite."
+  ],
+  "testFiles": [
+    "tests/test_pipeline_walk.py",
+    "tests/test_case.py",
+    "tests/test_events.py"
+  ],
+  "redRun": {
+    "command": "uv run --extra test pytest tests/test_pipeline_walk.py tests/test_case.py tests/test_events.py -q",
+    "output": "8 failed, 206 passed in 8.69s (exit 1)"
+  },
+  "refactorOpportunity": null,
+  "escalation": null
+}

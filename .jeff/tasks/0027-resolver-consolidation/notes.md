@@ -59,3 +59,37 @@ The ten sustained refutes reduce to eight non-overlapping repairs. The two schem
 - `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/code-standards/SKILL.md`
 - `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/testing/SKILL.md`
 - No bundled Python-specific skill is present.
+
+## Council causal-subgraph reconstruction
+
+- **Category:** `code`.
+- **Complexity:** `complex`.
+- **Audit required:** `true`.
+- **Refactor opportunity:** `null`; the owed work is new trust-boundary behavior and crash-recovery protocol, not behavior-preserving deduplication.
+- **Approach:** reuse the existing resolver, owner registry, whole-tree scanner, bounded attempt utility, and promotion journal. Complete gate member validation before capability creation; enforce unresolved-path containment before every public write; make journal entry shapes producer-ordered; fail closed before any ambiguous `original=false` recovery deletion; and persist rollback intent/progress so a restart can resume after backup consumption.
+
+### Ordered slices
+
+1. **Input and path boundaries:** reject whitespace-only Gate A/B IDs without attempts; scan the fork destination namespace and direct `run_attempts` root before mutation; make direct `log_event` return `None` without following a case-controlled symlink.
+2. **Promotion provenance:** reject untrusted non-original P1 source-registry and P7 README entries before mutation, preserving the live file and journal for diagnosis; validate application entries as a producer-realizable applied/applying prefix followed by pending entries.
+3. **Restartable rollback:** persist per-entry rollback intent before consuming a backup, accept the resulting live/no-backup progress shape on restart, finish reverse-order restoration, rewind the attempt, and clean recovery material.
+4. **Focused proof:** retain the hard-exit missing-evidence and producer-ordered rollback cases, then run only the three requested test modules before implementation.
+
+### Acceptance-criterion dispositions
+
+1. **AC1 pure resolver — `revise`.** Whitespace-only gate IDs remain missing human input and consume no attempt. Seam: the Gate A/B whitespace parameter cases.
+2. **AC2 one owner registry/dynamic loading — `reuse`.** Registry selection and dynamic owners remain unchanged. Seam: existing owner/demo coverage.
+3. **AC3 durable attempts/promotion — `revise`.** A hard exit after the count write gains deterministic failure evidence; producer-ordered promotion and rollback progress survive repeated restart; forged provenance cannot delete live data. Seams: the four focused attempt/promotion tests in `test_pipeline_walk.py`.
+4. **AC4 gate/order/invalidation — `revise`.** Whitespace decisions pause before P4/P7 and promotion recovery accepts only producer-reachable ordering. Seams: gate parameter cases and producer-ordered rollback fixture.
+5. **AC5 README projection — `revise`.** Public recovery preserves journalist-authored README bytes when P7 provenance is false. Seam: the P7 provenance parameter case.
+6. **AC6 inert Markdown — `reuse`.** Dataset Markdown serialization is outside the causal subgraph. Seam: existing serialization proof.
+7. **AC7 whole-case no-symlink — `revise`.** Fork destination, direct attempts, and direct event logging cannot mutate a symlink target. Seams: focused tests in `test_case.py`, `test_pipeline_walk.py`, and `test_events.py`.
+8. **AC8 obsolete surfaces removed — `reuse`.** No removed API or duplicate projection is restored. Seam: existing absence/conformance coverage.
+9. **AC9 demo CSV — `reuse`.** The checked-in demo and six-step flow remain unchanged. Seam: existing canonical demo proof.
+
+### Focused RED
+
+- **Command:** `uv run --extra test pytest tests/test_pipeline_walk.py tests/test_case.py tests/test_events.py -q`
+- **Result:** `8 failed, 206 passed in 8.69s` (exit 1).
+- **Decisive RED:** whitespace Gate A consumes attempts and Gate B completes; rollback restart rejects consumed-backup progress; forged P1/P7 provenance deletes the source registry/README; direct attempts write before containment; fork follows the destination symlink; direct event logging appends outside the case.
+- **Retained green proofs:** the hard-exit missing-evidence reconciliation and producer-ordered interrupted-promotion rollback tests pass.

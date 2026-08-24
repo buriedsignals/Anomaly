@@ -1,14 +1,16 @@
 # Context
 
-## Locked task and gated lineage
+## Locked task and council lineage
 
 - `.jeff/tasks/0027-resolver-consolidation/task.md:7` — AC1-AC9 and the no-runner non-goal.
 - `.jeff/tasks/0027-resolver-consolidation/task.json:8` — current stage `plan`; line 9 locks category `code`.
-- `.jeff/tasks/0027-resolver-consolidation/task.json:42` — prior clean full gate at `8500ab972190cc5d83fc37344fede3a24816dfe2` with `uv run --extra test pytest tests/`.
-- `.jeff/tasks/0027-resolver-consolidation/review-recovered-correctness.json:61` — cycle-1 correctness findings.
-- `.jeff/tasks/0027-resolver-consolidation/review-recovered-standards.json:61` — cycle-1 standards findings.
-- `.jeff/tasks/0027-resolver-consolidation/audit-recovered.json:56` — cycle-1 security findings.
-- `.jeff/tasks/0027-resolver-consolidation/refute-post-1.json` through `refute-post-10.json` — ten sustained cycle-1 refutes.
+- `.jeff/tasks/0027-resolver-consolidation/council-final.json:360` — cycle-2 synthesis; line 391 selects `causal-subgraph-reconstruction`.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-1.json` through `refute-final-11.json` — eleven surviving cycle-2 findings.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-1.json` and `refute-final-9.json` — P1 source-registry and P7 README promotion provenance cases.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-2.json` and `refute-final-7.json` — fork destination namespace containment.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-3.json` through `refute-final-5.json` — whitespace gates and attempt/promotion proof seams.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-8.json` — rollback-progress restart.
+- `.jeff/tasks/0027-resolver-consolidation/refute-final-10.json` and `refute-final-11.json` — direct attempt/event pre-write containment.
 
 ## Relevant production and installed-content paths
 
@@ -43,10 +45,12 @@
 - `src/anomaly/case.py:139` — whole-tree-scanned `inspect_case` reader.
 - `src/anomaly/case.py:147` — whole-tree-scanned `resume_case` reader.
 - `src/anomaly/case.py:257` — unresolved-path ancestor and descendant scan.
+- `src/anomaly/case.py:157` — public `fork_case` destination normalization and copy.
 - `src/anomaly/readme.py:7` — marker-owned output links.
 - `src/anomaly/readme.py:24` — README state projection.
 - `src/anomaly/semantics.py:58` — shared assignment credential pattern.
 - `src/anomaly/semantics.py:101` — shared recursive credential sanitizer.
+- `src/anomaly/events.py:25` — standalone best-effort `log_event` writer.
 - `skills/anomaly/SKILL.md:39` — current state/event/attempt authority text.
 - `skills/anomaly/SKILL.md:46` — current durable-runner wording.
 - `skills/anomaly/SKILL.md:207` — current abstract Verbs section.
@@ -55,29 +59,25 @@
 
 ## Plan-owned test seams
 
-- `tests/test_pipeline_walk.py:190` — P1 persisted promotion write-set fixture.
-- `tests/test_pipeline_walk.py:196` — P7 authoritative output mutation table.
-- `tests/test_pipeline_walk.py:310` — value-invalid source requests pause before P1 attempts.
-- `tests/test_pipeline_walk.py:378` — value-invalid Gate A decisions pause before P4 attempts.
-- `tests/test_pipeline_walk.py:405` — value-invalid Gate B decisions pause before P7 attempts.
-- `tests/test_pipeline_walk.py:578` — valid missing-file source retries retain three-attempt evidence.
-- `tests/test_pipeline_walk.py:605` — interrupted attempt recovery, evidence, cleanup, and finite retry limit.
-- `tests/test_pipeline_walk.py:644` — valid interrupted-promotion rollback, rewind, cleanup, and fresh retry.
-- `tests/test_pipeline_walk.py:695` — untrusted promotion path/status/original rejection without mutation.
-- `tests/test_pipeline_walk.py:730` — compound environment assignment redaction across durable evidence.
-- `tests/test_pipeline_walk.py:1038` — existing Gate B receipt invalidation and recompletion.
-- `tests/test_pipeline_walk.py:1082` — P7 output identity and README demotion table.
-- `tests/test_case.py:244` — root/nested create-time symlink rejection before writes.
-- `tests/test_skill.py:70` — durable path, bounded retry, and portable-path installed-skill assertions after stale event-resume assertion removal.
+- `tests/test_pipeline_walk.py:191` — P1/P7 promotion write-set fixtures.
+- `tests/test_pipeline_walk.py:398` — Gate A whitespace ID pauses before P4 attempts.
+- `tests/test_pipeline_walk.py:425` — Gate B whitespace ID pauses before P7 attempts.
+- `tests/test_pipeline_walk.py:625` — hard exit after durable count write reconciles missing failure evidence.
+- `tests/test_pipeline_walk.py:674` — producer-ordered applied-prefix promotion rollback.
+- `tests/test_pipeline_walk.py:722` — second interruption during rollback resumes on the next public restart.
+- `tests/test_pipeline_walk.py:789` — false non-original P1/P7 provenance preserves live source registry/README.
+- `tests/test_pipeline_walk.py:819` — direct `run_attempts` rejects a symlinked case before durable writes.
+- `tests/test_case.py:429` — fork rejects a symlinked destination ancestor without external copy.
+- `tests/test_events.py:304` — direct `log_event` rejects a symlinked event store without append.
 - `tests/test_workflow.py:12` — pure ready/resume result and snapshot immutability.
 - `tests/test_review.py:425` — inert standalone bare-URL serialization.
 - `tests/fixtures/orchestration_demo.csv` — checked-in canonical workflow input.
 
 ## Commands
 
-- Focused RED: `uv run --extra test pytest tests/test_pipeline_walk.py::test_value_invalid_source_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_a_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_b_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit tests/test_pipeline_walk.py::test_public_restart_rolls_back_an_interrupted_promotion_before_retry tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_changed_or_missing_p7_output_demotes_completion_and_readme tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_skill.py::test_skill_contracts_durable_state_bounded_retries_and_portable_paths`.
-- Focused RED result: `30 failed, 4 passed in 3.71s` (exit 1).
-- Jeff project gate command: `uv run --extra test pytest tests/`.
+- Focused RED: `uv run --extra test pytest tests/test_pipeline_walk.py tests/test_case.py tests/test_events.py -q`.
+- Focused RED result: `8 failed, 206 passed in 8.69s` (exit 1).
+- Jeff project gate command after implementation: `uv run --extra test pytest tests/`.
 
 ## Mechanical constraints
 

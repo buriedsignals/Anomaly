@@ -1,0 +1,155 @@
+{
+  "stage": "review",
+  "cycle": 2,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC6",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC8",
+      "claimed": "delete",
+      "rederived": "delete",
+      "ok": true
+    },
+    {
+      "ac": "AC9",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 262,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Registry binding still lets an untrusted promotion journal delete a legitimate phase-owned artifact by lying that it did not originally exist.",
+      "why": "For a P1 journal, `data/sources.json` is in the exact registry write set. An entry `{path: \"data/sources.json\", original: false, status: \"applied\"}` with no backup passes `_validate_recovery_artifacts` because the non-original applied branch checks only that the backup is absent. The other required entries can truthfully be pending/original and make the complete journal schema-valid. Public recovery then reaches `_rollback` line 128 and recursively deletes the live target before rewinding. Binding deletion to the owner registry narrows the prior exploit but does not eliminate reachable case-data loss or satisfy the locked rule to reject unverifiable journals without mutation. Add a public-restart regression for a fixed-write-set target with a forged boolean `original`, then redesign recovery so rollback authority is verifiable rather than journal-asserted."
+    },
+    {
+      "file": "src/anomaly/case.py",
+      "line": 166,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The public fork writer still follows a symlinked destination ancestor and can create the child case outside the caller-selected path.",
+      "why": "`fork_case` resolves `dest` before any destination scan and only scans the source; line 179 copies directly to the resolved destination. A destination such as `alias/child`, where `alias` is a symlink to an external directory, is converted to the external target and populated there. Existing fork containment tests cover symlinks inside the source case, not destination-root or destination-ancestor links. This is a reachable path escape and leaves AC7's every public read/write path incomplete. Add root/ancestor destination-link tests and scan the unresolved prospective destination before resolve or copy."
+    },
+    {
+      "file": "src/anomaly/workflow_inputs.py",
+      "line": 168,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Whitespace-only Gate A and Gate B IDs are still classified as complete human decisions.",
+      "why": "The gate sequence predicate rejects `not item` but not `not item.strip()`, even though it correctly applies nonblank validation to the actor. The direct pure probe returned both `gate_a` and `gate_b` capabilities for `approved_ids=['   ']` and `accepted_claim_ids=['   ']`. Gate A then spends attempts rejecting an unknown detector, while Gate B can silently promote no claims and complete because unknown requested claims are ignored. This contradicts the complete value-schema and no-attempt human-boundary contract. Extend both public value tables with whitespace-only IDs and reject them during capability derivation."
+    },
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 605,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The interrupted-attempt test never exercises restart reconciliation for a counted attempt with no failure evidence.",
+      "why": "Its interrupt is `KeyboardInterrupt`, which `run_attempts` catches in the `except BaseException` branch and immediately records through `_finish_failure` before re-raising. Every subsequent invocation therefore sees an already evidenced failure; `_reconcile_interrupted_attempt`'s missing-evidence path is never reached. The test can stay green if hard termination once again strands attempt three. AC3 explicitly requires finite, evidenced recovery after an interruption, so a deterministic crash/restart seam—such as a subprocess hard exit after the durable counter write—is owed."
+    },
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 644,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The claimed valid interrupted-promotion test constructs a journal state the sequential promoter cannot produce.",
+      "why": "`P1_PROMOTION_WRITES` orders `.anomaly/events.jsonl` last, but the fixture marks only that last entry `applied` while every earlier entry remains `pending`. `_apply` processes entries in order, so the event artifact cannot be applied until all preceding entries are applied. The test therefore proves recovery from a fabricated transition rather than a real interrupted promotion and can miss rollback regressions on genuine applied-prefix states. Revise the fixture or use controlled interruption so the journal, backups, live artifacts, and staged workspace match a reachable promoter checkpoint."
+    },
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 196,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The P7 identity matrix does not prove that a changed chart descendant invalidates completion.",
+      "why": "The matrix mutates the three files and charts receipt and removes the entire charts directory, but never changes, adds, removes, or changes the kind of a descendant inside `findings/charts/`. Descendant content is a distinct consumer-observable part of the locked completion identity; directory removal alone would pass with an implementation that hashes only directory existence. Add at least one completed-case chart-descendant mutation and require P7 invalidation plus README demotion."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git rev-parse HEAD; git status --short",
+      "output": "HEAD is the requested gated hash 429c34deae1b9f5a92252147ec16acebfcb4812b. Only Jeff recording files and scratchpads/security-final are dirty/untracked; reviewed production, tests, PRD, and installed skill match the checkpoint."
+    },
+    {
+      "command": "uv run --extra test pytest tests/ (supplied clean gate evidence)",
+      "output": "766/766 passed. This establishes suite greenness but does not cover the missing or invalid test seams identified above."
+    },
+    {
+      "command": "read task.md, notes.md, context.md, bundled code-standards and testing skills, and the full task lineage diff 9854273..429c34d",
+      "output": "Re-derived all nine locked AC dispositions. The full change keeps one fixed P0-P7 registry, dynamic P5/P6 loading, focused attempt/promotion utilities, identity invalidation, README projection, containment preflights, and deletion of product_workflow.py and stale runner/verb/event-resume prose."
+    },
+    {
+      "command": ".venv/bin/python -c '<input_capabilities whitespace gate probe>'",
+      "output": "['gate_a', 'gate_b'] for whitespace-only selected IDs, confirming incomplete value validation at the pre-attempt boundary."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:109-264 and src/anomaly/workflow.py:22-83",
+      "output": "The parser enforces exact registry paths and boolean `original`, but for a non-original applied entry validates only absence of a backup; rollback then deletes the live artifact. P1's fixed set includes existing `data/sources.json` and `data/raw` targets."
+    },
+    {
+      "command": "read src/anomaly/case.py:159-180; grep fork/symlink tests",
+      "output": "`fork_case` calls `Path(dest).resolve()` and `shutil.copytree` without scanning the unresolved destination. Current fork symlink tests cover links in the source case only."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:42-180 and tests/test_pipeline_walk.py:605-640",
+      "output": "`KeyboardInterrupt` is caught, cleaned, and persisted immediately by the BaseException path; the test never produces an incremented durable attempt without failure evidence and therefore never tests restart reconciliation."
+    },
+    {
+      "command": "grep P7_OUTPUT_MUTATIONS and chart descendant mutations across tests",
+      "output": "The P7 table covers findings.json, report.md, unresolved.md, deletion of findings/charts, and charts.json; no test mutates any descendant within the charts tree."
+    },
+    {
+      "command": "grep obsolete orchestration symbols/prose; glob tests/fixtures/*demo*.csv; read canonical demo test",
+      "output": "WorkflowRunner, PhaseResult, RetryLimitExceeded, product_workflow, stale event-resume prose, and the obsolete Verbs section are absent. Exactly one orchestration_demo.csv remains, and the end-to-end test exercises dynamic skill/persona loading, both human turns, completion, portable links, restart, and P5→P6→Gate B ordering."
+    }
+  ]
+}

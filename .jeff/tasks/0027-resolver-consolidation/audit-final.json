@@ -1,0 +1,122 @@
+{
+  "stage": "audit",
+  "cycle": 2,
+  "verdict": "needs-work",
+  "scan": {
+    "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly --report-dir scratchpads/security-final",
+    "recommendation": "REVIEW",
+    "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-final/security-audit-20260824-121514.md"
+  },
+  "coverage": [
+    {
+      "category": "secrets",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "injection_sql",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "injection_command",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "path_traversal",
+      "status": "covered_with_hits"
+    },
+    {
+      "category": "insecure_deserialization",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "weak_crypto",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "dynamic_execution",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "tls_transport",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "xss",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "sensitive_logging",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "insecure_permissions",
+      "status": "covered_no_hits"
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 261,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "A schema-valid, registry-bound forged P7 promotion journal can still delete the case README and its journalist-authored content during restart.",
+      "why": "The new parser binds entry paths to the fixed phase write set, but _validate_recovery_artifacts accepts every non-pending entry with original=false whenever no backup exists, regardless of whether the live path already exists. README.md is in P7's fixed write tuple. A portable unsealed case can therefore supply the exact P7 entry set with README.md marked original=false/status=applied and no backup while the other entries are coherent pending entries. recover_interrupted_promotion runs before snapshot resolution; _rollback reaches the no-backup/original=false branch and discard_workspace removes README.md. This is reachable user-content loss despite passing the new exact-schema, registry-set, and artifact-coherence checks.",
+      "cwe": "CWE-73"
+    },
+    {
+      "file": "src/anomaly/attempts.py",
+      "line": 29,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "The documented public run_attempts utility writes before enforcing whole-case no-symlink containment.",
+      "why": "run_attempts begins with load_snapshot(root), which calls _ensure_durable_tree and can create .anomaly/receipts, .anomaly/attempts, state.json, and events.jsonl. It does not scan the supplied root until after create_workspace and owner execution, when it scans only the copied workspace. A case with a symlinked root or .anomaly directory therefore causes durable state and attempt writes to follow the link outside the case before any rejection. run_workflow is guarded by resume_case, but run_attempts is a separately named execution utility, is called directly by tests, and is taught by the installed skill, so the guarded dispatcher does not close this public path.",
+      "cwe": "CWE-59"
+    },
+    {
+      "file": "src/anomaly/events.py",
+      "line": 25,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "The standalone public log_event writer follows case-controlled symlinks outside the case.",
+      "why": "phase_event wrappers now scan the case before their wrapped operation, but log_event itself remains directly callable and constructs case_root/.anomaly/events.jsonl with mkdir/open without _scan_case_tree or an owned-path check. Its tests explicitly exercise direct calls, including a missing case. If case_root or .anomaly is a symlink, the append succeeds against the external target and is not caught as an error, violating the acceptance criterion that every public read/write path enforce whole-case containment and enabling external-file corruption.",
+      "cwe": "CWE-59"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read /Users/tomvaillant/buried_signals/tools/anomaly/scratchpads/security-final/security-audit-20260824-121514.md",
+      "output": "The supplied deterministic scan covered all 25 src/anomaly files, reported six high regex hits, two scanner gaps, no critical findings, no dependency vulnerabilities, and REVIEW. The hits were ast.literal_eval plus five interpolated DuckDB statements; GitHub Actions and XSS were the two scanner gaps."
+    },
+    {
+      "command": "read src/anomaly/detect.py:60-115,350-390,600-660; src/anomaly/prepare.py:450-510; src/anomaly/profile.py:120-235",
+      "output": "All six machine hits are refuted as exploit paths. ast.literal_eval is limited to quoted scalar parsing and does not execute code. Detector PRAGMA values are positive integers after bool/type validation. Prepared table identifiers are generated as tbl_ plus a SHA-256 digest and views come from enumerate. Profile table IDs must match tbl_[0-9a-f]{64} before interpolation. DuckDB execution is read-only with external access disabled."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:57-150,166-272 and src/anomaly/workflow.py:158-180",
+      "output": "Recovery now requires the exact registry-derived write set and validates journal/entry schemas, bounded phase attempts, entry states, and backup/live coherence. However original=false with status applying/applied is considered coherent solely when backup is absent; rollback then deletes the live path. Because P7's registry tuple includes README.md, the constructed exact-set journal remains accepted and can delete journalist content before state resolution."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:29-125 and src/anomaly/state.py:20-110,184-195",
+      "output": "run_attempts calls load_snapshot before any root scan. load_snapshot's durable-tree initialization performs mkdir, touch, temporary write, and replace operations beneath root/.anomaly. The only scan in run_attempts occurs after the workspace has been copied and the owner has executed, so it cannot prevent entry-time symlink traversal."
+    },
+    {
+      "command": "read src/anomaly/events.py:25-72; grep direct log_event call sites",
+      "output": "log_event performs parent mkdir and append-open directly beneath the supplied case root, catches only resulting exceptions, and has no containment check. Direct call sites exist in tests/test_events.py; only callers routed through phase_event receive the newly added pre-call scan."
+    },
+    {
+      "command": "uv run python -c 'from anomaly.semantics import redact_credentials; print(redact_credentials(\"AWS_SECRET_ACCESS_KEY=awsSecretValue1234567890abcd OPENAI_API_KEY=openaiSecretValue1234567890abcd\"))'",
+      "output": "AWS_SECRET_ACCESS_KEY=[redacted] OPENAI_API_KEY=[redacted]"
+    },
+    {
+      "command": "read src/anomaly/review.py:589-658,1030-1085; src/anomaly/report.py:1-300; src/anomaly/identities.py:1-170; src/anomaly/readme.py:1-70",
+      "output": "Compound error redaction now reaches the shared durable boundaries. Dataset-derived report text is credential-redacted, whitespace-collapsed, HTML-escaped, Markdown-metacharacter escaped, and bare HTTP(S) colons neutralized; SVG text is XML-escaped. P7 completion identity covers findings/report/unresolved, Gate B and chart receipts, and the charts directory including descendants and empty-directory existence. README completion links remain derived and marker-bounded."
+    },
+    {
+      "command": "read pyproject.toml; jj diff --from 98542737b170 --to 429c34deae1b --stat src/anomaly tests skills/anomaly agents/anomaly-data-reviewer.md PRD.md; jj log -r @- --no-graph -T commit_id",
+      "output": "No dependency manifest change was introduced; runtime dependencies remain pyarrow, duckdb, and pytz. GitHub Actions is outside the supplied src/anomaly scan and changed product scope. The audited parent revision is exactly 429c34deae1b9f5a92252147ec16acebfcb4812b; supplied gate evidence records it clean with the full suite green at 766/766."
+    }
+  ]
+}

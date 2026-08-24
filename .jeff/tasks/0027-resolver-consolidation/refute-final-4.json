@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review",
+  "finding": "tests/test_pipeline_walk.py:605 The interrupted-attempt test never exercises restart reconciliation for a counted attempt with no failure evidence.",
+  "verdict": "survives",
+  "rationale": "The test's KeyboardInterrupt is always caught by run_attempts' BaseException handler and persisted by _finish_failure before control returns, so the next invocation finds recorded evidence and cannot enter the missing-evidence reconciliation branch; no upstream guard or alternate assertion makes the claimed restart failure unreachable.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/attempts.py:29-125",
+      "output": "run_attempts durably increments and writes the attempt count, but both execution and promotion wrap BaseException with _finish_failure(...) before re-raising; _reconcile_interrupted_attempt only synthesizes interrupted failure evidence when no matching recorded failure exists."
+    },
+    {
+      "command": "read anomaly/src/anomaly/attempts.py:220-275",
+      "output": "_finish_failure calls _record_failure, which writes failure.json, appends phase_failed, adds the failure to state, and writes state before returning."
+    },
+    {
+      "command": "read anomaly/tests/test_pipeline_walk.py:605-641",
+      "output": "The test raises KeyboardInterrupt three times through run_attempts, then asserts failures 1, 2, and 3 and each failure.json exist; it never creates a durable counted attempt lacking failure evidence or restarts from such a state."
+    }
+  ]
+}

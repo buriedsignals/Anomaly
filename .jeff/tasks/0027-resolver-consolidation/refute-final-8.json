@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review2",
+  "finding": "src/anomaly/_attempt_workspace.py:112 A second interruption during promotion rollback leaves a valid recovery state that the next restart rejects permanently.",
+  "verdict": "survives",
+  "rationale": "The failure is reachable because applied original entries are persisted before rollback, rollback can restore one by consuming its backup without journalizing that entry, and every later public restart deterministically rejects the resulting original/applied/live-without-backup state before rollback can resume.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:82-128",
+      "output": "_apply persists each entry as status \"applied\" and can persist the whole journal as \"promoted\"; _rollback then calls backup.replace(live) for each non-pending original entry but neither changes the entry status nor writes the journal inside the loop, writing status \"rolled_back\" only after every entry is restored."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:245-270",
+      "output": "For a non-rolled-back original entry, _validate_recovery_artifacts accepts only backup.exists() or (status == \"applying\" and live.exists()). After partial rollback of an \"applied\" entry, backup is absent and live exists, so coherent is false and WorkflowError is raised; no upstream recovery guard accepts this legitimate rollback-progress shape."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:158-178",
+      "output": "The public run_workflow entry calls recover_interrupted_promotion before normal resolution/execution, so the inconsistent validation is reached on a real public restart and aborts that restart."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:190-228,644-694",
+      "output": "P1's real promotion write set has four entries, and the existing restart test models only one applied entry with its backup still present. Multiple applied original entries make interruption after restoring an earlier applied entry reachable, while current coverage does not exercise a second interruption during rollback."
+    }
+  ]
+}
