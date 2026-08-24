@@ -1,0 +1,131 @@
+{
+  "stage": "review",
+  "cycle": 2,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_signal_projection.py",
+      "line": 643,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "Derived-directory creation still has a pre-pin symlink race.",
+      "why": "_prepare_search_root checks .anomaly by pathname and then calls Path.mkdir(exist_ok=True); it repeats the same check/mkdir sequence for search. A shared-case mutator can replace .anomaly with a symlink after the check, causing search_root.mkdir at line 647 to create an outside search directory before _pin_search_root notices the rebind. This is a reachable path-escape write under the task's explicit concurrent/symlink-swap threat model and blocks AC2 containment. Create and open both components relative to a pinned case-root descriptor with mkdirat/openat-style dir_fd operations and O_NOFOLLOW rather than prechecking mutable pathnames."
+    },
+    {
+      "file": "tests/test_signal_search.py",
+      "line": 735,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The derived-containment tests do not exercise the pre-pin directory-creation race.",
+      "why": "The existing swap test calls the real _prepare_search_root to completion and only then replaces search, while the pre-existing-symlink test is static. An implementation that follows a newly swapped .anomaly symlink during either mkdir therefore remains green. AC2's outside-write boundary is consumer-observable and security-sensitive, so add a deterministic Event-scheduled swap between validation and creation and assert that the outside sentinel and directory entries remain unchanged."
+    },
+    {
+      "file": "tests/test_signal_search.py",
+      "line": 654,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "No behavioral test distinguishes the private-copy repair from the previously green mutable-pathname reopen.",
+      "why": "Checkpoint 801f0e1 passed the full gate and the same 31 signal-search tests while DuckDB still reopened the verified case artifact through a mutable pathname; the bonus repair changed only production code. The current concurrency test pauses after verified_projection has already opened its connection, so reverting _open_private_projection to the vulnerable pathname flow would still pass. AC2/AC6 need an event-scheduled public-search case that ABA-swaps signals.duckdb after descriptor-based verification but around DuckDB open and proves the search returns the verified rows or fails closed, never rows from the replacement."
+    },
+    {
+      "file": "tests/test_signal_search.py",
+      "line": 654,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "plan",
+      "what": "The new private temporary projection lifecycle has no observable cleanup regression test.",
+      "why": "The implementation currently owns cleanup correctly, but the test file never observes temporary projection lifetime; removing _PrivateProjection's retained TemporaryDirectory or its cleanup call would leave all 31 tests green while leaking redacted projection files and directories. Add an isolated, parallel-safe lifecycle case that proves no private projection artifact remains after both a successful search and a query failure, without asserting private call shapes."
+    },
+    {
+      "file": "src/anomaly/_signal_projection.py",
+      "line": 1,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "plan",
+      "what": "The projection implementation still exceeds the maintainability boundary and combines unrelated responsibilities.",
+      "why": "The final module is 824 lines and owns temporary resource lifetime, descriptor/path containment, manifest verification, canonical parsing, provenance and metadata policy, public mapping, DuckDB persistence, and staging. This remains six-month maintenance debt under the authoritative less-than-200-line module directive, but it is not by itself a reachable correctness, security, data-loss, or acceptance failure."
+    },
+    {
+      "file": "src/anomaly/search.py",
+      "line": 45,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "implement",
+      "what": "The public API still claims an atomic rebuild although the two artifacts are published separately.",
+      "why": "build_projection performs independent os.replace calls for signals.duckdb and signals-manifest.json. Failure after the database replacement can leave a new database paired with the old manifest. Verification fails closed and a later explicit rebuild can recover without canonical data loss, so this degenerate-filesystem edge is follow-up debt; remove the inaccurate atomicity claim or publish one generation through a single atomic indirection."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git diff --stat af4b05c f1f404c89e11b388687e90ff07b17e46940d0ffd -- src tests/test_signal_search.py; git diff --no-ext-diff af4b05c f1f404c89e11b388687e90ff07b17e46940d0ffd -- src tests/test_signal_search.py",
+      "output": "Inspected the full task diff: seven implementation/test files, 2,028 insertions and 55 deletions. The change adds _signal_projection.py (824 lines), search.py (285 lines), test_signal_search.py (781 lines), and updates detect.py, detectors/__init__.py, review.py, and semantics.py; no pre-existing test was deleted or weakened."
+    },
+    {
+      "command": "git diff --no-ext-diff --unified=120 801f0e1 f1f404c89e11b388687e90ff07b17e46940d0ffd -- src/anomaly/_signal_projection.py",
+      "output": "The bonus repair removes descriptor-to-path conversion, builds the DuckDB image in a 0700 private TemporaryDirectory, copies verified bytes into a 0600 O_EXCL/O_NOFOLLOW private file, opens it read-only with external access disabled, unlinks it after open, and retains its directory through _PrivateProjection."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:25-52,122-241,496-557; read src/anomaly/search.py:44-88",
+      "output": "_PrivateProjection is the single owner of the DuckDB connection plus TemporaryDirectory; close shuts the connection before cleanup in a finally block. _open_private_projection closes and cleans on OSError/duckdb.Error, build-side temporary storage is context-managed, and search_signals closes the owner in its own finally block. The present cleanup order is correct."
+    },
+    {
+      "command": "read src/anomaly/_signal_projection.py:639-681; read tests/test_signal_search.py:654-781",
+      "output": "After pathname prechecks, _prepare_search_root performs both mkdir operations before any case-root-relative directory descriptor is pinned. The tests cover a static pre-existing symlink and a swap after _prepare_search_root returns, but not a swap between either precheck and mkdir. They also pause concurrent search only after verified_projection has returned, not at the repaired DuckDB-open boundary."
+    },
+    {
+      "command": "read task.md; read notes.md; read plan-recovery-return.json; read tests/test_signal_search.py:283-781",
+      "output": "Re-derived all seven claimed revise dispositions. Existing tests correctly defend exact redacted result shape and canonical digests, nine independently discriminating filters, every promised lexical field and complete matched_on, repeated-run composite references and bounded keyset traversal, explicit stale rejection/rebuild for all three input families, and retrieval-only scores. They use tmp_path, injected NOW, and threading.Event rather than sleeps, network, real timestamps, unseeded randomness, or shared case paths."
+    },
+    {
+      "command": "read task.json:20-47; read journal.jsonl:61-81; read implement-path-race-return.json; read refactor-path-race-return.json",
+      "output": "The task ledger binds a clean green full-suite gate to exact checkpoint f1f404c89e11b388687e90ff07b17e46940d0ffd; supplied gate evidence reports all 802 tests green. Targeted supplied evidence is 31 signal-search tests and 62 pipeline-walk tests green. Per assignment, no tests or project commands were run during this read-only review."
+    }
+  ]
+}

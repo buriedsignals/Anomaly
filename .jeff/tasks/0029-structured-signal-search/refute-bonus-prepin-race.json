@@ -1,0 +1,34 @@
+{
+  "cycle": 2,
+  "evidence": [
+    {
+      "command": "git -C anomaly log -1 --format='%H %s' f1f404c89e11b388687e90ff07b17e46940d0ffd && git -C anomaly diff f1f404c89e11b388687e90ff07b17e46940d0ffd --stat -- src/anomaly/_signal_projection.py tests/test_signal_search.py",
+      "output": "f1f404c89e11b388687e90ff07b17e46940d0ffd task 29 \u00b7 path-race verification checkpoint\n(diff --stat empty: worktree identical to checkpoint for both files)"
+    },
+    {
+      "command": "git show f1f404c\u2026:src/anomaly/_signal_projection.py | sed -n '639,700p'",
+      "output": "639| def _prepare_search_root(root: Path) -> Path:\n641|     if anomaly_root.is_symlink() or (anomaly_root.exists() and not anomaly_root.is_dir()):\n643|     anomaly_root.mkdir(mode=0o700, exist_ok=True)\n645|     if search_root.is_symlink() or (search_root.exists() and not search_root.is_dir()):\n647|     search_root.mkdir(mode=0o700, exist_ok=True)\n658| def _pin_search_root(root, search_root):\n659|     descriptor = os.open(root, _directory_open_flags())\n661-664|     for part in (\".anomaly\", \"search\"): child = os.open(part, _directory_open_flags(), dir_fd=descriptor)\n665|         if not _directory_still_pinned(search_root, descriptor): raise SignalSearchError(\"unsafe derived search boundary changed\")\n675-687| def _directory_still_pinned(path, descriptor): current=os.open(path,_directory_open_flags()); return _same_object(os.fstat(descriptor),os.fstat(current))  # (st_dev,st_ino)\n690-696| _directory_open_flags(): os.O_RDONLY | O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW"
+    },
+    {
+      "command": "git show f1f404c\u2026:src/anomaly/_signal_projection.py | sed -n '128,171p'",
+      "output": "129|    search_root = _prepare_search_root(base)\n130|    search_descriptor = _pin_search_root(base, search_root)\n131|    stage_name = f\".build-{secrets.token_hex(16)}\"\n136|        os.mkdir(stage_name, mode=0o700, dir_fd=search_descriptor)\n155|        if not _directory_still_pinned(search_root, search_descriptor): raise SignalSearchError(\"unsafe derived search boundary changed\")\n157-165|        os.replace(\"signals.duckdb\", \"signals.duckdb\", src_dir_fd=stage_descriptor, dst_dir_fd=search_descriptor)  # same for signals-manifest.json"
+    },
+    {
+      "command": "sed -n '726,756p' src/anomaly/_signal_projection.py",
+      "output": "_write_owned_bytes(directory, name, raw): flags = O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC|O_NOFOLLOW; descriptor = os.open(name, flags, 0o600, dir_fd=directory)\n_remove_owned_file(directory, name): os.unlink(name, dir_fd=directory)"
+    },
+    {
+      "command": "sed -n '735,763p' tests/test_signal_search.py",
+      "output": "def test_projection_refuses_a_search_directory_swapped_after_validation(...):\n    def swap_after_validation(case_root):\n        search_root = original_prepare_search_root(case_root)\n        search_root.rename(parked_search_root)\n        search_root.symlink_to(outside, target_is_directory=True)\n        return search_root\n    monkeypatch.setattr(projection, \"_prepare_search_root\", swap_after_validation)\n    with pytest.raises(api.SignalSearchError, match=\"(?i)(search|projection|unsafe|symlink|contain)\"):\n        api.build_signal_projection(root)\n    assert list(outside.iterdir()) == [sentinel]\n    assert sentinel.read_bytes() == b\"unchanged\"\n    assert _digests(canonical_paths) == before"
+    },
+    {
+      "command": "grep -n '_prepare_search_root|_pin_search_root' src/anomaly/_signal_projection.py",
+      "output": "129|    search_root = _prepare_search_root(base)\n130|    search_descriptor = _pin_search_root(base, search_root)\n188|    search_root = _existing_search_root(base)\n189|    search_descriptor = _pin_search_root(base, search_root)\n639|def _prepare_search_root...\n658|def _pin_search_root..."
+    }
+  ],
+  "finding": "src/anomaly/_signal_projection.py:643 Derived-directory creation still has a pre-pin symlink race.",
+  "rationale": "The check\u2192mkdir TOCTOU window at :641-647 exists, but it cannot carry the claimed failure: _prepare_search_root's returned path has exactly one consumer, the adjacent _pin_search_root call (:129\u2192130), which re-walks .anomaly/search per-component with O_NOFOLLOW|O_DIRECTORY dir-fd opens (:658-667) plus a (st_dev,st_ino) identity re-check (:665, :675-687) so any surviving symlink fails closed before stage creation, every artifact operation afterward is descriptor-relative (:136-165, :740-756) behind a final pre-publish identity re-check (:155), and the checkpoint's own test deterministically wins this exact pre-pin swap (rename+symlink between prepare-return and pin) asserting a clean SignalSearchError with the outside target and canonical inputs byte-identical (tests/test_signal_search.py:735-762); residual effect is at most empty stray directories inside the attacker's own symlink target plus an availability-only abort, non-blocking under the shared-case model where the adversary can already delete .anomaly outright.",
+  "source": "review2",
+  "stage": "refute",
+  "verdict": "refuted"
+}

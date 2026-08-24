@@ -46,14 +46,16 @@
 - `tests/test_signal_search.py:549` — two canonical detector executions against an isolated copied package with changed metadata content.
 - `tests/test_signal_search.py:593` — repeated canonical `signal_id` rows, run-aware references, and bounded cursor walk.
 - `tests/test_signal_search.py:654` — Event-scheduled verified-read/rebuild interleaving.
-- `tests/test_signal_search.py:700` — post-validation canonical-input symlink swap.
-- `tests/test_signal_search.py:735` — post-validation derived-directory symlink swap.
-- `tests/test_signal_search.py:765` — pre-existing derived-directory symlink rejection.
+- `tests/test_signal_search.py:701` — query-time verified-byte attach discriminator: one real derived-index swap planted between hash verification and connect.
+- `tests/test_signal_search.py:762` — post-validation canonical-input symlink swap.
+- `tests/test_signal_search.py:797` — post-validation derived-directory symlink swap.
+- `tests/test_signal_search.py:827` — pre-existing derived-directory symlink rejection.
 
 ## Commands
 
 - Targeted RED: `.venv/bin/python -m pytest tests/test_signal_search.py -q` — `10 failed, 21 passed in 0.84s`.
-- Targeted GREEN: `.venv/bin/python -m pytest tests/test_signal_search.py -q` — `31 passed in 0.87s`.
+- Targeted GREEN: `.venv/bin/python -m pytest tests/test_signal_search.py -q` — `32 passed in 1.20s`.
+- Recovery RED (runtime-only pathname-reopen simulation, production untouched): `PYTHONPATH=/tmp .venv/bin/python -m pytest "tests/test_signal_search.py::test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach" -q -p vreopen_sim` — `1 failed`, served `['signal-poison']` (`/tmp/vreopen_sim.py`; output `artifact://385`).
 - Targeted pipeline compatibility GREEN: `.venv/bin/python -m pytest tests/test_pipeline_walk.py -q` — `62 passed in 7.77s`.
 - Full suite configured by pytest: `.venv/bin/python -m pytest` (not run by plan station).
 

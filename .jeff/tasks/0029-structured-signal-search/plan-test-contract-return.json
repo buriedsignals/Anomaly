@@ -1,0 +1,20 @@
+{
+  "stage": "plan",
+  "result": "red",
+  "complexity": "simple",
+  "auditRequired": true,
+  "refactorOpportunity": null,
+  "slices": [
+    "Author one deterministic discriminator in tests/test_signal_search.py:701 (test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach): wrap _open_private_projection to plant a real attacker DuckDB at .anomaly/search/signals.duckdb strictly between hash verification and connect, delegate, restore; assert search_signals serves exactly [signal-alpha, signal-beta, signal-gamma] with no poison payload and canonical digests unchanged",
+    "Prove discrimination: full-file GREEN against current production (32 passed), then runtime-only monkeypatch simulation of the demonstrated pathname reopen turns only the new test red",
+    "Update task records: notes.md blocker-F1 recovery section with disposition deltas (AC6 attach-window seam beside Event interleaving; AC2 query-time byte-handoff case beside build-side symlink cases); context.md new entry, shifted line numbers (762/797/827), current counts"
+  ],
+  "testFiles": [
+    "tests/test_signal_search.py"
+  ],
+  "redRun": {
+    "command": "PYTHONPATH=/tmp .venv/bin/python -m pytest \"tests/test_signal_search.py::test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach\" -q -p vreopen_sim",
+    "output": "FAILED tests/test_signal_search.py::test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach - AssertionError: assert ['signal-poison'] == ['signal-alpha', 'signal-beta', 'signal-gamma'] (full output artifact://385). /tmp/vreopen_sim.py reproduces refute-bonus-private-copy.json's revert semantics at runtime (production files untouched): _open_private_projection replaced by a shim discarding verified bytes and duckdb.connect-ing the live .anomaly/search/signals.duckdb pathname after hash verification, so the swap binds the attacker inode and poison rows are served. Green baseline without the shim: `.venv/bin/python -m pytest tests/test_signal_search.py -q` -> 32 passed in 1.20s. jj st confirms no src/ changes; only tests/test_signal_search.py, notes.md, context.md touched by this episode."
+  },
+  "escalation": null
+}

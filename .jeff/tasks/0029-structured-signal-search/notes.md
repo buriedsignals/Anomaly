@@ -79,3 +79,15 @@ The credential-shaped-source finding remains **non-blocking and refuted**. Dispo
 - The failures cluster in `tests/test_pipeline_walk.py`: detector execution makes P5 unavailable, so Gate B and downstream workflow assertions cannot be reached; one containment recheck no longer raises.
 - Route: implementation. Preserve the revised search contract and repair the canonical detector snapshot/workflow compatibility. Tests remain unchanged.
 - Original targeted RED full output: `artifact://186`.
+
+## Council recovery · test-contract repair (blocker F1)
+
+Blocker F1 (review2, unanimous 3/3 blocking, survived refutation): no behavioral test distinguished the private-copy attach from the previously green mutable-pathname reopen. The refuter demonstrated (`refute-bonus-private-copy.json`, cycle 2, verdict `survives`) that reverting `_open_private_projection` to `duckdb.connect` on the verified `.anomaly/search/signals.duckdb` pathname leaves all 31 signal-search tests green. Council selected `test-contract-repair`; production code is correct and remains unchanged.
+
+Repair: one deterministic discriminating test, `test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach` (`tests/test_signal_search.py:701`). It wraps `_open_private_projection` to perform one real filesystem swap strictly inside the hash-verify-to-connect window — rename the verified derived index out, plant an attacker-controlled DuckDB holding a poison `signals` row at the live pathname — then delegates to the real helper and restores the file. It asserts `api.search_signals` serves exactly the manifest-verified rows `[signal-alpha, signal-beta, signal-gamma]`, that no poison payload surfaces anywhere in the returned result, and that canonical digests are untouched. Event-free, sleep-free, thread-free.
+
+Disposition deltas only: AC6 gains this query-time attach-window discriminator beside the existing Event-scheduled rebuild interleaving; AC2 containment gains the query-time byte-handoff case beside its build-side symlink cases. All other dispositions stand.
+
+Verification:
+- GREEN against current production: `.venv/bin/python -m pytest tests/test_signal_search.py -q` → `32 passed in 1.20s`.
+- Decisive RED attribution: (a) the refuter's demonstrated revert (`refute-bonus-private-copy.json`) establishes the pre-repair reopen was suite-green absent this test; (b) a runtime-only monkeypatch experiment (`/tmp/vreopen_sim.py`, outside the repo, production files untouched) reproduces the revert semantics — `_open_private_projection` replaced by a shim that discards the verified bytes and reconnects the live pathname after hash verification — and turns the new test red: `PYTHONPATH=/tmp .venv/bin/python -m pytest "tests/test_signal_search.py::test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach" -q -p vreopen_sim` → `1 failed`, served rows `['signal-poison']` versus expected `[signal-alpha, signal-beta, signal-gamma]`; full output `artifact://385`. The same planted swap is harmless under the shipped helper because the connection binds only the hash-verified captured bytes.

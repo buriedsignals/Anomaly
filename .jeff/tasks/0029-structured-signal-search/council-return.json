@@ -1,0 +1,151 @@
+{
+  "stage": "council",
+  "council": {
+    "convened": true,
+    "stage": "review",
+    "members": [
+      {
+        "agent_id": "CouncilIntegrity",
+        "lens": "integrity",
+        "temperature": null,
+        "inquiry": {
+          "causalHypotheses": [
+            "Verify+open were fused into one function (verified_projection), leaving no public-API observation point inside the hash\u2192connect window; test authors could only schedule perturbations at reachable boundaries \u2014 canonical inputs and the search directory during build \u2014 so the interior seam stayed untested.",
+            "Containment obligations were carried as review/audit findings instead of being converted into executable contracts; the repair was accepted on code inspection, which AGENTS.md explicitly disallows as completion evidence for material claims.",
+            "The vulnerable interval is an intra-process microsecond window reachable only by hooking internal helpers; the house pattern for exactly that (monkeypatched helper performing one real filesystem swap) already exists in tests/test_signal_search.py:700-763, so the gap is an omission of an established pattern applied to verified_projection, not a testing impossibility."
+          ],
+          "decisiveEvidence": [
+            "src/anomaly/_signal_projection.py:186-242,523-551 \u2014 verified_projection reads signals.duckdb through the pinned dirfd (O_NOFOLLOW, before/after fstat stability check), sha256-checks against manifest['projection_hash'], then hands the byte string to _open_private_projection, which writes O_CREAT|O_EXCL|O_NOFOLLOW 0600 into a 0700 tempdir, connects read_only with external access disabled, and unlinks; grep confirms the only other duckdb.connect sites in anomaly/ (:502 build-time private tempdir, plus prepare/profile/detect/registry on their own indexes) never reopen the derived search pathname at query time.",
+            ":jeff record refute-bonus-private-copy.json verdict 'survives': reverting src/anomaly/_signal_projection.py:523/:232 to duckdb.connect on the verified .anomaly/search/signals.duckdb pathname leaves all 31 signal-search tests green, byte-verified against checkpoint f1f404c89e11b388687e90ff07b17e46940d0ffd (testSameAsWorktree=true).",
+            "tests/test_signal_search.py:654-670 \u2014 the sole query-time adversarial test wraps api.verified_projection and pauses only after it fully returns; its concurrent os.replace rebuild therefore meets an already-open connection/inode under EITHER implementation, so its old-rows-retained assertion cannot distinguish private copy from pathname reopen.",
+            "tests/test_signal_search.py:700-763 \u2014 both post-validation swap tests monkeypatch build-path helpers (_safe_input_file :726, _prepare_search_root :754) and invoke api.build_signal_projection exclusively; the pre-existing-symlink test :765 is likewise build-only; grep across tests/ shows search_signals/_signal_projection/signals.duckdb referenced nowhere else, so no indirect coverage exists in the suite.",
+            "DuckDB 1.5.5 connect() accepts only a database path (refute-final-staging evidence from _duckdb-stubs/__init__.pyi:899-904: no fd/dir_fd/no-follow argument), so any future pathname reopen is inherently TOCTOU-exposed; the bytes-to-private-copy boundary is the entire security argument, which argues for pinning it by test rather than reconstructing around it.",
+            "The discriminating test is cheap and matches existing house style: wrap _read_owned_bytes or _open_private_projection once to swap signals.duckdb (rename real file out, plant attacker-controlled DB, restore original after the open) between hash verification and connection use, then assert api.search_signals returns only manifest-verified rows \u2014 it passes under the private copy because the bytes are already captured, and fails under pathname reopen because DuckDB binds the attacker inode."
+          ],
+          "findingVotes": [
+            {
+              "blocking": true,
+              "id": "F1",
+              "rationale": "Reachable acceptance/verification defect, not a live product bug today: the refuter empirically reverted the repair at checkpoint f1f404c and the full targeted suite stayed green (31 passed), so the gate's green signal currently provides zero evidence that the security-critical repair exists. The defect class it guards (pathname reopen, CWE-59/CWE-367) already survived two prior review cycles in this very task (review-final-standards and audit-final findings at lines 214-215), making silent reintroduction by refactor or merge a realistic, demonstrated-reachable event. Task.md's audit requirement names derived-index containment as required audit material, and AGENTS.md forbids claiming completion from code inspection alone \u2014 an undefended repair is exactly such a claim. Block shipment until a behavioral test pins the invariant; the fix is small and well-precedented."
+            }
+          ],
+          "problemRestatement": "Task 29's single surviving blocker (F1, source review2) is a test-integrity gap, not an observed product misbehavior. The current code is correct: verified_projection hashes projection bytes read through the pinned search-directory descriptor, then _open_private_projection materializes those exact bytes into a fresh 0o700/O_EXCL/O_NOFOLLOW 0o600 file, opens DuckDB read-only with external access disabled, and unlinks the path, eliminating the mutable-pathname reopen that earlier review cycles flagged as CWE-59/CWE-367. But the surviving refute demonstrated at checkpoint f1f404c that reverting _open_private_projection to a direct duckdb.connect on .anomaly/search/signals.duckdb leaves all 31 tests green: the only query-time adversarial test (tests/test_signal_search.py:654) pauses strictly after verified_projection returns \u2014 the connection is already bound under either implementation \u2014 and every symlink/swap test (:700, :735, :765) hooks build-time helpers and calls build_signal_projection only, never search_signals. The verification regime therefore cannot distinguish the repaired implementation from the known-vulnerable one it replaced, and the repair is defended by nothing but inspection.",
+          "question": "Are these independent defects, or evidence that this part of the design should be reconstructed?",
+          "solutionStrategies": [
+            "test-contract-repair",
+            "causal-subgraph-reconstruction"
+          ]
+        }
+      },
+      {
+        "agent_id": "CouncilSecurity",
+        "lens": "security",
+        "temperature": null,
+        "inquiry": {
+          "causalHypotheses": [
+            "The concurrency test was designed to observe staleness outcomes (old-generation rows or StaleSignalProjectionError), not attachment identity; because POSIX keeps an already-open inode fully readable after os.replace, its scheduling point \u2014 pausing only after verified_projection() returns \u2014 sits downstream of the only place the two implementations diverge, so both satisfy 'never returns rows from a concurrent rebuild'.",
+            "_open_private_projection bundles five defenses (hash-bound byte-image attach, 0o700 TemporaryDirectory, O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC|O_NOFOLLOW create at 0o600, read_only connect plus PRAGMA enable_external_access=false, and post-open os.unlink) into one opaque helper invoked inside verified_projection; no individual property has an observable contract, so a revert to duckdb.connect(str(path)) drops all of them simultaneously and silently.",
+            "Build-time symlink-swap tests proved descriptor-relative staging during construction and were implicitly accepted as proxy coverage for query-time containment; actual query-time containment lives in the open helper, which those tests never execute, leaving the strongest half of the 'bind the projection to input hashes' criterion enforced only by code nobody observes."
+          ],
+          "decisiveEvidence": [
+            ".jeff/tasks/0029-structured-signal-search/refute-bonus-private-copy.json (cycle 2, verdict survives): byte-compare confirmed worktree identical to gate checkpoint f1f404c89e11b388687e90ff07b17e46940d0ffd, and reverting _signal_projection.py:232 (_open_private_projection, def :523) to a direct pathname connect leaves all 31 signal-search tests green.",
+            "src/anomaly/_signal_projection.py:186-243: manifest shape/schema/input-order validation, per-input _safe_input_file hash re-reads, and projection-bytes sha256==manifest['projection_hash'] all complete BEFORE _open_private_projection(projection_bytes); _read_owned_bytes goes through the pinned search-root descriptor with _file_open_flags (:699-700) carrying O_NOFOLLOW, so the verified image and the open target are the same object only under the private-copy implementation.",
+            "tests/test_signal_search.py:654-694: the only query-time test wraps verified_projection to set/clear threading Events strictly AFTER the original returns (:662-670); its concurrent _rewrite_signals + build_signal_projection therefore races an already-established connection under either implementation, and its `if result is not None` branch additionally tolerates StaleSignalProjectionError, widening what counts as pass.",
+            "tests/test_signal_search.py:700-781: all three symlink-swap/boundary tests monkeypatch _safe_input_file or _prepare_search_root and call api.build_signal_projection exclusively \u2014 search_signals is never invoked \u2014 so they prove build-side no-follow staging, not the query-time attach.",
+            "Grep over tests/: search_signals, verified_projection, _open_private_projection, enable_external_access, and _PrivateProjection appear only in tests/test_signal_search.py (:290-781); every other duckdb.connect in the suite targets canonical data/index.duckdb in unrelated subsystems \u2014 the open helper has zero coverage elsewhere, matching the refute's repo-wide survey.",
+            "Discrimination-window analysis: a plain post-build symlink swap of signals.duckdb cannot separate the implementations black-box, because verification's own O_NOFOLLOW dirfd read raises SignalSearchError before the open under both; the only deterministic injection point is mutating the pathname inside _open_private_projection before delegating, then asserting search_signals returns exactly [signal-alpha, signal-beta, signal-gamma] and never the poison payload \u2014 red under pathname reopen, green under the repair, with no sleeps and Event-free determinism consistent with the task's stated test constraints.",
+            "search.py:49-93: _decode_cursor binds continuation tokens to manifest['projection_identity'] from the verified manifest while read_rows consumes whatever the connection attaches to; under pathname reopen a verified-bytes-to-connect swap returns rows from a different projection generation than the identity encoded in cursors and next_cursor, i.e. a silent cross-generation pagination inconsistency with no error raised."
+          ],
+          "findingVotes": [
+            {
+              "blocking": true,
+              "id": "F1",
+              "rationale": "Reachable and acceptance-bearing: the empirical refute proves CI cannot distinguish the repaired open from the vulnerable pathname reopen it replaced, so any refactor touching _open_private_projection ships green today; the lost property is the query-time arm of the locked criterion 'Bind the projection to input hashes' \u2014 under pathname reopen, a writer able to mutate .anomaly/search between the hash check and connect (the exact concurrent-mutation threat model this task's path-race cycle treats as live, per gate checkpoint f1f404c8 'path-race verification checkpoint') makes search_signals serve unverified rows while cursors remain bound to the stale verified identity, silently poisoning journalist-facing leads with no exception. Severity is high precisely because failure mode is wrong answers, not errors; it is a reachable correctness/security/acceptance defect, so blocking."
+            }
+          ],
+          "problemRestatement": "Task 29's acceptance criterion 'Bind the projection to input hashes and reject or rebuild stale projections' is enforced at query time solely by _open_private_projection: verified_projection captures the projection bytes through a descriptor-relative O_NOFOLLOW read, checks their sha256 against manifest['projection_hash'], and hands that exact byte image to the helper, which stages it in a 0o700 temp dir (O_EXCL|O_NOFOLLOW create), opens it read_only with PRAGMA enable_external_access=false, and unlinks it. The surviving refute demonstrated that swapping this helper for duckdb.connect on the mutable .anomaly/search/signals.duckdb pathname leaves all 31 signal-search tests green, because the single query-time test pauses only after verified_projection has fully returned \u2014 after the open under either implementation \u2014 and the symlink-swap tests hook build-time helpers without ever calling search_signals. The suite therefore exercises the derived-index TOCTOU defense nowhere and cannot detect its regression; the question is how to make the verify-to-open attachment guarantee behaviorally load-bearing again, and what a discriminating test must prove to fail under pathname reopen while passing under the repair.",
+          "question": "Could the untested TOCTOU defense silently regress to the vulnerable pathname reopen, and what must a discriminating test prove?",
+          "solutionStrategies": [
+            "test-contract-repair",
+            "confined-repair"
+          ]
+        }
+      },
+      {
+        "agent_id": "CouncilPragmatist",
+        "lens": "pragmatist",
+        "temperature": null,
+        "inquiry": {
+          "causalHypotheses": [
+            "Window migration: the interleaving test was authored against the mutable-pathname design where the live race sat after verified_projection returned; the private-copy repair moved the unprotected window upstream into the interval between projection-byte hash verification (_signal_projection.py:232) and connect, and no test followed the window.",
+            "Coverage asymmetry: containment testing concentrated on the build surface because _safe_input_file and _prepare_search_root are the historically contested seams, leaving verified_projection's open path \u2014 the query-time counterpart \u2014 unhooked.",
+            "Structural invisibility: absent a filesystem mutation inside the verify-to-connect interval, both implementations return identical rows, so fixture-style single-threaded assertions cannot discriminate by construction; only an in-window injected swap can."
+          ],
+          "decisiveEvidence": [
+            ".jeff/tasks/0029-structured-signal-search/refute-bonus-private-copy.json (cycle 2, verdict survives): reverting _signal_projection.py:232 / _open_private_projection (:523) to duckdb.connect on .anomaly/search/signals.duckdb leaves all 31 tests green.",
+            "tests/test_signal_search.py:654-698: pause_after_verification (:662-670) runs the real verified_projection to completion before staging the rebuild, so the swap always lands after connect under either implementation and both return the old rows.",
+            "tests/test_signal_search.py:700-781: all three symlink tests monkeypatch build-time helpers (_safe_input_file, _prepare_search_root) and call api.build_signal_projection only; grep shows search_signals referenced in no test file other than tests/test_signal_search.py.",
+            "src/anomaly/search.py:61-93: verified_projection -> read_rows -> close is the only query-time consumption path, so a single discriminating test covers the entire exposed surface.",
+            "src/anomaly/_signal_projection.py:491-548: the repair already enforces containment mechanically (0o700 tempdir, O_CREAT|O_EXCL|O_NOFOLLOW 0o600 write, PRAGMA enable_external_access=false, unlink after read-only connect) \u2014 the deficit is proof, not code, which prices confined-repair/causal-subgraph-reconstruction above their benefit unless the new test exposes a structural flaw.",
+            ".jeff/tasks/0029-structured-signal-search/context.md: targeted GREEN baseline '31 passed'; constraints require deterministic Event scheduling and forbid sleeps, so a hook-injected in-window swap satisfies house conventions at near-zero cost versus the regression risk of mutating audited code at a gated checkpoint."
+          ],
+          "findingVotes": [
+            {
+              "blocking": true,
+              "id": "F1",
+              "rationale": "Reachable acceptance/security defect: the gate cannot detect loss of query-time byte-verification containment. The documented concurrent-rebuild flow \u2014 the very scenario test :654 stages \u2014 landing inside the verify-to-connect window would serve never-hash-verified bytes under a pathname reopen while the suite stays green, leaving the mandated derived-index-containment audit undefended at its query-time surface. Blocking is proportionate because one deterministic hook-injected test restores the defended invariant without weakening the gate or touching production code."
+            }
+          ],
+          "problemRestatement": "Task 29's gate at f1f404c89e11b388687e90ff07b17e46940d0ffd certifies the private-copy repair (_signal_projection.py:523-548: verified bytes rewritten O_CREAT|O_EXCL|O_NOFOLLOW 0o600 into a 0o700 tempdir, read-only connect with external access disabled, unlink) with zero behavioral discrimination from the previously green pathname reopen: the sole query-time test (tests/test_signal_search.py:654) stages its concurrent rebuild after verified_projection fully returns, when the connection is already open under either implementation, and the three symlink-swap tests (:700, :735, :765) drive build_signal_projection exclusively. The acceptance criterion 'bind the projection to input hashes and reject or rebuild stale projections' and the mandated derived-index-containment audit therefore rest on untested behavior at the one place queries consume the projection (search.py:61-93, single open site). Route economics: test-contract-repair is one focused, deterministic test with zero production risk; confined-repair and refactor buy no blocker relief because no production defect is evidenced \u2014 the repair's mechanics are sound on inspection \u2014 so their regression risk to audited, checkpointed code is pure downside; full-replan is disproportionate while six other criteria hold and one coverage hole remains; operator-escalation reserves only for a seam that cannot be hit deterministically.",
+          "question": "The surviving refute proves that reverting _open_private_projection to a direct pathname connect keeps all 31 signal-search tests green because the only query-time test pauses after verified_projection returns and the symlink-swap tests hook build-time helpers only: is the minimal defensible route a deterministic, hook-injected behavioral test that mutates .anomaly/search/signals.duckdb inside the verify-to-connect window and asserts search_signals returns the byte-verified pre-rebuild rows, and are these independent defects, or evidence that this part of the design should be reconstructed?",
+          "solutionStrategies": [
+            "test-contract-repair",
+            "confined-repair",
+            "full-replan",
+            "operator-escalation"
+          ]
+        }
+      }
+    ],
+    "synthesis": {
+      "problemRestatement": "Task 29's gate at f1f404c89e11b388687e90ff07b17e46940d0ffd certifies the private-copy repair (_open_private_projection, src/anomaly/_signal_projection.py:523-548) \u2014 the sole defense closing the last query-time CWE-59/CWE-367 mutable-pathname reopen window in verified_projection. Blocker F1 (source review2, unanimous 3/3 blocking, survived refutation) is a test-integrity gap, not an observed product bug: the surviving refute demonstrated that reverting line 232 to a direct duckdb.connect on the mutable .anomaly/search/signals.duckdb pathname leaves all 31 signal-search tests green, because the only query-time test pauses after verified_projection returns (downstream of the open under either implementation) and every symlink-swap test hooks build-time helpers without calling search_signals. The gate thus provides zero behavioral evidence that the security-critical repair exists; closure must make loss of the verified-byte-image attach turn the suite red.",
+      "survivingBlockers": [
+        "F1"
+      ],
+      "causalHypotheses": [
+        "Window migration: the interleaving test was authored against the mutable-pathname design where the live race sat after verified_projection returned; the private-copy repair moved the unprotected window upstream into the hash-verify-to-connect interval and no test followed the window.",
+        "Scheduling point downstream of divergence: POSIX keeps an already-open inode fully readable after os.replace, so pausing only after verified_projection returns meets an established connection/inode under either implementation \u2014 the staleness assertion cannot discriminate by construction.",
+        "Coverage asymmetry: containment testing concentrated on the historically contested build seams (_safe_input_file, _prepare_search_root), implicitly accepted as proxy coverage for query-time containment, which actually lives in _open_private_projection \u2014 a helper those tests never execute.",
+        "Structural invisibility: verify and open are fused inside verified_projection and five defenses are bundled into one opaque helper with no individually observable contract, so a single-line revert silently drops hash-bound byte-image attach, read_only connect, enable_external_access=false, and post-open unlink simultaneously."
+      ],
+      "solutionStrategies": [
+        "test-contract-repair",
+        "causal-subgraph-reconstruction"
+      ],
+      "rejectedAlternatives": [
+        "causal-subgraph-reconstruction"
+      ],
+      "selectedStrategy": "test-contract-repair",
+      "decisiveEvidence": [
+        ".jeff/tasks/0029-structured-signal-search/refute-bonus-private-copy.json (cycle 2, verdict 'survives'): worktree byte-identical to gate checkpoint f1f404c89e11b388687e90ff07b17e46940d0ffd (testSameAsWorktree=true), and reverting _signal_projection.py:232 (_open_private_projection, def :523) to duckdb.connect on the verified .anomaly/search/signals.duckdb pathname leaves all 31 signal-search tests green.",
+        "tests/test_signal_search.py:654-694: pause_after_verification (:662-670) invokes the real api.verified_projection to completion before setting the event and staging the concurrent os.replace rebuild, so the perturbation lands on an already-open connection/inode under either implementation; the `if result is not None` branch additionally tolerates StaleSignalProjectionError.",
+        "tests/test_signal_search.py:700-781: all three symlink-swap tests monkeypatch build-time helpers (_safe_input_file :726, _prepare_search_root :754) and call api.build_signal_projection exclusively; grep across tests/ shows search_signals/_signal_projection/signals.duckdb referenced nowhere else, so indirect coverage is zero.",
+        "src/anomaly/_signal_projection.py:523-548 (re-read this session): the repair mechanically enforces containment \u2014 verified bytes written O_CREAT|O_EXCL|O_CLOEXEC|O_NOFOLLOW at 0o600 into a 0o700 tempdir, duckdb.connect(str(path), read_only=True) with PRAGMA enable_external_access=false, post-open os.unlink \u2014 confirming the deficit is proof, not code.",
+        "The discriminating test is cheap and matches house style: wrap _open_private_projection (or _read_owned_bytes) once to perform a real filesystem swap (rename real signals.duckdb out, plant an attacker-controlled DB, restore afterward) strictly between hash verification and connection use, then assert api.search_signals returns only the manifest-verified pre-rebuild rows [signal-alpha, signal-beta, signal-gamma] and never the planted payload \u2014 red under pathname reopen (DuckDB binds the attacker inode), green under the private copy (bytes already captured), Event-free and sleep-free per the task's stated determinism constraints.",
+        "src/anomaly/search.py:49-93: continuation cursors bind to manifest['projection_identity'] while read_rows consumes whatever the connection attaches to, so under pathname reopen a mid-window swap yields silent cross-generation pagination inconsistency \u2014 an additional observable property the pinning test can lock."
+      ]
+    },
+    "findings": [
+      {
+        "id": "F1",
+        "source": "review2",
+        "summary": "No behavioral test distinguishes the private-copy repair from the previously green mutable-pathname reopen.",
+        "blockingVotes": 3,
+        "survived": true,
+        "followupTaskId": null
+      }
+    ],
+    "verdict": "block",
+    "outcome": null
+  }
+}

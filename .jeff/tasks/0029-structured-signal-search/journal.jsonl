@@ -76,3 +76,21 @@
 {"seq":75,"at":"2026-08-24T18:23:34.461Z","event":"record","stage":"implement","agent":"ImplementSignalSearchPathRace"}
 {"seq":76,"at":"2026-08-24T18:23:40.919Z","event":"intent","stage":"refactor","note":"Simplify private temporary DuckDB lifecycle without behavior change"}
 {"seq":77,"at":"2026-08-24T18:25:49.634Z","event":"record","stage":"refactor","agent":"RefactorSignalSearchPathRace"}
+{"seq":78,"at":"2026-08-24T18:26:46.419Z","event":"gate","hash":"f1f404c89e11b388687e90ff07b17e46940d0ffd","green":true,"clean":true}
+{"seq":79,"at":"2026-08-24T18:26:59.499Z","event":"intent","stage":"review","note":"Bonus-cycle correctness review after pathname-race repair"}
+{"seq":80,"at":"2026-08-24T18:27:05.479Z","event":"intent","stage":"review","note":"Bonus-cycle standards review after pathname-race repair"}
+{"seq":81,"at":"2026-08-24T18:27:14.530Z","event":"intent","stage":"audit","note":"Bonus-cycle audit of private temporary DuckDB lifecycle"}
+{"seq":82,"at":"2026-08-24T18:50:40.889Z","event":"intent","stage":"refute","note":"Refute cycle-2 blocker: Derived-directory creation still has a pre-pin symlink race."}
+{"seq":83,"at":"2026-08-24T18:50:40.977Z","event":"intent","stage":"refute","note":"Refute cycle-2 blocker: The derived-containment tests do not exercise the pre-pin directory-creation race."}
+{"seq":84,"at":"2026-08-24T18:50:41.059Z","event":"intent","stage":"refute","note":"Refute cycle-2 blocker: No behavioral test distinguishes the private-copy repair from the previously green mutable-pathname reopen."}
+{"seq":85,"at":"2026-08-24T20:21:18.374Z","event":"record","stage":"review","agent":"ReviewSignalSearchBonusCorrect"}
+{"seq":86,"at":"2026-08-24T20:21:18.455Z","event":"record","stage":"review","agent":"ReviewSignalSearchBonusStandards"}
+{"seq":87,"at":"2026-08-24T20:21:18.538Z","event":"record","stage":"audit","agent":"AuditSignalSearchBonus"}
+{"seq":88,"at":"2026-08-24T20:21:35.846Z","event":"record","stage":"refute","agent":"RefuteBonusPrepinRace"}
+{"seq":89,"at":"2026-08-24T20:21:35.925Z","event":"record","stage":"refute","agent":"RefuteBonusPrepinTest"}
+{"seq":90,"at":"2026-08-24T20:21:35.998Z","event":"record","stage":"refute","agent":"RefuteBonusPrivateCopyTest"}
+{"seq":91,"at":"2026-08-24T20:22:20.165Z","event":"record","stage":"council","agent":"CouncilIntegrity"}
+{"seq":92,"at":"2026-08-24T20:22:20.165Z","event":"record","stage":"council","agent":"CouncilSecurity"}
+{"seq":93,"at":"2026-08-24T20:22:20.165Z","event":"record","stage":"council","agent":"CouncilPragmatist"}
+{"seq":94,"at":"2026-08-24T20:22:20.165Z","event":"record","stage":"council","agent":"CouncilSynthesisRetry"}
+{"seq":95,"at":"2026-08-24T20:35:47.306Z","event":"record","stage":"plan","agent":"RepairTestContract"}

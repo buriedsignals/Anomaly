@@ -10,6 +10,7 @@ import shutil
 import threading
 from typing import Any, Callable
 
+import duckdb
 import pytest
 
 from p2_helpers import NOW, create_p2_case, register, write_source
@@ -695,6 +696,67 @@ def test_verified_search_never_returns_rows_from_a_concurrent_rebuild(
             "signal-beta",
             "signal-gamma",
         ]
+
+
+def test_verified_search_never_serves_rows_from_an_index_swapped_between_hash_check_and_attach(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root, canonical_paths = _seed_search_case(tmp_path)
+    before = _digests(canonical_paths)
+    api = _api()
+    api.build_signal_projection(root)
+    projection = importlib.import_module("anomaly._signal_projection")
+    original_open_private_projection = projection._open_private_projection
+    derived_index = root / ".anomaly" / "search" / "signals.duckdb"
+    parked_index = root / ".anomaly" / "search" / "signals.verified.duckdb"
+    planted_index = tmp_path / "planted-signals.duckdb"
+    with duckdb.connect(str(planted_index)) as connection:
+        # kiss: only the columns an unfiltered read_rows selects are needed to bind
+        connection.execute(
+            "CREATE TABLE signals ("
+            "signal_id VARCHAR NOT NULL, run_id VARCHAR NOT NULL, "
+            "payload_json VARCHAR NOT NULL, search_fields_json VARCHAR NOT NULL)"
+        )
+        connection.execute(
+            "INSERT INTO signals VALUES (?, ?, ?, ?)",
+            [
+                "signal-poison",
+                "run-poison",
+                json.dumps(
+                    {
+                        "signal_id": "signal-poison",
+                        "run_id": "run-poison",
+                        "statement": "attacker poison payload",
+                    }
+                ),
+                "[]",
+            ],
+        )
+
+    def swap_derived_index_inside_the_attach_window(raw: bytes):
+        derived_index.rename(parked_index)
+        shutil.copyfile(planted_index, derived_index)
+        try:
+            return original_open_private_projection(raw)
+        finally:
+            derived_index.unlink()
+            parked_index.rename(derived_index)
+
+    monkeypatch.setattr(
+        projection,
+        "_open_private_projection",
+        swap_derived_index_inside_the_attach_window,
+    )
+
+    result = api.search_signals(root)
+
+    assert [item["signal_id"] for item in result["items"]] == [
+        "signal-alpha",
+        "signal-beta",
+        "signal-gamma",
+    ]
+    assert "poison" not in json.dumps(result)
+    assert _digests(canonical_paths) == before
 
 
 def test_projection_refuses_an_input_symlink_swapped_after_validation(
