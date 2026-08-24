@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review2",
+  "finding": "src/anomaly/_attempt_workspace.py:40 Promotion deletes the attempt workspace before clearing the interrupted-promotion marker, so a reachable final-cleanup interruption produces a repair-required result that points to a workspace that no longer exists.",
+  "verdict": "survives",
+  "rationale": "The real run_workflow → run_attempts → promote_workspace path deletes the workspace on line 40 and only then unlinks the durable marker on line 41, while startup treats any surviving marker as repair-required and unconditionally names that deleted workspace; no guard, fail-safe, or test makes the interruption window unreachable, and this violates the task's retained-workspace requirement.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/_attempt_workspace.py",
+      "output": "35: marker = {\"phase\": phase, \"attempt\": attempt, \"attempt_path\": attempt_path}\n37: write_json_atomic(marker_path, marker)\n38: _apply(root, workspace, _validated_writes(writes))\n39: write_state(root, state)\n40: discard_workspace(workspace)\n41: marker_path.unlink()\n44-48: recover_interrupted_promotion returns only when the marker is absent; otherwise it reads it.\n61-64: blocked_reason says \"Repair required ... inspect retained workspace {attempt_path}/workspace.\" No workspace existence check or alternate evidence path is present."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/workflow.py && git -C /Users/tomvaillant/buried_signals/tools/anomaly show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/attempts.py",
+      "output": "workflow.py:172-174 calls recover_interrupted_promotion(case_root) at startup and immediately returns its blocked result. workflow.py:203-213 calls run_attempts from the public workflow loop. attempts.py:117 calls promote_workspace after a successful attempt, establishing a real entry path to the cleanup ordering."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 147d3465c4ecdaf11c8f889c74131260ca05594f:tests/test_pipeline_walk.py",
+      "output": "233-247: _prepare_interrupted_promotion explicitly creates workspace and partial.txt before the marker is written. 637-664: the startup test writes the marker only after that preparation and asserts partial.txt remains. Thus it covers a pre-cleanup interruption, not the reachable state after discard_workspace has completed but before marker_path.unlink."
+    },
+    {
+      "command": "read anomaly/.jeff/tasks/0028-debloat-crash-recovery/task.md",
+      "output": "Acceptance requires: \"If startup detects evidence of an interrupted promotion, it preserves every live file, records repair required, and stops\" and \"The blocked result identifies the phase/attempt and the retained attempt workspace so the journalist can inspect it.\""
+    }
+  ]
+}

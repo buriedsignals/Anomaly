@@ -1,0 +1,101 @@
+{
+  "stage": "review",
+  "cycle": 0,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "delete",
+      "rederived": "delete",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "write",
+      "rederived": "write",
+      "ok": true
+    },
+    {
+      "ac": "AC4",
+      "claimed": "write",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC5",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": false
+    },
+    {
+      "ac": "AC6",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC8",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 40,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Promotion deletes the attempt workspace before clearing the interrupted-promotion marker, so a reachable final-cleanup interruption produces a repair-required result that points to a workspace that no longer exists.",
+      "why": "`promote_workspace` durably writes completed state, calls `discard_workspace(workspace)`, and only then unlinks `.anomaly/promotion.json`. A process stop between those calls, or failure of the final unlink, leaves startup-visible interruption evidence after the promised inspection workspace has already been destroyed. This violates AC4 and the installed manual-repair contract. The new marker tests fabricate a marker beside an intact workspace instead of exercising this producer ordering. Add a deterministic producer-boundary test, then clear the marker before discarding the workspace so any surviving marker implies the workspace is still retained."
+    },
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 637,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "The change deletes the deterministic interrupted-attempt reconciliation test even though the corresponding public restart behavior remains in production.",
+      "why": "`test_restart_reconciles_a_hard_exit_after_the_attempt_count_write` was removed, but `run_attempts` still calls unchanged `_reconcile_interrupted_attempt` at `src/anomaly/attempts.py:121`, which converts an active attempt lacking failure evidence into a bounded recorded failure before retrying. The remaining resume tests cover completed-state idempotency, event-store failure, or manually fabricated promotion markers; none covers this retained consumer-observable transition. Deleting its test without deleting the behavior violates the testing skill's removal/redundancy rule and leaves AC5's ordinary restart/resume contract under-tested. Restore or rewrite the deterministic failpoint test without asserting automatic promotion rollback."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git diff --stat --name-status 49aeca9 147d3465c4ecdaf11c8f889c74131260ca05594f -- src tests skills PRD.md",
+      "output": "The gated change modifies six files with 219 insertions and 485 deletions. `_attempt_workspace.py` shrinks from 311 to 143 lines. Journal entry authority, backup creation/consumption, rollback, attempt rewind, sealed-state/provenance inference, and recovery-artifact validation are truly removed rather than renamed or reimplemented."
+    },
+    {
+      "command": "git diff --unified=60 49aeca9 147d3465c4ecdaf11c8f889c74131260ca05594f -- src/anomaly/_attempt_workspace.py",
+      "output": "The replacement is a minimal phase/attempt/attempt_path marker and fail-closed startup block. Current success ordering is `_apply`, `write_state`, `discard_workspace`, then `marker_path.unlink`, exposing the missing-workspace marker window."
+    },
+    {
+      "command": "git diff --unified=0 49aeca9 147d3465c4ecdaf11c8f889c74131260ca05594f -- tests/test_pipeline_walk.py tests/test_skill.py",
+      "output": "Automatic rollback, second-rollback, provenance, and strict journal fixtures are removed or replaced by two manual-repair tests. The diff also removes `test_restart_reconciles_a_hard_exit_after_the_attempt_count_write`; no replacement exercises retained `_reconcile_interrupted_attempt` behavior."
+    },
+    {
+      "command": "grep interruption/restart coverage in tests plus read src/anomaly/attempts.py:121-164 and tests/test_pipeline_walk.py:637-727",
+      "output": "Current interruption tests manually create both marker and workspace before calling `run_workflow`. `_reconcile_interrupted_attempt` remains reachable and unchanged, while remaining resume tests do not construct an active counted attempt with no failure record."
+    },
+    {
+      "command": "grep current src, skills, agents, tests, and PRD for rollback/journal/backup and removed orchestration surfaces",
+      "output": "No automatic promotion rollback implementation or installed promise remains. Legacy `promotion-backup` and journal fields occur only in tests proving they are inert; unrelated P2 local transactional rollback remains separate. WorkflowRunner, product-loop/alias, duplicate projection, and Spotlight-specific runtime surfaces remain absent."
+    },
+    {
+      "command": "task.json gate evidence at gated hash 147d3465c4ecdaf11c8f889c74131260ca05594f",
+      "output": "Recorded full-suite gate is clean and green for `uv run --extra test pytest tests/`. A separate focused rerun was unavailable in the read-only sandbox because neither uv nor pytest could create cache/temp files; the recorded gate does not cover the two identified producer/transition gaps."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "src/anomaly/_attempt_workspace.py:40 Promotion cleanup deletes the attempt workspace before clearing the interrupted-promotion marker, so a real final-cleanup interruption can produce a manual-repair block that points to a workspace that no longer exists.",
+  "verdict": "survives",
+  "rationale": "The public workflow reaches this ordering with no guard: promotion writes the marker, commits artifacts and state, removes the workspace, and only then unlinks the marker; an interruption between the two cleanup calls leaves a marker that startup converts into a blocked result instructing the journalist to inspect the already-deleted workspace, violating the retained-workspace acceptance criterion even though live artifacts fail safe.",
+  "evidence": [
+    {
+      "command": "git show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/_attempt_workspace.py",
+      "output": "Lines 35-41: marker_path is written at line 37; _apply and write_state complete at lines 38-39; discard_workspace(workspace) runs at line 40 before marker_path.unlink() at line 41. Lines 44-69: recover_interrupted_promotion treats any remaining marker as interrupted, marks the case blocked, and sets blocked_reason to 'inspect retained workspace {attempt_path}/workspace' without checking that the workspace exists."
+    },
+    {
+      "command": "git show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/attempts.py && git show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/workflow.py && git show 147d3465c4ecdaf11c8f889c74131260ca05594f:src/anomaly/case.py",
+      "output": "attempts.py lines 105-117 place promote_workspace outside the owner exception handlers, so an interruption propagates after cleanup. workflow.py lines 161-174 show the real public run_workflow entry point calls resume_case and then recover_interrupted_promotion, returning the blocked state. case.py lines 149-154 show resume_case only scans and loads the case; it does not recreate a missing attempt workspace or clear the marker."
+    },
+    {
+      "command": "git show 147d3465c4ecdaf11c8f889c74131260ca05594f:tests/test_pipeline_walk.py",
+      "output": "The recovery test at lines 637-664 calls _prepare_interrupted_promotion, whose lines 233-247 explicitly create workspace/partial.txt before writing the marker, and then asserts that file remains. It does not exercise the reachable final-cleanup state where line 40 has removed the workspace but line 41 has not removed the marker."
+    },
+    {
+      "command": "git ls-tree -r --name-only 147d3465c4ecdaf11c8f889c74131260ca05594f tests; inspect every tracked Python test for discard_workspace|marker_path.unlink|promote_workspace|_attempt_workspace",
+      "output": "No matches. The gated tests contain no direct cleanup-interruption injection or assertion for the marker-present/workspace-absent boundary."
+    }
+  ]
+}

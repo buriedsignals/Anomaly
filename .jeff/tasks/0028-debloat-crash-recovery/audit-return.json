@@ -1,0 +1,102 @@
+{
+  "stage": "audit",
+  "cycle": 0,
+  "verdict": "needs-work",
+  "scan": {
+    "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly --report-dir .jeff/tasks/0028-debloat-crash-recovery/security-scan",
+    "recommendation": "REVIEW",
+    "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0028-debloat-crash-recovery/security-scan/security-audit-20260824-152230.md"
+  },
+  "coverage": [
+    {
+      "category": "secrets",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "injection_sql",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "injection_command",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "path_traversal",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "insecure_deserialization",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "weak_crypto",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "dynamic_execution",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "tls_transport",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "xss",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "sensitive_logging",
+      "status": "covered_no_hits"
+    },
+    {
+      "category": "insecure_permissions",
+      "status": "covered_no_hits"
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 40,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "Successful promotion can delete the retained attempt workspace while leaving the interrupted-promotion marker, so restart blocks for manual repair but points the journalist at a workspace that no longer exists.",
+      "why": "promote_workspace persists the marker, applies live writes, seals state, then calls discard_workspace(workspace) at line 40 before unlinking the marker at line 41. A process termination or machine crash after workspace deletion and before marker unlink leaves promotion.json present but destroys the exact workspace the fail-closed startup contract promises to retain. recover_interrupted_promotion then accepts the marker and records a blocked_reason naming <attempt_path>/workspace without checking that it survived. This is the explicitly covered interruption boundary, not a request for automatic rollback: live files may remain as-is, but the inspection workspace must survive whenever the marker survives. Unlink the marker after sealed state and before ordinary workspace cleanup, so any unlink failure or earlier interruption retains both marker and workspace; a later interruption may leave only harmless stale workspace.",
+      "cwe": "CWE-664"
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read .jeff/tasks/0028-debloat-crash-recovery/security-scan/security-audit-20260824-152230.md",
+      "output": "The supplied scan covered all 25 src/anomaly files and recommended REVIEW: six high regex hits, no critical findings, two scanner gaps, no dependency vulnerabilities, gitleaks output parse failure, and absent optional semgrep. The six hits were ast.literal_eval plus five interpolated DuckDB statements."
+    },
+    {
+      "command": "read src/anomaly/detect.py:70-115,350-395,590-655; src/anomaly/prepare.py:450-510; src/anomaly/profile.py:125-245",
+      "output": "All six scanner hits are false positives after reachability review. ast.literal_eval is restricted to quoted scalar parsing and cannot execute calls. DuckDB PRAGMA values are positive integers after explicit bool/type/range validation. Prepared table IDs are generated as tbl_ plus a SHA-256 digest, enumerated view names are internal, and profile rejects IDs not matching tbl_[0-9a-f]{64} before interpolation. Detector connections are read-only with external access disabled."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:23-112; grep cleanup ordering",
+      "output": "The marker is written before promotion and validated to a fixed phase, bounded integer attempt, and derived relative attempt path. Recovery only writes the blocked state and does not consume legacy entries/backups or mutate registered live outputs. The decisive ordering is line 39 write_state, line 40 discard_workspace(workspace), line 41 marker_path.unlink, creating a reachable marker-without-workspace interruption state."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:1-220; src/anomaly/case.py:149-170,250-315; src/anomaly/attempts.py:1-330",
+      "output": "Public workflow startup calls resume_case before resolving the root or reading the marker; resume_case recursively rejects symlinks, special files, executable artifacts, and symlinked ancestors. Direct run_attempts performs the same whole-case scan before its first state/attempt write and re-scans the isolated workspace after the owner returns. Fixed registry write paths are validated as relative and unique before promotion. No path-escape exploit was found."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:1-330; src/anomaly/state.py:74-128; tests/test_pipeline_walk.py:750-930",
+      "output": "Owners execute only in copied attempt workspaces. Owner and validation exceptions delete the disposable workspace, retain three relative failure records, and pass exception text through credential redaction before state, failure.json, and event persistence. The changed tests cover partial P5 drafts and invalid multi-source batches with unchanged live outputs and no rollback material."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:1-180; src/anomaly/owners.py:1-190; src/anomaly/review.py:590-665; tests/test_review.py:425-458",
+      "output": "Dynamic P5/P6 execution remains bound to fixed installed owner paths and owner kinds. P6 enforces structured review output plus canonical reviewer separation from Gate A, and P7 separates Gate B from the reviewer. Report text is credential-redacted, HTML-escaped, Markdown metacharacter-escaped, URL-colon-neutralized, and collapsed to one line; the inert-Markdown test covers links, HTML images, standalone URLs, and forged headings. Manual XSS/Markdown coverage closes the scanner's XSS gap."
+    },
+    {
+      "command": "jj diff --from 49aeca91b98d --to 147d3465c4ec --git; grep stale recovery and orchestration terms",
+      "output": "The complete task diff deletes journal entry authority, backup creation/consumption, rollback, attempt rewind, and crash-rollback fixtures; it adds the manual-repair installed contract and retains no WorkflowRunner/product-loop/Spotlight execution surface. Remaining promotion-backup references are adversarial tests proving legacy bytes are inert. PRD Spotlight mentions are explicit non-reuse/prohibition context, not machinery. context.md production line mappings are stale because they still describe the deleted rollback implementation; the current source and gated diff were used instead."
+    },
+    {
+      "command": "read .jeff/tasks/0028-debloat-crash-recovery/task.json:20-45; jj log -r @",
+      "output": "Jeff records a clean green full-suite gate at 147d3465c4ecdaf11c8f889c74131260ca05594f with command uv run --extra test pytest tests/. The supplied result is 769/769 passed. The current checkout is an empty working copy atop that exact gated hash except subsequent Jeff audit bookkeeping and scanner evidence."
+    }
+  ]
+}
