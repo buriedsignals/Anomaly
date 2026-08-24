@@ -32,6 +32,7 @@
 
 ## Plan-owned tests
 
+- `tests/test_workflow.py:12` — pure P3 ready/resume-attempt-3 result with explicit `now` capability and unchanged-snapshot assertion.
 - `tests/test_workflow.py:57` — P1-P4 clock and gate required-input resolver matrix.
 - `tests/test_pipeline_walk.py:180` — six recommendation/Gate A/detector/draft/replay/review identity mutations for P3-P6.
 - `tests/test_pipeline_walk.py:209` — missing `now` pauses before P1 attempts.
@@ -60,6 +61,10 @@
 - Targeted RED result: `19 failed, 13 passed in 2.34s` (exit 1).
 - Targeted GREEN result after implementation: `32 passed in 4.08s` (exit 0).
 - Jeff project gate: `uv run --extra test pytest tests/`.
+
+- Recorded recovered full gate: `uv run --extra test pytest tests/` — `735 passed, 1 failed`; sole failure `tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail`.
+- Gate-repair targeted command: `uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt`.
+- Gate-repair targeted result: `6 passed in 0.06s` (exit 0).
 
 ## Mechanical constraints
 

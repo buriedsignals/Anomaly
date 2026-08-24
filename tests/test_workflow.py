@@ -21,7 +21,7 @@ def test_resolver_is_pure_and_reports_durable_resume_detail() -> None:
     resolve = getattr(workflow, "resolve_workflow", None)
 
     assert callable(resolve), "workflow must expose the pure durable resolver"
-    resolution = resolve(snapshot, supplied=frozenset())
+    resolution = resolve(snapshot, supplied=frozenset({"now"}))
 
     assert snapshot == original
     assert resolution == {

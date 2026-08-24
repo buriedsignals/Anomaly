@@ -73,3 +73,31 @@ Behavior-preserving harmonization is owed: make the existing owner registry the 
 - `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/code-standards/SKILL.md`
 - `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/testing/SKILL.md`
 - No bundled Python-specific skill is present.
+
+## Full-gate stale-contract recovery plan
+
+- **Accepted lineage:** the clean recovered gate at `709b177a6c73d74a3746c3e9317af974378f27ba` recorded `735/736` green. Its sole failure was `tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail`, whose call omitted the accepted P3 `now` capability while still expecting a ready result.
+- **Approach:** migrate only that existing pure-resolver call to declare `now`; retain its exact ready owner, attempt-3 resume detail, invalidation detail, and input-snapshot purity assertions. Do not alter production or add another test because `test_resolver_reports_incomplete_phase_input_before_attempt` already proves that absence of `now` pauses.
+- **Slice:** test-only stale-fixture repair in `tests/test_workflow.py`, followed by the existing ready/purity test and existing missing-input resolver test.
+- **Complexity:** `complex`, inherited from task 27 and its accepted recovery.
+- **Audit required:** `true`; this recovery cannot lower the task's existing audit floor.
+- **Refactor opportunity:** `null`; a one-capability fixture migration owes no behavior-preserving deduplication, deletion, or harmonization.
+
+### Recovery acceptance-criterion dispositions
+
+1. **AC1 pure resolver — `revise`.** Consumer-observable behavior: a P2-complete snapshot with two durable P3 attempts resolves P3 ready at attempt 3 when `now` is explicitly supplied, without mutating the snapshot; omission of `now` still pauses. Deterministic seams: `test_resolver_is_pure_and_reports_durable_resume_detail` and `test_resolver_reports_incomplete_phase_input_before_attempt`.
+2. **AC2 owner registry/dynamic loading — `reuse`.** Consumer-observable behavior: P3 still resolves to the fixed `recommend-detectors` handler and reasoning phases retain dynamic loading. Deterministic seams: the exact owner assertion in the revised resolver test and `test_resolved_reasoning_owner_is_loaded_and_invoked_once`.
+3. **AC3 durable attempts — `reuse`.** Consumer-observable behavior: two recorded P3 attempts produce the unchanged `attempt 3 of 3` resume detail; execution and promotion behavior is untouched. Deterministic seam: the exact resolution assertion in the revised resolver test; the existing retry/promotion tests remain unchanged.
+4. **AC4 gates, identities, invalidation, replacement, and order — `reuse`.** Consumer-observable behavior: `invalidated_from: P3` remains in the ready result and all public workflow boundaries are untouched. Deterministic seam: the revised exact result plus the existing focused pipeline-walk cases.
+5. **AC5 README projection — `reuse`.** Consumer-observable behavior: no projection path changes. Deterministic seam: the existing demo, invalidation, recompletion, and failed-P7 cases remain unchanged.
+6. **AC6 inert Markdown — `reuse`.** Consumer-observable behavior: report serialization is untouched. Deterministic seam: the existing standalone bare-URL report case remains unchanged.
+7. **AC7 whole-case no-symlink — `reuse`.** Consumer-observable behavior: containment entry points are untouched. Deterministic seam: the existing case, acquisition, and dynamic-owner containment cases remain unchanged.
+8. **AC8 obsolete surfaces removed — `reuse`.** Consumer-observable behavior: no production surface is added or restored. Deterministic seam: the test-only diff and existing focused public behavior remain the proof; no symbol-absence test is added.
+9. **AC9 one demo CSV — `reuse`.** Consumer-observable behavior: the canonical demo and its six-step path are untouched. Deterministic seam: the existing checked-in demo case remains unchanged.
+
+### Recovery evidence
+
+- **Recorded RED command:** `uv run --extra test pytest tests/`
+- **Recorded RED output:** `735 passed, 1 failed`; sole failure `tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail` (exit 1).
+- **Targeted GREEN command:** `uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolver_reports_incomplete_phase_input_before_attempt`
+- **Targeted GREEN output:** `6 passed in 0.06s` (exit 0).

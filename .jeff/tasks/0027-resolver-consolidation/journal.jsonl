@@ -79,3 +79,8 @@
 {"seq":78,"at":"2026-08-24T10:44:30.237Z","event":"record","stage":"implement","agent":"ImplementAnomalyRecovery"}
 {"seq":79,"at":"2026-08-24T10:44:45.100Z","event":"intent","stage":"refactor","note":"Simplify recovered attempt workspace, sanitization and boundary checks without behavior changes"}
 {"seq":80,"at":"2026-08-24T10:49:29.824Z","event":"record","stage":"refactor","agent":"RefactorAnomalyRecovery"}
+{"seq":81,"at":"2026-08-24T10:50:14.771Z","event":"gate","hash":"709b177a6c73d74a3746c3e9317af974378f27ba","green":false,"clean":true}
+{"seq":82,"at":"2026-08-24T10:51:11.918Z","event":"intent","stage":"plan","note":"Migrate sole stale resolver fixture to supply required now input; production remains unchanged"}
+{"seq":83,"at":"2026-08-24T10:54:12.877Z","event":"record","stage":"plan","agent":"PlanAnomalyGateTestRepair"}
+{"seq":84,"at":"2026-08-24T10:54:20.226Z","event":"intent","stage":"implement","note":"Confirm test-only stale-fixture repair requires no production change and targeted resolver tests are green"}
+{"seq":85,"at":"2026-08-24T10:55:39.141Z","event":"record","stage":"implement","agent":"ImplementAnomalyGateTestCheck"}
