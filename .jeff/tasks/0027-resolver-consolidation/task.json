@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 27,
+  "slug": "resolver-consolidation",
+  "title": "Consolidate Anomaly on resolver plus durable attempt mechanics",
+  "status": "in_progress",
+  "stage": "review",
+  "category": "code",
+  "priority": "p1",
+  "deps": [],
+  "complexity": "complex",
+  "createdAt": "2026-08-24T07:18:45Z",
+  "updatedAt": "2026-08-24T09:32:13Z",
+  "agents": {
+    "implementer_agent_id": "ImplementAnomalyResolver",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": "PlanAnomalyConsolidation",
+    "green": true,
+    "evidence": [
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ],
+    "gate": {
+      "hash": "98542737b1707cd694717e224271e3bedfb5d6da",
+      "clean": false,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-24T09:25:50Z"
+    }
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": true,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Add pure resolver and compact P0-P7 owner registry.",
+      "Add selected-owner boundary for deterministic handlers and fixed P5 skill/P6 reviewer loading with fresh resolution.",
+      "Extract durable attempt/retry/evidence/event/state promotion into attempts.py and migrate dispatcher.",
+      "Bound README projection, neutralize bare URL autolinks, retain positive completion/link proof.",
+      "Delete obsolete runner/product/alias/projection/test surfaces and update docs."
+    ],
+    "testFiles": [
+      "tests/test_workflow.py",
+      "tests/test_pipeline_walk.py",
+      "tests/test_review.py"
+    ],
+    "redRun": {
+      "command": "five focused resolver/demo/review tests",
+      "output": "5 failed, 1 passed: resolver/owner invocation missing, README deletes trailing content, bare HTTPS remains; positive P7 links pass."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Delete WorkflowRunner/PhaseResult/RetryLimitExceeded, handler-map machinery, aliases, competing product_workflow loop/registry, duplicate projections and synthetic test compositions; use one resolver, owner registry and focused attempt functions."
+  },
+  "implement": {
+    "agent_id": "ImplementAnomalyResolver",
+    "result": "green",
+    "files": [
+      "src/anomaly/attempts.py",
+      "src/anomaly/events.py",
+      "src/anomaly/identities.py",
+      "src/anomaly/owners.py",
+      "src/anomaly/product_workflow.py",
+      "src/anomaly/readme.py",
+      "src/anomaly/review.py",
+      "src/anomaly/state.py",
+      "src/anomaly/workflow.py",
+      "src/anomaly/workflow_inputs.py"
+    ],
+    "greenRun": {
+      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolved_reasoning_owner_is_loaded_and_invoked_once tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+      "output": "......                                                                   [100%]\n6 passed in 0.39s"
+    }
+  },
+  "refactor": {
+    "agent_id": "RefactorAnomalyResolver",
+    "result": "refactored",
+    "files": [
+      "src/anomaly/attempts.py",
+      "src/anomaly/owners.py",
+      "src/anomaly/state.py",
+      "src/anomaly/workflow.py"
+    ],
+    "outsideDiff": [
+      ".jeff/tasks/0027-resolver-consolidation/journal.jsonl"
+    ],
+    "greenRun": {
+      "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolved_reasoning_owner_is_loaded_and_invoked_once tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+      "output": "......                                                                   [100%]\n6 passed in 0.58s"
+    },
+    "summary": [
+      "Made the phase-to-owner registry explicitly keyed by P0-P7 and hoisted required-input policy out of the resolver hot path.",
+      "Removed the stale state parameter from success sealing, validated the shared source timestamp once per registration batch, and reused invalidation suffix/remaining-phase/redacted-reason values without changing phase, gate, retry, identity, containment, loader, or serialization behavior.",
+      "README serialization required no behavior-preserving simplification; the existing bounded projection remains unchanged.",
+      "The journal entry was pre-existing orchestration state and was not modified by this refactor."
+    ]
+  }
+}

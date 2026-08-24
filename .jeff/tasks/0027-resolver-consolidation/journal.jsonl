@@ -1,0 +1,11 @@
+{"seq":0,"at":"2026-08-24T07:22:55.267Z","event":"intent","stage":"plan","note":"Plan resolver/registry/attempt consolidation with deletion and public behaviour preservation"}
+{"seq":1,"at":"2026-08-24T07:36:17.459Z","event":"record","stage":"plan","agent":"PlanAnomalyConsolidation"}
+{"seq":2,"at":"2026-08-24T07:37:08.802Z","event":"intent","stage":"implement","note":"Implement pure resolver/owner registry/attempt utilities and delete runner/product duplication"}
+{"seq":3,"at":"2026-08-24T08:51:04.136Z","event":"intent","stage":"implement","note":"Fresh implementation dispatch for resolver and durable-attempt consolidation"}
+{"seq":4,"at":"2026-08-24T09:17:30.379Z","event":"record","stage":"implement","agent":"ImplementAnomalyResolver"}
+{"seq":5,"at":"2026-08-24T09:20:36.482Z","event":"intent","stage":"refactor","note":"Fresh behavior-preserving simplification pass over green resolver consolidation"}
+{"seq":6,"at":"2026-08-24T09:25:33.342Z","event":"record","stage":"refactor","agent":"RefactorAnomalyResolver"}
+{"seq":7,"at":"2026-08-24T09:25:50.632Z","event":"gate","hash":"98542737b1707cd694717e224271e3bedfb5d6da","green":true,"clean":false}
+{"seq":8,"at":"2026-08-24T09:28:11.033Z","event":"intent","stage":"review","note":"Standards review of deletion, boundaries, simplification and deterministic state authority"}
+{"seq":9,"at":"2026-08-24T09:28:11.055Z","event":"intent","stage":"review","note":"Correctness review of resolver, owner dispatch, durable attempts, gates, invalidation and test integrity"}
+{"seq":10,"at":"2026-08-24T09:28:11.081Z","event":"intent","stage":"audit","note":"Audit loader paths, containment, source replacement, detector execution and markdown injection after scanner"}

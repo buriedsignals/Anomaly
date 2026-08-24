@@ -1,0 +1,21 @@
+{
+  "stage": "implement",
+  "result": "green",
+  "files": [
+    "src/anomaly/attempts.py",
+    "src/anomaly/events.py",
+    "src/anomaly/identities.py",
+    "src/anomaly/owners.py",
+    "src/anomaly/product_workflow.py",
+    "src/anomaly/readme.py",
+    "src/anomaly/review.py",
+    "src/anomaly/state.py",
+    "src/anomaly/workflow.py",
+    "src/anomaly/workflow_inputs.py"
+  ],
+  "greenRun": {
+    "command": "uv run --extra test pytest tests/test_workflow.py::test_resolver_is_pure_and_reports_durable_resume_detail tests/test_workflow.py::test_resolved_reasoning_owner_is_loaded_and_invoked_once tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_review.py::test_write_report_serializes_dataset_text_as_inert_markdown -q",
+    "output": "......                                                                   [100%]\n6 passed in 0.39s"
+  },
+  "kickback": null
+}

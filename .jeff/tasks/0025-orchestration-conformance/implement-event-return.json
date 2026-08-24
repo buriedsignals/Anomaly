@@ -1,1 +1,0 @@
-{"stage":"implement","result":"green","files":[],"greenRun":{"command":"uv run pytest tests/test_events.py::test_case_walk_appends_phase_events_for_every_mainline_call -q","output":"1 passed in 0.13s"},"kickback":null}

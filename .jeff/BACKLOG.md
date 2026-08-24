@@ -1,14 +1,14 @@
 # BACKLOG
 
-Next free id: 27
+Next free id: 28
 
 ## NOW
 
-- Task 25 — unify durable orchestration and demo conformance
+- Task 27 — consolidate resolver method and reduce orchestration
 
 ## NEXT
 
-- Task 26 — verify installed public demo after task 25
+- Task 26 — verify installed public demo after task 27
 
 ## TODO
 
