@@ -169,10 +169,9 @@ def run_workflow(
     case_root = Path(root)
     resume_case(case_root)
     case_root = case_root.resolve()
-    recover_interrupted_promotion(
-        case_root,
-        lambda phase: _OWNER_REGISTRY[phase][2],
-    )
+    blocked = recover_interrupted_promotion(case_root)
+    if blocked is not None:
+        return blocked
     reason = (
         None
         if invoke is None

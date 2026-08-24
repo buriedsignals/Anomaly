@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from anomaly.state import PHASES, MAX_ATTEMPTS, WorkflowError, write_json_atomic, write_state
 
@@ -29,47 +29,43 @@ def promote_workspace(
     writes: Sequence[str],
     state: Mapping[str, Any],
 ) -> None:
-    relative_attempt = attempt_dir.relative_to(root).as_posix()
-    entries = [
-        {"path": relative, "original": _artifact(root, relative).exists(), "status": "pending"}
-        for relative in _validated_writes(writes)
-    ]
-    journal: dict[str, Any] = {
-        "schema_version": 1,
-        "phase": attempt_dir.parent.name,
-        "attempt": int(attempt_dir.name.removeprefix("attempt-")),
-        "attempt_path": relative_attempt,
-        "status": "prepared",
-        "entries": entries,
-    }
-    journal_path = root / _PROMOTION
-    write_json_atomic(journal_path, journal)
-    try:
-        _apply(root, workspace, attempt_dir, journal, journal_path)
-        write_state(root, state)
-    except BaseException:
-        _rollback(root, attempt_dir, journal, journal_path)
-        _finish(attempt_dir, journal_path)
-        raise
-    _finish(attempt_dir, journal_path)
+    phase = attempt_dir.parent.name
+    attempt = int(attempt_dir.name.removeprefix("attempt-"))
+    attempt_path = attempt_dir.relative_to(root).as_posix()
+    marker = {"phase": phase, "attempt": attempt, "attempt_path": attempt_path}
+    marker_path = root / _PROMOTION
+    write_json_atomic(marker_path, marker)
+    _apply(root, workspace, _validated_writes(writes))
+    write_state(root, state)
+    discard_workspace(workspace)
+    marker_path.unlink()
 
 
-def recover_interrupted_promotion(
-    root: Path,
-    writes_for_phase: Callable[[str], Sequence[str]],
-) -> None:
-    journal_path = root / _PROMOTION
-    if not journal_path.exists():
-        return
-    journal = _read_journal(journal_path, root, writes_for_phase)
-    attempt_dir = _attempt_dir(root, journal)
-    if _is_sealed(root, journal):
-        _finish(attempt_dir, journal_path)
-        return
-    if journal["status"] != "rolled_back":
-        _rollback(root, attempt_dir, journal, journal_path)
-    _rewind_attempt(root, journal)
-    _finish(attempt_dir, journal_path)
+def recover_interrupted_promotion(root: Path) -> dict[str, Any] | None:
+    marker_path = root / _PROMOTION
+    if not marker_path.exists():
+        return None
+    marker = _read_marker(marker_path)
+    state = _read_state(root)
+    phase = marker["phase"]
+    attempt = marker["attempt"]
+    attempt_path = marker["attempt_path"]
+    attempts = dict(state.get("attempts", {}))
+    attempts[phase] = attempt
+    state.update(
+        {
+            "phase": phase,
+            "status": "blocked",
+            "attempts": attempts,
+            "blocked": True,
+            "blocked_reason": (
+                f"Repair required after interrupted promotion in {phase}, attempt {attempt}; "
+                f"inspect retained workspace {attempt_path}/workspace."
+            ),
+        }
+    )
+    write_state(root, state)
+    return state
 
 
 def discard_workspace(workspace: Path) -> None:
@@ -82,213 +78,49 @@ def discard_workspace(workspace: Path) -> None:
         pass
 
 
-def _apply(
-    root: Path,
-    workspace: Path,
-    attempt_dir: Path,
-    journal: dict[str, Any],
-    journal_path: Path,
-) -> None:
-    backup_root = attempt_dir / "promotion-backup"
-    for entry in journal["entries"]:
-        entry["status"] = "applying"
-        write_json_atomic(journal_path, journal)
-        relative = entry["path"]
+def _apply(root: Path, workspace: Path, writes: Sequence[str]) -> None:
+    for relative in writes:
         live = _artifact(root, relative)
         staged = _artifact(workspace, relative)
-        backup = _artifact(backup_root, relative)
-        backup.parent.mkdir(parents=True, exist_ok=True)
-        if entry["original"]:
-            live.replace(backup)
-        if staged.exists():
-            live.parent.mkdir(parents=True, exist_ok=True)
-            staged.replace(live)
-        entry["status"] = "applied"
-        write_json_atomic(journal_path, journal)
-    journal["status"] = "promoted"
-    write_json_atomic(journal_path, journal)
-
-
-def _rollback(
-    root: Path,
-    attempt_dir: Path,
-    journal: dict[str, Any],
-    journal_path: Path,
-) -> None:
-    backup_root = attempt_dir / "promotion-backup"
-    for entry in reversed(journal["entries"]):
-        if entry.get("status") == "pending":
+        if not staged.exists():
+            discard_workspace(live)
             continue
-        live = _artifact(root, entry["path"])
-        backup = _artifact(backup_root, entry["path"])
-        if entry["original"]:
-            entry["status"] = "rolling_back"
-            write_json_atomic(journal_path, journal)
-            if backup.exists():
-                discard_workspace(live)
-                live.parent.mkdir(parents=True, exist_ok=True)
-                backup.replace(live)
-        else:
-            if live.exists():
-                if backup.exists():
-                    raise WorkflowError("promotion rollback artifacts are inconsistent")
-                backup.parent.mkdir(parents=True, exist_ok=True)
-                live.replace(backup)
-            entry["status"] = "rolling_back"
-            write_json_atomic(journal_path, journal)
-            discard_workspace(backup)
-        entry["status"] = "pending"
-        write_json_atomic(journal_path, journal)
-    journal["status"] = "rolled_back"
-    write_json_atomic(journal_path, journal)
+        live.parent.mkdir(parents=True, exist_ok=True)
+        if live.is_symlink() or live.is_dir() or (live.exists() and staged.is_dir()):
+            discard_workspace(live)
+        staged.replace(live)
 
 
-def _rewind_attempt(root: Path, journal: Mapping[str, Any]) -> None:
-    state_path = root / ".anomaly" / "state.json"
-    try:
-        state = json.loads(state_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise WorkflowError("invalid workflow state during promotion recovery") from error
-    if not isinstance(state, dict):
-        raise WorkflowError("invalid workflow state during promotion recovery")
-    attempts = dict(state.get("attempts", {}))
-    phase = journal["phase"]
-    previous = max(0, int(journal["attempt"]) - 1)
-    if previous:
-        attempts[phase] = previous
-    else:
-        attempts.pop(phase, None)
-    state.update({"phase": phase, "status": "active", "attempts": attempts})
-    write_state(root, state)
-
-
-def _finish(attempt_dir: Path, journal_path: Path) -> None:
-    discard_workspace(attempt_dir / "workspace")
-    discard_workspace(attempt_dir / "promotion-backup")
-    journal_path.unlink(missing_ok=True)
-
-
-def _is_sealed(root: Path, journal: Mapping[str, Any]) -> bool:
-    try:
-        state = json.loads((root / ".anomaly" / "state.json").read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return False
-    completed = state.get("completed") if isinstance(state, dict) else None
-    record = completed.get(journal["phase"]) if isinstance(completed, dict) else None
-    return isinstance(record, dict) and record.get("attempt_path") == journal["attempt_path"]
-
-
-def _read_journal(
-    path: Path,
-    root: Path,
-    writes_for_phase: Callable[[str], Sequence[str]],
-) -> dict[str, Any]:
+def _read_marker(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise WorkflowError("invalid promotion journal") from error
-    required = {
-        "schema_version",
-        "phase",
-        "attempt",
-        "attempt_path",
-        "status",
-        "entries",
-    }
-    if (
-        not isinstance(value, dict)
-        or set(value) != required
-        or value.get("schema_version") != 1
-        or value.get("status") not in ("prepared", "promoted", "rolled_back")
-    ):
-        raise WorkflowError("invalid promotion journal")
-    attempt_dir = _attempt_dir(root, value)
-    entries = value["entries"]
-    if not isinstance(entries, list) or any(
-        not isinstance(entry, dict) or set(entry) != {"path", "original", "status"}
-        for entry in entries
-    ):
-        raise WorkflowError("invalid promotion journal entries")
-    try:
-        expected = _validated_writes(writes_for_phase(value["phase"]))
-    except (KeyError, TypeError, ValueError) as error:
-        raise WorkflowError("invalid promotion journal phase") from error
-    paths = _validated_writes([entry["path"] for entry in entries])
-    if paths != expected:
-        raise WorkflowError("promotion journal does not match the phase write set")
-    if any(
-        type(entry["original"]) is not bool
-        or entry["status"] not in ("pending", "applying", "applied", "rolling_back")
-        for entry in entries
-    ):
-        raise WorkflowError("invalid promotion journal entry state")
-    _validate_entry_progress(value)
-    _validate_recovery_artifacts(root, attempt_dir, value)
-    return value
-
-
-def _validate_entry_progress(journal: Mapping[str, Any]) -> None:
-    statuses = [entry["status"] for entry in journal["entries"]]
-    if journal["status"] == "rolled_back":
-        if any(status != "pending" for status in statuses):
-            raise WorkflowError("invalid rolled-back journal entries")
-        return
-    reached_frontier = False
-    for status in statuses:
-        if not reached_frontier and status == "applied":
-            continue
-        if not reached_frontier and status in ("applying", "rolling_back"):
-            if journal["status"] == "promoted" and status == "applying":
-                raise WorkflowError("invalid promoted journal entries")
-            reached_frontier = True
-            continue
-        if status == "pending":
-            reached_frontier = True
-            continue
-        raise WorkflowError("promotion journal entries are not producer-ordered")
-
-
-def _attempt_dir(root: Path, journal: Mapping[str, Any]) -> Path:
-    phase = journal.get("phase")
-    attempt = journal.get("attempt")
+        raise WorkflowError("invalid interrupted-promotion marker") from error
+    if not isinstance(value, dict):
+        raise WorkflowError("invalid interrupted-promotion marker")
+    phase = value.get("phase")
+    attempt = value.get("attempt")
     if (
         not isinstance(phase, str)
         or phase not in PHASES
         or type(attempt) is not int
         or not 1 <= attempt <= MAX_ATTEMPTS
     ):
-        raise WorkflowError("invalid promotion journal attempt")
-    expected = f".anomaly/attempts/{phase}/attempt-{attempt}"
-    if journal.get("attempt_path") != expected:
-        raise WorkflowError("invalid promotion journal path")
-    return root / expected
+        raise WorkflowError("invalid interrupted-promotion attempt")
+    attempt_path = f".anomaly/attempts/{phase}/attempt-{attempt}"
+    if value.get("attempt_path") != attempt_path:
+        raise WorkflowError("invalid interrupted-promotion path")
+    return {"phase": phase, "attempt": attempt, "attempt_path": attempt_path}
 
 
-def _validate_recovery_artifacts(
-    root: Path,
-    attempt_dir: Path,
-    journal: Mapping[str, Any],
-) -> None:
-    backup_root = attempt_dir / "promotion-backup"
-    rolled_back = journal["status"] == "rolled_back"
-    for entry in journal["entries"]:
-        live = _artifact(root, entry["path"])
-        backup = _artifact(backup_root, entry["path"])
-        original = entry["original"]
-        status = entry["status"]
-        if rolled_back or status == "pending":
-            coherent = (
-                not backup.exists()
-                and ((original and live.exists()) or (not original and not live.exists()))
-            )
-        elif original and status == "rolling_back":
-            coherent = backup.exists() or live.exists()
-        elif original:
-            coherent = backup.exists() or (status == "applying" and live.exists())
-        else:
-            coherent = not live.exists()
-        if not coherent:
-            raise WorkflowError("promotion journal recovery artifacts are inconsistent")
+def _read_state(root: Path) -> dict[str, Any]:
+    try:
+        value = json.loads((root / ".anomaly" / "state.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise WorkflowError("invalid workflow state during interrupted promotion") from error
+    if not isinstance(value, dict):
+        raise WorkflowError("invalid workflow state during interrupted promotion")
+    return value
 
 
 def _validated_writes(writes: Sequence[Any]) -> tuple[str, ...]:

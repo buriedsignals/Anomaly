@@ -102,7 +102,6 @@ def run_attempts(
             )
             if phase == "P7":
                 project_readme(workspace, state, phase)
-            promote_workspace(root, workspace, attempt_dir, writes, state)
         except Exception as error:
             state = _finish_failure(
                 root, phase, attempt, attempt_path, error, attempts, workspace
@@ -115,6 +114,7 @@ def run_attempts(
                 root, phase, attempt, attempt_path, error, attempts, workspace
             )
             raise
+        promote_workspace(root, workspace, attempt_dir, writes, state)
         append_event(
             root,
             "phase_completed",

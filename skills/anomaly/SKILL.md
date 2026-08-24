@@ -65,6 +65,11 @@ recorded artifact and receipt identities. A changed source, prepared generation,
 detector identity, parameter, draft, replay, review, or approval invalidates the
 earliest affected phase and every downstream completion.
 
+An interrupted promotion marker is evidence of an unsafe boundary, not authority
+to mutate case content. On startup, preserve all live case files and the
+retained attempt workspace, set `repair required` with the phase, attempt, and
+relative workspace path, and stop for manual repair.
+
 ## Dispatch table
 
 The installed dispatcher is `anomaly.workflow.run_workflow`. It follows one

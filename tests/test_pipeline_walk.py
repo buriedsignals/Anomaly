@@ -11,11 +11,10 @@ from typing import Any, Callable
 import pytest
 
 import anomaly.workflow as workflow
-import anomaly.attempts as attempts_module
 from anomaly.attempts import run_attempts
 from anomaly.case import create_case
 from anomaly.review import _hash_json, draft_findings
-from anomaly.state import WorkflowError, load_snapshot
+from anomaly.state import load_snapshot
 from anomaly.semantics import UnsafeCasePathError
 from anomaly.workflow import PHASES, run_workflow
 
@@ -188,24 +187,6 @@ P3_P6_MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
     ("review", "P6", lambda root: _mark(root / "findings" / "review.json")),
 )
 
-PHASE_PROMOTION_WRITES: dict[str, tuple[str, ...]] = {
-    "P1": (
-        "data/sources.json",
-        "data/raw",
-        ".anomaly/receipts",
-        ".anomaly/events.jsonl",
-    ),
-    "P7": (
-        "findings/findings.json",
-        "findings/report.md",
-        "findings/unresolved.md",
-        "findings/charts",
-        ".anomaly/receipts/gate-b.json",
-        ".anomaly/receipts/charts.json",
-        ".anomaly/events.jsonl",
-        "README.md",
-    ),
-}
 P7_OUTPUT_MUTATIONS: tuple[tuple[str, Callable[[Path], None]], ...] = (
     ("accepted findings", lambda root: _mark(root / "findings" / "findings.json")),
     (
@@ -228,35 +209,65 @@ P7_OUTPUT_MUTATIONS: tuple[tuple[str, Callable[[Path], None]], ...] = (
 )
 
 
-def _promotion_entries(root: Path, phase: str = "P1") -> list[dict[str, object]]:
-    return [
-        {
-            "path": relative,
-            "original": (root / relative).exists(),
-            "status": "pending",
-        }
-        for relative in PHASE_PROMOTION_WRITES[phase]
-    ]
-
-
-def _write_promotion_journal(
+def _write_interrupted_promotion_marker(
     root: Path,
-    entries: list[dict[str, object]],
     *,
     phase: str = "P1",
-) -> None:
+    **legacy_fields: object,
+) -> Path:
+    attempt_path = f".anomaly/attempts/{phase}/attempt-1"
     payload = {
-        "schema_version": 1,
         "phase": phase,
         "attempt": 1,
-        "attempt_path": f".anomaly/attempts/{phase}/attempt-1",
-        "status": "prepared",
-        "entries": entries,
+        "attempt_path": attempt_path,
+        **legacy_fields,
     }
-    (root / ".anomaly" / "promotion.json").write_text(
+    marker = root / ".anomaly" / "promotion.json"
+    marker.write_text(
         json.dumps(payload, sort_keys=True, indent=2) + "\n",
         encoding="utf-8",
     )
+    return marker
+
+
+def _prepare_interrupted_promotion(root: Path) -> tuple[Path, Path]:
+    paused = run_workflow(root)
+    assert tuple(paused["completed"]) == ("P0",)
+
+    def mark_interrupted_attempt(state: dict[str, Any]) -> None:
+        attempts = dict(state.get("attempts", {}))
+        attempts["P1"] = 1
+        state.update({"phase": "P1", "status": "active", "attempts": attempts})
+
+    _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
+    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
+    workspace = attempt_dir / "workspace"
+    workspace.mkdir(parents=True)
+    (workspace / "partial.txt").write_text("retain for repair\n", encoding="utf-8")
+    return attempt_dir, workspace
+
+
+def _assert_manual_repair(
+    state: dict[str, Any],
+    *,
+    phase: str = "P1",
+    attempt: int = 1,
+) -> None:
+    workspace = f".anomaly/attempts/{phase}/attempt-{attempt}/workspace"
+    reason = state["blocked_reason"]
+    assert state["status"] == "blocked"
+    assert state["blocked"] is True
+    assert state["phase"] == phase
+    assert state["attempts"][phase] == attempt
+    assert "repair required" in reason.casefold()
+    assert phase in reason
+    assert f"attempt {attempt}" in reason
+    assert workspace in reason
+
+
+def _assert_no_automatic_rollback_material(root: Path) -> None:
+    assert not (root / ".anomaly" / "promotion.json").exists()
+    assert list(root.rglob("promotion-backup")) == []
 
 
 
@@ -563,6 +574,7 @@ def test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work(
     assert names.index("replay_signals") < names.index("record_review")
     assert names.index("record_review") < names.index("accept_findings")
     assert names.index("replay_signals") < names.index("accept_findings")
+    _assert_no_automatic_rollback_material(root)
 
 
 def test_successful_mutation_remains_resumable_when_event_store_is_unavailable(
@@ -622,198 +634,97 @@ def test_public_dispatcher_persists_three_failed_attempts_and_blocks(
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
 
 
-def test_restart_reconciles_a_hard_exit_after_the_attempt_count_write(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "case"
-    create_case(
-        root,
-        title="Interrupted attempts",
-        question="Does an interrupted attempt recover finitely?",
-        case_id="case-interrupted-attempts",
-        now=NOW,
-    )
-    run_workflow(root)
-    original_write_state = attempts_module.write_state
-    armed = True
-
-    def hard_exit_after_count_write(path: Path, state: dict[str, Any]) -> None:
-        nonlocal armed
-        original_write_state(path, state)
-        if armed and state.get("attempts", {}).get("P1") == 1:
-            armed = False
-            raise SystemExit("simulated hard exit after durable attempt count")
-
-    with monkeypatch.context() as crash:
-        crash.setattr(attempts_module, "write_state", hard_exit_after_count_write)
-        with pytest.raises(SystemExit, match="simulated hard exit"):
-            run_attempts(root, "P1", lambda _workspace: None, writes=())
-
-    crashed = load_snapshot(root)
-    assert crashed["attempts"]["P1"] == 1
-    assert crashed.get("failures", {}).get("P1") is None
-
-    def fail_retry(_workspace: Path) -> None:
-        raise RuntimeError("retry after hard exit")
-
-    state = run_attempts(root, "P1", fail_retry, writes=())
-
-    assert state["status"] in {"blocked", "unavailable"}
-    assert state["attempts"]["P1"] == 3
-    failures = state["failures"]["P1"]
-    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
-    assert "interrupted before completion" in failures[0]["error"]
-    assert all(
-        (root / failure["attempt_path"] / "failure.json").is_file()
-        and not (root / failure["attempt_path"] / "workspace").exists()
-        for failure in failures
-    )
-
-
-def test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion(
+def test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "case"
     create_case(
         root,
-        title="Promotion restart",
-        question="Does restart restore the last sealed case?",
-        case_id="case-promotion-restart",
+        title="Interrupted promotion",
+        question="Does startup preserve the case for manual repair?",
+        case_id="case-interrupted-promotion",
         now=NOW,
     )
-    first_pause = run_workflow(root)
-    assert tuple(first_pause["completed"]) == ("P0",)
-
-    def mark_interrupted_attempt(state: dict[str, Any]) -> None:
-        attempts = dict(state.get("attempts", {}))
-        attempts["P1"] = 1
-        state.update({"phase": "P1", "status": "active", "attempts": attempts})
-
-    _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
-    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
-    sources = root / "data" / "sources.json"
-    original_sources = sources.read_bytes()
-    backup = attempt_dir / "promotion-backup" / "data" / "sources.json"
-    backup.parent.mkdir(parents=True)
-    sources.replace(backup)
-    sources.write_text('{"partial": true}\n', encoding="utf-8")
-    entries = _promotion_entries(root)
-    entries[0].update({"original": True, "status": "applied"})
-    _write_promotion_journal(root, entries)
-
-    recovered = run_workflow(root)
-
-    assert recovered["status"] == "paused"
-    assert recovered["awaiting_input"] == "sources"
-    assert tuple(recovered["completed"]) == ("P0",)
-    assert recovered["attempts"].get("P1") is None
-    assert sources.read_bytes() == original_sources
-    assert not (root / ".anomaly" / "promotion.json").exists()
-    assert not (attempt_dir / "promotion-backup").exists()
-
-    resumed = run_workflow(root, inputs=_source_inputs())
-
-    assert resumed["status"] == "paused"
-    assert resumed["awaiting_input"] == "gate_a"
-    assert resumed["completed"]["P1"]["attempt"] == 1
-
-
-def test_public_restart_resumes_after_a_second_interruption_during_rollback(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root = tmp_path / "case"
-    create_case(
-        root,
-        title="Rollback progress",
-        question="Can rollback resume after another hard interruption?",
-        case_id="case-rollback-progress",
-        now=NOW,
+    _attempt_dir, workspace = _prepare_interrupted_promotion(root)
+    marker = _write_interrupted_promotion_marker(root)
+    protected_paths = (
+        root / "README.md",
+        root / "data" / "sources.json",
+        root / ".anomaly" / "events.jsonl",
     )
-    run_workflow(root)
+    protected = {path: path.read_bytes() for path in protected_paths}
+    marker_before = marker.read_bytes()
 
-    def mark_interrupted_attempt(state: dict[str, Any]) -> None:
-        attempts = dict(state.get("attempts", {}))
-        attempts["P1"] = 1
-        state.update({"phase": "P1", "status": "active", "attempts": attempts})
+    blocked = run_workflow(root)
 
-    _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
-    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
-    sources = root / "data" / "sources.json"
-    raw = root / "data" / "raw"
-    original_sources = sources.read_bytes()
-    original_raw_entries = sorted(path.name for path in raw.iterdir())
-    backup_root = attempt_dir / "promotion-backup"
-    sources_backup = backup_root / "data" / "sources.json"
-    sources_backup.parent.mkdir(parents=True)
-    sources.replace(sources_backup)
-    sources.write_text('{"partial": true}\n', encoding="utf-8")
-    raw_backup = backup_root / "data" / "raw"
-    raw.replace(raw_backup)
-    raw.mkdir()
-    (raw / "partial.txt").write_text("partial\n", encoding="utf-8")
-    entries = _promotion_entries(root)
-    entries[0].update({"original": True, "status": "applied"})
-    entries[1].update({"original": True, "status": "applied"})
-    _write_promotion_journal(root, entries)
-    original_replace = Path.replace
-
-    def interrupt_after_restore(source: Path, target: Path) -> Path:
-        restored = original_replace(source, target)
-        if source == raw_backup:
-            raise KeyboardInterrupt("simulated hard exit during rollback")
-        return restored
-
-    with monkeypatch.context() as crash:
-        crash.setattr(Path, "replace", interrupt_after_restore)
-        with pytest.raises(KeyboardInterrupt, match="during rollback"):
-            run_workflow(root)
-
-    recovered = run_workflow(root)
-
-    assert recovered["status"] == "paused"
-    assert recovered["awaiting_input"] == "sources"
-    assert recovered["attempts"].get("P1") is None
-    assert sources.read_bytes() == original_sources
-    assert sorted(path.name for path in raw.iterdir()) == original_raw_entries
-    assert not (root / ".anomaly" / "promotion.json").exists()
-    assert not (attempt_dir / "promotion-backup").exists()
+    _assert_manual_repair(blocked)
+    assert {path: path.read_bytes() for path in protected_paths} == protected
+    assert marker.read_bytes() == marker_before
+    assert (workspace / "partial.txt").read_text(encoding="utf-8") == "retain for repair\n"
+    assert list(root.rglob("promotion-backup")) == []
 
 
 @pytest.mark.parametrize(
-    ("phase", "protected_relative"),
-    (("P1", "data/sources.json"), ("P7", "README.md")),
-    ids=("source-registry", "journalist-readme"),
+    "claimed_original",
+    (True, False),
+    ids=("backup-cannot-authorize-overwrite", "journal-cannot-authorize-deletion"),
 )
-def test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data(
+def test_legacy_journal_fields_and_backups_cannot_authorize_live_mutation(
     tmp_path: Path,
-    phase: str,
-    protected_relative: str,
+    claimed_original: bool,
 ) -> None:
     root = tmp_path / "case"
     create_case(
         root,
-        title="Promotion provenance",
-        question="Can forged provenance delete live case data?",
-        case_id=f"case-provenance-{phase.casefold()}",
+        title="Untrusted promotion metadata",
+        question="Can legacy recovery material mutate live evidence?",
+        case_id=f"case-untrusted-promotion-{claimed_original}",
         now=NOW,
     )
-    run_workflow(root)
-    entries = _promotion_entries(root, phase)
-    protected_entry = next(
-        entry for entry in entries if entry["path"] == protected_relative
+    attempt_dir, workspace = _prepare_interrupted_promotion(root)
+    write_paths = (
+        "data/sources.json",
+        "data/raw",
+        ".anomaly/receipts",
+        ".anomaly/events.jsonl",
     )
-    protected_entry.update({"original": False, "status": "applied"})
-    _write_promotion_journal(root, entries, phase=phase)
-    protected = root / protected_relative
-    before = protected.read_bytes()
+    entries = [
+        {
+            "path": relative,
+            "original": (root / relative).exists(),
+            "status": "pending",
+        }
+        for relative in write_paths
+    ]
+    entries[0].update({"original": claimed_original, "status": "applied"})
+    backup = attempt_dir / "promotion-backup" / "data" / "sources.json"
+    if claimed_original:
+        backup.parent.mkdir(parents=True)
+        backup.write_text('{"attacker": "replacement"}\n', encoding="utf-8")
+    marker = _write_interrupted_promotion_marker(
+        root,
+        schema_version=1,
+        status="prepared",
+        entries=entries,
+    )
+    protected_paths = (
+        root / "README.md",
+        root / "data" / "sources.json",
+        root / ".anomaly" / "events.jsonl",
+    )
+    protected = {path: path.read_bytes() for path in protected_paths}
+    marker_before = marker.read_bytes()
 
-    with pytest.raises(WorkflowError):
-        run_workflow(root)
+    blocked = run_workflow(root)
 
-    assert protected.read_bytes() == before
-    assert (root / ".anomaly" / "promotion.json").is_file()
+    _assert_manual_repair(blocked)
+    assert {path: path.read_bytes() for path in protected_paths} == protected
+    assert marker.read_bytes() == marker_before
+    assert (workspace / "partial.txt").read_text(encoding="utf-8") == "retain for repair\n"
+    if claimed_original:
+        assert backup.read_text(encoding="utf-8") == '{"attacker": "replacement"}\n'
+    else:
+        assert not backup.exists()
 
 
 def test_run_attempts_rejects_a_symlinked_case_before_any_durable_write(
@@ -848,44 +759,6 @@ def test_run_attempts_rejects_a_symlinked_case_before_any_durable_write(
     assert (external / "events.jsonl").read_bytes() == events_before
 
 
-@pytest.mark.parametrize(
-    "invalid_field",
-    ("path", "status", "original"),
-)
-def test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation(
-    tmp_path: Path,
-    invalid_field: str,
-) -> None:
-    root = tmp_path / "case"
-    create_case(
-        root,
-        title="Promotion journal validation",
-        question="Can a portable journal mutate unrelated evidence?",
-        case_id="case-promotion-journal",
-        now=NOW,
-    )
-    run_workflow(root)
-    entries = _promotion_entries(root)
-    if invalid_field == "path":
-        entries[-1] = {"path": "README.md", "original": False, "status": "applied"}
-    elif invalid_field == "status":
-        entries[-1]["status"] = "unexpected"
-    else:
-        entries[-1]["original"] = "false"
-    _write_promotion_journal(root, entries)
-    protected = {
-        relative: (root / relative).read_bytes()
-        for relative in ("README.md", "data/sources.json", ".anomaly/events.jsonl")
-    }
-
-    with pytest.raises(WorkflowError, match=r"(?i)promotion journal"):
-        run_workflow(root)
-
-    assert {
-        relative: (root / relative).read_bytes()
-        for relative in protected
-    } == protected
-    assert (root / ".anomaly" / "promotion.json").is_file()
 
 def test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence(
     tmp_path: Path,
@@ -907,7 +780,11 @@ def test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence(
         f"AWS_SECRET_ACCESS_KEY={secrets[5]} OPENAI_API_KEY={secrets[6]}"
     )
 
-    def fail_reasoning(**_kwargs: Any) -> dict[str, Any]:
+    def fail_reasoning(*, case_root: Path, **_kwargs: Any) -> dict[str, Any]:
+        (case_root / "findings" / "draft.json").write_text(
+            '{"partial": true}\n',
+            encoding="utf-8",
+        )
         raise RuntimeError(message)
 
     state = run_workflow(
@@ -933,6 +810,11 @@ def test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence(
     leaked = [secret for secret in secrets if secret in persisted]
     assert leaked == []
     assert "[redacted]" in persisted
+    failures = state["failures"]["P5"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert all((root / failure["attempt_path"] / "failure.json").is_file() for failure in failures)
+    assert not (root / "findings" / "draft.json").exists()
+    _assert_no_automatic_rollback_material(root)
 
 
 def test_public_dispatcher_rejects_duplicate_source_batch_before_registration(
@@ -998,6 +880,12 @@ def test_failed_multi_source_attempt_does_not_promote_an_earlier_source(
         (root / ".anomaly" / "attempts" / "P1" / f"attempt-{attempt}" / "failure.json").is_file()
         for attempt in (1, 2, 3)
     )
+    failures = state["failures"]["P1"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert [failure["attempt_path"] for failure in failures] == [
+        f".anomaly/attempts/P1/attempt-{attempt}" for attempt in (1, 2, 3)
+    ]
+    _assert_no_automatic_rollback_material(root)
 
 
 def test_public_dispatcher_retries_recommendation_failure_inside_p3(
