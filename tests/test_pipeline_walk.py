@@ -10,6 +10,8 @@ from typing import Any, Callable
 
 import pytest
 
+import anomaly._attempt_workspace as attempt_workspace
+import anomaly.attempts as attempts_module
 import anomaly.workflow as workflow
 from anomaly.attempts import run_attempts
 from anomaly.case import create_case
@@ -632,6 +634,114 @@ def test_public_dispatcher_persists_three_failed_attempts_and_blocks(
     ]
     assert all(not Path(failure["attempt_path"]).is_absolute() for failure in failures)
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
+
+
+def test_successful_promotion_cleanup_never_leaves_a_marker_without_its_workspace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Promotion cleanup",
+        question="Can a repair marker outlive its inspection workspace?",
+        case_id="case-promotion-cleanup",
+        now=NOW,
+    )
+    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
+    workspace = attempt_dir / "workspace"
+    marker = root / ".anomaly" / "promotion.json"
+    original_discard = attempt_workspace.discard_workspace
+
+    def stop_after_cleanup(path: Path) -> None:
+        existed = path.is_dir()
+        original_discard(path)
+        if existed and path.parent.parent.name == "P1":
+            raise SystemExit("simulated interruption after workspace cleanup")
+
+    with monkeypatch.context() as interrupted:
+        interrupted.setattr(
+            attempt_workspace,
+            "discard_workspace",
+            stop_after_cleanup,
+        )
+        with pytest.raises(SystemExit, match="simulated interruption"):
+            run_workflow(root, inputs=_source_inputs())
+
+    state = load_snapshot(root)
+    assert state["completed"]["P1"]["attempt_path"] == (
+        ".anomaly/attempts/P1/attempt-1"
+    )
+    assert (root / "data" / "sources.json").is_file()
+    assert not workspace.exists()
+    assert not marker.exists() or workspace.is_dir()
+
+
+def test_restart_reconciles_a_counted_attempt_without_failure_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Interrupted attempts",
+        question="Does an interrupted attempt retry finitely?",
+        case_id="case-interrupted-attempts",
+        now=NOW,
+    )
+    run_workflow(root)
+    original_write_state = attempts_module.write_state
+    crash_secret = "crash-only-secret"
+
+    def stop_after_count_write(path: Path, state: dict[str, Any]) -> None:
+        original_write_state(path, state)
+        if state.get("attempts", {}).get("P1") == 1:
+            raise SystemExit(
+                f"simulated interruption password={crash_secret}"
+            )
+
+    with monkeypatch.context() as interrupted:
+        interrupted.setattr(
+            attempts_module,
+            "write_state",
+            stop_after_count_write,
+        )
+        with pytest.raises(SystemExit, match="simulated interruption"):
+            run_attempts(root, "P1", lambda _workspace: None, writes=())
+
+    counted = load_snapshot(root)
+    assert counted["attempts"]["P1"] == 1
+    assert counted.get("failures", {}).get("P1") is None
+
+    retry_secret = "retry-only-secret"
+    executed: list[Path] = []
+
+    def fail_retry(workspace: Path) -> None:
+        executed.append(workspace)
+        raise RuntimeError(f"Authorization: Bearer {retry_secret}")
+
+    state = run_attempts(root, "P1", fail_retry, writes=())
+
+    assert state["status"] == "unavailable"
+    assert state["attempts"]["P1"] == 3
+    assert len(executed) == 2
+    failures = state["failures"]["P1"]
+    assert [failure["attempt"] for failure in failures] == [1, 2, 3]
+    assert failures[0]["error"] == "P1 attempt 1 was interrupted before completion"
+    assert all("[redacted]" in failure["error"] for failure in failures[1:])
+    persisted = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix in {".json", ".jsonl"}
+    )
+    assert crash_secret not in persisted
+    assert retry_secret not in persisted
+    assert all(
+        (root / failure["attempt_path"] / "failure.json").is_file()
+        and not (root / failure["attempt_path"] / "workspace").exists()
+        for failure in failures
+    )
+    _assert_no_automatic_rollback_material(root)
 
 
 def test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair(

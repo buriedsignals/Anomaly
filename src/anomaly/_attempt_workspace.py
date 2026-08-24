@@ -37,8 +37,8 @@ def promote_workspace(
     write_json_atomic(marker_path, marker)
     _apply(root, workspace, _validated_writes(writes))
     write_state(root, state)
-    discard_workspace(workspace)
     marker_path.unlink()
+    discard_workspace(workspace)
 
 
 def recover_interrupted_promotion(root: Path) -> dict[str, Any] | None:
