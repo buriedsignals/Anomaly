@@ -1,0 +1,13 @@
+{
+  "stage": "refactor",
+  "result": "clean",
+  "files": [],
+  "outsideDiff": [],
+  "greenRun": {
+    "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
+    "output": "..........                                                               [100%]\n10 passed in 0.25s"
+  },
+  "summary": [
+    "No production changes: the task already has one shared sanitize_public_value implementation in semantics.py, review.py preserves its existing _SIGNAL_FIELDS allowlist, and _signal_projection.py explicitly sanitizes its separate allowlisted signal and detector-metadata views before serialization."
+  ]
+}

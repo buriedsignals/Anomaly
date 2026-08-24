@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 29,
+  "slug": "structured-signal-search",
+  "title": "Build deterministic structured signal search",
+  "status": "in_progress",
+  "stage": "review",
+  "priority": "p1",
+  "deps": [],
+  "complexity": "complex",
+  "createdAt": "2026-08-24T16:18:16Z",
+  "updatedAt": "2026-08-24T16:45:47Z",
+  "agents": {
+    "implementer_agent_id": "ImplementSignalSearch",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": "PlanSignalSearch",
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "evidence": []
+  },
+  "audit": {
+    "required": true,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null,
+  "category": "code",
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Extract and reuse the existing public-value sanitizer without changing replay, draft, or report behavior.",
+      "Add a contained, atomic, clock-free DuckDB signal projection and deterministic manifest bound to signal JSONL, run provenance, and detector snapshot hashes.",
+      "Add validated structured filters, deterministic lexical matched_on details, separate query scores, canonical references, stable keyset pagination, and explicit stale-projection rejection."
+    ],
+    "testFiles": [
+      "tests/test_signal_search.py"
+    ],
+    "redRun": {
+      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
+      "output": "10 failed in 0.12s; every collected case completed isolated fixture setup, then failed at the expected production boundary with ModuleNotFoundError: No module named 'anomaly.search' (artifact://89)."
+    },
+    "escalation": null,
+    "refactorOpportunity": "Extract review._sanitize's sensitive-key removal plus credential redaction into a shared semantics.sanitize_public_value helper and reuse it unchanged from review and search, preserving the existing review field allowlist and serialized outputs."
+  },
+  "implement": {
+    "agent_id": "ImplementSignalSearch",
+    "result": "green",
+    "files": [
+      "src/anomaly/_signal_projection.py",
+      "src/anomaly/search.py",
+      "src/anomaly/semantics.py",
+      "src/anomaly/review.py"
+    ],
+    "greenRun": {
+      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
+      "output": "..........                                                               [100%]\n10 passed in 0.25s"
+    }
+  },
+  "refactor": {
+    "agent_id": "RefactorSignalSearch",
+    "result": "clean",
+    "files": [],
+    "outsideDiff": [],
+    "greenRun": {
+      "command": ".venv/bin/python -m pytest tests/test_signal_search.py -q",
+      "output": "..........                                                               [100%]\n10 passed in 0.25s"
+    },
+    "summary": [
+      "No production changes: the task already has one shared sanitize_public_value implementation in semantics.py, review.py preserves its existing _SIGNAL_FIELDS allowlist, and _signal_projection.py explicitly sanitizes its separate allowlisted signal and detector-metadata views before serialization."
+    ]
+  }
+}
