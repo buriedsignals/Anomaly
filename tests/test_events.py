@@ -299,3 +299,26 @@ def test_log_event_does_not_invent_state_for_a_missing_case(tmp_path: Path) -> N
     missing = tmp_path / "not-a-case"
 
     assert log_event(missing, "P1", "orphan_call") is not None
+
+
+def test_direct_log_event_rejects_a_symlinked_store_without_external_append(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Event containment",
+        question="Can a direct event write escape the case?",
+        case_id="case-event-containment",
+        now=NOW,
+    )
+    external = tmp_path / "external-anomaly"
+    (root / ".anomaly").replace(external)
+    (root / ".anomaly").symlink_to(external, target_is_directory=True)
+    events = external / "events.jsonl"
+    before = events.read_bytes()
+
+    payload = log_event(root, "P1", "redirected")
+
+    assert payload is None
+    assert events.read_bytes() == before

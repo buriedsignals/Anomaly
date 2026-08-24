@@ -121,12 +121,24 @@ def _rollback(
             continue
         live = _artifact(root, entry["path"])
         backup = _artifact(backup_root, entry["path"])
-        if backup.exists():
-            discard_workspace(live)
-            live.parent.mkdir(parents=True, exist_ok=True)
-            backup.replace(live)
-        elif not entry["original"]:
-            discard_workspace(live)
+        if entry["original"]:
+            entry["status"] = "rolling_back"
+            write_json_atomic(journal_path, journal)
+            if backup.exists():
+                discard_workspace(live)
+                live.parent.mkdir(parents=True, exist_ok=True)
+                backup.replace(live)
+        else:
+            if live.exists():
+                if backup.exists():
+                    raise WorkflowError("promotion rollback artifacts are inconsistent")
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                live.replace(backup)
+            entry["status"] = "rolling_back"
+            write_json_atomic(journal_path, journal)
+            discard_workspace(backup)
+        entry["status"] = "pending"
+        write_json_atomic(journal_path, journal)
     journal["status"] = "rolled_back"
     write_json_atomic(journal_path, journal)
 
@@ -202,20 +214,38 @@ def _read_journal(
     except (KeyError, TypeError, ValueError) as error:
         raise WorkflowError("invalid promotion journal phase") from error
     paths = _validated_writes([entry["path"] for entry in entries])
-    if set(paths) != set(expected):
+    if paths != expected:
         raise WorkflowError("promotion journal does not match the phase write set")
     if any(
         type(entry["original"]) is not bool
-        or entry["status"] not in ("pending", "applying", "applied")
+        or entry["status"] not in ("pending", "applying", "applied", "rolling_back")
         for entry in entries
     ):
         raise WorkflowError("invalid promotion journal entry state")
-    if value["status"] == "promoted" and any(
-        entry["status"] != "applied" for entry in entries
-    ):
-        raise WorkflowError("invalid promoted journal entries")
+    _validate_entry_progress(value)
     _validate_recovery_artifacts(root, attempt_dir, value)
     return value
+
+
+def _validate_entry_progress(journal: Mapping[str, Any]) -> None:
+    statuses = [entry["status"] for entry in journal["entries"]]
+    if journal["status"] == "rolled_back":
+        if any(status != "pending" for status in statuses):
+            raise WorkflowError("invalid rolled-back journal entries")
+        return
+    reached_frontier = False
+    for status in statuses:
+        if not reached_frontier and status == "applied":
+            continue
+        if not reached_frontier and status in ("applying", "rolling_back"):
+            if journal["status"] == "promoted" and status == "applying":
+                raise WorkflowError("invalid promoted journal entries")
+            reached_frontier = True
+            continue
+        if status == "pending":
+            reached_frontier = True
+            continue
+        raise WorkflowError("promotion journal entries are not producer-ordered")
 
 
 def _attempt_dir(root: Path, journal: Mapping[str, Any]) -> Path:
@@ -246,20 +276,17 @@ def _validate_recovery_artifacts(
         backup = _artifact(backup_root, entry["path"])
         original = entry["original"]
         status = entry["status"]
-        if rolled_back:
+        if rolled_back or status == "pending":
             coherent = (
                 not backup.exists()
                 and ((original and live.exists()) or (not original and not live.exists()))
             )
-        elif status == "pending":
-            coherent = (
-                not backup.exists()
-                and ((original and live.exists()) or (not original and not live.exists()))
-            )
+        elif original and status == "rolling_back":
+            coherent = backup.exists() or live.exists()
         elif original:
             coherent = backup.exists() or (status == "applying" and live.exists())
         else:
-            coherent = not backup.exists()
+            coherent = not live.exists()
         if not coherent:
             raise WorkflowError("promotion journal recovery artifacts are inconsistent")
 

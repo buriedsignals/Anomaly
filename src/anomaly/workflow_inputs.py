@@ -166,7 +166,7 @@ def _gate_input(
         raise ValueError(f"{sequence} exceeds its limit")
     if any(
         not isinstance(item, str)
-        or not item
+        or not item.strip()
         or (reject_separators and ("/" in item or "\\" in item))
         for item in selected
     ):

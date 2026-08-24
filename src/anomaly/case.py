@@ -163,8 +163,10 @@ def fork_case(
     reset_phase: str | None = None,
 ) -> Case:
     source = Path(source)
-    dest = Path(dest).resolve()
+    dest = Path(dest)
     _scan_case_tree(source)
+    _scan_case_tree(dest)
+    dest = dest.resolve()
     source = Path(os.path.abspath(os.fspath(source)))
     parent = resume_case(source)
     selected_phase = reset_phase or "P0"

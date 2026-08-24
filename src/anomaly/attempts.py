@@ -36,6 +36,7 @@ def run_attempts(
     """Execute one resolved owner in a durable, bounded attempt workspace."""
     if phase not in PHASES:
         raise ValueError(f"unknown phase: {phase}")
+    _scan_case_tree(Path(root))
     state = load_snapshot(root)
     completed = completed_phase(state)
     if completed is not None and PHASES.index(completed) >= PHASES.index(phase):

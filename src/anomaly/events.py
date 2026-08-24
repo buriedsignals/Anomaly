@@ -32,6 +32,7 @@ def log_event(
     lands.
     """
     try:
+        _scan_case_tree(Path(case_root))
         payload: dict[str, Any] = {
             "event": _redact(event),
             "at": datetime.now(timezone.utc).isoformat(),

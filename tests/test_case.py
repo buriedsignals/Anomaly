@@ -426,6 +426,23 @@ def test_fork_rejects_symlinked_case_namespace_alias_before_destination_creation
     assert not dest.exists()
 
 
+def test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "parent"
+    external = tmp_path / "external-destination"
+    destination_alias = tmp_path / "destination-alias"
+    requested = destination_alias / "child"
+    _create(source)
+    external.mkdir()
+    destination_alias.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(UnsafeCasePathError):
+        fork_case(source, requested, case_id="child-1", now=NOW)
+
+    assert not (external / "child").exists()
+
+
 def test_fork_case_sets_new_id_and_derived_from_pointer(tmp_path: Path) -> None:
     source = tmp_path / "parent"
     dest = tmp_path / "child"

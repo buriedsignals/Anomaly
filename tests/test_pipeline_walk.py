@@ -11,6 +11,7 @@ from typing import Any, Callable
 import pytest
 
 import anomaly.workflow as workflow
+import anomaly.attempts as attempts_module
 from anomaly.attempts import run_attempts
 from anomaly.case import create_case
 from anomaly.review import _hash_json, draft_findings
@@ -187,12 +188,24 @@ P3_P6_MUTATIONS: tuple[tuple[str, str, Callable[[Path], None]], ...] = (
     ("review", "P6", lambda root: _mark(root / "findings" / "review.json")),
 )
 
-P1_PROMOTION_WRITES = (
-    "data/sources.json",
-    "data/raw",
-    ".anomaly/receipts",
-    ".anomaly/events.jsonl",
-)
+PHASE_PROMOTION_WRITES: dict[str, tuple[str, ...]] = {
+    "P1": (
+        "data/sources.json",
+        "data/raw",
+        ".anomaly/receipts",
+        ".anomaly/events.jsonl",
+    ),
+    "P7": (
+        "findings/findings.json",
+        "findings/report.md",
+        "findings/unresolved.md",
+        "findings/charts",
+        ".anomaly/receipts/gate-b.json",
+        ".anomaly/receipts/charts.json",
+        ".anomaly/events.jsonl",
+        "README.md",
+    ),
+}
 P7_OUTPUT_MUTATIONS: tuple[tuple[str, Callable[[Path], None]], ...] = (
     ("accepted findings", lambda root: _mark(root / "findings" / "findings.json")),
     (
@@ -215,22 +228,28 @@ P7_OUTPUT_MUTATIONS: tuple[tuple[str, Callable[[Path], None]], ...] = (
 )
 
 
-def _promotion_entries() -> list[dict[str, object]]:
+def _promotion_entries(root: Path, phase: str = "P1") -> list[dict[str, object]]:
     return [
-        {"path": relative, "original": True, "status": "pending"}
-        for relative in P1_PROMOTION_WRITES
+        {
+            "path": relative,
+            "original": (root / relative).exists(),
+            "status": "pending",
+        }
+        for relative in PHASE_PROMOTION_WRITES[phase]
     ]
 
 
 def _write_promotion_journal(
     root: Path,
     entries: list[dict[str, object]],
+    *,
+    phase: str = "P1",
 ) -> None:
     payload = {
         "schema_version": 1,
-        "phase": "P1",
+        "phase": phase,
         "attempt": 1,
-        "attempt_path": ".anomaly/attempts/P1/attempt-1",
+        "attempt_path": f".anomaly/attempts/{phase}/attempt-1",
         "status": "prepared",
         "entries": entries,
     }
@@ -369,11 +388,12 @@ def test_incomplete_gate_b_decision_pauses_without_consuming_an_attempt(
     (
         [],
         [1],
+        ["   "],
         ["duplicate", "duplicate"],
         ["unsafe/id"],
         [f"detector-{index}" for index in range(11)],
     ),
-    ids=("empty", "non-string", "duplicate", "unsafe", "over-limit"),
+    ids=("empty", "non-string", "whitespace", "duplicate", "unsafe", "over-limit"),
 )
 def test_value_invalid_gate_a_input_pauses_before_an_attempt(
     tmp_path: Path,
@@ -399,8 +419,8 @@ def test_value_invalid_gate_a_input_pauses_before_an_attempt(
 
 @pytest.mark.parametrize(
     "accepted_claim_ids",
-    ([None], ["duplicate", "duplicate"]),
-    ids=("non-string", "duplicate"),
+    ([None], ["   "], ["duplicate", "duplicate"]),
+    ids=("non-string", "whitespace", "duplicate"),
 )
 def test_value_invalid_gate_b_input_pauses_before_an_attempt(
     tmp_path: Path,
@@ -602,8 +622,9 @@ def test_public_dispatcher_persists_three_failed_attempts_and_blocks(
     assert all((root / failure["attempt_path"]).is_dir() for failure in failures)
 
 
-def test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit(
+def test_restart_reconciles_a_hard_exit_after_the_attempt_count_write(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root = tmp_path / "case"
     create_case(
@@ -614,26 +635,35 @@ def test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit(
         now=NOW,
     )
     run_workflow(root)
+    original_write_state = attempts_module.write_state
+    armed = True
 
-    def interrupt(_workspace: Path) -> None:
-        raise KeyboardInterrupt("simulated process interruption")
+    def hard_exit_after_count_write(path: Path, state: dict[str, Any]) -> None:
+        nonlocal armed
+        original_write_state(path, state)
+        if armed and state.get("attempts", {}).get("P1") == 1:
+            armed = False
+            raise SystemExit("simulated hard exit after durable attempt count")
 
-    for _attempt in range(3):
-        with pytest.raises(KeyboardInterrupt, match="simulated process interruption"):
-            run_attempts(root, "P1", interrupt, writes=())
+    with monkeypatch.context() as crash:
+        crash.setattr(attempts_module, "write_state", hard_exit_after_count_write)
+        with pytest.raises(SystemExit, match="simulated hard exit"):
+            run_attempts(root, "P1", lambda _workspace: None, writes=())
 
-    state = run_attempts(
-        root,
-        "P1",
-        lambda _workspace: pytest.fail("retry limit must not execute attempt four"),
-        writes=(),
-    )
+    crashed = load_snapshot(root)
+    assert crashed["attempts"]["P1"] == 1
+    assert crashed.get("failures", {}).get("P1") is None
+
+    def fail_retry(_workspace: Path) -> None:
+        raise RuntimeError("retry after hard exit")
+
+    state = run_attempts(root, "P1", fail_retry, writes=())
 
     assert state["status"] in {"blocked", "unavailable"}
     assert state["attempts"]["P1"] == 3
     failures = state["failures"]["P1"]
     assert [failure["attempt"] for failure in failures] == [1, 2, 3]
-    assert all("interrupt" in failure["error"].casefold() for failure in failures)
+    assert "interrupted before completion" in failures[0]["error"]
     assert all(
         (root / failure["attempt_path"] / "failure.json").is_file()
         and not (root / failure["attempt_path"] / "workspace").exists()
@@ -641,7 +671,7 @@ def test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit(
     )
 
 
-def test_public_restart_rolls_back_an_interrupted_promotion_before_retry(
+def test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "case"
@@ -662,13 +692,14 @@ def test_public_restart_rolls_back_an_interrupted_promotion_before_retry(
 
     _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
     attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
-    backup = attempt_dir / "promotion-backup" / ".anomaly" / "events.jsonl"
+    sources = root / "data" / "sources.json"
+    original_sources = sources.read_bytes()
+    backup = attempt_dir / "promotion-backup" / "data" / "sources.json"
     backup.parent.mkdir(parents=True)
-    events = root / ".anomaly" / "events.jsonl"
-    backup.write_bytes(events.read_bytes())
-    events.write_bytes(events.read_bytes() + b'{"event":"partial-promotion"}\n')
-    entries = _promotion_entries()
-    entries[-1]["status"] = "applied"
+    sources.replace(backup)
+    sources.write_text('{"partial": true}\n', encoding="utf-8")
+    entries = _promotion_entries(root)
+    entries[0].update({"original": True, "status": "applied"})
     _write_promotion_journal(root, entries)
 
     recovered = run_workflow(root)
@@ -677,7 +708,7 @@ def test_public_restart_rolls_back_an_interrupted_promotion_before_retry(
     assert recovered["awaiting_input"] == "sources"
     assert tuple(recovered["completed"]) == ("P0",)
     assert recovered["attempts"].get("P1") is None
-    assert "partial-promotion" not in events.read_text(encoding="utf-8")
+    assert sources.read_bytes() == original_sources
     assert not (root / ".anomaly" / "promotion.json").exists()
     assert not (attempt_dir / "promotion-backup").exists()
 
@@ -686,6 +717,135 @@ def test_public_restart_rolls_back_an_interrupted_promotion_before_retry(
     assert resumed["status"] == "paused"
     assert resumed["awaiting_input"] == "gate_a"
     assert resumed["completed"]["P1"]["attempt"] == 1
+
+
+def test_public_restart_resumes_after_a_second_interruption_during_rollback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Rollback progress",
+        question="Can rollback resume after another hard interruption?",
+        case_id="case-rollback-progress",
+        now=NOW,
+    )
+    run_workflow(root)
+
+    def mark_interrupted_attempt(state: dict[str, Any]) -> None:
+        attempts = dict(state.get("attempts", {}))
+        attempts["P1"] = 1
+        state.update({"phase": "P1", "status": "active", "attempts": attempts})
+
+    _rewrite_json(root / ".anomaly" / "state.json", mark_interrupted_attempt)
+    attempt_dir = root / ".anomaly" / "attempts" / "P1" / "attempt-1"
+    sources = root / "data" / "sources.json"
+    raw = root / "data" / "raw"
+    original_sources = sources.read_bytes()
+    original_raw_entries = sorted(path.name for path in raw.iterdir())
+    backup_root = attempt_dir / "promotion-backup"
+    sources_backup = backup_root / "data" / "sources.json"
+    sources_backup.parent.mkdir(parents=True)
+    sources.replace(sources_backup)
+    sources.write_text('{"partial": true}\n', encoding="utf-8")
+    raw_backup = backup_root / "data" / "raw"
+    raw.replace(raw_backup)
+    raw.mkdir()
+    (raw / "partial.txt").write_text("partial\n", encoding="utf-8")
+    entries = _promotion_entries(root)
+    entries[0].update({"original": True, "status": "applied"})
+    entries[1].update({"original": True, "status": "applied"})
+    _write_promotion_journal(root, entries)
+    original_replace = Path.replace
+
+    def interrupt_after_restore(source: Path, target: Path) -> Path:
+        restored = original_replace(source, target)
+        if source == raw_backup:
+            raise KeyboardInterrupt("simulated hard exit during rollback")
+        return restored
+
+    with monkeypatch.context() as crash:
+        crash.setattr(Path, "replace", interrupt_after_restore)
+        with pytest.raises(KeyboardInterrupt, match="during rollback"):
+            run_workflow(root)
+
+    recovered = run_workflow(root)
+
+    assert recovered["status"] == "paused"
+    assert recovered["awaiting_input"] == "sources"
+    assert recovered["attempts"].get("P1") is None
+    assert sources.read_bytes() == original_sources
+    assert sorted(path.name for path in raw.iterdir()) == original_raw_entries
+    assert not (root / ".anomaly" / "promotion.json").exists()
+    assert not (attempt_dir / "promotion-backup").exists()
+
+
+@pytest.mark.parametrize(
+    ("phase", "protected_relative"),
+    (("P1", "data/sources.json"), ("P7", "README.md")),
+    ids=("source-registry", "journalist-readme"),
+)
+def test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data(
+    tmp_path: Path,
+    phase: str,
+    protected_relative: str,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Promotion provenance",
+        question="Can forged provenance delete live case data?",
+        case_id=f"case-provenance-{phase.casefold()}",
+        now=NOW,
+    )
+    run_workflow(root)
+    entries = _promotion_entries(root, phase)
+    protected_entry = next(
+        entry for entry in entries if entry["path"] == protected_relative
+    )
+    protected_entry.update({"original": False, "status": "applied"})
+    _write_promotion_journal(root, entries, phase=phase)
+    protected = root / protected_relative
+    before = protected.read_bytes()
+
+    with pytest.raises(WorkflowError):
+        run_workflow(root)
+
+    assert protected.read_bytes() == before
+    assert (root / ".anomaly" / "promotion.json").is_file()
+
+
+def test_run_attempts_rejects_a_symlinked_case_before_any_durable_write(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Attempt containment",
+        question="Can a direct attempt write through a case symlink?",
+        case_id="case-attempt-containment",
+        now=NOW,
+    )
+    run_workflow(root)
+    external = tmp_path / "external-anomaly"
+    (root / ".anomaly").replace(external)
+    (root / ".anomaly").symlink_to(external, target_is_directory=True)
+    state_before = (external / "state.json").read_bytes()
+    events_before = (external / "events.jsonl").read_bytes()
+    executed: list[Path] = []
+
+    with pytest.raises(UnsafeCasePathError):
+        run_attempts(
+            root,
+            "P1",
+            lambda workspace: executed.append(workspace),
+            writes=(),
+        )
+
+    assert executed == []
+    assert (external / "state.json").read_bytes() == state_before
+    assert (external / "events.jsonl").read_bytes() == events_before
 
 
 @pytest.mark.parametrize(
@@ -705,7 +865,7 @@ def test_public_restart_rejects_untrusted_promotion_journal_without_case_mutatio
         now=NOW,
     )
     run_workflow(root)
-    entries = _promotion_entries()
+    entries = _promotion_entries(root)
     if invalid_field == "path":
         entries[-1] = {"path": "README.md", "original": False, "status": "applied"}
     elif invalid_field == "status":
