@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How Anomaly works — complete investigation workflow</title>
+  <meta name="description" content="The complete Anomaly workflow from source registration through detector execution, replay, independent review, and journalist-approved findings.">
+  <style>
+    :root {
+      --paper: #fff;
+      --ink: #080808;
+      --muted: #565656;
+      --line: #cfcfcf;
+      --soft: #f3f3f3;
+      --max: 72rem;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      color-scheme: light;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-underline-offset: 0.22rem; }
+    a:hover { text-decoration-thickness: 2px; }
+
+    a:focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: 4px;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 10;
+      padding: 0.6rem 0.8rem;
+      background: var(--ink);
+      color: var(--paper);
+      transform: translateY(-180%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .wrap {
+      width: min(calc(100% - 2rem), var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 1px solid var(--ink);
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .nav {
+      min-height: 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .brand {
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .nav-links .button {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links .button:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .hero {
+      padding-block: clamp(4rem, 10vw, 8rem);
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .eyebrow,
+    .phase-code,
+    .minor-label {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 14ch;
+      margin: 1rem 0 0;
+      font-size: clamp(3.2rem, 8vw, 7rem);
+      line-height: 0.94;
+      letter-spacing: -0.065em;
+    }
+
+    .hero-copy {
+      max-width: 48rem;
+      margin: 3rem 0 0 auto;
+      font-size: clamp(1.15rem, 2vw, 1.5rem);
+    }
+
+    .hero-copy p { margin: 0; }
+
+    .boundary {
+      margin-top: 1.5rem !important;
+      padding-left: 1rem;
+      border-left: 3px solid var(--ink);
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 15rem minmax(0, 1fr);
+      gap: clamp(2rem, 7vw, 6rem);
+      padding-block: clamp(3rem, 7vw, 6rem);
+    }
+
+    .toc {
+      align-self: start;
+      position: sticky;
+      top: 6rem;
+    }
+
+    .toc ol {
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+    }
+
+    .toc li { border-top: 1px solid var(--line); }
+    .toc li:last-child { border-bottom: 1px solid var(--line); }
+    .toc a { display: block; padding: 0.65rem 0; text-decoration: none; }
+    .toc a:hover { padding-left: 0.35rem; }
+
+    .content { min-width: 0; }
+
+    .phase {
+      display: grid;
+      grid-template-columns: 5rem minmax(0, 1fr);
+      gap: 1.5rem;
+      padding-block: 2.5rem;
+      border-top: 1px solid var(--ink);
+      scroll-margin-top: 5rem;
+    }
+
+    .phase:first-child { padding-top: 0; border-top: 0; }
+
+    .phase h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 3.5vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .phase p { max-width: 45rem; }
+
+    .phase ul {
+      max-width: 45rem;
+      margin: 1rem 0 0;
+      padding-left: 1.15rem;
+    }
+
+    .phase li + li { margin-top: 0.35rem; }
+
+    .artifact {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.35rem 0.5rem;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+    }
+
+    .gate {
+      margin-block: 1rem 3rem;
+      padding: clamp(1.5rem, 4vw, 2.5rem);
+      border: 2px solid var(--ink);
+      background: var(--soft);
+      scroll-margin-top: 5rem;
+    }
+
+    .gate-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: baseline;
+    }
+
+    .gate h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      letter-spacing: -0.035em;
+    }
+
+    .gate p { max-width: 45rem; margin-bottom: 0; }
+
+    .artifacts,
+    .remediation {
+      padding-block: clamp(3rem, 6vw, 5rem);
+      border-top: 1px solid var(--ink);
+    }
+
+    .artifacts h2,
+    .remediation h2 {
+      max-width: 20ch;
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      margin-top: 2.5rem;
+      border-top: 1px solid var(--ink);
+      border-left: 1px solid var(--ink);
+    }
+
+    .artifact-card {
+      min-height: 10rem;
+      padding: 1rem;
+      border-right: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .artifact-card code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+    }
+
+    .artifact-card p { margin: 2rem 0 0; color: var(--muted); }
+
+    .remediation p {
+      max-width: 48rem;
+      margin-top: 2rem;
+      font-size: 1.15rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .action {
+      display: inline-flex;
+      min-height: 2.9rem;
+      align-items: center;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .action.primary { background: var(--ink); color: var(--paper); }
+    .action:hover { background: var(--soft); color: var(--ink); }
+
+    .site-footer {
+      border-top: 1px solid var(--ink);
+      padding-block: 1.25rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    @media (max-width: 760px) {
+      .wrap { width: min(calc(100% - 1.25rem), var(--max)); }
+      .nav { min-height: 3.5rem; }
+      .nav-links > a:first-child { display: none; }
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: static; }
+      .toc ol {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .toc li:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+      .phase { grid-template-columns: 3.5rem minmax(0, 1fr); }
+      .artifact-grid { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      .site-header,
+      .toc { display: none; }
+      .layout { display: block; }
+      .phase,
+      .gate,
+      .artifact-card { break-inside: avoid; }
+      .action[href]::after { content: " (" attr(href) ")"; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav wrap" aria-label="Primary navigation">
+      <a class="brand" href="../index.html">Anomaly</a>
+      <div class="nav-links">
+        <a href="../index.html">Overview</a>
+        <a class="button" href="https://github.com/tomvaillant/Anomaly">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="content">
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow">Anomaly / complete workflow</p>
+        <h1>How an investigation moves.</h1>
+        <div class="hero-copy">
+          <p>Anomaly runs one linear workflow from source registration to reviewed findings. Deterministic code owns acquisition, profiling, detector execution, replay, and report assembly. The agent interprets recorded outputs. The journalist controls both approval gates.</p>
+          <p class="boundary">Detector output is recorded as a lead. It can enter <code>findings/findings.json</code> only after replay, independent review, and Gate B approval.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout wrap">
+      <nav class="toc" aria-label="Workflow phases">
+        <p class="minor-label">Phases</p>
+        <ol>
+          <li><a href="#p0">P0 · Case</a></li>
+          <li><a href="#p1">P1 · Data</a></li>
+          <li><a href="#p2">P2 · Profile</a></li>
+          <li><a href="#p3">P3 · Detectors</a></li>
+          <li><a href="#gate-a">Gate A</a></li>
+          <li><a href="#p4">P4 · Run</a></li>
+          <li><a href="#p5">P5 · Draft</a></li>
+          <li><a href="#p6">P6 · Review</a></li>
+          <li><a href="#gate-b">Gate B</a></li>
+          <li><a href="#p7">P7 · Report</a></li>
+        </ol>
+      </nav>
+
+      <div class="content">
+        <section class="phase" id="p0" aria-labelledby="p0-title">
+          <p class="phase-code">P0</p>
+          <div>
+            <h2 id="p0-title">Create, resume, or fork the case.</h2>
+            <p>Anomaly creates the portable case structure and durable workflow state. An existing case requires an explicit choice to resume or fork; report files alone never determine progress.</p>
+            <code class="artifact">case.json · .anomaly/state.json</code>
+          </div>
+        </section>
+
+        <section class="phase" id="p1" aria-labelledby="p1-title">
+          <p class="phase-code">P1</p>
+          <div>
+            <h2 id="p1-title">Acquire or register data.</h2>
+            <p>Register journalist-supplied files or use a requested public-source skill. Every source record includes its relative path, hash, format, acquisition time, license, sensitivity, redistribution status, and reacquisition instructions.</p>
+            <code class="artifact">data/sources.json</code>
+          </div>
+        </section>
+
+        <section class="phase" id="p2" aria-labelledby="p2-title">
+          <p class="phase-code">P2</p>
+          <div>
+            <h2 id="p2-title">Prepare, contextualize, and profile.</h2>
+            <p>Load supported data into DuckDB, preserve permitted originals, normalize prepared tables, infer field types and semantic roles, and record:</p>
+            <ul>
+              <li>row counts, missingness, and cardinality;</li>
+              <li>ranges, distributions, and duplicates;</li>
+              <li>temporal and geographic coverage;</li>
+              <li>ambiguous mappings and transformation notes.</li>
+            </ul>
+            <code class="artifact">data/prepared/ · data/index.duckdb · instructions/</code>
+          </div>
+        </section>
+
+        <section class="phase" id="p3" aria-labelledby="p3-title">
+          <p class="phase-code">P3</p>
+          <div>
+            <h2 id="p3-title">Recommend compatible detectors.</h2>
+            <p>Remove detectors that cannot run on the available tables, fields, types, or coverage. Score the remaining packages for relevance, fit, utility, cost, and false-positive risk. Recommend no more than ten with their parameters, assumptions, reasons, and failure modes.</p>
+            <code class="artifact">detectors/plan.json</code>
+          </div>
+        </section>
+
+        <section class="gate" id="gate-a" aria-labelledby="gate-a-title">
+          <div class="gate-head">
+            <p class="phase-code">Gate A</p>
+            <span class="minor-label">Journalist decision</span>
+          </div>
+          <h2 id="gate-a-title">Approve the scope and detector plan.</h2>
+          <p>The journalist reviews source coverage, field mappings, detector choices, and parameters. No detector runs until this hash-bound plan is approved.</p>
+        </section>
+
+        <section class="phase" id="p4" aria-labelledby="p4-title">
+          <p class="phase-code">P4</p>
+          <div>
+            <h2 id="p4-title">Run the approved detectors.</h2>
+            <p>Open the prepared DuckDB index read-only with external access disabled. Run only approved detectors within memory, time, thread, and output limits. Record full results, redacted previews, detector snapshots, and provenance.</p>
+            <code class="artifact">evidence/signals.jsonl · evidence/runs/ · detectors/used/</code>
+          </div>
+        </section>
+
+        <section class="phase" id="p5" aria-labelledby="p5-title">
+          <p class="phase-code">P5</p>
+          <div>
+            <h2 id="p5-title">Draft proposed findings.</h2>
+            <p>The Anomaly agent reads ranked, redacted signal previews and makes provenance-wrapped, read-only queries when clarification is needed. Each proposal records supporting evidence, calculations, detector hashes, alternatives, limitations, and confidence.</p>
+            <code class="artifact">findings/draft.json</code>
+          </div>
+        </section>
+
+        <section class="phase" id="p6" aria-labelledby="p6-title">
+          <p class="phase-code">P6</p>
+          <div>
+            <h2 id="p6-title">Replay calculations and review the draft.</h2>
+            <p>Deterministic replay checks every cited calculation against recorded source, prepared-data, detector, run, and query hashes. A separate read-only reviewer then checks:</p>
+            <ul>
+              <li>coverage, freshness, transformations, joins, and field meanings;</li>
+              <li>denominators, baselines, windows, thresholds, and units;</li>
+              <li>multiple comparisons, selection bias, and shared-source dependence;</li>
+              <li>alternative explanations and whether wording exceeds the evidence.</li>
+            </ul>
+            <code class="artifact">findings/review.json · replay receipt</code>
+          </div>
+        </section>
+
+        <section class="gate" id="gate-b" aria-labelledby="gate-b-title">
+          <div class="gate-head">
+            <p class="phase-code">Gate B</p>
+            <span class="minor-label">Journalist decision</span>
+          </div>
+          <h2 id="gate-b-title">Accept, revise, or reject reviewed claims.</h2>
+          <p>The journalist decides which claims advance. A review verdict is an input to that decision; the reviewer cannot promote a claim.</p>
+        </section>
+
+        <section class="phase" id="p7" aria-labelledby="p7-title">
+          <p class="phase-code">P7</p>
+          <div>
+            <h2 id="p7-title">Write findings and the report.</h2>
+            <p>Materialize only accepted claims, preserve unresolved questions, generate the report and deterministic charts, and refresh the case README only after every output succeeds.</p>
+            <code class="artifact">findings/findings.json · findings/unresolved.md · findings/report.md</code>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section class="artifacts">
+      <div class="wrap">
+        <p class="eyebrow">Artifact chain</p>
+        <h2>Each decision stays linked to its source.</h2>
+        <div class="artifact-grid">
+          <article class="artifact-card">
+            <code>data/sources.json</code>
+            <p>Source identity, hash, provenance, licensing, sensitivity, and reacquisition details.</p>
+          </article>
+          <article class="artifact-card">
+            <code>detectors/plan.json</code>
+            <p>Recommended and approved detectors, mappings, parameters, reasons, and blocked packages.</p>
+          </article>
+          <article class="artifact-card">
+            <code>evidence/signals.jsonl</code>
+            <p>Canonical detector observations linked to evidence and recorded runs.</p>
+          </article>
+          <article class="artifact-card">
+            <code>findings/draft.json</code>
+            <p>Proposed claims with calculations, alternatives, limitations, and evidence references.</p>
+          </article>
+          <article class="artifact-card">
+            <code>findings/review.json</code>
+            <p>Replay status, independent verdicts, unavailable inputs, gaps, and unresolved questions.</p>
+          </article>
+          <article class="artifact-card">
+            <code>findings/findings.json</code>
+            <p>Only the reviewed claims accepted by the journalist at Gate B.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="remediation">
+      <div class="wrap">
+        <p class="eyebrow">Remediation</p>
+        <h2>One bounded return, not an endless loop.</h2>
+        <p>If replay or review finds a correctable problem, one remediation pass may return to detector execution or claim drafting. Further cycles require the journalist’s approval. Missing data, detector code, replay evidence, or independent review remains visibly unavailable; Anomaly does not fill the gap.</p>
+        <div class="actions">
+          <a class="action primary" href="../index.html">Back to Anomaly →</a>
+          <a class="action" href="https://github.com/tomvaillant/Anomaly">View on GitHub →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-row wrap">
+      <span>Anomaly / workflow</span>
+      <a href="../index.html">Overview</a>
+    </div>
+  </footer>
+</body>
+</html>
