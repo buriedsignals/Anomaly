@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import html
 import hashlib
 import json
 import math
@@ -24,11 +25,6 @@ _SENSITIVE_KEY = re.compile(
     r"(?:api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|credential|password|passwd|secret|token|private[_-]?key)",
     re.I,
 )
-_SECRET_ASSIGNMENT = re.compile(
-    r"(?i)(api[_-]?key|access[_-]?token|authorization|password|secret|token|private[_-]?key)\s*[:=]\s*(?:Bearer\s+)?[^,;\s]+"
-)
-_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
-_TOKEN_PREFIX = re.compile(r"\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}")
 
 # The fields below are the public, redacted signal contract.  In particular, a
 # preview is retained only as a redacted, useful reading and never as a source
@@ -406,8 +402,6 @@ def accept_findings(
         raise ReviewError("required journalist approval is missing or does not match")
     strict = _strict_case(root)
     replay = _require_replay(root, strict)
-    if strict:
-        replay = replay_signals(root)
     unavailable = review.get("status") != "recorded" or review.get("availability") != "available"
     if review.get("draft_hash") != _hash_json(draft):
         raise ReviewError("draft changed after review")
@@ -473,9 +467,6 @@ def accept_findings(
         "accepted_at": _now(),
     }
     _write_json(root, ".anomaly/receipts/gate-b.json", receipt)
-    state = dict(state)
-    state.update({"phase": "P7", "gate": "B", "status": "active"})
-    _write_json(root, ".anomaly/state.json", state)
     return findings
 
 
@@ -611,7 +602,11 @@ def write_report(root: Path) -> dict[str, Any]:
         or receipt.get("gate") != "B"
         or receipt.get("findings_hash") != _hash_json(findings)
         or receipt.get("accepted_claim_ids")
-        != [claim.get("claim_id") for claim in findings.get("claims", []) if isinstance(claim, dict)]
+        != [
+            claim.get("claim_id")
+            for claim in findings.get("claims", [])
+            if isinstance(claim, dict)
+        ]
         or not review_path.is_file()
         or receipt.get("review_hash") != _hash_json(_read_json(review_path))
         or not replay_path.is_file()
@@ -630,40 +625,37 @@ def write_report(root: Path) -> dict[str, Any]:
         for claim in claims:
             if not isinstance(claim, dict):
                 continue
-            claim_id = _redact_text(_text(claim.get("claim_id", "claim")))
-            statement = _redact_text(_text(claim.get("statement", "")).strip()) or "(statement unavailable)"
+            claim_id = _markdown_text(claim.get("claim_id", "claim"))
+            statement = _markdown_text(claim.get("statement", "")) or "(statement unavailable)"
             lines.extend([f"### {claim_id}", "", statement, ""])
     else:
         lines.extend(["No claims were accepted at Gate B.", ""])
-    lines.extend(["## Unresolved work", "", "See [unresolved work](unresolved.md).", ""])
-    report = "\n".join(lines)
-    _write_text(root, "findings/report.md", _redact_text(report))
-
-    readme_path = _owned(root, "README.md")
-    readme = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else "# Case\n"
-    readme = re.sub(r"(?m)^Status: .*?$", "Status: complete", readme)
-    if "Status: complete" not in readme:
-        readme = readme.rstrip() + "\n\nStatus: complete\n"
-    readme = re.sub(r"(?m)^Last completed phase: .*?$", "Last completed phase: P7", readme)
-    if "Last completed phase: P7" not in readme:
-        readme = readme.rstrip() + "\nLast completed phase: P7\n"
-    links = (
-        "\n## Outputs\n\n"
-        "- [accepted findings](findings/findings.json)\n"
-        "- [report](findings/report.md)\n"
-        "- [unresolved work](findings/unresolved.md)\n"
+    lines.extend(
+        ["## Unresolved work", "", "See [unresolved work](unresolved.md).", ""]
     )
-    readme = re.sub(r"\n## Outputs\n.*\Z", "\n", readme, flags=re.S)
-    _write_text(root, "README.md", _redact_text(readme.rstrip() + "\n" + links))
+    _write_text(
+        root,
+        "findings/report.md",
+        str(redact_credentials("\n".join(lines))),
+    )
     unresolved = unresolved_path.read_text(encoding="utf-8")
-    _write_text(root, "findings/unresolved.md", _redact_text(unresolved))
+    _write_text(root, "findings/unresolved.md", str(redact_credentials(unresolved)))
+    return {
+        "status": "complete",
+        "report": "findings/report.md",
+        "findings": "findings/findings.json",
+    }
 
-    state = _read_json(_owned(root, ".anomaly/state.json"))
-    if isinstance(state, dict):
-        state = dict(state)
-        state.update({"phase": "P7", "gate": "B", "status": "complete"})
-        _write_json(root, ".anomaly/state.json", state)
-    return {"status": "complete", "report": "findings/report.md", "findings": "findings/findings.json"}
+
+def _markdown_text(value: Any) -> str:
+    collapsed = " ".join(str(redact_credentials(_text(value))).split())
+    escaped = html.escape(collapsed, quote=False)
+    escaped = re.sub(r"([\\`*_[\]{}()#+!|~-])", r"\\\1", escaped)
+    return re.sub(
+        r"(?i)\bhttps?://",
+        lambda match: match.group().replace(":", r"\:"),
+        escaped,
+    )
 
 
 def _draft_signals(root: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:
@@ -1057,14 +1049,9 @@ def _sanitize(value: Any, key: str | None = None) -> Any:
     if isinstance(value, list):
         return [_sanitize(item) for item in value]
     if isinstance(value, str):
-        return _redact_text(str(redact_credentials(value)))
+        return str(redact_credentials(value))
     return value
 
-
-def _redact_text(text: str) -> str:
-    value = _SECRET_ASSIGNMENT.sub(lambda match: f"{match.group(1)}=[redacted]", text)
-    value = _BEARER.sub("Bearer [redacted]", value)
-    return _TOKEN_PREFIX.sub("[redacted]", value)
 
 def _read_json(path: Path) -> Any:
     try:

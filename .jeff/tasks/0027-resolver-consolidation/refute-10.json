@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_pipeline_walk.py:349 Deleting the invalidation matrix left most authoritative identity classes without earliest-suffix coverage.",
+  "verdict": "survives",
+  "rationale": "Production directly trusts the unguarded identity-to-phase table to choose and destructively clear the invalidation suffix, while the candidate deleted the only P3–P6 behavioral matrix and retained public tests exercise only source/P1, prepared/P2, and Gate B/P7, so no upstream guard or equivalent coverage makes the blocker unreachable or less severe.",
+  "evidence": [
+    {
+      "command": "git rev-parse HEAD",
+      "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+    },
+    {
+      "command": "read src/anomaly/identities.py:9-30",
+      "output": "IDENTITY_PHASES maps recommendation→P3, gate_a/detector→P4, draft→P5, replay/review→P6; changed_identities compares every recorded digest and returns the minimum mapped phase without any independent validation or fallback."
+    },
+    {
+      "command": "read src/anomaly/state.py:34-45,124-162",
+      "output": "load_snapshot passes changed_identities' start directly to _invalidate_state; _invalidate_state removes every completed phase from that start onward, clears attempts/failures and identities for the same suffix, and persists the result."
+    },
+    {
+      "command": "git diff bd3d49e 61a2b7c -- tests/test_pipeline_walk.py",
+      "output": "The task-27 cutover deletes MUTATIONS entries for source/P1, prepared/P2, detector/P4, parameters/P3, draft/P5, replay/P6, review/P6, Gate A/P4, and Gate B/P7, and deletes test_fresh_session_invalidates_changed_authoritative_inputs_from_earliest_phase, which asserted invalidated_from, retained prefix, cleared suffix, and suffix rerun."
+    },
+    {
+      "command": "grep 'invalidat|rebuilds_stale|replaces_changed' tests",
+      "output": "Current workflow-dispatch coverage is tests/test_pipeline_walk.py:349 prepared mutation, :371 source replacement, and :438 Gate-B mutation; tests/test_m5_handoff.py detector-change cases exercise replay/acceptance rejection rather than load_snapshot's earliest workflow suffix, and no tests reference changed_identities, capture_identities, artifact_identity, or IDENTITY_PHASES."
+    }
+  ]
+}

@@ -67,15 +67,23 @@ def test_skill_declares_linear_p0_to_p7_sequence_and_both_gates() -> None:
     assert re.search(r"(?i)no finishing branches|linear", skill)
 
 
-def test_skill_contracts_durable_state_bounded_retries_resume_and_portable_paths() -> None:
+def test_skill_contracts_bounded_attempts_manual_repair_and_portable_paths() -> None:
     skill = _required_text(SKILL_PATH)
 
     for path in (".anomaly/state.json", ".anomaly/events.jsonl", ".anomaly/receipts", ".anomaly/attempts"):
         assert path in skill
     assert re.search(r"(?i)(?:bounded|finite|max(?:imum)?|limit(?:ed)?).{0,80}retries?", skill)
-    assert re.search(r"(?i)resume.{0,120}(?:event|receipt|state)", skill)
     assert re.search(r"(?i)(?:relative paths?|portable).{0,160}(?:move|copy|relocat)", skill)
-    assert re.search(r"(?i)last completed event|resume from", skill)
+    assert re.search(r"(?is)interrupted promotion.{0,240}repair required", skill)
+    assert re.search(r"(?is)repair required.{0,240}(?:workspace|attempt path)", skill)
+    assert re.search(
+        r"(?is)preserv(?:e|es|ing).{0,120}(?:live|case).{0,80}(?:files|artifacts|content)",
+        skill,
+    )
+    assert not re.search(
+        r"(?i)promotion journal|promotion-backup|automatic(?:ally)? roll(?:s|ed)? back",
+        skill,
+    )
 
 
 def test_skill_marks_missing_data_and_detector_code_as_unavailable() -> None:
@@ -136,26 +144,5 @@ def test_skill_does_not_route_into_external_knowledge_systems() -> None:
             assert prohibition.search(line), f"active external-system instruction: {line!r}"
 
 
-def test_skill_local_invocation_wires_existing_apis_and_returns_a_portable_case() -> None:
-    skill = _required_text(SKILL_PATH)
-    required_calls = (
-        "anomaly.prepare.prepare_sources",
-        "anomaly.recommend.recommend_detectors",
-        "anomaly.recommend.approve_detector_plan",
-        "anomaly.detect.execute_detectors",
-        "anomaly.review.replay_signals",
-        "anomaly.review.draft_findings",
-        "anomaly.review.record_review",
-        "anomaly.review.accept_findings",
-        "anomaly.review.write_report",
-    )
-
-    positions = []
-    for call in required_calls:
-        assert call in skill
-        positions.append(skill.index(call))
-    assert positions == sorted(positions)
-    assert re.search(r"(?i)(?:portable case folder|case folder.*portable)", skill)
-    assert re.search(r"(?i)all case (?:paths|references) are relative", skill)
 
 

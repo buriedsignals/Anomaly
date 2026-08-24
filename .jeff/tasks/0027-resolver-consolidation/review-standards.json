@@ -1,0 +1,125 @@
+{
+  "stage": "review",
+  "cycle": 0,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "write",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC2",
+      "claimed": "write",
+      "rederived": "write",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "reuse/delete",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC4",
+      "claimed": "reuse",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC6",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC7",
+      "claimed": "reuse",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC8",
+      "claimed": "delete",
+      "rederived": "delete",
+      "ok": true
+    },
+    {
+      "ac": "AC9",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "class": "blocking",
+      "file": "skills/anomaly/SKILL.md:50-53; src/anomaly/owners.py:40-59; src/anomaly/workflow.py:87-99",
+      "route": "implement",
+      "summary": "The accepted/documented attempt-first boundary is not implemented. The skill requires phase outputs to be written under the attempt directory and promoted only after validation, but deterministic owners deliberately discard `_attempt_dir`, dynamic invocations are not given an attempt directory, and P5 instead requires `findings/draft.json` to already be live. The attempt utility therefore records only a post-hoc result/failure while compound phase APIs write directly into the case. Make the owner boundary actually stage and promote outputs, or otherwise reconcile the locked AC3 contract without leaving operational documentation that a runtime cannot follow."
+    },
+    {
+      "class": "blocking",
+      "file": "src/anomaly/workflow.py:32-65; src/anomaly/workflow_inputs.py:20-37,43-46,67-74",
+      "route": "implement",
+      "summary": "The resolver's missing-input boundary is incomplete and schema-blind. `now` is required by P1-P4 owners but is absent from `_REQUIRED_INPUTS`; an empty or incomplete `gate_a`/`gate_b` mapping counts as supplied because normalization validates only top-level names and `mapping_input` does not require its fields. These reachable inputs resolve as ready and consume all three phase attempts through late `ValueError`/`KeyError` failures instead of returning a truthful missing-decision/input result or a clear pre-attempt boundary error. This breaks AC1, the human-gate no-attempt contract in AC4, and the explicit-error standard."
+    },
+    {
+      "class": "blocking",
+      "file": "src/anomaly/workflow.py:110-139",
+      "route": "implement",
+      "summary": "Whole-case containment is checked only once before the multi-phase loop. P5/P6 invoke an external reasoning adapter that is expected to write case artifacts, yet the next loop iteration calls `load_snapshot` and then another owner without rescanning the case. A reasoning invocation can introduce a symlink during the same public call and subsequent P6/P7 reads or writes occur without the promised whole-case no-symlink preflight. Re-scan at each fresh resolution/owner boundary and add a test that introduces a link between phases; the current tests cover only links present before `run_workflow` starts."
+    },
+    {
+      "class": "blocking",
+      "file": "src/anomaly/identities.py:8-18; tests/test_pipeline_walk.py:349-478",
+      "route": "plan",
+      "summary": "AC4's `reuse` disposition is no longer honest after the comprehensive authoritative-identity test was deleted while the production invalidation behavior remains. The surviving dispatcher tests cover source/P1, prepared/P2, and Gate B/P7 only; they do not defend the earliest suffix for recommendation/P3, Gate A or detector/P4, draft/P5, or replay/review/P6. This is the prohibited removal of a behavioral test without removing the behavior. Restore focused state/resolution assertions for the uncovered phase boundaries without restoring the fake all-P0-P7 handler composition."
+    },
+    {
+      "class": "blocking",
+      "file": "tests/test_pipeline_walk.py:438-508",
+      "route": "plan",
+      "summary": "The AC5 disposition promises journalist-authored README content survives completed restart, invalidation, failure, and recompletion, but the notes fixture is added and immediately invalidated before any completed restart, while the chart-failure test contains no journalist content. Invalidation and recompletion are covered; completed restart and failed recomputation preservation are not. Add consumer-observable assertions for those two lifecycle transitions."
+    },
+    {
+      "class": "blocking",
+      "file": "tests/test_review.py:425-454",
+      "route": "plan",
+      "summary": "The revised Markdown test does not contain a bare URL: both occurrences are nested inside a Markdown link and an HTML image fragment. The final raw-substring assertion therefore does not exercise AC6's standalone bare-URL autolink boundary. Add a distinct prose-only HTTP(S) URL and assert its serialized representation is non-linking while the visible text remains intact."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read artifact://950:1-2642 and current changed modules",
+      "output": "Inspected the full 2,642-line candidate diff plus current workflow.py, owners.py, attempts.py, state.py, identities.py, workflow_inputs.py, readme.py, review.py, tests, PRD, and installed skill. The diff deletes product_workflow.py and reduces workflow.py from 729 to 169 lines, but the attempt directory is not consumed by any owner."
+    },
+    {
+      "command": "grep 'WorkflowRunner|PhaseResult|RetryLimitExceeded|product_workflow|run_product_workflow|last_completed_phase|state-level gate' src tests docs",
+      "output": "No live production callsite retains WorkflowRunner, PhaseResult, RetryLimitExceeded, or product_workflow. The only state compatibility residue is deliberate removal of legacy `last_completed_phase` and `gate` keys in state.write_state; AC8 deletion is backed by surviving behavior and direct write_report non-completion coverage."
+    },
+    {
+      "command": "grep staging and owner-boundary symbols in skills/anomaly/SKILL.md src/anomaly/workflow.py src/anomaly/owners.py",
+      "output": "SKILL.md:50-53 requires attempt-first outputs and validated promotion; workflow.py:99 invokes dynamic owners with owner/instructions/case_root only; owners.py:59 names `_attempt_dir` unused and owners.py:54 requires a live root draft."
+    },
+    {
+      "command": "grep invalidation tests and inspect tests/test_pipeline_walk.py:349-478",
+      "output": "The tracked identity map spans P1-P7, while current public dispatcher invalidation tests exercise only source, prepared generation, and Gate B. The deleted parameterized test was not replaced by focused P3-P6 earliest-suffix assertions."
+    },
+    {
+      "command": "inspect tests/test_review.py:425-454 and tests/test_pipeline_walk.py:438-508",
+      "output": "The Markdown fixture has URLs only inside `[click](...)` and `<img ...>` constructs. README journalist notes are checked through Gate-B invalidation/recompletion, but not through an ordinary completed restart or the failure path."
+    },
+    {
+      "command": "uv run --extra test pytest tests/",
+      "output": "711/711 passed at clean gated hash 4a1746f9050120df52e7845166f0ab935c4e584a (task-bound evidence supplied in the review brief; not rerun). Passing execution does not cover the blockers above."
+    }
+  ]
+}

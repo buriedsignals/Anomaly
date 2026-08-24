@@ -165,8 +165,8 @@ def test_case_walk_appends_phase_events_for_every_mainline_call(tmp_path: Path) 
     )
     from anomaly.report import generate_charts
 
-    replay_signals(root)
     draft_findings(root)
+    replay_signals(root)
     draft = json.loads((root / "findings" / "draft.json").read_text(encoding="utf-8"))
     claim_ids = [claim["claim_id"] for claim in draft["claims"]]
     assert claim_ids, "expected at least one drafted claim"
@@ -192,10 +192,9 @@ def test_case_walk_appends_phase_events_for_every_mainline_call(tmp_path: Path) 
         ("P3", "recommend_detectors"),
         ("P3", "approve_detector_plan"),
         ("P4", "execute_detectors"),
-        ("P6", "replay_signals"),
         ("P5", "draft_findings"),
-        ("P6", "record_review"),
         ("P6", "replay_signals"),
+        ("P6", "record_review"),
         ("P7", "accept_findings"),
         ("P7", "write_report"),
         ("P7", "generate_charts"),
@@ -300,3 +299,26 @@ def test_log_event_does_not_invent_state_for_a_missing_case(tmp_path: Path) -> N
     missing = tmp_path / "not-a-case"
 
     assert log_event(missing, "P1", "orphan_call") is not None
+
+
+def test_direct_log_event_rejects_a_symlinked_store_without_external_append(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    create_case(
+        root,
+        title="Event containment",
+        question="Can a direct event write escape the case?",
+        case_id="case-event-containment",
+        now=NOW,
+    )
+    external = tmp_path / "external-anomaly"
+    (root / ".anomaly").replace(external)
+    (root / ".anomaly").symlink_to(external, target_is_directory=True)
+    events = external / "events.jsonl"
+    before = events.read_bytes()
+
+    payload = log_event(root, "P1", "redirected")
+
+    assert payload is None
+    assert events.read_bytes() == before

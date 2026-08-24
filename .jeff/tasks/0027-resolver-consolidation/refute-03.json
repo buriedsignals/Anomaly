@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "src/anomaly/owners.py:59 The attempt utility does not provide atomic phase staging; deterministic owners write directly into the live case.",
+  "verdict": "survives",
+  "rationale": "The failure is reachable through the public P1 source-batch path: only request shape and duplicate IDs are prevalidated, each valid request is then persisted directly into the live case before the next request is validated, and run_attempts records failures without rolling those mutations back; the gated-hash probe confirms a later invalid source leaves the earlier source live after P1 becomes unavailable.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/attempts.py:21-105",
+      "output": "run_workflow passes the live case_root to consume_owner inside run_attempts; run_attempts creates attempt_dir but success/failure handling only writes attempt result/failure evidence and state, with no snapshot, rollback, or cleanup of owner mutations."
+    },
+    {
+      "command": "read src/anomaly/owners.py:53-103",
+      "output": "_run_handler names the staging argument _attempt_dir and does not use it. For P1, _register_sources loops over requests and calls register_local_source(root, ...) against the live root for each item."
+    },
+    {
+      "command": "read src/anomaly/workflow_inputs.py:42-57 and src/anomaly/acquire.py:25-126",
+      "output": "source_requests validates only list/mapping shape and required/unknown fields. Per-item path existence, extension, portability, and metadata validation happen later inside register_local_source, after earlier loop items may already have written raw bytes, receipts, and data/sources.json."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/review-correctness.json:115-145",
+      "output": "The supplied gated-hash public probe with a valid CSV followed by an unsupported .txt ended {\"attempts\":{\"P0\":1,\"P1\":3},\"phase\":\"P1\",\"status\":\"unavailable\",\"sources\":[{\"source_id\":\"good\",...}],\"raw\":[\"data/raw/good/good.csv\"]}, directly demonstrating reachability and durable partial promotion."
+    }
+  ]
+}

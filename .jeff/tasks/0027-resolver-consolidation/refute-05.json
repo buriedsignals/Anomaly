@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "src/anomaly/case.py:146 Public resume, inspect, and direct writer paths do not enforce the required whole-case no-symlink scan.",
+  "verdict": "survives",
+  "rationale": "The finding is reachable and honestly high severity: direct resume/inspect calls never scan, while register_local_source calls the unguarded resume path, resolves a destination symlink to an allowed in-case target, and then writes through that resolved path, permitting overwrite of another case artifact; run_workflow's upstream scan does not protect direct public calls.",
+  "evidence": [
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py (lines 139-165)",
+      "output": "139: def inspect_case(root: Path) -> ExistingCaseOffer | None:\n140:     root = Path(root)\n141:     if not _case_exists(root):\n142:         return None\n143:     return _offer(root)\n146: def resume_case(root: Path) -> Case:\n147:     root = Path(root)\n148:     if not _case_exists(root):\n149:         raise CaseNotFoundError(str(root))\n150:     return _load_case(root)\n161:     source = Path(source)\n162:     dest = Path(dest).resolve()\n163:     _scan_case_tree(source)\n165:     parent = resume_case(source)"
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 30-46, 71-75, 125-130, 158-163)",
+      "output": "30: @phase_event(\"P1\", \"register_local_source\")\n31: def register_local_source(...):\n45:     root = Path(root).resolve()\n46:     resume_case(root)\n71:     relative = _posix(\"data/raw\", persisted_source_id, source_path.name)\n72:     dest = _under_root(root, relative)\n75:     payload = source_path.read_bytes() if source_path.is_file() else None\n125:     if existing_index is None:\n126:         if included:\n128:             dest.parent.mkdir(parents=True, exist_ok=True)\n129:             dest.write_bytes(payload)\n158: def _under_root(root: Path, relative: str) -> Path:\n159:     base = Path(root).resolve()\n160:     candidate = (base / relative).resolve()\n161:     if candidate != base and base not in candidate.parents:\n162:         raise UnsafeCasePathError(relative)\n163:     return candidate"
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py (lines 102-113)",
+      "output": "102: def run_workflow(...):\n110:     case_root = Path(root)\n111:     _scan_case_tree(case_root)\n112:     case_root = case_root.resolve()\n113:     resume_case(case_root)"
+    },
+    {
+      "command": "read src/anomaly/events.py:50-68",
+      "output": "phase_event wraps the function with try/except, calls the wrapped function directly, then performs best-effort log_event; it contains no case-tree scan or path guard."
+    }
+  ]
+}

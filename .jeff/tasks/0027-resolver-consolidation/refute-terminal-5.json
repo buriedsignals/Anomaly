@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 4,
+  "source": "audit",
+  "finding": "src/anomaly/_attempt_workspace.py:289 A producer-reachable interruption after first creating a phase artifact permanently blocks promotion recovery.",
+  "verdict": "survives",
+  "rationale": "At the gated/current-identical source, `_apply` durably records `applying`, moves a previously absent staged artifact live, and only afterward records `applied`, while every public restart validates before rollback and rejects any non-pending `original=false` entry whose live artifact exists; the focused tests omit this legitimate crash state and explicitly retain the journal when the same state is presented, so there is no upstream guard or fail-safe recovery path.",
+  "evidence": [
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly diff --no-ext-diff --unified=0 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- src/anomaly/_attempt_workspace.py tests/test_pipeline_walk.py",
+      "output": "Exit 0; stdout was empty, confirming the current source and focused recovery tests are byte-identical to the gated hash."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 93-107, 275-291)",
+      "output": "Lines 93-107 set entry status to `applying` and atomically persist it, then for a staged artifact execute `staged.replace(live)`, and only afterward set/persist `applied`. Lines 275-291 route every non-original non-pending entry to `coherent = not live.exists()` and raise `WorkflowError(\"promotion journal recovery artifacts are inconsistent\")` when the moved artifact exists."
+    },
+    {
+      "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 66-78, 161-174)",
+      "output": "The canonical P7 write set starts with `findings/findings.json`, `findings/report.md`, `findings/unresolved.md`, and `findings/charts`; public `run_workflow` calls `recover_interrupted_promotion` directly at entry, with no guard or fallback around it."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:674-818",
+      "output": "The positive recovery tests construct only `original=True, status=applied` P1 entries. The false-provenance test constructs `original=False, status=applied`, expects public `run_workflow` to raise `WorkflowError`, and asserts `.anomaly/promotion.json` remains, confirming repeated public recovery cannot reach rollback or cleanup for the live non-original state."
+    }
+  ]
+}

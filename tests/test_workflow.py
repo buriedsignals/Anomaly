@@ -1,91 +1,121 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
+from typing import Any
 
 import pytest
-
-from anomaly.workflow import MAX_ATTEMPTS, PHASES, RetryLimitExceeded, WorkflowRunner
-
-
-def test_workflow_records_linear_events_attempts_and_resume(tmp_path: Path) -> None:
-    calls: list[str] = []
-
-    def handler(attempt_dir: Path) -> dict[str, str]:
-        calls.append(attempt_dir.parent.name)
-        return {"phase": attempt_dir.parent.name}
-
-    runner = WorkflowRunner(tmp_path, handlers={phase: handler for phase in PHASES})
-    state = runner.run()
-
-    assert state["status"] == "complete"
-    assert state["last_completed_phase"] == "P7"
-    assert calls == list(PHASES)
-    events = runner.events()
-    assert [event["event"] for event in events].count("phase_started") == 8
-    assert [event["event"] for event in events].count("phase_completed") == 8
-    for phase in PHASES:
-        assert (tmp_path / ".anomaly" / "attempts" / phase / "attempt-1" / "result.json").is_file()
+import anomaly.workflow as workflow
 
 
-def test_workflow_retries_three_times_then_marks_unavailable(tmp_path: Path) -> None:
-    attempts: list[int] = []
 
-    def fail(_attempt_dir: Path) -> None:
-        attempts.append(1)
-        raise RuntimeError("secret sk_live_TESTONLY must be redacted")
+def test_resolver_is_pure_and_reports_durable_resume_detail() -> None:
+    snapshot = {
+        "phase": "P2",
+        "status": "active",
+        "completed": {"P0": {}, "P1": {}, "P2": {}},
+        "attempts": {"P3": 2},
+        "invalidated_from": "P3",
+    }
+    original = copy.deepcopy(snapshot)
+    resolve = getattr(workflow, "resolve_workflow", None)
 
-    runner = WorkflowRunner(tmp_path, handlers={"P0": fail})
-    result = runner.run_phase("P0")
+    assert callable(resolve), "workflow must expose the pure durable resolver"
+    resolution = resolve(snapshot, supplied=frozenset({"now"}))
 
-    assert result.status == "unavailable"
-    assert len(attempts) == MAX_ATTEMPTS
-    state = runner.load_state()
-    assert state["status"] == "unavailable"
-    assert "[redacted]" in state["blocked_reason"]
-    assert len([event for event in runner.events() if event["event"] == "phase_retry"]) == 2
+    assert snapshot == original
+    assert resolution == {
+        "phase": "P3",
+        "status": "ready",
+        "owner": {"kind": "handler", "id": "recommend-detectors"},
+        "missing": None,
+        "attempts": 2,
+        "invalidated_from": "P3",
+        "resume": "Resume P3 after P2; attempt 3 of 3.",
+    }
+
+@pytest.mark.parametrize(
+    ("completed", "supplied", "expected_phase", "expected_missing"),
+    [
+        ({"P0": {}}, frozenset({"sources"}), "P1", "now"),
+        ({"P0": {}, "P1": {}}, frozenset(), "P2", "now"),
+        ({"P0": {}, "P1": {}, "P2": {}}, frozenset(), "P3", "now"),
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}},
+            frozenset({"now"}),
+            "P4",
+            "gate_a",
+        ),
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}, "P4": {}, "P5": {}, "P6": {}},
+            frozenset(),
+            "P7",
+            "gate_b",
+        ),
+    ],
+)
+def test_resolver_reports_incomplete_phase_input_before_attempt(
+    completed: dict[str, Any],
+    supplied: frozenset[str],
+    expected_phase: str,
+    expected_missing: str,
+) -> None:
+    snapshot = {
+        "phase": tuple(completed)[-1],
+        "status": "active",
+        "completed": completed,
+        "attempts": {},
+    }
+    original = copy.deepcopy(snapshot)
+
+    resolution = workflow.resolve_workflow(snapshot, supplied=supplied)
+
+    assert snapshot == original
+    assert resolution["phase"] == expected_phase
+    assert resolution["status"] == "paused"
+    assert resolution["owner"] is None
+    assert resolution["missing"] == expected_missing
+    assert resolution["attempts"] == 0
 
 
-def test_workflow_resumes_from_next_uncompleted_phase(tmp_path: Path) -> None:
-    first_calls: list[str] = []
+@pytest.mark.parametrize(
+    ("completed", "expected_owner", "marker"),
+    [
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}, "P4": {}},
+            {"kind": "skill", "id": "anomaly"},
+            "name: anomaly",
+        ),
+        (
+            {"P0": {}, "P1": {}, "P2": {}, "P3": {}, "P4": {}, "P5": {}},
+            {"kind": "persona", "id": "anomaly-data-reviewer"},
+            "name: anomaly-data-reviewer",
+        ),
+    ],
+)
+def test_resolved_reasoning_owner_is_loaded_and_invoked_once(
+    tmp_path: Path,
+    completed: dict[str, Any],
+    expected_owner: dict[str, str],
+    marker: str,
+) -> None:
+    resolve = getattr(workflow, "resolve_workflow", None)
+    invoke_owner = getattr(workflow, "invoke_resolved_owner", None)
+    assert callable(resolve), "workflow must expose the pure durable resolver"
+    assert callable(invoke_owner), "workflow must expose one owner invocation boundary"
+    resolution = resolve(
+        {"phase": tuple(completed)[-1], "status": "active", "completed": completed},
+        supplied=frozenset(),
+    )
+    observed: list[tuple[dict[str, str], Path]] = []
 
-    def first_handler(attempt_dir: Path) -> None:
-        first_calls.append(attempt_dir.parent.name)
+    def invoke(*, owner: dict[str, str], instructions: str, case_root: Path) -> dict[str, str]:
+        assert marker in instructions
+        observed.append((owner, case_root))
+        return {"selected": owner["id"]}
 
-    runner = WorkflowRunner(tmp_path, handlers={phase: first_handler for phase in PHASES})
-    runner.run_phase("P0")
-    runner.run_phase("P1")
+    result = invoke_owner(resolution, case_root=tmp_path, invoke=invoke)
 
-    second_calls: list[str] = []
-
-    def second_handler(attempt_dir: Path) -> None:
-        second_calls.append(attempt_dir.parent.name)
-
-    resumed = WorkflowRunner(
-        tmp_path,
-        handlers={phase: second_handler for phase in PHASES},
-    ).run()
-
-    assert resumed["status"] == "complete"
-    assert first_calls == ["P0", "P1"]
-    assert second_calls == list(PHASES[2:])
-
-
-def test_workflow_fingerprint_change_invalidates_downstream(tmp_path: Path) -> None:
-    handlers = {phase: (lambda: None) for phase in PHASES}
-    runner = WorkflowRunner(tmp_path, handlers=handlers, input_fingerprint="A")
-    runner.run_phase("P0")
-    runner.run_phase("P1")
-    assert runner.load_state()["last_completed_phase"] == "P1"
-
-    changed = WorkflowRunner(tmp_path, handlers=handlers, input_fingerprint="B")
-    state = changed.load_state()
-
-    assert state["phase"] == "P0"
-    assert state["last_completed_phase"] == "P0"
-    assert state["invalidated_from"] == "P1"
-    assert any(event["event"] == "invalidation" for event in changed.events())
-
-
-def test_workflow_rejects_non_three_attempt_configuration(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="exactly three"):
-        WorkflowRunner(tmp_path, max_attempts=4)
+    assert resolution["owner"] == expected_owner
+    assert observed == [(expected_owner, tmp_path)]
+    assert result == {"selected": expected_owner["id"]}

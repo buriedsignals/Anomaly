@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "tests/test_pipeline_walk.py:185 No public test proves that future Gate A or Gate B decisions cannot cross a turn.",
+  "verdict": "survives",
+  "rationale": "At the gated hash, run_workflow normalizes inputs once and reuses the same supplied mapping on every resolver iteration, with no guard that rejects or consumes a future gate decision, while the cited demo supplies Gate A and Gate B only in separate later invocations; the consumer-observable AC4 turn boundary is therefore reachable and unproved.",
+  "evidence": [
+    {
+      "command": "git rev-parse HEAD",
+      "output": "4a1746f9050120df52e7845166f0ab935c4e584a"
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/workflow.py",
+      "output": "109: supplied = normalize_inputs(inputs)\n119: while True:\n120:     snapshot = load_snapshot(case_root)\n122:     available = frozenset({*supplied, *({\"sources\"} if has_sources else set())})\n123:     resolution = resolve_workflow(snapshot, supplied=available)\n126:     if resolution[\"status\"] == \"paused\":\n127:         return pause_at(case_root, snapshot, resolution[\"phase\"], resolution[\"missing\"])\n131-137: consume_owner receives the unchanged resolution and supplied mapping; the loop then resolves again without clearing gate keys."
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:tests/test_pipeline_walk.py",
+      "output": "101: the first invocation supplies only source inputs and asserts pause at gate_a; 118-130: the next invocation supplies gate_a and asserts pause at gate_b; 142-151: a third invocation supplies gate_b and asserts completion. No invocation pre-supplies a future gate decision."
+    },
+    {
+      "command": "grep pattern 'gate_a|gate_b' path tests",
+      "output": "Public-dispatcher gate inputs occur in tests/test_pipeline_walk.py at gate_a lines 122, 334, 402 and gate_b lines 145, 425, 470, 496; the canonical demo path at lines 92-151 supplies each gate only after the prior invocation has paused."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+      "output": "Acceptance criterion 4: \"Gate A/Gate B turn boundaries, identity separation, source replacement, earliest invalidation, event-failure resume, case portability and exact P5→P6→Gate B→P7 order remain green.\""
+    }
+  ]
+}

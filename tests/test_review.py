@@ -301,10 +301,12 @@ def test_legacy_shaped_run_requires_attestation_instead_of_silent_independence(
     assert not (root / "findings" / "findings.json").exists()
 
 
-def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: Path) -> None:
+def test_gate_b_owns_accepted_artifacts_and_receipt_without_mutating_workflow_state(
+    tmp_path: Path,
+) -> None:
     root = _seed_case(tmp_path)
     draft_findings(root)
-    before = (root / "findings" / "draft.json").read_bytes()
+    draft_before = (root / "findings" / "draft.json").read_bytes()
     record_review(
         root,
         reviewer_id="reviewer-007",
@@ -314,13 +316,15 @@ def test_gate_b_accepts_only_reviewed_claims_and_does_not_edit_draft(tmp_path: P
         },
         independent_attestation=_attestation(root, "reviewer-007"),
     )
+    state_before = _json(root / ".anomaly" / "state.json")
 
     accept_findings(root, ["claim-accepted", "claim-rejected", "claim-unreviewed"])
 
-    assert (root / "findings" / "draft.json").read_bytes() == before
+    assert (root / "findings" / "draft.json").read_bytes() == draft_before
     assert [claim["claim_id"] for claim in _claims(root)] == ["claim-accepted"]
     gate_b = _json(root / ".anomaly" / "receipts" / "gate-b.json")
     assert gate_b["accepted_claim_ids"] == ["claim-accepted"]
+    assert _json(root / ".anomaly" / "state.json") == state_before
 
 
 @pytest.mark.parametrize("replay_hash", [None, "sha256:" + ("f" * 64)])
@@ -386,7 +390,7 @@ def test_same_evidence_in_different_categories_is_not_corroboration(tmp_path: Pa
     )
 
 
-def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
+def test_write_report_preserves_accepted_work_without_completing_case(
     tmp_path: Path,
 ) -> None:
     root = _seed_case(tmp_path)
@@ -404,7 +408,9 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
         independent_attestation=_attestation(root, "reviewer-007"),
     )
     accept_findings(root, ["claim-accepted"])
+    state_before_report = _json(root / ".anomaly" / "state.json")
     write_report(root)
+    assert _json(root / ".anomaly" / "state.json") == state_before_report
 
     report = (root / "findings" / "report.md").read_text(encoding="utf-8")
     assert "Acme is 20% above its baseline." in report
@@ -412,11 +418,42 @@ def test_report_preserves_unresolved_work_and_contains_only_accepted_findings(
     assert "A third lead remains unresolved." not in report
     assert (root / "findings" / "unresolved.md").read_text(encoding="utf-8") == unresolved
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert "Status: complete" in readme
-    assert "findings/findings.json" in readme
-    assert "findings/report.md" in readme
-    assert "findings/unresolved.md" in readme
-    assert all(not Path(line.split("](", 1)[-1].split(")", 1)[0]).is_absolute() for line in readme.splitlines() if "](" in line)
+    assert "Status: active" in readme
+    assert "Last completed phase: P0" in readme
+
+
+def test_write_report_serializes_dataset_text_as_inert_markdown(
+    tmp_path: Path,
+) -> None:
+    root = _seed_case(tmp_path)
+    preview_path = root / "evidence" / "runs" / "run-007" / "preview.json"
+    preview = _json(preview_path)
+    preview[0]["statement"] = (
+        "Acme [click](https://example.invalid/pixel)\n"
+        "<img src=https://example.invalid/pixel>\n"
+        "Visit https://standalone.example.invalid/context for context.\n"
+        "## Forged heading"
+    )
+    preview_path.write_text(json.dumps(preview, indent=2) + "\n", encoding="utf-8")
+    draft_findings(root)
+    record_review(
+        root,
+        reviewer_id="reviewer-007",
+        verdicts={"claim-accepted": {"verdict": "accepted"}},
+        independent_attestation=_attestation(root, "reviewer-007"),
+    )
+    accept_findings(root, ["claim-accepted"])
+
+    write_report(root)
+
+    report = (root / "findings" / "report.md").read_text(encoding="utf-8")
+    assert "Acme" in report
+    assert "[click](https://example.invalid/pixel)" not in report
+    assert "<img src=https://example.invalid/pixel>" not in report
+    assert "\n## Forged heading" not in report
+    assert "https://example.invalid/pixel" not in report
+    assert "Visit https\\://standalone.example.invalid/context for context." in report
+    assert "Visit https://standalone.example.invalid/context for context." not in report
 
 
 def test_credentials_never_persist_in_review_findings_or_report(tmp_path: Path) -> None:

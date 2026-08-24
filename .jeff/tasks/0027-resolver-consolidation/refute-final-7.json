@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review2",
+  "finding": "src/anomaly/case.py:166 The public fork writer follows a symlinked destination namespace and can copy a case outside the caller's requested tree.",
+  "verdict": "survives",
+  "rationale": "The public entry point resolves the caller-supplied destination before scanning only the source, so an existing symlink ancestor is converted into an external destination and no later guard restores containment to the requested namespace.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/case.py:150-181",
+      "output": "fork_case assigns `dest = Path(dest).resolve()`, calls `_scan_case_tree(source)` only, and then calls `shutil.copytree(source, dest)`; there is no destination scan between resolution and the copy."
+    },
+    {
+      "command": "read anomaly/src/anomaly/case.py:334-381",
+      "output": "Downstream `_under_root` checks paths relative to the already-resolved `root`; once `dest` has become the external path, these checks accept writes inside that external path rather than enforcing the caller's original namespace."
+    },
+    {
+      "command": "read anomaly/tests/test_case.py:414-441",
+      "output": "The existing fork symlink test passes a symlink as `source` and a normal `dest`; it proves source rejection but provides no guard or coverage for a symlinked destination ancestor."
+    },
+    {
+      "command": "grep 429c34deae1b9f5a92252147ec16acebfcb4812b anomaly/.jeff/tasks/0027-resolver-consolidation/task.json",
+      "output": "The task gate records hash `429c34deae1b9f5a92252147ec16acebfcb4812b` with `clean: true` and `green: true`, confirming the inspected final-cycle checkpoint."
+    }
+  ]
+}

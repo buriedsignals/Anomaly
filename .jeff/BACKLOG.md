@@ -1,16 +1,12 @@
 # BACKLOG
 
-Next free id: 24
+Next free id: 29
 
 ## NOW
 
-
-## NEXT
-
+- Task 26 — verify installed public demo after task 28
 
 ## TODO
 
-## DONE
-
-- M5 scale registry and journalist handoff (task 19)
-- Chart-pipeline integrity fixes A1-A5 (task 23)
+- Task 27 — blocked council lineage superseded only for operator-approved crash-recovery scope
+- Task 20 — reconcile historical red gate before terminal review

@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "tests/test_pipeline_walk.py:518 No behavioral test proves journalled promotion rollback or interrupted-promotion recovery.",
+  "verdict": "survives",
+  "rationale": "The blocker survives because the line-518 test fails during owner execution before promotion starts, while the public workflow can be interrupted after an entry is applied and invokes durable recovery on the next run; no test reaches or observes that restart contract.",
+  "evidence": [
+    {
+      "command": "grep -RniE 'promotion|recover_interrupted|rollback|_apply|attempt_workspace|promote' tests",
+      "output": "The only relevant test hits are tests/test_pipeline_walk.py:518 and :791, both pre-promotion failure-isolation cases, plus tests/test_case.py:426, which only checks fork cleanup; no test references recover_interrupted_promotion, _apply, rollback, or a promotion journal."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:25-69,75-105; src/anomaly/workflow.py:163-170",
+      "output": "promote_workspace writes .anomaly/promotion.json, _apply journals each entry as applying/applied around live replacements, and recover_interrupted_promotion rolls back an unsealed journal, rewinds the attempt, and removes recovery artifacts. run_workflow calls recover_interrupted_promotion at every public entry, so interruption after replacement and restart is reachable."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:518-551,791-828",
+      "output": "The line-518 invalid-source case raises while consuming the source batch in the workspace, and the P7 case makes findings/charts a file so phase execution fails in the workspace; neither forces a failure after _apply begins, restarts with a journal, checks restoration to the sealed live case, checks attempt rewind, or proves a fresh resolution succeeds."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/readme.py:36 README projection can delete journalist-authored Markdown that happens to equal the legacy Outputs block.",
+  "verdict": "survives",
+  "rationale": "The public workflow reaches this projection on P7 completion, completed-case resume, and P7 invalidation, and no upstream content guard prevents a journalist-authored block from exactly matching _OUTPUTS, so the global replacement can delete valid authored Markdown and the medium data-loss severity is honest.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/readme.py:24-38",
+      "output": "project_readme reads the existing README, removes the bounded anomaly marker block, then calls .replace(_OUTPUTS, \"\") without a count or marker requirement; the only local guards are README existence and non-symlink status."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:101-126; src/anomaly/state.py:34-52,151-174; src/anomaly/attempts.py:50-88",
+      "output": "run_workflow calls load_snapshot on a real case; load_snapshot projects completed P7 READMEs, _invalidate_state projects after invalidating a previously completed P7 case, and _seal_success projects after successful P7 completion."
+    },
+    {
+      "command": "grep 'README.md|Outputs|accepted findings' src/anomaly",
+      "output": "The only README content mutation/guard in production is readme.py; no validator rejects or distinguishes an unmarked journalist-authored exact _OUTPUTS block."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+      "output": "Acceptance explicitly requires README projection to preserve journalist-authored content, making deletion of a valid unmarked matching section a contract violation."
+    }
+  ]
+}

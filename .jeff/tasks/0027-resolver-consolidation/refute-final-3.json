@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "review",
+  "finding": "src/anomaly/workflow_inputs.py:168 Whitespace-only Gate A and Gate B IDs are still classified as complete human decisions.",
+  "verdict": "survives",
+  "rationale": "The public capability predicate accepts whitespace-only sequence IDs, so Gate A enters bounded execution and consumes attempts on an unknown detector while Gate B can ignore the unknown claim, seal an empty accepted set, and complete instead of pausing at the human boundary.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow_inputs.py:39-57,116-174",
+      "output": "input_capabilities adds gate_a/gate_b whenever gate_a_input/gate_b_input returns; _gate_input rejects sequence members only when they are non-strings, empty strings, or (for Gate A) contain separators, and never checks item.strip(), although the actor is explicitly checked with actor.strip(). Thus ['   '] is phase-consumable for both gates."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:85-128,158-205; src/anomaly/owners.py:49-72,135-145; src/anomaly/attempts.py:29-75",
+      "output": "P4/P7 readiness depends on the derived gate capability; run_workflow sends a ready phase into run_attempts, whose exception path records and retries attempts. P4 passes the whitespace ID to approve_detector_plan, while P7 passes it to accept_findings, so no upstream guard restores the required no-attempt pause."
+    },
+    {
+      "command": "read src/anomaly/recommend.py:335-379; src/anomaly/review.py:366-474",
+      "output": "approve_detector_plan rejects an ID absent from the recommended detector set, making whitespace-only Gate A fail inside an attempt. accept_findings builds by_id from real claims and continues when claim is missing; it then writes findings and the Gate B receipt from the promoted list, so a whitespace-only requested claim can produce an empty accepted set and complete P7."
+    },
+    {
+      "command": "read tests/test_pipeline_walk.py:378-431; .jeff/tasks/0027-resolver-consolidation/task.md:7-15; .jeff/tasks/0027-resolver-consolidation/context.md:58-90",
+      "output": "The public invalid-value tables cover empty/non-string/duplicate/unsafe/over-limit Gate A values and non-string/duplicate Gate B values, but omit whitespace-only IDs. The locked contract preserves Gate A/Gate B turn boundaries, and the context states human-gate pauses consume no phase attempt."
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 """Best-effort durable event logging for Anomaly's mainline API entry points.
 
 Every mainline call appends one phase event to ``.anomaly/events.jsonl`` so a
-fresh session can reconstruct what ran, exactly as ``WorkflowRunner`` records
-runner-driven phases (one JSON object per line, sorted keys, UTC timestamp,
-``phase`` field).  Logging is append-only and never raising: durable
+fresh session can reconstruct what ran, using the same JSON object shape as
+resolver-selected phase attempts (sorted keys, UTC timestamp, ``phase`` field).
+Logging is append-only and never raising: durable
 bookkeeping must not be able to break the API call it observes.
 """
 from __future__ import annotations
@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
+from anomaly.case import _scan_case_tree
 from anomaly.semantics import redact_credentials
 
 _MAX_DETAIL = 300
@@ -31,6 +32,7 @@ def log_event(
     lands.
     """
     try:
+        _scan_case_tree(Path(case_root))
         payload: dict[str, Any] = {
             "event": _redact(event),
             "at": datetime.now(timezone.utc).isoformat(),
@@ -58,6 +60,7 @@ def phase_event(phase: str, event: str) -> Callable[[F], F]:
     def decorate(func: F) -> F:
         @functools.wraps(func)
         def wrapper(root: Path, *args: Any, **kwargs: Any) -> Any:
+            _scan_case_tree(Path(root))
             try:
                 result = func(root, *args, **kwargs)
             except Exception as error:

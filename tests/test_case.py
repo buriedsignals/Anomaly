@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Callable
 
 import json
 from datetime import datetime, timezone
@@ -222,6 +223,46 @@ def test_inspect_case_offers_resume_or_fork(tmp_path: Path) -> None:
     assert offer.case.progress.phase == "P0"
 
 
+@pytest.mark.parametrize("entry", [inspect_case, resume_case], ids=["inspect", "resume"])
+def test_public_case_reader_rejects_a_nested_symlink(
+    tmp_path: Path,
+    entry: Callable[[Path], object],
+) -> None:
+    root = tmp_path / "case"
+    _create(root)
+    external = tmp_path / "outside.txt"
+    external.write_text("outside\n", encoding="utf-8")
+    (root / "findings" / "case-controlled-link").symlink_to(external)
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        entry(root)
+
+    assert external.read_text(encoding="utf-8") == "outside\n"
+
+
+@pytest.mark.parametrize("link_location", ("root", "nested"))
+def test_create_case_rejects_a_symlink_before_writing(
+    tmp_path: Path,
+    link_location: str,
+) -> None:
+    root = tmp_path / "case"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    if link_location == "root":
+        root.symlink_to(outside, target_is_directory=True)
+    else:
+        root.mkdir()
+        (root / "case-controlled-link").symlink_to(
+            outside,
+            target_is_directory=True,
+        )
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        _create(root)
+
+    assert not (root / "case.json").exists()
+    assert list(outside.iterdir()) == []
+
 def test_create_case_on_existing_offers_resume_or_fork(tmp_path: Path) -> None:
     root = tmp_path / "case"
     _create(root)
@@ -383,6 +424,23 @@ def test_fork_rejects_symlinked_case_namespace_alias_before_destination_creation
         fork_case(alias, dest, case_id="child-1", now=NOW)
 
     assert not dest.exists()
+
+
+def test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "parent"
+    external = tmp_path / "external-destination"
+    destination_alias = tmp_path / "destination-alias"
+    requested = destination_alias / "child"
+    _create(source)
+    external.mkdir()
+    destination_alias.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(UnsafeCasePathError):
+        fork_case(source, requested, case_id="child-1", now=NOW)
+
+    assert not (external / "child").exists()
 
 
 def test_fork_case_sets_new_id_and_derived_from_pointer(tmp_path: Path) -> None:

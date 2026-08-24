@@ -107,7 +107,9 @@ def create_case(
     case_id: str,
     now: datetime,
 ) -> Case:
-    root = Path(root).resolve()
+    root = Path(root)
+    _scan_case_tree(root)
+    root = root.resolve()
     validate_portable_component(case_id)
     root.mkdir(parents=True, exist_ok=True)
     if _case_exists(root):
@@ -138,6 +140,7 @@ def create_case(
 
 def inspect_case(root: Path) -> ExistingCaseOffer | None:
     root = Path(root)
+    _scan_case_tree(root)
     if not _case_exists(root):
         return None
     return _offer(root)
@@ -145,6 +148,7 @@ def inspect_case(root: Path) -> ExistingCaseOffer | None:
 
 def resume_case(root: Path) -> Case:
     root = Path(root)
+    _scan_case_tree(root)
     if not _case_exists(root):
         raise CaseNotFoundError(str(root))
     return _load_case(root)
@@ -159,8 +163,10 @@ def fork_case(
     reset_phase: str | None = None,
 ) -> Case:
     source = Path(source)
-    dest = Path(dest).resolve()
+    dest = Path(dest)
     _scan_case_tree(source)
+    _scan_case_tree(dest)
+    dest = dest.resolve()
     source = Path(os.path.abspath(os.fspath(source)))
     parent = resume_case(source)
     selected_phase = reset_phase or "P0"

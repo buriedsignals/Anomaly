@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/workflow.py:109 Future Gate A and Gate B decisions are retained across the resolver loop and consumed without a fresh human turn.",
+  "verdict": "survives",
+  "rationale": "The public dispatcher captures every input once before its execution loop, carries that same mapping through every newly sealed phase, and treats mere key presence as sufficient to cross Gate A or Gate B; downstream artifact and identity validation does not prove that either decision was supplied in a fresh, informed human turn.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:101-139 and src/anomaly/workflow_inputs.py:16-31",
+      "output": "run_workflow calls normalize_inputs(inputs) once before while True, then on every iteration builds available from the unchanged supplied mapping and passes supplied into consume_owner; normalize_inputs copies all public inputs, including gate_a and gate_b, without phase or turn binding."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:37-69,160-167 and src/anomaly/owners.py:49-80,125-137",
+      "output": "resolve_workflow pauses only when the phase's required input name is absent. If gate_a or gate_b was supplied earlier, P4/P7 resolves ready immediately and consume_owner reads the retained mapping; neither boundary checks when the decision entered the call."
+    },
+    {
+      "command": "read src/anomaly/recommend.py:335-390 and src/anomaly/review.py:371-477",
+      "output": "Gate A validates approved IDs against the current deterministic plan and Gate B validates review/replay/identity artifacts, but neither receipt requires a post-P3/post-P6 turn token or decision timestamp. Gate B also permits an empty accepted_claim_ids list, so a future Gate B decision can remain structurally valid without knowing claim IDs in advance."
+    }
+  ]
+}

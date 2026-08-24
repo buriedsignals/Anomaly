@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 2,
+  "source": "audit",
+  "finding": "src/anomaly/_attempt_workspace.py:261 A schema-valid, registry-bound forged P7 promotion journal can still delete the case README and its journalist-authored content during restart.",
+  "verdict": "survives",
+  "rationale": "The blocker is reachable: public run_workflow resumes an ordinary unsealed case and immediately recovers any journal; an exact P7 journal may mark the live README.md as applied/original=false with no backup, which passes artifact validation and causes rollback to delete the README, while the only README projector returns without recreating a missing file.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:66-79,166-175",
+      "output": "P7's fixed registry write tuple includes \"README.md\"; run_workflow calls resume_case(case_root), resolves the root, then calls recover_interrupted_promotion(case_root, lambda phase: _OWNER_REGISTRY[phase][2]) before loading and resolving the workflow snapshot."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:195-220,237-264",
+      "output": "_read_journal requires entry paths to equal the phase write set, but for every non-pending entry with original=false, _validate_recovery_artifacts sets coherent = not backup.exists() and does not require the live path to be absent; therefore an applied/original=false README.md with no backup is accepted even when README.md exists."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:57-72,112-132; src/anomaly/readme.py:24-30",
+      "output": "For an unsealed journal, recover_interrupted_promotion calls _rollback. _rollback skips only pending entries; when an entry has no backup and original=false it calls discard_workspace(live), deleting the existing README.md. project_readme explicitly returns when README.md is not a file, so later P7 execution does not restore the deleted journalist-authored content."
+    }
+  ]
+}

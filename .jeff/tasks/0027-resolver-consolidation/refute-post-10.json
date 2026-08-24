@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "audit",
+  "finding": "src/anomaly/semantics.py:52 The shared durable-error sanitizer misses standard compound credential assignments such as AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY.",
+  "verdict": "survives",
+  "rationale": "The blocker survives because the gated sanitizer's leading word boundary cannot start at SECRET or API after an underscore, no other sanitizer pattern covers these compound assignment names, and real P5/P6 invoker exceptions are caught and copied through safe_error into every named durable failure surface without an upstream guard.",
+  "evidence": [
+    {
+      "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/semantics.py",
+      "output": "58:_SECRET_ASSIGNMENT = re.compile(\n59:    r\"(?i)\\b(api[_-]?key|access[_-]?token|auth(?:entication)?|authorization|\"\n60:    r\"credential|password|passwd|secret|token|private[_-]?key)\"\n61:    r\"\\s*[:=]\\s*(?:Bearer\\s+)?[^,;\\s]+\"\n63:_BEARER = re.compile(r\"(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]{8,}\")\n64:_TOKEN_PREFIX = re.compile(\n65:    r\"\\b(?:sk_live_|ghp_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_./+=-]{8,}\"\n67:_URL_USERINFO = re.compile(r\"(?i)\\b(https?://)[^/\\s:@]+:[^@\\s/]+@\")"
+    },
+    {
+      "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/workflow.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+      "output": "workflow.py:155:return invoke(owner=selected, instructions=instructions, case_root=Path(case_root)); workflow.py:198-206 passes consume_owner into run_attempts. attempts.py:63-68 catches Exception from execute(workspace) and sends it to _finish_failure."
+    },
+    {
+      "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/state.py && git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:src/anomaly/attempts.py",
+      "output": "state.py:122-127 safe_error returns str(redact_credentials(str(value)))[:2000]. attempts.py:172-196 assigns that message to failure.json, phase_failed events.jsonl, state.failures, and final-attempt blocked_reason; lines 197-205 also emit it in phase_unavailable."
+    },
+    {
+      "command": "git -C anomaly show 8500ab972190cc5d83fc37344fede3a24816dfe2:tests/test_pipeline_walk.py",
+      "output": "test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence covers Authorization: Bearer, password=, AKIA under aws=, xoxb under slack=, and URL userinfo, but contains no AWS_SECRET_ACCESS_KEY or OPENAI_API_KEY assignment."
+    }
+  ]
+}

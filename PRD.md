@@ -206,14 +206,26 @@ claim complete replay when required data is missing.
 
 This hidden directory contains runtime bookkeeping, not editorial content:
 
-- `state.json` — current phase and status.
-- `events.jsonl` — append-only phase, gate, retry, and failure log.
-- `receipts/` — source, detector, replay, review, and user-approval receipts.
-- `attempts/` — incomplete or superseded phase outputs retained for audit.
+- `state.json` — authoritative current phase, status, completed phases, attempts,
+  pauses, and validated artifact identities.
+- `events.jsonl` — best-effort observational phase, gate, retry, and failure
+  history; it is never resume authority.
+- `receipts/` — hash-bound evidence for sources, detector execution, replay,
+  review, and user approvals; receipt presence alone never advances a phase.
+- `attempts/` — relative paths to incomplete, failed, or superseded phase
+  evidence retained for audit.
 
-A phase writes to an attempt directory first and moves accepted outputs into the
-appropriate parent directory only after validation. On restart, the workflow
-resumes from the last completed event and receipt.
+`anomaly.workflow.run_workflow` is the only public dispatcher for the exact
+P0–P7 composition. It repeatedly resolves durable state without side effects,
+selects one fixed phase owner, invokes deterministic code or the installed P5
+skill/P6 reviewer, seals the result or stops at Gate A/Gate B, and resolves
+fresh state. Focused attempt utilities alone write durable phase, status,
+attempt, invalidation, pause, and completion state. Gate and report APIs write
+their validated artifacts and receipts only. On restart, resolution follows
+the canonical completed-phase map after validating recorded artifact and
+receipt identities. A failed best-effort event append cannot hide a committed
+artifact or state transition. Missing sources and Gate A/Gate B decisions pause
+without consuming an attempt.
 
 ## 4. Linear workflow
 
@@ -336,7 +348,9 @@ After Gate B:
 - Materialize accepted claims into `findings/findings.json`.
 - Update `findings/unresolved.md`.
 - Generate `findings/report.md`.
-- Refresh `README.md` with status and relative links.
+- Generate deterministic charts and their hash-bound receipt.
+- Refresh `README.md` with complete status and relative links only after every
+  P7 output succeeds.
 
 ## 5. Detector registry
 

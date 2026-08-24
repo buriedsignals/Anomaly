@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "audit",
+  "finding": "src/anomaly/_attempt_workspace.py:109 A case-controlled promotion journal can delete arbitrary regular files or directories inside the case during public resume recovery.",
+  "verdict": "survives",
+  "rationale": "The blocker is reachable: run_workflow accepts a portable case whose promotion journal and target are ordinary files, then recovery trusts the journal's unbound original/status fields, and an unsealed applied entry with original=false and no backup causes _rollback to call discard_workspace on the attacker-selected in-case path.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/workflow.py:158-166",
+      "output": "run_workflow calls resume_case(case_root), resolves the root, and then calls recover_interrupted_promotion(case_root) before loading the workflow snapshot."
+    },
+    {
+      "command": "read anomaly/src/anomaly/case.py:257-290",
+      "output": "_scan_case_tree rejects symlinks, non-regular artifacts, and executable files, but accepts ordinary .anomaly/promotion.json and README.md files; it does not validate promotion-journal semantics."
+    },
+    {
+      "command": "read anomaly/src/anomaly/_attempt_workspace.py:57-69,109-119,159-193",
+      "output": "Recovery reads the journal, treats a non-sealed/non-rolled-back journal as rollback work, and _rollback skips only status=pending; when backup.exists() is false and entry['original'] is false, it calls discard_workspace(live). _read_journal validates schema_version, entry object/list shape, relative path syntax, and phase/attempt path spelling, but does not bind paths to _OWNER_REGISTRY write sets or validate original/status transitions."
+    }
+  ]
+}

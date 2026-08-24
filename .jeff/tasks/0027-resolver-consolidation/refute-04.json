@@ -1,0 +1,26 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "review",
+  "finding": "src/anomaly/readme.py:36 README projection deletes journalist-authored content that exactly matches the legacy Outputs block.",
+  "verdict": "survives",
+  "rationale": "A journalist-edited regular README can contain this exact unmarked section, and public completion, completed-case resume, or invalidation reaches the unconditional global replacement, silently deleting user-authored content in direct conflict with the preservation acceptance criterion.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/readme.py:24-48",
+      "output": "project_readme accepts any existing non-symlink README, removes the marked Anomaly block, then unconditionally executes .replace(_OUTPUTS, \"\"); Python str.replace removes every exact occurrence, with no ownership or position guard."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:101-139; src/anomaly/attempts.py:21-88; src/anomaly/state.py:34-52,133-171",
+      "output": "The public run_workflow entry repeatedly calls load_snapshot; completed P7 snapshots call project_readme, successful P7 sealing calls it, and invalidation from a previously completed P7 calls it again. The destructive branch is therefore reachable during ordinary completion, restart, and invalidation flows."
+    },
+    {
+      "command": "read src/anomaly/case.py:196-224,237-251",
+      "output": "resume_case/_load_case validates case.json and progress but imposes no README-content restriction; the initial README is ordinary journalist-facing Markdown. No upstream guard makes an exact unmarked Outputs section impossible."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/task.md; grep gated hash and finding evidence in task state/review return",
+      "output": "The locked acceptance criterion explicitly requires README projection to preserve journalist-authored content; gate state binds the inspected candidate to 4a1746f9050120df52e7845166f0ab935c4e584a, and the supplied pure replacement probe reports journalist_outputs_preserved=False with only the later Notes section remaining."
+    }
+  ]
+}

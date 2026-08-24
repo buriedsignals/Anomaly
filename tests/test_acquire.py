@@ -185,6 +185,24 @@ def test_register_local_source_rejects_symlinks(tmp_path: Path) -> None:
     assert _sources(root) == []
     assert list((root / "data" / "raw").rglob("*")) == []
 
+def test_register_local_source_rejects_an_in_case_destination_symlink(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "case"
+    _create(root)
+    source = _write_source(tmp_path / "incoming.csv", "id,value\n1,original\n")
+    case_path = root / "case.json"
+    original_case = case_path.read_bytes()
+    destination = root / "data" / "raw" / "new-source" / source.name
+    destination.parent.mkdir(parents=True)
+    destination.symlink_to(case_path)
+
+    with pytest.raises(UnsafeCasePathError, match=r"(?i)(symlink|case path)"):
+        _register(root, source, "new-source")
+
+    assert case_path.read_bytes() == original_case
+    assert _sources(root) == []
+
 
 def test_register_local_source_rejects_traversal(tmp_path: Path) -> None:
     root = tmp_path / "case"

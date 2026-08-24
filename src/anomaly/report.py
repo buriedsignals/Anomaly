@@ -22,10 +22,10 @@ from anomaly.review import (
     _hash_json,
     _owned,
     _read_json,
-    _redact_text,
     _root,
     _text,
 )
+from anomaly.semantics import redact_credentials
 
 __all__ = ["ChartError", "generate_charts"]
 
@@ -227,10 +227,10 @@ def _bar_chart(title: str, items: list[tuple[str, float]], *, counts: bool) -> s
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<svg xmlns="http://www.w3.org/2000/svg" '
         f'width="{_WIDTH}" height="{height}" viewBox="0 0 {_WIDTH} {height}" role="img">',
-        f"  <title>{xml.sax.saxutils.escape(_redact_text(title))}</title>",
+        f"  <title>{xml.sax.saxutils.escape(str(redact_credentials(title)))}</title>",
         '  <rect width="100%" height="100%" fill="#ffffff"/>',
         "  <text x=\"16\" y=\"34\" font-family=\"monospace\" font-size=\"18\" "
-        f"fill=\"#111111\">{xml.sax.saxutils.escape(_redact_text(title))}</text>",
+        f"fill=\"#111111\">{xml.sax.saxutils.escape(str(redact_credentials(title)))}</text>",
     ]
     if not items:
         parts.append(
@@ -239,7 +239,7 @@ def _bar_chart(title: str, items: list[tuple[str, float]], *, counts: bool) -> s
         )
     for index, (label, value) in enumerate(items):
         y = _TOP + index * (_BAR_HEIGHT + _BAR_GAP)
-        text = xml.sax.saxutils.escape(_redact_text(label))
+        text = xml.sax.saxutils.escape(str(redact_credentials(label)))
         parts.append(
             f"  <text x=\"{_LABEL_WIDTH - 12}\" y=\"{y + _BAR_HEIGHT - 6}\" "
             "font-family=\"monospace\" font-size=\"12\" fill=\"#333333\" "

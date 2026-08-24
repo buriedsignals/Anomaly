@@ -1,0 +1,22 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/workflow.py:111 The dispatcher scans the case only once before a multi-owner loop, so a dynamic owner can introduce a link that later phases follow.",
+  "verdict": "survives",
+  "rationale": "The public dispatcher gives the P5/P6 invoker the live case root after its sole tree scan, and post-callback state/event operations perform ordinary path reads or appends without no-follow validation, so a callback can replace state.json or events.jsonl with a symlink and cause the same invocation to access an external target.",
+  "evidence": [
+    {
+      "command": "read src/anomaly/workflow.py:101-145 and src/anomaly/owners.py:37-62",
+      "output": "run_workflow calls _scan_case_tree only once before entering while True; P5 then calls reason(resolution), which reaches invoke(owner=..., instructions=..., case_root=Path(case_root)), and the loop contains no later _scan_case_tree call."
+    },
+    {
+      "command": "read src/anomaly/attempts.py:21-71 and src/anomaly/state.py:31-110,188-203",
+      "output": "After execute returns, run_attempts writes the result, calls _seal_success/load_snapshot, and appends phase_completed. _read_state follows .anomaly/state.json via read_text, while append_event follows .anomaly/events.jsonl via open('a'); neither path is lstat-checked or opened with no-follow semantics."
+    },
+    {
+      "command": "grep 4a1746f9050120df52e7845166f0ab935c4e584a and supplied finding in .jeff/tasks/0027-resolver-consolidation/task.json",
+      "output": "The task gate records clean=true and green=true at 4a1746f9050120df52e7845166f0ab935c4e584a, and the active audit finding is the workflow.py:111 single-scan finding evaluated here."
+    }
+  ]
+}

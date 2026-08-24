@@ -1,0 +1,18 @@
+{
+  "stage": "refute",
+  "cycle": 0,
+  "source": "audit",
+  "finding": "src/anomaly/acquire.py:46 Direct source registration can follow an existing in-case symlink and overwrite another case artifact.",
+  "verdict": "survives",
+  "rationale": "The finding survives because this mainline registration entry calls only unscanned case/document validation, resolves an in-case destination symlink to its artifact target, and writes payload bytes to that resolved target; neither its decorator nor an upstream guard makes the overwrite unreachable or fail-safe.",
+  "evidence": [
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/acquire.py (lines 31-47, 71-75, 123-131, 158-163)",
+      "output": "register_local_source calls resume_case(root) and validate_case_documents(root), builds relative = data/raw/<source_id>/<source-name>, and sets dest = _under_root(root, relative). _under_root computes candidate = (base / relative).resolve(), rejects only candidates outside base, and returns an in-case resolved candidate. For a new included source, lines 128-129 execute dest.parent.mkdir(...) and dest.write_bytes(payload), so a destination symlink resolving to case.json causes the CSV payload to be written to case.json."
+    },
+    {
+      "command": "git show 4a1746f9050120df52e7845166f0ab935c4e584a:src/anomaly/case.py src/anomaly/semantics.py src/anomaly/events.py src/anomaly/workflow.py (targeted guard inspection)",
+      "output": "case.py:146-150 resume_case only checks _case_exists and calls _load_case; it does not call _scan_case_tree. semantics.py:180-225 validate_case_documents reads data/sources.json and scans only .anomaly/receipts. events.py:51-67 phase_event merely calls the wrapped function and logs success/failure. workflow.py:102-113 does scan in run_workflow, but that guard belongs only to that separate wrapper and does not precede a direct register_local_source call."
+    }
+  ]
+}

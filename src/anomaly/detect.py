@@ -532,12 +532,9 @@ def _require_gate_a(root: Path, requested: tuple[str, ...]) -> dict[str, tuple[s
                 encoding="utf-8"
             )
         )
-        state = json.loads(
-            _owned_path(root, ".anomaly/state.json", ".anomaly").read_text(encoding="utf-8")
-        )
     except (OSError, UnicodeError, json.JSONDecodeError, UnsafeCasePathError) as error:
         raise DetectorError("Gate A approval required: detector plan or receipt is missing") from error
-    if not isinstance(plan, dict) or not isinstance(receipt, dict) or not isinstance(state, dict):
+    if not isinstance(plan, dict) or not isinstance(receipt, dict):
         raise DetectorError("Gate A approval required: invalid plan or receipt")
     approved = plan.get("approved")
     recommended = plan.get("recommended")
@@ -558,8 +555,6 @@ def _require_gate_a(root: Path, requested: tuple[str, ...]) -> dict[str, tuple[s
         or not isinstance(receipt.get("approved_by"), str)
         or not receipt["approved_by"].strip()
         or not isinstance(receipt.get("approved_at"), str)
-        or state.get("phase") != "P4"
-        or state.get("gate") != "A"
     ):
         raise DetectorError("Gate A approval required before detector execution")
     if len(set(requested)) != len(requested):

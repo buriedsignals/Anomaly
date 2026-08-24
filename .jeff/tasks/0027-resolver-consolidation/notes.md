@@ -1,0 +1,95 @@
+# Notes
+
+## Cycle-2 plan decision
+
+- **Category:** `code`.
+- **Complexity:** `complex`.
+- **Audit required:** `true`.
+- **Approach:** keep the current pure resolver → fixed owner registry → `consume_owner` → `run_attempts` structure. Repair only the sustained trust and recovery boundaries: complete value validation before capability creation, unfinished-attempt reconciliation, registry-bound promotion recovery, create-time containment, complete P7 output identity, compound assignment redaction, and stale installed-skill prose. Do not restore a runner, aliases, handler maps, verbs, event-based resume, a framework, or synthetic P0-P7 compositions.
+- **Refactor opportunity:** delete the obsolete skill Verbs section and runner/event-resume assertions rather than replacing them, derive promotion-journal validation from the existing `_OWNER_REGISTRY` write tuples instead of introducing a second phase map, and reuse the complete source/gate predicates at capability and owner boundaries where their contracts coincide. Remove superseded shape-only helpers after every caller is migrated.
+
+## Sustained blocker union
+
+The ten sustained refutes reduce to eight non-overlapping repairs. The two schema findings are one source/gate boundary defect; the two installed-skill findings are one stale-contract defect.
+
+1. **Complete source/Gate A/Gate B values before attempts.** `input_capabilities` must withhold `sources`, `gate_a`, or `gate_b` unless all locally decidable value rules hold. Source requests require a nonempty portable `source_id`, a nonempty `str`/`Path` path, string policy fields, a real boolean `included`, and a string optional reason that is nonblank when excluded. Gate A requires an exact mapping, nonblank actor, 1–10 unique string detector IDs without path separators. Gate B requires an exact mapping, nonblank actor, and unique string claim IDs; an empty Gate B selection remains valid. Current-plan membership, source existence, and execution failures remain owner/attempt concerns. Invalid values pause on the missing capability and consume no attempt.
+2. **Interrupted attempts recover finitely with evidence.** A counted attempt with neither sealed completion/result nor failure evidence is interrupted. At the next `run_attempts` entry, discard only that attempt's staged workspace, record deterministic credential-safe failure evidence through the existing failure path, and either advance to the next bounded attempt or mark attempt three unavailable. If a catchable `BaseException` is observed, persist/clean and re-raise; hard termination is reconciled on restart. Never resolve or execute attempt four.
+3. **Promotion rollback and restart remain behavioral.** Preserve the existing journal-before-apply, backup, rollback, attempt-rewind, workspace cleanup, and fresh-retry behavior. The new consumer fixture models a copied case stopped after one public event artifact was applied; public restart must restore the last sealed P0 case, rewind P1, remove recovery material, and allow a fresh P1 attempt to succeed. It asserts only durable state/artifacts, not private calls or ordering.
+4. **Promotion journals are untrusted case input.** Before rollback or cleanup, validate the journal's exact top-level schema, phase/attempt path, allowed journal status, exact entry keys, unique paths equal to that phase's fixed registry write set, boolean `original`, and allowed `pending`/`applying`/`applied` entry states with coherent backup/live conditions. Reject unverifiable journals without mutating the case or deleting the journal. Supply the phase-write mapping from the one owner registry; do not add a second registry.
+5. **Create-time containment.** `create_case` scans the caller's unresolved prospective path and existing descendants before `resolve`, `mkdir`, or any write. Root and nested symlinks raise `UnsafeCasePathError` without writing through the link.
+6. **P7 completion identity and README truth.** Add one required P7 completion-output identity covering `findings/findings.json`, `findings/report.md`, `findings/unresolved.md`, the `findings/charts/` directory including empty-directory existence and descendants, `.anomaly/receipts/gate-b.json`, and `.anomaly/receipts/charts.json`. Capture must fail if any required artifact has the wrong kind or is absent; restart invalidates from P7 if any changes or disappears. `README.md` remains a derived projection and events remain observational, but complete README status/links exist only while that output identity and Gate B identity are current.
+7. **Compound assignment redaction.** Extend the one shared credential sanitizer so complete environment-style names such as `AWS_SECRET_ACCESS_KEY=` and `OPENAI_API_KEY=` redact their assigned values. The same sanitized text must continue to reach attempt failure JSON, events, state failures, and `blocked_reason`.
+8. **Remove stale installed instructions and tests.** Delete the obsolete abstract Verbs section, replace durable-runner wording with resolver/owner/attempt wording, state that the completed-phase map—not events or file presence—is resume authority, and identify `MAX_ATTEMPTS` as state/attempt utility policy. The plan deletes the stale event-resume prose assertion; it adds no runner/verb symbol-absence or documentation change-detector test.
+
+## Ordered slices
+
+1. **Trust-boundary values and create containment:** complete the pure source/gate capability predicates and scan unresolved create paths before any mutation.
+2. **Finite durable recovery:** reconcile unfinished attempts, preserve three-attempt evidence, prove valid promotion rollback/restart, and fail closed on journals not exactly bound to the registry write set and recovery schema.
+3. **Completion truth and secrets:** bind every authoritative P7 product/receipt to a required completion identity and broaden the shared assignment sanitizer for compound environment names.
+4. **Deletion and conformance cleanup:** remove stale runner/verb/event-resume/MAX_ATTEMPTS skill prose and the stale test assertion while preserving every prior orchestration deletion and existing public demo/order/invalidation proofs.
+
+## Acceptance-criterion dispositions
+
+1. **AC1 pure resolver — `revise`.** Consumer-observable behavior: value-invalid sources or gate decisions are absent capabilities, so public dispatch returns a truthful pause and consumes no attempt; a counted unfinished attempt can never yield `attempt 4 of 3`. Deterministic seams: the source, Gate A, Gate B value tables and interrupted-attempt limit test.
+2. **AC2 one owner registry/dynamic loading — `reuse`.** Consumer-observable behavior: the same fixed P0-P7 registry selects deterministic handlers, the P5 skill, and the P6 persona once per ready phase. Deterministic seams: existing dynamic-owner and canonical demo tests; journal validation receives registry-derived write sets rather than defining owners again.
+3. **AC3 durable attempts, retries, evidence, and promotion — `revise`.** Consumer-observable behavior: unfinished attempts become durable failures and stop at three; a valid interrupted promotion restores the last seal and retries successfully; malformed or foreign journals cannot mutate case files. Deterministic seams: `test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit`, `test_public_restart_rolls_back_an_interrupted_promotion_before_retry`, `test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation`, and the revised valid missing-file retry test.
+4. **AC4 gates, identities, invalidation, replacement, order — `revise`.** Consumer-observable behavior: full gate values are checked before attempts and every authoritative P7 output participates in P7 invalidation, while fresh-turn gates, P3-P6 earliest invalidation, source replacement, role separation, and exact order remain. Deterministic seams: value-invalid gate tables, existing Gate B receipt invalidation/recompletion, new P7 output matrix, and existing lineage tests.
+5. **AC5 README projection — `revise`.** Consumer-observable behavior: changed or missing P7 output demotes status to active/P6 and removes only the marker-owned output links; completion cannot advertise stale/missing output. Deterministic seams: new five-output matrix plus existing Gate B invalidation, failed P7, authored-content, relative-link, and recompletion cases.
+6. **AC6 inert Markdown — `reuse`.** Consumer-observable behavior: HTML, Markdown links, and standalone URLs from datasets remain inert. Deterministic seam: existing `test_report_serialization_neutralizes_dataset_markdown_and_bare_urls`.
+7. **AC7 whole-case no-symlink — `revise`.** Consumer-observable behavior: `create_case` joins inspect, resume, direct registration, and post-dynamic continuation in rejecting root/nested links before protected access. Deterministic seam: `test_create_case_rejects_a_symlink_before_writing` plus existing containment cases.
+8. **AC8 obsolete surfaces removed — `delete`.** Consumer-observable behavior: installed P5 instructions no longer teach a runner, abstract runtime verbs, event resume, or the wrong constant owner; all previously removed orchestration/test surfaces remain absent. Deterministic outcome: delete the stale test assertion and revise the installed skill directly; no symbol/prose absence test is added.
+9. **AC9 one demo CSV — `reuse`.** Consumer-observable behavior: the existing checked-in CSV continues through deterministic owners, dynamic skill/persona loading, both human gates, completion, relative links, restart, and exact event order. Deterministic seam: existing canonical demo test; no second demo or composed phase harness.
+
+## Test ownership
+
+- `tests/test_pipeline_walk.py` — complete source/gate value tables; valid missing-file three-attempt evidence; interrupted attempt reconciliation; valid promotion rollback/retry; untrusted journal rejection; compound environment assignment redaction; P7 output identity/README demotion.
+- `tests/test_case.py` — create-time root/nested symlink rejection before writes.
+- `tests/test_skill.py` — deletes the stale event-resume prose assertion while retaining the existing durable paths, bounded retry, and portability checks.
+- Existing `tests/test_workflow.py`, `tests/test_acquire.py`, and `tests/test_review.py` proofs are reused unchanged.
+
+## Focused RED
+
+- **Command:** `uv run --extra test pytest tests/test_pipeline_walk.py::test_value_invalid_source_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_a_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_value_invalid_gate_b_input_pauses_before_an_attempt tests/test_pipeline_walk.py::test_public_dispatcher_persists_three_failed_attempts_and_blocks tests/test_pipeline_walk.py::test_interrupted_attempts_recover_with_evidence_and_stop_at_the_limit tests/test_pipeline_walk.py::test_public_restart_rolls_back_an_interrupted_promotion_before_retry tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_public_dispatcher_invalidates_changed_gate_b_from_p7 tests/test_pipeline_walk.py::test_changed_or_missing_p7_output_demotes_completion_and_readme tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_skill.py::test_skill_contracts_durable_state_bounded_retries_and_portable_paths`
+- **Exact result:** `30 failed, 4 passed in 3.71s` (exit 1).
+- **Decisive failures:** 11 source value cases consume attempts or advance, five Gate A and two Gate B value cases consume attempts, unfinished attempts remain active at the retry limit without evidence, all three journal trust variants are accepted, two compound assignment values leak, five changed/missing P7 products leave completion and README unchanged, and both create symlink variants write instead of rejecting.
+- **Passing retained/new proofs:** valid missing-file retries still produce three failures, the durable valid-journal fixture restores and retries successfully, existing Gate B receipt invalidation/recompletion remains green, and the skill conformance test remains green after deleting the stale event-resume assertion.
+
+## Skill inputs
+
+- `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/code-standards/SKILL.md`
+- `/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/testing/SKILL.md`
+- No bundled Python-specific skill is present.
+
+## Council causal-subgraph reconstruction
+
+- **Category:** `code`.
+- **Complexity:** `complex`.
+- **Audit required:** `true`.
+- **Refactor opportunity:** `null`; the owed work is new trust-boundary behavior and crash-recovery protocol, not behavior-preserving deduplication.
+- **Approach:** reuse the existing resolver, owner registry, whole-tree scanner, bounded attempt utility, and promotion journal. Complete gate member validation before capability creation; enforce unresolved-path containment before every public write; make journal entry shapes producer-ordered; fail closed before any ambiguous `original=false` recovery deletion; and persist rollback intent/progress so a restart can resume after backup consumption.
+
+### Ordered slices
+
+1. **Input and path boundaries:** reject whitespace-only Gate A/B IDs without attempts; scan the fork destination namespace and direct `run_attempts` root before mutation; make direct `log_event` return `None` without following a case-controlled symlink.
+2. **Promotion provenance:** reject untrusted non-original P1 source-registry and P7 README entries before mutation, preserving the live file and journal for diagnosis; validate application entries as a producer-realizable applied/applying prefix followed by pending entries.
+3. **Restartable rollback:** persist per-entry rollback intent before consuming a backup, accept the resulting live/no-backup progress shape on restart, finish reverse-order restoration, rewind the attempt, and clean recovery material.
+4. **Focused proof:** retain the hard-exit missing-evidence and producer-ordered rollback cases, then run only the three requested test modules before implementation.
+
+### Acceptance-criterion dispositions
+
+1. **AC1 pure resolver — `revise`.** Whitespace-only gate IDs remain missing human input and consume no attempt. Seam: the Gate A/B whitespace parameter cases.
+2. **AC2 one owner registry/dynamic loading — `reuse`.** Registry selection and dynamic owners remain unchanged. Seam: existing owner/demo coverage.
+3. **AC3 durable attempts/promotion — `revise`.** A hard exit after the count write gains deterministic failure evidence; producer-ordered promotion and rollback progress survive repeated restart; forged provenance cannot delete live data. Seams: the four focused attempt/promotion tests in `test_pipeline_walk.py`.
+4. **AC4 gate/order/invalidation — `revise`.** Whitespace decisions pause before P4/P7 and promotion recovery accepts only producer-reachable ordering. Seams: gate parameter cases and producer-ordered rollback fixture.
+5. **AC5 README projection — `revise`.** Public recovery preserves journalist-authored README bytes when P7 provenance is false. Seam: the P7 provenance parameter case.
+6. **AC6 inert Markdown — `reuse`.** Dataset Markdown serialization is outside the causal subgraph. Seam: existing serialization proof.
+7. **AC7 whole-case no-symlink — `revise`.** Fork destination, direct attempts, and direct event logging cannot mutate a symlink target. Seams: focused tests in `test_case.py`, `test_pipeline_walk.py`, and `test_events.py`.
+8. **AC8 obsolete surfaces removed — `reuse`.** No removed API or duplicate projection is restored. Seam: existing absence/conformance coverage.
+9. **AC9 demo CSV — `reuse`.** The checked-in demo and six-step flow remain unchanged. Seam: existing canonical demo proof.
+
+### Focused RED
+
+- **Command:** `uv run --extra test pytest tests/test_pipeline_walk.py tests/test_case.py tests/test_events.py -q`
+- **Result:** `8 failed, 206 passed in 8.69s` (exit 1).
+- **Decisive RED:** whitespace Gate A consumes attempts and Gate B completes; rollback restart rejects consumed-backup progress; forged P1/P7 provenance deletes the source registry/README; direct attempts write before containment; fork follows the destination symlink; direct event logging appends outside the case.
+- **Retained green proofs:** the hard-exit missing-evidence reconciliation and producer-ordered interrupted-promotion rollback tests pass.

@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 1,
+  "source": "review2",
+  "finding": "src/anomaly/identities.py:17 P7 completion does not validate the identities or existence of the outputs that README advertises.",
+  "verdict": "survives",
+  "rationale": "The blocker is reachable because load_snapshot derives completion invalidation solely from changed_identities, P7 requires only the gate_b identity, and that identity hashes only .anomaly/receipts/gate-b.json; no upstream guard revalidates findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, or .anomaly/receipts/charts.json before project_readme preserves Status: complete and its output links.",
+  "evidence": [
+    {
+      "command": "read anomaly/src/anomaly/identities.py:8-18,22-39,74-101",
+      "output": "IDENTITY_PHASES assigns only \"gate_b\": \"P7\". changed_identities iterates that table and invalidates only when artifact_identity differs or is absent. _identity_files maps gate_b solely to (\".anomaly/receipts/gate-b.json\",)."
+    },
+    {
+      "command": "read anomaly/src/anomaly/state.py:32-50",
+      "output": "load_snapshot calls changed_identities(... through_phase=completed_phase(state)); if no mapped identity changed, completed remains P7 and project_readme(root, state, completed) runs."
+    },
+    {
+      "command": "read anomaly/src/anomaly/readme.py:7-17,24-58",
+      "output": "The complete projection advertises findings/findings.json, findings/report.md, and findings/unresolved.md, and sets Status to complete whenever completed is P7 and snapshot status is complete; it performs no existence or digest validation of those targets."
+    },
+    {
+      "command": "read anomaly/src/anomaly/workflow.py:65-79",
+      "output": "The P7 owner write set explicitly includes findings/findings.json, findings/report.md, findings/unresolved.md, findings/charts, .anomaly/receipts/gate-b.json, .anomaly/receipts/charts.json, events, and README, confirming the omitted artifacts are authoritative P7 outputs."
+    },
+    {
+      "command": "read anomaly/tests/test_pipeline_walk.py:319-381,748-789",
+      "output": "The completion test checks output existence only immediately after generation and resumes without mutating outputs; the P7 invalidation test mutates only gate-b.json. There is no consumer test deleting or changing each advertised/authoritative P7 output after completion."
+    }
+  ]
+}
