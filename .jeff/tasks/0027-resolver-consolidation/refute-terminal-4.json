@@ -1,0 +1,30 @@
+{
+  "stage": "refute",
+  "cycle": 4,
+  "source": "audit",
+  "finding": "src/anomaly/_attempt_workspace.py:287 Case-local promotion backups still act as forgeable provenance and can overwrite registry-bound live artifacts during public restart.",
+  "verdict": "survives",
+  "rationale": "The public run_workflow entry invokes interrupted-promotion recovery before normal resolution, an unsealed original=true applied entry is accepted solely because its case-local backup exists, and rollback then deletes the live registry-bound artifact and replaces it with that backup; the focused tests preserve this behavior for original=true backups and reject only the distinct original=false forgery.",
+  "evidence": [
+    {
+      "command": "git rev-parse HEAD",
+      "output": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5"
+    },
+    {
+      "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 169-175)",
+      "output": "case_root = Path(root); resume_case(case_root); case_root = case_root.resolve(); recover_interrupted_promotion(case_root, lambda phase: _OWNER_REGISTRY[phase][2])"
+    },
+    {
+      "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 64-70, 124-130, 284-291)",
+      "output": "Recovery reads the journal and, unless _is_sealed, calls _rollback. For original=true, _validate_recovery_artifacts sets coherent = backup.exists() or (status == \"applying\" and live.exists()); _rollback then executes discard_workspace(live) followed by backup.replace(live). No independent provenance check binds the backup to a producer run."
+    },
+    {
+      "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:tests/test_pipeline_walk.py (lines 685-816)",
+      "output": "test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion creates a case-local data/sources.json backup, marks original=true/status=applied, calls run_workflow, and expects the backup restored; test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data covers P1/P7 only with original=false/status=applied, so it does not reject an attacker-supplied original=true backup."
+    },
+    {
+      "command": ".venv/bin/python -B -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion tests/test_pipeline_walk.py::test_public_restart_resumes_after_a_second_interruption_during_rollback tests/test_pipeline_walk.py::test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation -q",
+      "output": "Pytest did not initialize: FileNotFoundError: No usable temporary directory found; the verdict relies on the gated source and focused test inspection above, not an unexecuted test claim."
+    }
+  ]
+}

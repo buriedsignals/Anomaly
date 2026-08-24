@@ -1,0 +1,98 @@
+{
+  "stage": "review",
+  "cycle": 4,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": false
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC6",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC8",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC9",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 64,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "A hard exit after a phase is durably sealed but before promotion cleanup permanently wedges restart for phases that create a new artifact.",
+      "why": "`promote_workspace` finishes `_apply`, writes the completed state, and only then calls `_finish`; therefore a process stop between `write_state` and `_finish` legitimately leaves a sealed state plus a `promoted` journal. For every non-original output, `_apply` has already left the live artifact present with entry status `applied`. On restart, `recover_interrupted_promotion` calls `_read_journal` before `_is_sealed`; `_read_journal` runs `_validate_recovery_artifacts`, whose non-original branch at line 289 requires the live artifact to be absent. It raises before the intended sealed-journal cleanup can run. P2-P7 fixed write tuples contain newly created outputs, so this is reachable and breaks AC3's durable, restart-idempotent atomic promotion contract even though the phase was successfully sealed. Add a deterministic hard-exit seam after the state write and before `_finish` for a phase with a non-original output, then separate safe sealed cleanup from unsealed rollback-provenance validation without weakening the forged-original deletion guard."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "git rev-parse HEAD; git status --short",
+      "output": "HEAD is the requested gated hash 49aeca91b98d03771c904cdad1a4e1bf843e7ff5. Only Jeff task recording files and the council security report are modified/untracked; reviewed production and tests match the checkpoint."
+    },
+    {
+      "command": "supplied clean full-suite gate evidence",
+      "output": "The task gate records clean=true and green=true for `uv run --extra test pytest tests/` at 49aeca91b98d03771c904cdad1a4e1bf843e7ff5; the assignment reports 774/774 passed. Suite greenness does not exercise the post-seal/pre-cleanup crash window."
+    },
+    {
+      "command": "read task.md, notes.md, context.md, council-final.json, plan-council-recovery.json, implement-council-recovery.json, current diff, bundled code-standards/testing/security skills, production modules, and AC tests",
+      "output": "Re-derived all nine dispositions. The council survivors are addressed: whitespace gate IDs pause; fork destination, direct run_attempts, and standalone log_event scan before writes; forged P1/P7 original=false journals preserve live data; rollback progress is journalized; and hard-exit-count plus producer-ordered rollback tests are behavioral. One distinct sealed-promotion restart defect remains."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:25-72,78-110,175-226,267-291; read src/anomaly/workflow.py:22-83",
+      "output": "Promotion writes every entry `applied`, writes journal status `promoted`, then writes sealed state before cleanup. Recovery validates artifact coherence before checking `_is_sealed`; non-original non-pending entries require `not live.exists()`. Fixed P2-P7 write tuples include new artifacts, making the sealed/live/journal state reachable."
+    },
+    {
+      "command": "grep `_finish|after.*state|sealed.*promotion|promoted.*restart|promotion.*sealed|write_state.*promotion|recover_interrupted_promotion` tests",
+      "output": "The only match is the attempt-count hard-exit seam in tests/test_pipeline_walk.py:641. Tests cover missing attempt evidence and mid-rollback interruption, but none interrupts after promotion state sealing and before `_finish`."
+    },
+    {
+      "command": "read tests/test_workflow.py, tests/test_pipeline_walk.py, tests/test_case.py, tests/test_events.py, tests/test_review.py, tests/test_skill.py; check tests/fixtures/**/*demo*.csv",
+      "output": "Behavioral coverage exists for the pure resolver, fixed/dynamic owners, both human turns, identity separation and P3-P7 invalidation, README preservation/relative links, inert bare URLs, public path containment, deleted orchestration surfaces, and the single canonical orchestration_demo.csv. No change-detector test was added for the recovery-only registry/order implementation."
+    }
+  ]
+}

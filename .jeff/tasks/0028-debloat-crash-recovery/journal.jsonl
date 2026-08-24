@@ -1,0 +1,6 @@
+{"seq":0,"at":"2026-08-24T15:00:55.099Z","event":"intent","stage":"plan","note":"Plan operator-approved deletion of automatic crash rollback"}
+{"seq":1,"at":"2026-08-24T15:11:29.825Z","event":"record","stage":"plan","agent":"PlanAnomalyDebloat"}
+{"seq":2,"at":"2026-08-24T15:11:44.314Z","event":"intent","stage":"implement","note":"Delete automatic crash rollback and implement fail-closed manual repair marker"}
+{"seq":3,"at":"2026-08-24T15:17:17.646Z","event":"record","stage":"implement","agent":"ImplementAnomalyDebloat"}
+{"seq":4,"at":"2026-08-24T15:17:33.638Z","event":"intent","stage":"refactor","note":"Delete remaining rollback helpers and harmonize repair marker conventions"}
+{"seq":5,"at":"2026-08-24T15:21:12.134Z","event":"record","stage":"refactor","agent":"RefactorAnomalyDebloat"}

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "pipelineVersion": "6.1.2",
+  "id": 28,
+  "slug": "debloat-crash-recovery",
+  "title": "Remove automatic crash rollback and finalize resolver consolidation",
+  "status": "in_progress",
+  "stage": "review",
+  "category": "code",
+  "priority": "p1",
+  "deps": [],
+  "complexity": "complex",
+  "createdAt": "2026-08-24T15:00:46Z",
+  "updatedAt": "2026-08-24T15:21:12Z",
+  "agents": {
+    "implementer_agent_id": "ImplementAnomalyDebloat",
+    "reviewer_agent_id": null,
+    "reviewer2_agent_id": null,
+    "audit_agent_id": null
+  },
+  "tests": {
+    "authored_by_agent_id": "PlanAnomalyDebloat",
+    "green": false,
+    "evidence": []
+  },
+  "review": {
+    "verdict": null,
+    "reviewer_agent_id": null,
+    "findings": [],
+    "evidence": []
+  },
+  "audit": {
+    "required": true,
+    "verdict": "na",
+    "audit_agent_id": null,
+    "findings": [],
+    "evidence": []
+  },
+  "commits": [],
+  "kickbacks": [],
+  "blockedReason": null,
+  "abandonReason": null,
+  "plan": {
+    "result": "red",
+    "slices": [
+      "Preserve ordinary bounded owner/validation failure behavior, relative redacted retry evidence, and the stable no-rollback-material case surface.",
+      "Replace automatic promotion recovery with a fail-closed marker path that preserves every live artifact plus marker/workspace/legacy backup and records blocked repair-required state naming phase, attempt, and workspace.",
+      "Delete stale crash rollback tests/prose and retain the canonical demo plus public case, attempt, dispatcher, and event containment proofs."
+    ],
+    "testFiles": [
+      "tests/test_pipeline_walk.py",
+      "tests/test_case.py",
+      "tests/test_events.py",
+      "tests/test_skill.py"
+    ],
+    "redRun": {
+      "command": "uv run --extra test pytest -q tests/test_pipeline_walk.py::test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair tests/test_pipeline_walk.py::test_legacy_journal_fields_and_backups_cannot_authorize_live_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_run_attempts_rejects_a_symlinked_case_before_any_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_nested_case_symlink_before_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_anomaly_symlink_before_durable_write tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_case.py::test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy tests/test_events.py::test_direct_log_event_rejects_a_symlinked_store_without_external_append tests/test_skill.py::test_skill_contracts_bounded_attempts_manual_repair_and_portable_paths",
+      "output": "4 failed, 13 passed in 0.97s (exit 1)"
+    },
+    "escalation": null,
+    "refactorOpportunity": "Delete promotion rollback, attempt rewind, journal schema/progress/artifact validation, promotion-backup handling, and obsolete crash fixtures; harmonize the retained marker with existing relative attempt_path/workspace and blocked/blocked_reason conventions."
+  },
+  "implement": {
+    "agent_id": "ImplementAnomalyDebloat",
+    "result": "green",
+    "files": [
+      "src/anomaly/_attempt_workspace.py",
+      "src/anomaly/attempts.py",
+      "src/anomaly/workflow.py",
+      "skills/anomaly/SKILL.md"
+    ],
+    "greenRun": {
+      "command": "uv run --extra test pytest -q tests/test_pipeline_walk.py::test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair tests/test_pipeline_walk.py::test_legacy_journal_fields_and_backups_cannot_authorize_live_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_run_attempts_rejects_a_symlinked_case_before_any_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_nested_case_symlink_before_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_anomaly_symlink_before_durable_write tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_case.py::test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy tests/test_events.py::test_direct_log_event_rejects_a_symlinked_store_without_external_append tests/test_skill.py::test_skill_contracts_bounded_attempts_manual_repair_and_portable_paths",
+      "output": "17 passed in 1.07s"
+    }
+  },
+  "refactor": {
+    "agent_id": "RefactorAnomalyDebloat",
+    "result": "refactored",
+    "files": [
+      "src/anomaly/_attempt_workspace.py"
+    ],
+    "outsideDiff": [],
+    "greenRun": {
+      "command": "uv run --extra test pytest -q tests/test_pipeline_walk.py::test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair tests/test_pipeline_walk.py::test_legacy_journal_fields_and_backups_cannot_authorize_live_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_run_attempts_rejects_a_symlinked_case_before_any_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_nested_case_symlink_before_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_anomaly_symlink_before_durable_write tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_case.py::test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy tests/test_events.py::test_direct_log_event_rejects_a_symlinked_store_without_external_append tests/test_skill.py::test_skill_contracts_bounded_attempts_manual_repair_and_portable_paths",
+      "output": "17 passed in 0.68s"
+    },
+    "summary": [
+      "Folded interrupted-promotion marker validation into its reader, deleting the redundant root argument, Path construction, and single-use helper without changing the fail-closed contract."
+    ]
+  }
+}

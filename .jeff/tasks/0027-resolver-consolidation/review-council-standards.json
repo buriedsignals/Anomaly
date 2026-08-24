@@ -1,0 +1,142 @@
+{
+  "stage": "review",
+  "cycle": 4,
+  "verdict": "needs-work",
+  "acLedger": [
+    {
+      "ac": "AC1",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC2",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC3",
+      "claimed": "revise",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC4",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC5",
+      "claimed": "revise",
+      "rederived": "write",
+      "ok": false
+    },
+    {
+      "ac": "AC6",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    },
+    {
+      "ac": "AC7",
+      "claimed": "revise",
+      "rederived": "revise",
+      "ok": true
+    },
+    {
+      "ac": "AC8",
+      "claimed": "reuse",
+      "rederived": "delete",
+      "ok": false
+    },
+    {
+      "ac": "AC9",
+      "claimed": "reuse",
+      "rederived": "reuse",
+      "ok": true
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/anomaly/_attempt_workspace.py",
+      "line": 119,
+      "severity": "high",
+      "class": "blocking",
+      "kickTo": "plan",
+      "what": "Promotion recovery still lets forged original=true metadata and an attacker-controlled backup delete and replace a live registry-bound artifact, while its original=false rule rejects a genuine interrupted promotion of a newly created artifact.",
+      "why": "For an original=true/applied entry, _validate_recovery_artifacts accepts backup.exists() as sufficient provenance at lines 281-284. Public restart then enters _rollback, calls discard_workspace(live), and backup.replace(live) at lines 119-124. A portable case can therefore forge the exact ordered P1 or P7 write set, place arbitrary regular bytes under attempt-1/promotion-backup/data/sources.json or README.md, and have run_workflow replace the legitimate live artifact before state identity validation. Conversely, the original=false branch requires live absence, so a genuine crash after _apply has installed a brand-new P7 output and journaled it applied is rejected forever. The new tests cover false original=false deletion claims and existing-original rollback only; they never cover forged original=true backup replacement or genuine newly-created-artifact recovery. This violates AC3 atomic recovery and AC5 journalist-content preservation. Redesign the recovery authority so no case-supplied original bit or backup alone authorizes destructive replacement, while retaining restart-idempotent recovery for producer-created states; add public-restart proofs for both forged original=true P1/P7 backups and a genuine interrupted new-artifact promotion."
+    },
+    {
+      "file": "src/anomaly/owners.py",
+      "line": 28,
+      "severity": "medium",
+      "class": "blocking",
+      "kickTo": "implement",
+      "what": "The consolidated dynamic-review boundary still exposes two live names for the same attestation field instead of a clean alias-free contract.",
+      "why": "_REVIEW_FIELDS accepts both attestation and independent_attestation, and _review_owner_result translates the former into the latter at lines 146-149. The split is reachable: agents/anomaly-data-reviewer.md documents attestation, while the canonical demo fake in tests/test_pipeline_walk.py returns independent_attestation. This is a compatibility alias and a second schema authority, contrary to AC8 and the explicit no-alias clean cutover. Select one canonical field, migrate the reviewer instructions and every caller/test to it, and delete the translation and duplicate-field branch."
+    },
+    {
+      "file": "tests/test_pipeline_walk.py",
+      "line": 196,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "plan",
+      "what": "The P7 completion matrix still does not prove that changing a chart descendant invalidates completion.",
+      "why": "P7_OUTPUT_MUTATIONS removes the whole charts directory but never changes, adds, removes, or changes the kind of a descendant. An existence-only implementation would satisfy the current row, although identities._completion_identity correctly hashes descendant path, kind, and bytes. Add one deterministic completed-case row that mutates a chart file and asserts P7 invalidation plus README demotion; this is consumer-observable regression coverage, not a production defect."
+    },
+    {
+      "file": "src/anomaly/workflow.py",
+      "line": 184,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "refactor",
+      "what": "run_workflow still resolves the same snapshot twice on every loop iteration.",
+      "why": "The first resolve_workflow call is needed only to establish entry_phase, but after entry_phase is set its result is discarded and the same snapshot is resolved again at line 198. Restrict the preliminary resolution to the first iteration, preserving fresh gate filtering while deleting avoidable computation and supporting the lean-consolidation objective."
+    },
+    {
+      "file": "tests/test_case.py",
+      "line": 277,
+      "severity": "low",
+      "class": "follow-up",
+      "kickTo": "plan",
+      "what": "A retained test name still says events participate in resume authority.",
+      "why": "test_resume_reads_progress_from_state_and_events_not_reports neither reads nor asserts events; the production and installed contracts correctly make state.completed authoritative and events observational. Rename it to state-not-report wording so the suite does not preserve stale authority terminology."
+    }
+  ],
+  "evidence": [
+    {
+      "command": "read task.md, notes.md, context.md, council-final.json, plan-council-recovery.json, implement-council-recovery.json, and task.json gate",
+      "output": "Reviewed all nine locked ACs, the council survivor union, the selected causal-subgraph recovery, current dispositions, and the exact gate. HEAD is 49aeca91b98d03771c904cdad1a4e1bf843e7ff5; the gate records clean=true and green=true for uv run --extra test pytest tests/. Supplied authoritative evidence reports 774/774 passed."
+    },
+    {
+      "command": "git rev-parse HEAD; git status --short; git diff --stat/--name-status/--numstat 98542737b170..49aeca91b98d",
+      "output": "HEAD matches the requested gate. Current post-gate dirt is limited to Jeff journal/task recording and the supplied security-council report; reviewed product and tests match the gated commit. The full task deletes product_workflow.py and 706 lines from workflow.py; product src changes total +1649/-1013 and tests +1118/-212."
+    },
+    {
+      "command": "read src/anomaly/workflow.py:1-247; owners.py:1-165; attempts.py:1-287; state.py:1-205; workflow_inputs.py:1-186",
+      "output": "resolve_workflow is pure; one _OWNER_REGISTRY owns P0-P7 phase selection and fixed write tuples; dynamic P5/P6 loading is bounded to installed instruction paths; run_attempts is a separate three-attempt utility; completed state plus identities—not events or report presence—is resume authority. No WorkflowRunner, PhaseResult, RetryLimitExceeded, product_workflow.py, or duplicate phase-owner registry remains."
+    },
+    {
+      "command": "read src/anomaly/_attempt_workspace.py:25-311 and tests/test_pipeline_walk.py:625-888",
+      "output": "Rollback progress is journaled before backup consumption and the hard-exit/producer-prefix/double-interruption tests are now behaviorally ordered. However, original=true recovery still treats backup existence as deletion/replacement authority, whereas original=false applied recovery requires live absence. Tests exercise false non-original claims and trusted existing-original fixtures only, leaving the asymmetric forgery and genuine-new-output cases uncovered."
+    },
+    {
+      "command": "read case.py:102-383; attempts.py:29-128; events.py:25-78; workflow_inputs.py:116-186; relevant case/events/pipeline tests",
+      "output": "Whitespace-only Gate A/B IDs pause without attempts. create, inspect, resume, fork destination, direct run_attempts, standalone log_event, dispatcher entry, and post-reasoning continuation all scan unresolved case trees before protected writes; focused tests assert no external mutation for destination and in-case symlink attacks."
+    },
+    {
+      "command": "grep runner/alias/owner registry contracts across src, skills, agents, tests, and PRD; glob workflow files and demo CSVs",
+      "output": "Only workflow.py and workflow_inputs.py remain; product_workflow.py and runner/result/retry surfaces are absent; exactly one orchestration_demo.csv exists. One owner registry remains. The search also exposed the still-live attestation→independent_attestation alias in owners.py, with opposing canonical names in the reviewer instructions and demo fake."
+    },
+    {
+      "command": "read tests/test_workflow.py, pipeline gate/order/invalidation/recovery ranges, test_review.py inert-markdown case, test_case.py containment cases, and test_skill.py conformance cases",
+      "output": "AC1/AC2/AC4/AC6/AC7/AC9 tests are consumer-observable and deterministic: resolver immutability/resume detail, dynamic owner loading, fresh human turns, exact P5→P6→Gate B→P7 ordering, event-failure resume, earliest invalidation/source replacement/identity separation, inert links/HTML/bare URLs, relative links, full containment, and the one checked-in demo are genuinely exercised. No new runner symbol-absence change-detector test was added."
+    },
+    {
+      "command": "read .jeff/tasks/0027-resolver-consolidation/security-council/security-audit-20260824-141744.md and inspect each hit's validation site",
+      "output": "The supplied scan covers 25 files, reports six high regex hits, two scope gaps, and REVIEW. ast.literal_eval is restricted to quoted scalar parsing; interpolated PRAGMA values are validated positive integers; interpolated table identifiers are generated or regex-bound tbl_<64 hex>. Inert Markdown coverage manually closes the relevant XSS serialization boundary. The promotion-journal overwrite finding above is a separate manual trust-boundary defect."
+    }
+  ]
+}

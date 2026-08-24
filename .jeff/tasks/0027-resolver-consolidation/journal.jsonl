@@ -161,3 +161,20 @@
 {"seq":160,"at":"2026-08-24T14:06:43.282Z","event":"record","stage":"plan","agent":"PlanAnomalyCouncilRecoverySol"}
 {"seq":161,"at":"2026-08-24T14:06:56.473Z","event":"intent","stage":"implement","note":"Implement council-selected promotion trust and containment reconstruction"}
 {"seq":162,"at":"2026-08-24T14:16:17.543Z","event":"record","stage":"implement","agent":"ImplementAnomalyCouncilRecovery-2"}
+{"seq":163,"at":"2026-08-24T14:17:25.912Z","event":"gate","hash":"49aeca91b98d03771c904cdad1a4e1bf843e7ff5","green":true,"clean":true}
+{"seq":164,"at":"2026-08-24T14:17:54.195Z","event":"intent","stage":"review","note":"Post-council correctness review at clean gate 49aeca91"}
+{"seq":165,"at":"2026-08-24T14:17:54.217Z","event":"intent","stage":"review","note":"Post-council standards review at clean gate 49aeca91"}
+{"seq":166,"at":"2026-08-24T14:17:54.227Z","event":"intent","stage":"audit","note":"Post-council audit at clean gate 49aeca91"}
+{"seq":167,"at":"2026-08-24T14:30:24.421Z","event":"record","stage":"review","agent":"ReviewAnomalyCouncilCorrect-2"}
+{"seq":168,"at":"2026-08-24T14:30:24.535Z","event":"record","stage":"review","agent":"ReviewAnomalyCouncilStandards-2"}
+{"seq":169,"at":"2026-08-24T14:30:24.649Z","event":"record","stage":"audit","agent":"AuditAnomalyCouncil-2"}
+{"seq":170,"at":"2026-08-24T14:30:42.608Z","event":"intent","stage":"refute","note":"Post-council refute review2 3: src/anomaly/owners.py:28 The consolidated dynamic-review boundary still exposes two live names for the same attestation field instead of a clean alias-free contract."}
+{"seq":171,"at":"2026-08-24T14:30:42.637Z","event":"intent","stage":"refute","note":"Post-council refute review 1: src/anomaly/_attempt_workspace.py:64 A hard exit after a phase is durably sealed but before promotion cleanup permanently wedges restart for phases that create a new artifact."}
+{"seq":172,"at":"2026-08-24T14:30:42.647Z","event":"intent","stage":"refute","note":"Post-council refute review2 2: src/anomaly/_attempt_workspace.py:119 Promotion recovery still lets forged original=true metadata and an attacker-controlled backup delete and replace a live registry-bound artifact, while its original=false rule rejects a genuine interrupted promotion of a newly created artifact."}
+{"seq":173,"at":"2026-08-24T14:30:42.688Z","event":"intent","stage":"refute","note":"Post-council refute audit 4: src/anomaly/_attempt_workspace.py:287 Case-local promotion backups still act as forgeable provenance and can overwrite registry-bound live artifacts during public restart."}
+{"seq":174,"at":"2026-08-24T14:30:42.713Z","event":"intent","stage":"refute","note":"Post-council refute audit 5: src/anomaly/_attempt_workspace.py:289 A producer-reachable interruption after first creating a phase artifact permanently blocks promotion recovery."}
+{"seq":175,"at":"2026-08-24T14:34:02.223Z","event":"record","stage":"refute","agent":"AnTerminalRefute2"}
+{"seq":176,"at":"2026-08-24T14:34:35.474Z","event":"record","stage":"refute","agent":"AnTerminalRefute3"}
+{"seq":177,"at":"2026-08-24T14:35:21.634Z","event":"record","stage":"refute","agent":"AnTerminalRefute1"}
+{"seq":178,"at":"2026-08-24T14:36:09.719Z","event":"record","stage":"refute","agent":"AnTerminalRefute4"}
+{"seq":179,"at":"2026-08-24T14:36:26.352Z","event":"record","stage":"refute","agent":"AnTerminalRefute5"}

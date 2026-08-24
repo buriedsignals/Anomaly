@@ -1,0 +1,15 @@
+{
+  "stage": "implement",
+  "result": "green",
+  "files": [
+    "src/anomaly/_attempt_workspace.py",
+    "src/anomaly/attempts.py",
+    "src/anomaly/workflow.py",
+    "skills/anomaly/SKILL.md"
+  ],
+  "greenRun": {
+    "command": "uv run --extra test pytest -q tests/test_pipeline_walk.py::test_startup_with_an_interrupted_promotion_marker_blocks_for_manual_repair tests/test_pipeline_walk.py::test_legacy_journal_fields_and_backups_cannot_authorize_live_mutation tests/test_pipeline_walk.py::test_failed_reasoning_attempts_redact_credentials_from_all_durable_evidence tests/test_pipeline_walk.py::test_failed_multi_source_attempt_does_not_promote_an_earlier_source tests/test_pipeline_walk.py::test_checked_in_demo_runs_canonical_path_and_resumes_without_repeating_work tests/test_pipeline_walk.py::test_run_attempts_rejects_a_symlinked_case_before_any_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_nested_case_symlink_before_durable_write tests/test_pipeline_walk.py::test_public_dispatcher_rejects_anomaly_symlink_before_durable_write tests/test_pipeline_walk.py::test_dispatcher_rechecks_containment_after_a_reasoning_owner_returns tests/test_case.py::test_public_case_reader_rejects_a_nested_symlink tests/test_case.py::test_create_case_rejects_a_symlink_before_writing tests/test_case.py::test_fork_rejects_a_symlinked_destination_ancestor_without_external_copy tests/test_events.py::test_direct_log_event_rejects_a_symlinked_store_without_external_append tests/test_skill.py::test_skill_contracts_bounded_attempts_manual_repair_and_portable_paths",
+    "output": "17 passed in 1.07s"
+  },
+  "kickback": null
+}

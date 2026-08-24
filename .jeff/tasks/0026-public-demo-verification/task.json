@@ -8,11 +8,11 @@
   "stage": "execute",
   "priority": "p1",
   "deps": [
-    27
+    28
   ],
   "complexity": "complex",
   "createdAt": "2026-08-23T12:25:52Z",
-  "updatedAt": "2026-08-24T08:06:25Z",
+  "updatedAt": "2026-08-24T15:00:46Z",
   "agents": {
     "executor_agent_id": null,
     "verifier_agent_id": null,

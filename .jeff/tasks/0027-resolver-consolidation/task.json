@@ -4,23 +4,23 @@
   "id": 27,
   "slug": "resolver-consolidation",
   "title": "Consolidate Anomaly on resolver plus durable attempt mechanics",
-  "status": "in_progress",
-  "stage": "review",
+  "status": "blocked",
+  "stage": "audit",
   "category": "code",
   "priority": "p1",
   "deps": [],
   "complexity": "complex",
   "createdAt": "2026-08-24T07:18:45Z",
-  "updatedAt": "2026-08-24T14:16:17Z",
+  "updatedAt": "2026-08-24T14:36:26Z",
   "agents": {
     "implementer_agent_id": "ImplementAnomalyCouncilRecovery-2",
-    "reviewer_agent_id": null,
-    "reviewer2_agent_id": null,
-    "audit_agent_id": null
+    "reviewer_agent_id": "ReviewAnomalyCouncilCorrect-2",
+    "reviewer2_agent_id": "ReviewAnomalyCouncilStandards-2",
+    "audit_agent_id": "AuditAnomalyCouncil-2"
   },
   "tests": {
     "authored_by_agent_id": "PlanAnomalyCouncilRecoverySol",
-    "green": false,
+    "green": true,
     "evidence": [
       {
         "command": "uv run --extra test pytest tests/",
@@ -41,21 +41,313 @@
       {
         "command": "uv run --extra test pytest tests/",
         "output": "cook: verify green (uv run --extra test pytest tests/)"
+      },
+      {
+        "command": "uv run --extra test pytest tests/",
+        "output": "cook: verify green (uv run --extra test pytest tests/)"
+      }
+    ],
+    "gate": {
+      "hash": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5",
+      "clean": true,
+      "green": true,
+      "command": "uv run --extra test pytest tests/",
+      "at": "2026-08-24T14:17:25Z"
+    }
+  },
+  "review": {
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "ReviewAnomalyCouncilCorrect-2",
+    "findings": [
+      {
+        "file": "src/anomaly/_attempt_workspace.py",
+        "line": 64,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "A hard exit after a phase is durably sealed but before promotion cleanup permanently wedges restart for phases that create a new artifact.",
+        "why": "`promote_workspace` finishes `_apply`, writes the completed state, and only then calls `_finish`; therefore a process stop between `write_state` and `_finish` legitimately leaves a sealed state plus a `promoted` journal. For every non-original output, `_apply` has already left the live artifact present with entry status `applied`. On restart, `recover_interrupted_promotion` calls `_read_journal` before `_is_sealed`; `_read_journal` runs `_validate_recovery_artifacts`, whose non-original branch at line 289 requires the live artifact to be absent. It raises before the intended sealed-journal cleanup can run. P2-P7 fixed write tuples contain newly created outputs, so this is reachable and breaks AC3's durable, restart-idempotent atomic promotion contract even though the phase was successfully sealed. Add a deterministic hard-exit seam after the state write and before `_finish` for a phase with a non-original output, then separate safe sealed cleanup from unsealed rollback-provenance validation without weakening the forged-original deletion guard.",
+        "refute": {
+          "agent_id": "AnTerminalRefute1",
+          "source": "review",
+          "finding": "src/anomaly/_attempt_workspace.py:64 A hard exit after a phase is durably sealed but before promotion cleanup permanently wedges restart for phases that create a new artifact.",
+          "verdict": "survives",
+          "rationale": "The public restart path is genuinely wedged: a process stop after the completed state write leaves a promoted journal whose non-original applied artifact is live, but restart validates that journal before checking its sealed state and rejects the live artifact, so cleanup is never reached and every subsequent restart raises again.",
+          "evidence": [
+            {
+              "command": "git rev-parse HEAD; git diff --exit-code 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- src/anomaly/_attempt_workspace.py src/anomaly/attempts.py src/anomaly/workflow.py tests/test_pipeline_walk.py",
+              "output": "HEAD is exactly 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 and the focused diff exits 0."
+            },
+            {
+              "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py",
+              "output": "Lines 103-109 move each staged artifact live, persist entry status applied, then persist journal status promoted. Lines 48-54 write the completed state before _finish. On restart, line 64 calls _read_journal before lines 66-67 can recognize the seal and clean up; _read_journal lines 225-226 invokes artifact validation, where lines 288-291 require every non-original non-pending artifact to be absent and raise WorkflowError when the promoted live artifact exists."
+            },
+            {
+              "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py; git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/case.py",
+              "output": "The condition is reachable from run_workflow: workflow.py:170-175 invokes promotion recovery on every public restart, and the P2 write set at lines 29-33 includes data/index.duckdb. case.py:49-58 and 127-132 create the initial directories and instruction stubs but not data/index.duckdb, so its first successful P2 promotion records original=false and leaves that artifact live."
+            },
+            {
+              "command": "git grep -n -E 'hard_exit|interrupted_promotion|rollback|promotion\\.json' 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- tests/test_pipeline_walk.py",
+              "output": "Focused recovery coverage contains the attempt-count crash at lines 625-660, an unsealed producer-ordered promotion rollback at 674-715, and rollback re-interruption at 722-781. It does not exercise a crash after the state contains the completed attempt while a promoted journal and a genuine original=false live artifact remain, so those passing recovery tests do not guard this window."
+            }
+          ]
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "command": "git rev-parse HEAD; git status --short",
+        "output": "HEAD is the requested gated hash 49aeca91b98d03771c904cdad1a4e1bf843e7ff5. Only Jeff task recording files and the council security report are modified/untracked; reviewed production and tests match the checkpoint."
+      },
+      {
+        "command": "supplied clean full-suite gate evidence",
+        "output": "The task gate records clean=true and green=true for `uv run --extra test pytest tests/` at 49aeca91b98d03771c904cdad1a4e1bf843e7ff5; the assignment reports 774/774 passed. Suite greenness does not exercise the post-seal/pre-cleanup crash window."
+      },
+      {
+        "command": "read task.md, notes.md, context.md, council-final.json, plan-council-recovery.json, implement-council-recovery.json, current diff, bundled code-standards/testing/security skills, production modules, and AC tests",
+        "output": "Re-derived all nine dispositions. The council survivors are addressed: whitespace gate IDs pause; fork destination, direct run_attempts, and standalone log_event scan before writes; forged P1/P7 original=false journals preserve live data; rollback progress is journalized; and hard-exit-count plus producer-ordered rollback tests are behavioral. One distinct sealed-promotion restart defect remains."
+      },
+      {
+        "command": "read src/anomaly/_attempt_workspace.py:25-72,78-110,175-226,267-291; read src/anomaly/workflow.py:22-83",
+        "output": "Promotion writes every entry `applied`, writes journal status `promoted`, then writes sealed state before cleanup. Recovery validates artifact coherence before checking `_is_sealed`; non-original non-pending entries require `not live.exists()`. Fixed P2-P7 write tuples include new artifacts, making the sealed/live/journal state reachable."
+      },
+      {
+        "command": "grep `_finish|after.*state|sealed.*promotion|promoted.*restart|promotion.*sealed|write_state.*promotion|recover_interrupted_promotion` tests",
+        "output": "The only match is the attempt-count hard-exit seam in tests/test_pipeline_walk.py:641. Tests cover missing attempt evidence and mid-rollback interruption, but none interrupts after promotion state sealing and before `_finish`."
+      },
+      {
+        "command": "read tests/test_workflow.py, tests/test_pipeline_walk.py, tests/test_case.py, tests/test_events.py, tests/test_review.py, tests/test_skill.py; check tests/fixtures/**/*demo*.csv",
+        "output": "Behavioral coverage exists for the pure resolver, fixed/dynamic owners, both human turns, identity separation and P3-P7 invalidation, README preservation/relative links, inert bare URLs, public path containment, deleted orchestration surfaces, and the single canonical orchestration_demo.csv. No change-detector test was added for the recovery-only registry/order implementation."
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC6",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC8",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC9",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
       }
     ]
   },
-  "review": {
-    "verdict": null,
-    "reviewer_agent_id": null,
-    "findings": [],
-    "evidence": []
-  },
   "audit": {
     "required": true,
-    "verdict": "na",
-    "audit_agent_id": null,
-    "findings": [],
-    "evidence": []
+    "verdict": "needs-work",
+    "audit_agent_id": "AuditAnomalyCouncil-2",
+    "findings": [
+      {
+        "file": "src/anomaly/_attempt_workspace.py",
+        "line": 287,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Case-local promotion backups still act as forgeable provenance and can overwrite registry-bound live artifacts during public restart.",
+        "why": "The recovery parser treats an original=true applied entry as coherent solely when its case-local backup exists. A portable unsealed case can therefore carry the exact P1 write set with data/sources.json as the applied prefix, original=true, and an attacker-selected regular file at .anomaly/attempts/P1/attempt-1/promotion-backup/data/sources.json; all later entries remain coherent pending originals. The exact-schema, registry-set, producer-order, and whole-tree checks all pass. _rollback then marks the entry rolling_back, discards the live source registry, and executes backup.replace(live), after which cleanup removes the forged journal and backup. The same construction with a full P7 applied prefix can replace README.md and erase journalist content added after the case was received. A regular file inside the untrusted portable case is not independent provenance, so the original=false deletion fix leaves an equally reachable original=true overwrite capability.",
+        "cwe": "CWE-73",
+        "refute": {
+          "agent_id": "AnTerminalRefute4",
+          "source": "audit",
+          "finding": "src/anomaly/_attempt_workspace.py:287 Case-local promotion backups still act as forgeable provenance and can overwrite registry-bound live artifacts during public restart.",
+          "verdict": "survives",
+          "rationale": "The public run_workflow entry invokes interrupted-promotion recovery before normal resolution, an unsealed original=true applied entry is accepted solely because its case-local backup exists, and rollback then deletes the live registry-bound artifact and replaces it with that backup; the focused tests preserve this behavior for original=true backups and reject only the distinct original=false forgery.",
+          "evidence": [
+            {
+              "command": "git rev-parse HEAD",
+              "output": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5"
+            },
+            {
+              "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 169-175)",
+              "output": "case_root = Path(root); resume_case(case_root); case_root = case_root.resolve(); recover_interrupted_promotion(case_root, lambda phase: _OWNER_REGISTRY[phase][2])"
+            },
+            {
+              "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 64-70, 124-130, 284-291)",
+              "output": "Recovery reads the journal and, unless _is_sealed, calls _rollback. For original=true, _validate_recovery_artifacts sets coherent = backup.exists() or (status == \"applying\" and live.exists()); _rollback then executes discard_workspace(live) followed by backup.replace(live). No independent provenance check binds the backup to a producer run."
+            },
+            {
+              "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:tests/test_pipeline_walk.py (lines 685-816)",
+              "output": "test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion creates a case-local data/sources.json backup, marks original=true/status=applied, calls run_workflow, and expects the backup restored; test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data covers P1/P7 only with original=false/status=applied, so it does not reject an attacker-supplied original=true backup."
+            },
+            {
+              "command": ".venv/bin/python -B -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion tests/test_pipeline_walk.py::test_public_restart_resumes_after_a_second_interruption_during_rollback tests/test_pipeline_walk.py::test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation -q",
+              "output": "Pytest did not initialize: FileNotFoundError: No usable temporary directory found; the verdict relies on the gated source and focused test inspection above, not an unexecuted test claim."
+            }
+          ]
+        }
+      },
+      {
+        "file": "src/anomaly/_attempt_workspace.py",
+        "line": 289,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "A producer-reachable interruption after first creating a phase artifact permanently blocks promotion recovery.",
+        "why": "For a path that did not exist before promotion, _apply durably records status=applying and then moves the staged artifact live before recording status=applied. A process death after that move leaves original=false with a live artifact and either applying or applied status. On every public restart, _validate_recovery_artifacts requires not live.exists() for every non-original non-pending entry, rejects this genuine producer state, and prevents rollback, attempt rewind, and cleanup. P7 normally first-creates findings/findings.json, findings/report.md, findings/charts, and both receipts, so the crash window is reachable on the canonical flow. The recovery tests exercise original=true P1 rollback and forged false provenance, but not this producer-reachable first-creation interruption. This violates AC3 durable atomic promotion and restart-idempotent rollback.",
+        "cwe": "CWE-754",
+        "refute": {
+          "agent_id": "AnTerminalRefute5",
+          "source": "audit",
+          "finding": "src/anomaly/_attempt_workspace.py:289 A producer-reachable interruption after first creating a phase artifact permanently blocks promotion recovery.",
+          "verdict": "survives",
+          "rationale": "At the gated/current-identical source, `_apply` durably records `applying`, moves a previously absent staged artifact live, and only afterward records `applied`, while every public restart validates before rollback and rejects any non-pending `original=false` entry whose live artifact exists; the focused tests omit this legitimate crash state and explicitly retain the journal when the same state is presented, so there is no upstream guard or fail-safe recovery path.",
+          "evidence": [
+            {
+              "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly diff --no-ext-diff --unified=0 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- src/anomaly/_attempt_workspace.py tests/test_pipeline_walk.py",
+              "output": "Exit 0; stdout was empty, confirming the current source and focused recovery tests are byte-identical to the gated hash."
+            },
+            {
+              "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 93-107, 275-291)",
+              "output": "Lines 93-107 set entry status to `applying` and atomically persist it, then for a staged artifact execute `staged.replace(live)`, and only afterward set/persist `applied`. Lines 275-291 route every non-original non-pending entry to `coherent = not live.exists()` and raise `WorkflowError(\"promotion journal recovery artifacts are inconsistent\")` when the moved artifact exists."
+            },
+            {
+              "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 66-78, 161-174)",
+              "output": "The canonical P7 write set starts with `findings/findings.json`, `findings/report.md`, `findings/unresolved.md`, and `findings/charts`; public `run_workflow` calls `recover_interrupted_promotion` directly at entry, with no guard or fallback around it."
+            },
+            {
+              "command": "read tests/test_pipeline_walk.py:674-818",
+              "output": "The positive recovery tests construct only `original=True, status=applied` P1 entries. The false-provenance test constructs `original=False, status=applied`, expects public `run_workflow` to raise `WorkflowError`, and asserts `.anomaly/promotion.json` remains, confirming repeated public recovery cannot reach rollback or cleanup for the live non-original state."
+            }
+          ]
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "command": "read /Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0027-resolver-consolidation/security-council/security-audit-20260824-141744.md",
+        "output": "The supplied deterministic scan covered all 25 src/anomaly files, reported six high regex hits, no criticals, two scanner gaps, no dependency vulnerabilities, and REVIEW. The hits were ast.literal_eval and five interpolated DuckDB statements; GitHub Actions and XSS were the scanner gaps."
+      },
+      {
+        "command": "jj status",
+        "output": "The audited product parent is exactly 49aeca91b98d03771c904cdad1a4e1bf843e7ff5. Working-copy changes are limited to Jeff task.json/journal.jsonl and the supplied scanner report; the gate parent contains the finished product and tests."
+      },
+      {
+        "command": "read src/anomaly/detect.py:59-123,340-410,580-665; read src/anomaly/prepare.py:439-505; grep table_id src/anomaly/profile.py",
+        "output": "The dynamic-execution hit is ast.literal_eval limited to a quoted scalar and catches SyntaxError/ValueError, not arbitrary eval. PRAGMA interpolation receives only positive non-bool integers from _validate_limits. Prepared table IDs are generated as tbl_ plus a SHA-256 hex digest, and profile rejects anything outside tbl_[0-9a-f]{64}; registered DuckDB views are internal prepared_<integer> names. The five SQL hits therefore have no injection path."
+      },
+      {
+        "command": "read src/anomaly/_attempt_workspace.py:25-292; read src/anomaly/workflow.py:20-168",
+        "output": "Promotion paths are fixed relative write tuples from the sole owner registry and are exact-schema/producer-order checked. Rollback progress is journalized per entry and original=true partial restores can restart. However line 287 trusts any case-local backup as original provenance, while line 289 rejects every non-original non-pending entry whose promoted live artifact exists, yielding the two blocking provenance/recovery paths reported above."
+      },
+      {
+        "command": "read tests/test_pipeline_walk.py:625-850",
+        "output": "The hard-exit attempt-count proof reconciles missing failure evidence; the producer-ordered and second-interruption rollback proofs use pre-existing P1 artifacts with original=true; the forged-provenance proof checks original=false/live-present rejection. No proof covers a genuine newly-created original=false artifact interrupted after staged.replace(live), and no proof challenges a forged original=true backup."
+      },
+      {
+        "command": "read src/anomaly/case.py:102-290; read src/anomaly/attempts.py:29-110; read src/anomaly/events.py:25-48; read tests/test_case.py:429-449; read tests/test_events.py:304-327",
+        "output": "Containment repairs pass inspection: create/inspect/resume scan unresolved roots, fork scans both unresolved source and destination namespaces before resolve/copy, direct run_attempts scans before load_snapshot or durable writes, and standalone log_event scans before mkdir/open and returns None on unsafe stores. The focused tests verify destination, direct-attempt, and direct-event external targets remain unchanged."
+      },
+      {
+        "command": "read src/anomaly/workflow_inputs.py:25-176; read src/anomaly/owners.py:37-184; read src/anomaly/identities.py:8-105",
+        "output": "Whitespace-only Gate A/B IDs are withheld before attempts; source and gate values are schema-checked; reviewer/Gate A/Gate B identities are stripped and compared with Unicode NFC casefold canonicalization; P7 completion identity requires all five files plus the charts directory kind and every descendant. AC1, AC2, AC4, and identity-dependent AC5 behavior are supported by the inspected code and focused tests."
+      },
+      {
+        "command": "read src/anomaly/semantics.py:52-121; read src/anomaly/review.py:603-658; read src/anomaly/report.py:223-270; read pyproject.toml",
+        "output": "Compound AWS_SECRET_ACCESS_KEY and OPENAI_API_KEY assignments match the shared recursive redactor used by durable failures/events/state. Dataset report text is HTML-escaped, Markdown punctuation-escaped, and HTTP(S) colons escaped to suppress bare autolinks; SVG labels are credential-redacted and XML-escaped, manually closing the scanner's XSS gap. Runtime dependencies remain pyarrow, duckdb, and pytz, with no risky new package."
+      },
+      {
+        "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:45-58; read tests/test_pipeline_walk.py:455-555; read skills/anomaly/SKILL.md:20-100,207-260",
+        "output": "The task gate binds the clean hash 49aeca91 to uv run --extra test pytest tests/ with green=true; supplied gate evidence reports 774/774 passed. The canonical demo still proves the dynamic skill/persona owners, both human gates, relative links, and exact P5→P6→Gate B→P7 order. Installed instructions use resolver/owner/attempt and completed-map authority, not the removed runner/event-resume model. AC1, AC2, AC4-AC9 have inspected support, but the two promotion findings leave AC3 unsatisfied."
+      }
+    ],
+    "reportedVerdict": "needs-work",
+    "scan": {
+      "command": "/Users/tomvaillant/.omp/plugins/node_modules/@johanthoren/jeff/skills/security-auditor/scripts/review-security.sh src/anomaly --report-dir .jeff/tasks/0027-resolver-consolidation/security-council",
+      "recommendation": "REVIEW",
+      "reportPath": "/Users/tomvaillant/buried_signals/tools/anomaly/.jeff/tasks/0027-resolver-consolidation/security-council/security-audit-20260824-141744.md"
+    },
+    "coverage": [
+      {
+        "category": "secrets",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "injection_sql",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "injection_command",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "path_traversal",
+        "status": "covered_with_hits"
+      },
+      {
+        "category": "insecure_deserialization",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "weak_crypto",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "dynamic_execution",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "tls_transport",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "xss",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "sensitive_logging",
+        "status": "covered_no_hits"
+      },
+      {
+        "category": "insecure_permissions",
+        "status": "covered_no_hits"
+      }
+    ]
   },
   "commits": [],
   "kickbacks": [
@@ -363,7 +655,7 @@
       "at": "2026-08-24T13:26:58Z"
     }
   ],
-  "blockedReason": null,
+  "blockedReason": "Registry binding still lets an untrusted promotion journal delete a legitimate phase-owned artifact by lying that it did not originally exist.; The public fork writer still follows a symlinked destination ancestor and can create the child case outside the caller-selected path.; Whitespace-only Gate A and Gate B IDs are still classified as complete human decisions.; The interrupted-attempt test never exercises restart reconciliation for a counted attempt with no failure evidence.; The claimed valid interrupted-promotion test constructs a journal state the sequential promoter cannot produce.; The public fork writer follows a symlinked destination namespace and can copy a case outside the caller's requested tree.; A second interruption during promotion rollback leaves a valid recovery state that the next restart rejects permanently.; A schema-valid, registry-bound forged P7 promotion journal can still delete the case README and its journalist-authored content during restart.; The documented public run_attempts utility writes before enforcing whole-case no-symlink containment.; The standalone public log_event writer follows case-controlled symlinks outside the case.",
   "abandonReason": null,
   "plan": {
     "result": "red",
@@ -414,7 +706,210 @@
       "Applied the authoritative code-standards guidance resolved through skill://code-standards and preserved all second-repair behavior."
     ]
   },
-  "review2": null,
+  "review2": {
+    "verdict": "needs-work",
+    "reportedVerdict": "needs-work",
+    "reviewer_agent_id": "ReviewAnomalyCouncilStandards-2",
+    "findings": [
+      {
+        "file": "src/anomaly/_attempt_workspace.py",
+        "line": 119,
+        "severity": "high",
+        "class": "blocking",
+        "kickTo": "plan",
+        "what": "Promotion recovery still lets forged original=true metadata and an attacker-controlled backup delete and replace a live registry-bound artifact, while its original=false rule rejects a genuine interrupted promotion of a newly created artifact.",
+        "why": "For an original=true/applied entry, _validate_recovery_artifacts accepts backup.exists() as sufficient provenance at lines 281-284. Public restart then enters _rollback, calls discard_workspace(live), and backup.replace(live) at lines 119-124. A portable case can therefore forge the exact ordered P1 or P7 write set, place arbitrary regular bytes under attempt-1/promotion-backup/data/sources.json or README.md, and have run_workflow replace the legitimate live artifact before state identity validation. Conversely, the original=false branch requires live absence, so a genuine crash after _apply has installed a brand-new P7 output and journaled it applied is rejected forever. The new tests cover false original=false deletion claims and existing-original rollback only; they never cover forged original=true backup replacement or genuine newly-created-artifact recovery. This violates AC3 atomic recovery and AC5 journalist-content preservation. Redesign the recovery authority so no case-supplied original bit or backup alone authorizes destructive replacement, while retaining restart-idempotent recovery for producer-created states; add public-restart proofs for both forged original=true P1/P7 backups and a genuine interrupted new-artifact promotion.",
+        "refute": {
+          "agent_id": "AnTerminalRefute2",
+          "source": "review2",
+          "finding": "src/anomaly/_attempt_workspace.py:119 Promotion recovery still lets forged original=true metadata and an attacker-controlled backup delete and replace a live registry-bound artifact, while its original=false rule rejects a genuine interrupted promotion of a newly created artifact.",
+          "verdict": "survives",
+          "rationale": "The public restart path reaches rollback before any identity binding, where an unsealed, structurally valid journal can use original=true plus any regular case-local backup to replace a live registry-bound artifact, while the validator's unconditional live-absence requirement for original=false rejects the producer-reachable state created immediately after a new staged artifact is installed.",
+          "evidence": [
+            {
+              "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:50-80",
+              "output": "The recorded clean, green gate hash is exactly 49aeca91b98d03771c904cdad1a4e1bf843e7ff5, and recorded checkpoint evidence says reviewed production and tests match that hash."
+            },
+            {
+              "command": "read src/anomaly/workflow.py:158-205; src/anomaly/case.py:139-152,257-304",
+              "output": "run_workflow calls resume_case and then recover_interrupted_promotion before load_snapshot or identity validation; resume_case rejects links, special files, and executables but accepts ordinary attacker-controlled promotion.json and backup files inside a portable case."
+            },
+            {
+              "command": "read src/anomaly/_attempt_workspace.py:57-70,109-130,166-299",
+              "output": "For an unsealed journal, recovery validates artifacts and calls _rollback; original=true/applied is accepted whenever backup.exists(), after which rollback discards live and backup.replace(live), with no digest or trusted provenance binding. For every original=false non-pending state, validation instead requires not live.exists()."
+            },
+            {
+              "command": "read src/anomaly/_attempt_workspace.py:82-107; src/anomaly/case.py:49-58,127-137; src/anomaly/workflow.py:68-79",
+              "output": "_apply durably marks an entry applying, then staged.replace(live), then marks it applied, so a crash after replacement leaves a genuine original=false entry with live present. P7 writes newly created artifacts such as findings/report.md and findings/findings.json, which create_case does not initialize, making this rejected state producer-reachable."
+            },
+            {
+              "command": "read tests/test_pipeline_walk.py:191-260,674-849",
+              "output": "Focused recovery tests cover trusted existing-original rollback, rollback re-interruption, and forged original=false metadata against already-live P1/P7 artifacts; they do not cover forged original=true backup replacement or recovery after installation of a genuinely new original=false artifact."
+            }
+          ]
+        }
+      },
+      {
+        "file": "src/anomaly/owners.py",
+        "line": 28,
+        "severity": "medium",
+        "class": "blocking",
+        "kickTo": "implement",
+        "what": "The consolidated dynamic-review boundary still exposes two live names for the same attestation field instead of a clean alias-free contract.",
+        "why": "_REVIEW_FIELDS accepts both attestation and independent_attestation, and _review_owner_result translates the former into the latter at lines 146-149. The split is reachable: agents/anomaly-data-reviewer.md documents attestation, while the canonical demo fake in tests/test_pipeline_walk.py returns independent_attestation. This is a compatibility alias and a second schema authority, contrary to AC8 and the explicit no-alias clean cutover. Select one canonical field, migrate the reviewer instructions and every caller/test to it, and delete the translation and duplicate-field branch.",
+        "refute": {
+          "agent_id": "AnTerminalRefute3",
+          "source": "review2",
+          "finding": "src/anomaly/owners.py:28 The consolidated dynamic-review boundary still exposes two live names for the same attestation field instead of a clean alias-free contract.",
+          "verdict": "survives",
+          "rationale": "The public run_workflow → invoke_resolved_owner → consume_owner path applies no upstream shape guard, and _review_owner_result demonstrably accepts both the installed persona’s attestation field and the focused recovery fixture’s independent_attestation field as the same canonical value, so the duplicate live contract is reachable and violates the task’s explicit unused-alias removal criterion.",
+          "evidence": [
+            {
+              "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly rev-parse HEAD",
+              "output": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5"
+            },
+            {
+              "command": "read src/anomaly/workflow.py:135-213",
+              "output": "run_workflow wraps the supplied invoke callback with invoke_resolved_owner; invoke_resolved_owner returns the callback result unchanged; the P0-P7 loop passes that result through consume_owner. No upstream response-field guard selects one attestation name."
+            },
+            {
+              "command": "read src/anomaly/owners.py:22-30,141-151",
+              "output": "_REVIEW_FIELDS contains both \"independent_attestation\" and \"attestation\". _review_owner_result rejects only fields outside that set, then converts attestation to independent_attestation; it rejects only the case where both are simultaneously present."
+            },
+            {
+              "command": "grep 'attestation|independent_attestation' agents/anomaly-data-reviewer.md tests/test_pipeline_walk.py",
+              "output": "agents/anomaly-data-reviewer.md:19 and :52-53 instruct the live persona to return attestation; tests/test_pipeline_walk.py:42 uses independent_attestation in the focused canonical dynamic-review fixture."
+            },
+            {
+              "command": ".venv/bin/python -c \"from anomaly.owners import _review_owner_result; ... compare canonical and alias inputs ...\"",
+              "output": "{\"alias_keys_after_acceptance\": [\"independent_attestation\", \"reviewer_id\", \"verdicts\"], \"canonical_keys\": [\"independent_attestation\", \"reviewer_id\", \"verdicts\"], \"equal\": true}"
+            },
+            {
+              "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+              "output": "Acceptance criterion 8 requires: \"Unused aliases ... are removed.\""
+            }
+          ]
+        }
+      },
+      {
+        "file": "tests/test_pipeline_walk.py",
+        "line": 196,
+        "severity": "low",
+        "class": "follow-up",
+        "kickTo": "plan",
+        "what": "The P7 completion matrix still does not prove that changing a chart descendant invalidates completion.",
+        "why": "P7_OUTPUT_MUTATIONS removes the whole charts directory but never changes, adds, removes, or changes the kind of a descendant. An existence-only implementation would satisfy the current row, although identities._completion_identity correctly hashes descendant path, kind, and bytes. Add one deterministic completed-case row that mutates a chart file and asserts P7 invalidation plus README demotion; this is consumer-observable regression coverage, not a production defect."
+      },
+      {
+        "file": "src/anomaly/workflow.py",
+        "line": 184,
+        "severity": "low",
+        "class": "follow-up",
+        "kickTo": "refactor",
+        "what": "run_workflow still resolves the same snapshot twice on every loop iteration.",
+        "why": "The first resolve_workflow call is needed only to establish entry_phase, but after entry_phase is set its result is discarded and the same snapshot is resolved again at line 198. Restrict the preliminary resolution to the first iteration, preserving fresh gate filtering while deleting avoidable computation and supporting the lean-consolidation objective."
+      },
+      {
+        "file": "tests/test_case.py",
+        "line": 277,
+        "severity": "low",
+        "class": "follow-up",
+        "kickTo": "plan",
+        "what": "A retained test name still says events participate in resume authority.",
+        "why": "test_resume_reads_progress_from_state_and_events_not_reports neither reads nor asserts events; the production and installed contracts correctly make state.completed authoritative and events observational. Rename it to state-not-report wording so the suite does not preserve stale authority terminology."
+      }
+    ],
+    "evidence": [
+      {
+        "command": "read task.md, notes.md, context.md, council-final.json, plan-council-recovery.json, implement-council-recovery.json, and task.json gate",
+        "output": "Reviewed all nine locked ACs, the council survivor union, the selected causal-subgraph recovery, current dispositions, and the exact gate. HEAD is 49aeca91b98d03771c904cdad1a4e1bf843e7ff5; the gate records clean=true and green=true for uv run --extra test pytest tests/. Supplied authoritative evidence reports 774/774 passed."
+      },
+      {
+        "command": "git rev-parse HEAD; git status --short; git diff --stat/--name-status/--numstat 98542737b170..49aeca91b98d",
+        "output": "HEAD matches the requested gate. Current post-gate dirt is limited to Jeff journal/task recording and the supplied security-council report; reviewed product and tests match the gated commit. The full task deletes product_workflow.py and 706 lines from workflow.py; product src changes total +1649/-1013 and tests +1118/-212."
+      },
+      {
+        "command": "read src/anomaly/workflow.py:1-247; owners.py:1-165; attempts.py:1-287; state.py:1-205; workflow_inputs.py:1-186",
+        "output": "resolve_workflow is pure; one _OWNER_REGISTRY owns P0-P7 phase selection and fixed write tuples; dynamic P5/P6 loading is bounded to installed instruction paths; run_attempts is a separate three-attempt utility; completed state plus identities—not events or report presence—is resume authority. No WorkflowRunner, PhaseResult, RetryLimitExceeded, product_workflow.py, or duplicate phase-owner registry remains."
+      },
+      {
+        "command": "read src/anomaly/_attempt_workspace.py:25-311 and tests/test_pipeline_walk.py:625-888",
+        "output": "Rollback progress is journaled before backup consumption and the hard-exit/producer-prefix/double-interruption tests are now behaviorally ordered. However, original=true recovery still treats backup existence as deletion/replacement authority, whereas original=false applied recovery requires live absence. Tests exercise false non-original claims and trusted existing-original fixtures only, leaving the asymmetric forgery and genuine-new-output cases uncovered."
+      },
+      {
+        "command": "read case.py:102-383; attempts.py:29-128; events.py:25-78; workflow_inputs.py:116-186; relevant case/events/pipeline tests",
+        "output": "Whitespace-only Gate A/B IDs pause without attempts. create, inspect, resume, fork destination, direct run_attempts, standalone log_event, dispatcher entry, and post-reasoning continuation all scan unresolved case trees before protected writes; focused tests assert no external mutation for destination and in-case symlink attacks."
+      },
+      {
+        "command": "grep runner/alias/owner registry contracts across src, skills, agents, tests, and PRD; glob workflow files and demo CSVs",
+        "output": "Only workflow.py and workflow_inputs.py remain; product_workflow.py and runner/result/retry surfaces are absent; exactly one orchestration_demo.csv exists. One owner registry remains. The search also exposed the still-live attestation→independent_attestation alias in owners.py, with opposing canonical names in the reviewer instructions and demo fake."
+      },
+      {
+        "command": "read tests/test_workflow.py, pipeline gate/order/invalidation/recovery ranges, test_review.py inert-markdown case, test_case.py containment cases, and test_skill.py conformance cases",
+        "output": "AC1/AC2/AC4/AC6/AC7/AC9 tests are consumer-observable and deterministic: resolver immutability/resume detail, dynamic owner loading, fresh human turns, exact P5→P6→Gate B→P7 ordering, event-failure resume, earliest invalidation/source replacement/identity separation, inert links/HTML/bare URLs, relative links, full containment, and the one checked-in demo are genuinely exercised. No new runner symbol-absence change-detector test was added."
+      },
+      {
+        "command": "read .jeff/tasks/0027-resolver-consolidation/security-council/security-audit-20260824-141744.md and inspect each hit's validation site",
+        "output": "The supplied scan covers 25 files, reports six high regex hits, two scope gaps, and REVIEW. ast.literal_eval is restricted to quoted scalar parsing; interpolated PRAGMA values are validated positive integers; interpolated table identifiers are generated or regex-bound tbl_<64 hex>. Inert Markdown coverage manually closes the relevant XSS serialization boundary. The promotion-journal overwrite finding above is a separate manual trust-boundary defect."
+      }
+    ],
+    "acLedger": [
+      {
+        "ac": "AC1",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC2",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC3",
+        "claimed": "revise",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC4",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC5",
+        "claimed": "revise",
+        "rederived": "write",
+        "ok": false
+      },
+      {
+        "ac": "AC6",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      },
+      {
+        "ac": "AC7",
+        "claimed": "revise",
+        "rederived": "revise",
+        "ok": true
+      },
+      {
+        "ac": "AC8",
+        "claimed": "reuse",
+        "rederived": "delete",
+        "ok": false
+      },
+      {
+        "ac": "AC9",
+        "claimed": "reuse",
+        "rederived": "reuse",
+        "ok": true
+      }
+    ]
+  },
   "refutes": [
     {
       "agent_id": "AnRefute01",
@@ -1551,6 +2046,147 @@
           "output": "Acceptance explicitly requires: `Whole-case no-symlink validation protects every public resume/read/write path.`"
         }
       ]
+    },
+    {
+      "agent_id": "AnTerminalRefute2",
+      "source": "review2",
+      "finding": "src/anomaly/_attempt_workspace.py:119 Promotion recovery still lets forged original=true metadata and an attacker-controlled backup delete and replace a live registry-bound artifact, while its original=false rule rejects a genuine interrupted promotion of a newly created artifact.",
+      "verdict": "survives",
+      "rationale": "The public restart path reaches rollback before any identity binding, where an unsealed, structurally valid journal can use original=true plus any regular case-local backup to replace a live registry-bound artifact, while the validator's unconditional live-absence requirement for original=false rejects the producer-reachable state created immediately after a new staged artifact is installed.",
+      "evidence": [
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.json:50-80",
+          "output": "The recorded clean, green gate hash is exactly 49aeca91b98d03771c904cdad1a4e1bf843e7ff5, and recorded checkpoint evidence says reviewed production and tests match that hash."
+        },
+        {
+          "command": "read src/anomaly/workflow.py:158-205; src/anomaly/case.py:139-152,257-304",
+          "output": "run_workflow calls resume_case and then recover_interrupted_promotion before load_snapshot or identity validation; resume_case rejects links, special files, and executables but accepts ordinary attacker-controlled promotion.json and backup files inside a portable case."
+        },
+        {
+          "command": "read src/anomaly/_attempt_workspace.py:57-70,109-130,166-299",
+          "output": "For an unsealed journal, recovery validates artifacts and calls _rollback; original=true/applied is accepted whenever backup.exists(), after which rollback discards live and backup.replace(live), with no digest or trusted provenance binding. For every original=false non-pending state, validation instead requires not live.exists()."
+        },
+        {
+          "command": "read src/anomaly/_attempt_workspace.py:82-107; src/anomaly/case.py:49-58,127-137; src/anomaly/workflow.py:68-79",
+          "output": "_apply durably marks an entry applying, then staged.replace(live), then marks it applied, so a crash after replacement leaves a genuine original=false entry with live present. P7 writes newly created artifacts such as findings/report.md and findings/findings.json, which create_case does not initialize, making this rejected state producer-reachable."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:191-260,674-849",
+          "output": "Focused recovery tests cover trusted existing-original rollback, rollback re-interruption, and forged original=false metadata against already-live P1/P7 artifacts; they do not cover forged original=true backup replacement or recovery after installation of a genuinely new original=false artifact."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnTerminalRefute3",
+      "source": "review2",
+      "finding": "src/anomaly/owners.py:28 The consolidated dynamic-review boundary still exposes two live names for the same attestation field instead of a clean alias-free contract.",
+      "verdict": "survives",
+      "rationale": "The public run_workflow → invoke_resolved_owner → consume_owner path applies no upstream shape guard, and _review_owner_result demonstrably accepts both the installed persona’s attestation field and the focused recovery fixture’s independent_attestation field as the same canonical value, so the duplicate live contract is reachable and violates the task’s explicit unused-alias removal criterion.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly rev-parse HEAD",
+          "output": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5"
+        },
+        {
+          "command": "read src/anomaly/workflow.py:135-213",
+          "output": "run_workflow wraps the supplied invoke callback with invoke_resolved_owner; invoke_resolved_owner returns the callback result unchanged; the P0-P7 loop passes that result through consume_owner. No upstream response-field guard selects one attestation name."
+        },
+        {
+          "command": "read src/anomaly/owners.py:22-30,141-151",
+          "output": "_REVIEW_FIELDS contains both \"independent_attestation\" and \"attestation\". _review_owner_result rejects only fields outside that set, then converts attestation to independent_attestation; it rejects only the case where both are simultaneously present."
+        },
+        {
+          "command": "grep 'attestation|independent_attestation' agents/anomaly-data-reviewer.md tests/test_pipeline_walk.py",
+          "output": "agents/anomaly-data-reviewer.md:19 and :52-53 instruct the live persona to return attestation; tests/test_pipeline_walk.py:42 uses independent_attestation in the focused canonical dynamic-review fixture."
+        },
+        {
+          "command": ".venv/bin/python -c \"from anomaly.owners import _review_owner_result; ... compare canonical and alias inputs ...\"",
+          "output": "{\"alias_keys_after_acceptance\": [\"independent_attestation\", \"reviewer_id\", \"verdicts\"], \"canonical_keys\": [\"independent_attestation\", \"reviewer_id\", \"verdicts\"], \"equal\": true}"
+        },
+        {
+          "command": "read .jeff/tasks/0027-resolver-consolidation/task.md",
+          "output": "Acceptance criterion 8 requires: \"Unused aliases ... are removed.\""
+        }
+      ]
+    },
+    {
+      "agent_id": "AnTerminalRefute1",
+      "source": "review",
+      "finding": "src/anomaly/_attempt_workspace.py:64 A hard exit after a phase is durably sealed but before promotion cleanup permanently wedges restart for phases that create a new artifact.",
+      "verdict": "survives",
+      "rationale": "The public restart path is genuinely wedged: a process stop after the completed state write leaves a promoted journal whose non-original applied artifact is live, but restart validates that journal before checking its sealed state and rejects the live artifact, so cleanup is never reached and every subsequent restart raises again.",
+      "evidence": [
+        {
+          "command": "git rev-parse HEAD; git diff --exit-code 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- src/anomaly/_attempt_workspace.py src/anomaly/attempts.py src/anomaly/workflow.py tests/test_pipeline_walk.py",
+          "output": "HEAD is exactly 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 and the focused diff exits 0."
+        },
+        {
+          "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py",
+          "output": "Lines 103-109 move each staged artifact live, persist entry status applied, then persist journal status promoted. Lines 48-54 write the completed state before _finish. On restart, line 64 calls _read_journal before lines 66-67 can recognize the seal and clean up; _read_journal lines 225-226 invokes artifact validation, where lines 288-291 require every non-original non-pending artifact to be absent and raise WorkflowError when the promoted live artifact exists."
+        },
+        {
+          "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py; git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/case.py",
+          "output": "The condition is reachable from run_workflow: workflow.py:170-175 invokes promotion recovery on every public restart, and the P2 write set at lines 29-33 includes data/index.duckdb. case.py:49-58 and 127-132 create the initial directories and instruction stubs but not data/index.duckdb, so its first successful P2 promotion records original=false and leaves that artifact live."
+        },
+        {
+          "command": "git grep -n -E 'hard_exit|interrupted_promotion|rollback|promotion\\.json' 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- tests/test_pipeline_walk.py",
+          "output": "Focused recovery coverage contains the attempt-count crash at lines 625-660, an unsealed producer-ordered promotion rollback at 674-715, and rollback re-interruption at 722-781. It does not exercise a crash after the state contains the completed attempt while a promoted journal and a genuine original=false live artifact remain, so those passing recovery tests do not guard this window."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnTerminalRefute4",
+      "source": "audit",
+      "finding": "src/anomaly/_attempt_workspace.py:287 Case-local promotion backups still act as forgeable provenance and can overwrite registry-bound live artifacts during public restart.",
+      "verdict": "survives",
+      "rationale": "The public run_workflow entry invokes interrupted-promotion recovery before normal resolution, an unsealed original=true applied entry is accepted solely because its case-local backup exists, and rollback then deletes the live registry-bound artifact and replaces it with that backup; the focused tests preserve this behavior for original=true backups and reject only the distinct original=false forgery.",
+      "evidence": [
+        {
+          "command": "git rev-parse HEAD",
+          "output": "49aeca91b98d03771c904cdad1a4e1bf843e7ff5"
+        },
+        {
+          "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 169-175)",
+          "output": "case_root = Path(root); resume_case(case_root); case_root = case_root.resolve(); recover_interrupted_promotion(case_root, lambda phase: _OWNER_REGISTRY[phase][2])"
+        },
+        {
+          "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 64-70, 124-130, 284-291)",
+          "output": "Recovery reads the journal and, unless _is_sealed, calls _rollback. For original=true, _validate_recovery_artifacts sets coherent = backup.exists() or (status == \"applying\" and live.exists()); _rollback then executes discard_workspace(live) followed by backup.replace(live). No independent provenance check binds the backup to a producer run."
+        },
+        {
+          "command": "git show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:tests/test_pipeline_walk.py (lines 685-816)",
+          "output": "test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion creates a case-local data/sources.json backup, marks original=true/status=applied, calls run_workflow, and expects the backup restored; test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data covers P1/P7 only with original=false/status=applied, so it does not reject an attacker-supplied original=true backup."
+        },
+        {
+          "command": ".venv/bin/python -B -m pytest -p no:cacheprovider tests/test_pipeline_walk.py::test_public_restart_rolls_back_a_producer_ordered_interrupted_promotion tests/test_pipeline_walk.py::test_public_restart_resumes_after_a_second_interruption_during_rollback tests/test_pipeline_walk.py::test_public_restart_rejects_false_non_original_provenance_without_deleting_live_data tests/test_pipeline_walk.py::test_public_restart_rejects_untrusted_promotion_journal_without_case_mutation -q",
+          "output": "Pytest did not initialize: FileNotFoundError: No usable temporary directory found; the verdict relies on the gated source and focused test inspection above, not an unexecuted test claim."
+        }
+      ]
+    },
+    {
+      "agent_id": "AnTerminalRefute5",
+      "source": "audit",
+      "finding": "src/anomaly/_attempt_workspace.py:289 A producer-reachable interruption after first creating a phase artifact permanently blocks promotion recovery.",
+      "verdict": "survives",
+      "rationale": "At the gated/current-identical source, `_apply` durably records `applying`, moves a previously absent staged artifact live, and only afterward records `applied`, while every public restart validates before rollback and rejects any non-pending `original=false` entry whose live artifact exists; the focused tests omit this legitimate crash state and explicitly retain the journal when the same state is presented, so there is no upstream guard or fail-safe recovery path.",
+      "evidence": [
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly diff --no-ext-diff --unified=0 49aeca91b98d03771c904cdad1a4e1bf843e7ff5 -- src/anomaly/_attempt_workspace.py tests/test_pipeline_walk.py",
+          "output": "Exit 0; stdout was empty, confirming the current source and focused recovery tests are byte-identical to the gated hash."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/_attempt_workspace.py (lines 93-107, 275-291)",
+          "output": "Lines 93-107 set entry status to `applying` and atomically persist it, then for a staged artifact execute `staged.replace(live)`, and only afterward set/persist `applied`. Lines 275-291 route every non-original non-pending entry to `coherent = not live.exists()` and raise `WorkflowError(\"promotion journal recovery artifacts are inconsistent\")` when the moved artifact exists."
+        },
+        {
+          "command": "git -C /Users/tomvaillant/buried_signals/tools/anomaly show 49aeca91b98d03771c904cdad1a4e1bf843e7ff5:src/anomaly/workflow.py (lines 66-78, 161-174)",
+          "output": "The canonical P7 write set starts with `findings/findings.json`, `findings/report.md`, `findings/unresolved.md`, and `findings/charts`; public `run_workflow` calls `recover_interrupted_promotion` directly at entry, with no guard or fallback around it."
+        },
+        {
+          "command": "read tests/test_pipeline_walk.py:674-818",
+          "output": "The positive recovery tests construct only `original=True, status=applied` P1 entries. The false-provenance test constructs `original=False, status=applied`, expects public `run_workflow` to raise `WorkflowError`, and asserts `.anomaly/promotion.json` remains, confirming repeated public recovery cannot reach rollback or cleanup for the live non-original state."
+        }
+      ]
     }
   ],
   "convergence": {
@@ -1964,7 +2600,7 @@
         ]
       },
       "verdict": "block",
-      "outcome": null,
+      "outcome": "blocked-to-operator",
       "synthesizer_agent_id": "SynthesizeAnomalyCouncil-2",
       "researchProvenance": "canonical",
       "cycle": 2
