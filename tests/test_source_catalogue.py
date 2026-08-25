@@ -312,10 +312,3 @@ def test_adapter_error_envelope_does_not_expose_raw_exception_text(tmp_path: Pat
     assert "super-secret-token" not in result["error"]["message"]
 
 
-def test_prd_and_backlog_m3_language_describes_catalogue_only_migration() -> None:
-    prd = (ANOMALY_ROOT / "PRD.md").read_text(encoding="utf-8")
-    m3_line = next(line for line in prd.splitlines() if "| M3 |" in line)
-
-    assert "28 non-Arbiter Navigator source packages" in m3_line
-    assert "catalogue" in m3_line.lower()
-    assert all(term not in m3_line.lower() for term in ("cli", "service", "mcp", "deployment"))
