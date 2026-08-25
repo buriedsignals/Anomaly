@@ -33,7 +33,7 @@ _SOURCE_FIELDS: dict[str, type] = {
     "included": bool,
 }
 _NON_SOURCE_RECEIPT_KINDS = frozenset(
-    {"detector", "replay", "review", "user-approval", "charts"}
+    {"detector", "replay", "review", "user-approval", "charts", "viewer"}
 )
 _CASE_STRING_FIELDS = (
     "case_id",

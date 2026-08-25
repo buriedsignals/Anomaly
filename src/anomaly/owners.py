@@ -9,6 +9,7 @@ from anomaly.prepare import prepare_sources
 from anomaly.profile import profile_prepared
 from anomaly.recommend import approve_detector_plan, recommend_detectors
 from anomaly.report import generate_charts
+from anomaly.viewer import generate_viewer
 from anomaly.review import accept_findings, record_review, replay_signals, write_report
 from anomaly.semantics import canonical_key
 from anomaly.state import WorkflowError
@@ -134,7 +135,12 @@ def _accept_and_report(root: Path, inputs: Mapping[str, Any]) -> dict[str, Any]:
     if canonical_key(journalist_id) == canonical_key(reviewer_id):
         raise WorkflowError("Gate B journalist must differ from the independent reviewer")
     findings = accept_findings(root, gate["accepted_claim_ids"], journalist_id=journalist_id)
-    return {"findings": findings, "report": write_report(root), "charts": generate_charts(root)}
+    return {
+        "findings": findings,
+        "report": write_report(root),
+        "charts": generate_charts(root),
+        "viewer": generate_viewer(root),
+    }
 
 
 def _review_owner_result(value: Any) -> dict[str, Any]:

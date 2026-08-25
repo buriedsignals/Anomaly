@@ -96,14 +96,16 @@ blocked state.
 | Gate B closes in P7 | 11 | `anomaly.review.accept_findings` — only after replay and independent review, and only for accepted claim IDs |
 | P7 report | 12 | `anomaly.review.write_report` materializes the redacted report body from Gate-B findings |
 | P7 charts | 13 | `anomaly.report.generate_charts` renders deterministic redacted SVGs into `findings/charts/` |
-| P7 completion | 14 | focused durable utilities project complete status and relative links only after every output succeeds |
+| P7 evidence viewer | 14 | `anomaly.viewer.generate_viewer` renders the self-contained `findings/viewer.html` evidence inspector |
+| P7 completion | 15 | focused durable utilities project complete status and relative links only after every output succeeds |
 
-Step 13 records a sha256 receipt in `.anomaly/receipts/charts.json` and refuses
-without writing anything when the hash-bound Gate B receipt is missing or no
-longer matches the current findings, review, or replay artifacts; that refusal
-means charts are unavailable — never approximate, assume, or substitute chart
-data. Step 14 does not run after any such refusal, so `README.md` cannot claim
-P7 completion before the charts exist.
+Steps 13 and 14 record sha256 receipts in `.anomaly/receipts/charts.json` and
+`.anomaly/receipts/viewer.json` and refuse without writing anything when the
+hash-bound Gate B receipt is missing or no longer matches the current findings,
+review, or replay artifacts; that refusal means charts or the viewer are
+unavailable — never approximate, assume, or substitute their data. Step 15 does
+not run after any such refusal, so `README.md` cannot claim P7 completion
+before the charts and the viewer exist.
 
 The resulting portable case folder contains the root files, instructions, data,
 detector plan and inert snapshots, evidence, findings, and durable `.anomaly/`

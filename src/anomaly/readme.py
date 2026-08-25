@@ -8,6 +8,7 @@ _OUTPUTS = (
     "## Outputs\n\n"
     "- [accepted findings](findings/findings.json)\n"
     "- [report](findings/report.md)\n"
+    "- [evidence viewer](findings/viewer.html)\n"
     "- [unresolved work](findings/unresolved.md)\n"
 )
 _MARKED_OUTPUTS = (
