@@ -15,7 +15,7 @@ This policy is non-negotiable. Accuracy and the best achievable result take prio
 
 ## Product
 
-Anomaly is a reusable agent workflow for structured-data investigations. The approved design lives in `PRD.md`.
+Anomaly is a reusable agent workflow for structured-data investigations.
 
 Keep the implementation lean:
 
@@ -24,15 +24,14 @@ Keep the implementation lean:
 - Deterministic Python and DuckDB for acquisition, profiling, detector execution, replay, and report assembly.
 - No more than 10 detectors per pass.
 - Detector outputs are leads; only replay, independent review, and journalist approval create findings.
-- Investigation cases follow the parent-directory structure in `PRD.md`.
 
 ## Implementation workflow — full Jeff, jj integration
 
-Jeff full mode is active under `.jeff/`. When Tom says to begin implementing
-`PRD.md`, implementation MUST begin through Jeff:
+Jeff full mode is active under `.jeff/`. When Tom starts new implementation
+work, implementation MUST begin through Jeff:
 
-1. Capture M1 from the PRD and decompose it into independently shippable tasks
-   with real dependency edges.
+1. Capture the approved milestone and decompose it into independently
+   shippable tasks with real dependency edges.
 2. Validate and present the task graph before production implementation.
 3. Run ready tasks through Jeff's plan, implementation, verification,
    review/audit, and deterministic done gates.
