@@ -1,5 +1,6 @@
 id: relational.conflicting_profiles
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Conflicting profiles
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds records with conflicting profile attributes.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: relational
 severity: medium
 expected_output: [candidate_id]

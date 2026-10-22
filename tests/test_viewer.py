@@ -90,7 +90,7 @@ def _viewer_case(tmp_path: Path, *, statement: str, preview_value: Any) -> Path:
     used = root / "detectors" / "used"
     used.mkdir(parents=True, exist_ok=True)
     (used / "numeric__zscore_outliers.json").write_text(
-        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1.0.0"}) + "\n",
+        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1.1.0"}) + "\n",
         encoding="utf-8",
     )
 

@@ -1,5 +1,6 @@
 id: temporal.coverage_gaps
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Temporal coverage gaps
 author: anomaly
 license: internal
@@ -26,6 +27,8 @@ cost: 0.2
 false_positive_risk: 0.1
 parameters:
   maximum_gap_days: 1
+parameter_bounds:
+  maximum_gap_days: {type: integer, minimum: 1, maximum: 3650}
 sensitive_output: redact
 signal_category: anomaly
 severity: medium

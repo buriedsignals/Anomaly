@@ -1,5 +1,6 @@
 id: us_lobbying.pac_contribution_flow
-version: 1.0.0
+version: 1.1.0
+release: released
 title: PAC contribution flow
 author: gain-2026
 license: internal
@@ -21,6 +22,8 @@ required_tables: [senate_contribution_items]
 required_fields: [id]
 parameters:
   limit: 500
+parameter_bounds:
+  limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
 expected_output: [payee_name, honoree_name, n_contributions, total_amount, distinct_filings, distinct_contributors]

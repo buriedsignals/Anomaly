@@ -1,5 +1,6 @@
 id: us_lobbying.revolving_door_candidates
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Revolving door candidates
 author: gain-2026
 license: internal
@@ -21,6 +22,8 @@ required_tables: [senate_activity_lobbyists, senate_filings]
 required_fields: [id]
 parameters:
   limit: 500
+parameter_bounds:
+  limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
 expected_output: [lobbyist_id, first_name, last_name, sample_position, filings_with_lobbyist, distinct_positions, clients_lobbied_for]

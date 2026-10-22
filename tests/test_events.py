@@ -116,7 +116,7 @@ def _seed_reviewable_run(root: Path) -> None:
                 "schema_version": 1,
                 "run_id": "run-007",
                 "detector_id": "numeric.zscore_outliers",
-                "detector_version": "1.0.0",
+                "detector_version": "1.1.0",
                 "detector_hash": detector_hash,
                 "source_hashes": [source_hash],
             },
@@ -147,7 +147,7 @@ def _seed_reviewable_run(root: Path) -> None:
         encoding="utf-8",
     )
     (root / "detectors" / "used" / "numeric__zscore_outliers.json").write_text(
-        json.dumps({"implementation_hash": detector_hash, "version": "1.0.0"}) + "\n",
+        json.dumps({"implementation_hash": detector_hash, "version": "1.1.0"}) + "\n",
         encoding="utf-8",
     )
 

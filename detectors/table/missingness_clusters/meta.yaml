@@ -1,5 +1,6 @@
 id: table.missingness_clusters
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Missingness clusters
 author: anomaly
 license: internal
@@ -26,6 +27,8 @@ cost: 0.2
 false_positive_risk: 0.1
 parameters:
   min_missing_fraction: 0.2
+parameter_bounds:
+  min_missing_fraction: {type: number, minimum: 0.0, maximum: 1.0}
 sensitive_output: redact
 signal_category: anomaly
 severity: medium

@@ -180,7 +180,7 @@ def _seed_case(tmp_path: Path, *, categories_same_source: bool = False) -> Path:
                 "schema_version": 1,
                 "run_id": "run-007",
                 "detector_id": "numeric.zscore_outliers",
-                "detector_version": "1.0.0",
+                "detector_version": "1.1.0",
                 "detector_hash": DETECTOR_HASH,
                 "source_hashes": [source_hash],
             },
@@ -210,7 +210,7 @@ def _seed_case(tmp_path: Path, *, categories_same_source: bool = False) -> Path:
         encoding="utf-8",
     )
     (root / "detectors" / "used" / "numeric__zscore_outliers.json").write_text(
-        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1.0.0"}) + "\n",
+        json.dumps({"implementation_hash": DETECTOR_HASH, "version": "1.1.0"}) + "\n",
         encoding="utf-8",
     )
     return root

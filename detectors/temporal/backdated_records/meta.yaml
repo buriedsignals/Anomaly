@@ -1,5 +1,6 @@
 id: temporal.backdated_records
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Backdated records
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds records whose dates conflict with their sequence.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: temporal
 severity: medium
 expected_output: [candidate_id]

@@ -99,7 +99,7 @@ def _write_run(
                 "schema_version": 1,
                 "run_id": run_id,
                 "detector_id": detector_id,
-                "detector_version": "1.0.0",
+                "detector_version": "1.1.0",
                 "detector_hash": detector_hash,
                 "source_hashes": [source_hash],
             },
@@ -192,7 +192,7 @@ def _gate_b_case(tmp_path: Path) -> Path:
         ("table__duplicate_rows.json", SECOND_DETECTOR_HASH),
     ):
         (used / name).write_text(
-            json.dumps({"implementation_hash": digest, "version": "1.0.0"}) + "\n",
+            json.dumps({"implementation_hash": digest, "version": "1.1.0"}) + "\n",
             encoding="utf-8",
         )
 

@@ -1,5 +1,6 @@
 id: domain.contractor_concentration
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Contractor concentration
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds concentration of observations among contractors.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: procurement
 severity: medium
 expected_output: [candidate_id]

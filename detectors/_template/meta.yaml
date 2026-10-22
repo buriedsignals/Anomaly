@@ -1,5 +1,6 @@
 id: user.example_detector
 version: 1.0.0
+release: draft
 title: User SQL detector
 author: journalist
 license: CC0-1.0
@@ -10,6 +11,7 @@ required_tables:
 required_fields:
   - candidate_id
 parameters: {}
+parameter_bounds: {}
 signal_category: anomaly
 severity: medium
 expected_output:

@@ -1,5 +1,6 @@
 id: us_lobbying.new_registrant_surge
-version: 1.0.0
+version: 1.1.0
+release: released
 title: New registrant surge
 author: gain-2026
 license: internal
@@ -22,6 +23,9 @@ required_fields: [id]
 parameters:
   lookback_quarters: 2
   limit: 200
+parameter_bounds:
+  lookback_quarters: {type: integer, minimum: 1, maximum: 40}
+  limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
 expected_output: [registrant_id, registrant_name, filings_in_window, distinct_clients, total_income, clients]

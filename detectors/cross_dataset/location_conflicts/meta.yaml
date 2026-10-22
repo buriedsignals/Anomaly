@@ -1,5 +1,6 @@
 id: cross_dataset.location_conflicts
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Cross-dataset location conflicts
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds incompatible locations across prepared records.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: relational
 severity: medium
 expected_output: [candidate_id]

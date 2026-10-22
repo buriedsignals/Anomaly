@@ -1,5 +1,6 @@
 id: text.portfolio_cloning
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Portfolio cloning
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds strongly overlapping text portfolios.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: text
 severity: medium
 expected_output: [candidate_id]

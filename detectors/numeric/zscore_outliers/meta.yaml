@@ -1,5 +1,6 @@
 id: numeric.zscore_outliers
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Z-score outliers
 author: anomaly
 license: internal
@@ -27,6 +28,8 @@ cost: 0.2
 false_positive_risk: 0.1
 parameters:
   z_threshold: 3.0
+parameter_bounds:
+  z_threshold: {type: number, minimum: 0.5, maximum: 100.0}
 sensitive_output: redact
 signal_category: anomaly
 severity: medium

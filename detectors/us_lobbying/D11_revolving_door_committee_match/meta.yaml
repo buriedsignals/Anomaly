@@ -1,5 +1,6 @@
 id: us_lobbying.revolving_door_committee_match
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Revolving door committee match
 author: gain-2026
 license: internal
@@ -21,6 +22,8 @@ required_tables: [senate_activity_lobbyists, senate_filings, senate_lobbying_act
 required_fields: [id]
 parameters:
   limit: 200
+parameter_bounds:
+  limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
 expected_output: [lobbyist_id, first_name, last_name, former_committee, covered_position, filing_uuid, filing_year, filing_period, registrant_name, client_name, general_issue_code, description, income, url]

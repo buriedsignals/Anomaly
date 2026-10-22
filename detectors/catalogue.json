@@ -1,0 +1,1031 @@
+{
+  "catalogue_hash": "sha256:df2a1f85ff8e1786e67bbe67c1bcfb1c169c335006a84ce51f210993d7bdcdbe",
+  "detectors": [
+    {
+      "assumptions": [
+        "categories are comparable"
+      ],
+      "description": "Finds categorical values with unusually low frequency.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "legitimate rare categories"
+      ],
+      "family": "core",
+      "group": "categorical",
+      "id": "categorical.rare_levels",
+      "implementation_hash": "sha256:842b2a98d9019894b2f1414ecd5f989d1cf8d880e3be189b3ae1e62caa3c0d61",
+      "parameters": {
+        "maximum_fraction": {
+          "default": 0.05,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "group",
+          "types": [
+            "text"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Rare categorical levels",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "numeric values are comparable over time"
+      ],
+      "description": "Finds persistent changes in a numeric series level.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "legitimate distribution changes"
+      ],
+      "family": "core",
+      "group": "numeric",
+      "id": "numeric.level_shift",
+      "implementation_hash": "sha256:508e0badb67560d96c1b1ca6474c4e3795e3d5f8be2f5bf73946d398324d9e61",
+      "parameters": {
+        "window": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "observed_at",
+          "types": [
+            "datetime"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Numeric level shift",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "numeric values are approximately distributed"
+      ],
+      "description": "Identifies numeric observations far from their column mean.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "legitimate extreme values"
+      ],
+      "family": "core",
+      "group": "numeric",
+      "id": "numeric.zscore_outliers",
+      "implementation_hash": "sha256:e34e45e6e5b789a8f4976e2e017c58d0f772bcf29610c7a130433118737b8ff9",
+      "parameters": {
+        "z_threshold": {
+          "default": 3.0,
+          "maximum": 100.0,
+          "minimum": 0.5,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Z-score outliers",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "duplicate rows indicate a review lead"
+      ],
+      "description": "Finds exact duplicate records in a prepared table.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "intentional repeated records"
+      ],
+      "family": "core",
+      "group": "table",
+      "id": "table.duplicate_rows",
+      "implementation_hash": "sha256:cedd45c6f7afd5a32fb9b153afbb037ded06117d15d151638f5001f438415b98",
+      "parameters": {
+        "minimum_count": {
+          "default": 2,
+          "maximum": 1000000,
+          "minimum": 2,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Duplicate rows",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "missingness is meaningful in the selected table"
+      ],
+      "description": "Finds fields that go missing together in prepared rows.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "optional fields"
+      ],
+      "family": "core",
+      "group": "table",
+      "id": "table.missingness_clusters",
+      "implementation_hash": "sha256:72179a982e5aae45b6c94cad0daa79ea0e8d47808811439a5c06871d3e197c48",
+      "parameters": {
+        "min_missing_fraction": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "group",
+          "types": [
+            "text"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Missingness clusters",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "observed_at is a comparable timestamp"
+      ],
+      "description": "Finds gaps in an ordered temporal observation series.",
+      "expected_output": [
+        "candidate_id"
+      ],
+      "false_positives": [
+        "planned collection gaps"
+      ],
+      "family": "core",
+      "group": "temporal",
+      "id": "temporal.coverage_gaps",
+      "implementation_hash": "sha256:6b621524223abe6b0bcfcbd31a85d40d7147401a4fb99e82d13623565bb2e9cb",
+      "parameters": {
+        "maximum_gap_days": {
+          "default": 1,
+          "maximum": 3650,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "observed_at",
+          "types": [
+            "datetime"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "resource_limits": {
+        "max_output_rows": 100,
+        "memory_mb": 64,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "anomaly",
+      "title": "Temporal coverage gaps",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Multi-corpus committee, lobbying, and press-release comparison. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "lobbying_firm",
+        "lobbied_client",
+        "lobbyist",
+        "former_role",
+        "current_committee_members",
+        "attack_press_releases",
+        "committee_members_attacking",
+        "income"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.committee_say_vs_pay",
+      "implementation_hash": "sha256:6b505e7a1242f18e79828cdd083e2a73241431d6ac5b11a84ad72f8fed285c0d",
+      "parameters": {
+        "client_pattern": {
+          "default": "%apollo%",
+          "max_length": 200,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "target_committee": {
+          "default": "finance",
+          "max_length": 200,
+          "type": "string"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_activity_lobbyists",
+        "senate_filings",
+        "congress_committee_assignments",
+        "congress_members",
+        "press_releases"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Committee say vs pay",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Named foreign-lobbying candidates absent from the FARA registrant set. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "filing_uuid",
+        "filing_year",
+        "registrant_name",
+        "client_name",
+        "client_country",
+        "client_ppb_country",
+        "fe_countries",
+        "income",
+        "sig_non_us_client",
+        "sig_non_us_ppb",
+        "sig_foreign_gov_topic",
+        "sig_soe_pattern",
+        "url"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.fara_gap_narrowed",
+      "implementation_hash": "sha256:167acbd1ed56fdd7565dd426d7d8dada0014d0de9f458f4253e692b801240220",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings",
+        "senate_foreign_entities",
+        "senate_lobbying_activities",
+        "fara_registrants"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "FARA gap narrowed",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Senate filings carrying foreign entity records. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "filing_uuid",
+        "filing_year",
+        "filing_period",
+        "registrant_name",
+        "client_name",
+        "client_country",
+        "client_ppb_country",
+        "foreign_entity_name",
+        "foreign_entity_country",
+        "foreign_entity_ppb",
+        "income",
+        "url"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.foreign_filings",
+      "implementation_hash": "sha256:da555c32b23b31f0ad0055e5d9b5222f90fc6f7bb0c8d4d5b5aab2858f97bf92",
+      "parameters": {
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings",
+        "senate_foreign_entities"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Foreign filings",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Quarter-over-quarter issue-code income and registrant shifts. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "general_issue_code",
+        "filing_year",
+        "filing_period",
+        "registrants",
+        "total_income",
+        "prior_income",
+        "prior_registrants",
+        "income_delta_pct",
+        "registrants_delta_pct"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.issue_concentration_shifts",
+      "implementation_hash": "sha256:bddb422c736af0e551c3ec54648801fb7a7fd61a73c20be12098e4cb2e6784ff",
+      "parameters": {
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_qoq_delta_pct": {
+          "default": 25,
+          "maximum": 100000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings",
+        "senate_lobbying_activities"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Issue concentration shifts",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Quarterly filings with null income clustered by registrant. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "registrant_id",
+        "registrant_name",
+        "quarterly_filings_with_null_income",
+        "distinct_clients",
+        "first_seen",
+        "last_seen"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.missing_income_filings",
+      "implementation_hash": "sha256:9b02cdb8ebf725c8d0f4644a754937b6fcec69863ec045951b5265463b4de025",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_filings": {
+          "default": 4,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Missing income filings",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "New registrants ranked by recent filing income. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "registrant_id",
+        "registrant_name",
+        "filings_in_window",
+        "distinct_clients",
+        "total_income",
+        "clients"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.new_registrant_surge",
+      "implementation_hash": "sha256:dce35eaac7059df3fa8d6f7650b3da904dc8fd5b0007b7fc1ccde630d48802f0",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "lookback_quarters": {
+          "default": 2,
+          "maximum": 40,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "New registrant surge",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Contribution flows aggregated by payee and honoree. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "payee_name",
+        "honoree_name",
+        "n_contributions",
+        "total_amount",
+        "distinct_filings",
+        "distinct_contributors"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.pac_contribution_flow",
+      "implementation_hash": "sha256:f39c56b6cc46b97d6534d67df68d83cff5a4a38c72bac3bb0c494eb035bf5a37",
+      "parameters": {
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_contribution_items"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "PAC contribution flow",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Lobbyists with populated covered-position text and current clients. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "lobbyist_id",
+        "first_name",
+        "last_name",
+        "sample_position",
+        "filings_with_lobbyist",
+        "distinct_positions",
+        "clients_lobbied_for"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.revolving_door_candidates",
+      "implementation_hash": "sha256:22ce8fdf9b7cc927ece127d9623b35e03415230278b2fb12a97ba8310715ff0d",
+      "parameters": {
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_activity_lobbyists",
+        "senate_filings"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Revolving door candidates",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Lobbyist former-committee text matched to current issue codes. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "lobbyist_id",
+        "first_name",
+        "last_name",
+        "former_committee",
+        "covered_position",
+        "filing_uuid",
+        "filing_year",
+        "filing_period",
+        "registrant_name",
+        "client_name",
+        "general_issue_code",
+        "description",
+        "income",
+        "url"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.revolving_door_committee_match",
+      "implementation_hash": "sha256:3c5874127f5f1147c68b6bc7598bc28958b47996406a0e31225788d2e38b796d",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_activity_lobbyists",
+        "senate_filings",
+        "senate_lobbying_activities"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Revolving door committee match",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Filings with multiple deterministic text-pattern signals. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "filing_uuid",
+        "filing_year",
+        "filing_period",
+        "filing_type",
+        "registrant_name",
+        "client_name",
+        "client_desc",
+        "income",
+        "shell_score",
+        "sig_sovereign_client",
+        "sig_established_govt",
+        "sig_esoteric_terms",
+        "sig_self_styled_title",
+        "sig_posted_by_llc_slashes",
+        "sig_global_pbc_naming",
+        "url"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.shell_pattern_filings",
+      "implementation_hash": "sha256:24e1271dec5b96cc9bee73cae707c696e1ae28386a15dfc3c98e1f10f87b489a",
+      "parameters": {
+        "limit": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_score": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_activity_lobbyists",
+        "senate_filings",
+        "senate_lobbying_activities"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Shell pattern filings",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Registrants with one or two clients and high total income. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "registrant_id",
+        "registrant_name",
+        "distinct_clients",
+        "filings",
+        "total_income",
+        "earliest_year",
+        "latest_year",
+        "clients"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.single_client_juggernauts",
+      "implementation_hash": "sha256:1a4d69259b573dfc55084506b8c5dfccbb503872dc8b587285a495f1b490000f",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_total_income": {
+          "default": 250000,
+          "maximum": 10000000000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Single client juggernauts",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Prepared local tables use the GAIN source schema."
+      ],
+      "attribution": "Built during the GAIN 2026 Challenge",
+      "description": "Registrant-quarter income z-score against prior quarters. Built during the GAIN 2026 Challenge; source repository: https://github.com/buriedsignals/gain-2026",
+      "expected_output": [
+        "registrant_id",
+        "registrant_name",
+        "filing_year",
+        "filing_period",
+        "total_income",
+        "prior_mean",
+        "prior_sd",
+        "prior_n",
+        "z_score"
+      ],
+      "false_positives": [
+        "Legitimate activity can produce the observed pattern."
+      ],
+      "family": "us_lobbying",
+      "group": "domain",
+      "id": "us_lobbying.spending_spikes",
+      "implementation_hash": "sha256:e6ca55348df909d1a3e0d7961bc697128bc34e20e82c8ebc5f4c74e5592d28f9",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_income": {
+          "default": 50000,
+          "maximum": 1000000000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_z_abs": {
+          "default": 2.0,
+          "maximum": 1000.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "senate_filings"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "source_repository": "https://github.com/buriedsignals/gain-2026",
+      "title": "Spending spikes",
+      "version": "1.1.0"
+    }
+  ],
+  "schema_version": 1,
+  "signal_schema": {
+    "candidate_id": "string",
+    "category": "string; the detector's signal_category",
+    "detector_hash": "string; sha256:<hex> implementation hash",
+    "detector_id": "string",
+    "detector_version": "string",
+    "provenance": {
+      "approval": "always 'caller-recorded'; the caller owns the approval record",
+      "executed_at": "string; ISO 8601 UTC",
+      "field_map": "object; required field -> supplied column",
+      "input_format": "csv | jsonl | parquet",
+      "input_hash": "string; sha256:<hex> of the supplied table file",
+      "limits": "object; effective execution limits",
+      "parameters": "object; effective parameter values",
+      "run_id": "string"
+    },
+    "severity": "string",
+    "signal_id": "string; stable over detector, input hash and candidate",
+    "status": "always 'lead'; detector output is never a finding",
+    "summary": "string; the detector title",
+    "values": "object; the detector row, redacted per sensitive_output"
+  }
+}

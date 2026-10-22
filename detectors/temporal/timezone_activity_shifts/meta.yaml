@@ -1,5 +1,6 @@
 id: temporal.timezone_activity_shifts
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Timezone activity shifts
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds shifts in observed activity timezones.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: temporal
 severity: low
 expected_output: [candidate_id]

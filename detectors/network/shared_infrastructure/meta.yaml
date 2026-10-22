@@ -1,5 +1,6 @@
 id: network.shared_infrastructure
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Shared infrastructure
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds shared infrastructure identifiers.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: network
 severity: medium
 expected_output: [candidate_id]

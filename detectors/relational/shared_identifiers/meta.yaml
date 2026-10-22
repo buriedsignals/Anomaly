@@ -1,5 +1,6 @@
 id: relational.shared_identifiers
-version: 1.0.0
+version: 1.1.0
+release: draft
 title: Shared identifiers
 author: anomaly
 license: internal
@@ -8,6 +9,7 @@ description: Finds identifiers shared across records.
 required_tables: ["*"]
 required_fields: [id]
 parameters: {}
+parameter_bounds: {}
 signal_category: relational
 severity: medium
 expected_output: [candidate_id]

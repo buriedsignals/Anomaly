@@ -1,5 +1,6 @@
 id: table.duplicate_rows
-version: 1.0.0
+version: 1.1.0
+release: released
 title: Duplicate rows
 author: anomaly
 license: internal
@@ -22,6 +23,8 @@ cost: 0.2
 false_positive_risk: 0.1
 parameters:
   minimum_count: 2
+parameter_bounds:
+  minimum_count: {type: integer, minimum: 2, maximum: 1000000}
 sensitive_output: redact
 signal_category: anomaly
 severity: medium
