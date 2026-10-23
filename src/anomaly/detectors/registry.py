@@ -13,6 +13,7 @@ from anomaly import detect, recommend
 
 _ROOT = Path(__file__).resolve().parents[3] / "detectors"
 _DEFAULT_DISCOVERY_LIMIT = 10
+_MENU_SCAN_LIMIT = 1000
 _REQUIRED = {
     "id", "version", "title", "author", "license", "group", "description",
     "required_tables", "required_fields", "parameters", "signal_category",
@@ -329,14 +330,18 @@ def recommend_detectors(
         raise RegistryError("category and signal_category must agree")
     signal_category = signal_category or category
     root = Path(root)
+    # Scan whole families so drafts cannot crowd released packages out of the
+    # default discovery slice; the plan itself stays capped at `limit`.
     if detector_roots is not None:
-        metadata = discover_detectors(detector_roots, family=family)
+        metadata = discover_detectors(detector_roots, family=family, limit=_MENU_SCAN_LIMIT)
     elif family is not None:
-        metadata = discover_detectors(family=family)
+        metadata = discover_detectors(family=family, limit=_MENU_SCAN_LIMIT)
     else:
-        # Keep each public discovery call bounded while allowing the default
-        # recommendation menu to consider both catalog families.
-        metadata = discover_detectors(family="core") + discover_detectors(family="us_lobbying")
+        metadata = discover_detectors(family="core", limit=_MENU_SCAN_LIMIT) + discover_detectors(
+            family="us_lobbying", limit=_MENU_SCAN_LIMIT
+        )
+    # Draft packages (placeholders, fresh template copies) are never offered.
+    metadata = [item for item in metadata if item.get("release") != "draft"]
     filtered = _menu_selection(metadata, limit=len(metadata), group=group, family=family, signal_category=signal_category)
     case_ready = detector_roots is None and root.is_dir() and (root / "data" / "index.duckdb").is_file()
     eligible: list[dict[str, Any]] = []

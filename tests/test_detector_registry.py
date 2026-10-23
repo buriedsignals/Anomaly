@@ -307,3 +307,15 @@ def test_sensitive_output_metadata_requires_redacted_fixture_results() -> None:
         assert metadata["sensitive_output"] in {"redact", "reference", "none"}
         assert "sk_live_" not in expected
         assert "private_key" not in expected
+
+
+def test_recommendation_menu_offers_every_released_core_detector_and_no_drafts() -> None:
+    from anomaly import catalogue
+
+    released_core = sorted(
+        entry["id"] for entry in catalogue.build_catalogue()["detectors"]
+        if entry["family"] == "core"
+    )
+    plan = _registry_api().recommend_detectors(Path("/nonexistent-case"), family="core")
+
+    assert sorted(plan["recommended"]) == released_core
