@@ -123,6 +123,10 @@ fixtures. SQL runs sandboxed in DuckDB; DDL, DML, `ATTACH`, `COPY`, and
 external readers are rejected. Add your own by copying
 [`detectors/_template/`](detectors/_template/) and running the validator.
 
+Released detectors are published in a versioned catalogue
+(`detectors/catalogue.json`), and other tools can run one on a supplied table
+without a case: see [`docs/catalogue.md`](docs/catalogue.md).
+
 ## Public Data Skills
 
 The `data-skills/` catalogue teaches Anomaly how to acquire public records:
@@ -177,6 +181,7 @@ case from source registration through Gate B, report, charts, and viewer.
 | [Workflow reference](https://anomaly.buriedsignals.com/docs/flow.html) | Every phase, both gates, artifacts, and remediation. |
 | [`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md) | Operator contract: dispatch table, gates, retries, redaction. |
 | [`agents/anomaly-data-reviewer.md`](agents/anomaly-data-reviewer.md) | Independent reviewer contract and verdict taxonomy. |
+| [`docs/catalogue.md`](docs/catalogue.md) | Detector catalogue schema and one-shot runs for other tools. |
 | [`AGENTS.md`](AGENTS.md) | Repository workflow and product constraints. |
 | [`PRD`-lineage design notes](skills/anomaly/SKILL.md) | Case-folder and registry rationale. |
 
