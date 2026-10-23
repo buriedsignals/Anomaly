@@ -4,11 +4,11 @@
 
 ### Evidence-led data investigations for AI agents
 
-**Turns a dataset into reviewed, traceable findings — deterministic detectors, replayed calculations, independent review, and two journalist gates. 28 public-data skills, 32 detectors, one portable case format.**
+**Turns a dataset into reviewed, traceable findings — deterministic detectors, replayed calculations, independent review, and two journalist gates. 28 public-data skills, 18 released detectors, one portable case format.**
 
 [Workflow](#investigation-workflow) | [Detectors](#detectors) | [Data Skills](#public-data-skills) | [Evidence Viewer](#evidence-viewer) | [Website](https://anomaly.buriedsignals.com/)
 
-[![28 Data Skills](https://img.shields.io/badge/data_skills-28-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#public-data-skills)[![32 Detectors](https://img.shields.io/badge/detectors-32-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#investigation-workflow)[![Website](https://img.shields.io/badge/site-anomaly.buriedsignals.com-00c853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://anomaly.buriedsignals.com/)
+[![28 Data Skills](https://img.shields.io/badge/data_skills-28-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#public-data-skills)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#investigation-workflow)[![Website](https://img.shields.io/badge/site-anomaly.buriedsignals.com-00c853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://anomaly.buriedsignals.com/)
 
 [![Stars](https://img.shields.io/github/stars/buriedsignals/Anomaly?style=flat-square&logo=github&label=Stars)](https://github.com/buriedsignals/Anomaly/stargazers)[![Issues](https://img.shields.io/github/issues/buriedsignals/Anomaly?style=flat-square&logo=github&label=Issues)](https://github.com/buriedsignals/Anomaly/issues)[![Last Commit](https://img.shields.io/github/last-commit/buriedsignals/Anomaly?style=flat-square&logo=github&label=Last%20Commit)](https://github.com/buriedsignals/Anomaly/commits)[![Contributors](https://img.shields.io/github/contributors/buriedsignals/Anomaly?style=flat-square&logo=github&label=Contributors)](https://github.com/buriedsignals/Anomaly/graphs/contributors)
 
@@ -111,8 +111,11 @@ moving the folder changes nothing.
 ## Detectors
 
 Detectors are executable packages in a generated registry, grouped by the kind
-of data they inspect: **table, numeric, categorical, temporal, relational,
-network, geospatial, text, cross-dataset, credential, and domain**. Anomaly
+of data they inspect. The 18 released packages cover **table, numeric,
+categorical, temporal, and domain** data, including 12 US lobbying detectors.
+Another 14 packages (relational, network, text, cross-dataset, credential, and
+further temporal and domain checks) are drafts with placeholder SQL; they are
+excluded from the catalogue and never recommended. Anomaly
 profiles the dataset first, removes incompatible packages, and loads only the
 metadata relevant to the current dataset.
 
