@@ -18,7 +18,7 @@ tables:
       client_name: Name of the client.
       client_country: Client's country.
       client_ppb_country: Country of the client's principal place of business.
-      client_general_description: Free-text description of the client.
+      client_general_description: Free-text description of the client (optional).
       income: Income reported for the filing (number).
       url: Link to the filing.
       posted_by_name: Name of the person who submitted the filing.

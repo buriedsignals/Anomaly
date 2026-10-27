@@ -5,6 +5,8 @@ share: sources name it as ``category``, detectors as ``data_type``. A domain
 whose detectors join several tables declares those tables in
 ``domains/<domain>.yaml``. A column's meaning may end with a type hint in
 parentheses, ``(integer)``, ``(number)`` or ``(date)``; other columns are text.
+A column the source may not publish is marked ``(optional)`` or, with a type,
+``(number, optional)``; the runner loads it as NULL when the file lacks it.
 """
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ from anomaly import detect
 DOMAINS_ROOT = Path(__file__).resolve().parents[2] / "domains"
 _NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 _TYPES = {"integer": "BIGINT", "number": "DOUBLE", "date": "DATE"}
-_HINT = re.compile(r"\((integer|number|date)\)\s*\.?\s*$")
+_HINT = re.compile(r"\((?:(integer|number|date)(, optional)?|(optional))\)\s*\.?\s*$")
 
 
 class DomainError(ValueError):
@@ -27,7 +29,13 @@ class DomainError(ValueError):
 def column_type(meaning: str) -> str:
     """DuckDB type for a contract column, from its meaning's type hint."""
     match = _HINT.search(meaning)
-    return _TYPES[match.group(1)] if match else "VARCHAR"
+    return _TYPES[match.group(1)] if match and match.group(1) else "VARCHAR"
+
+
+def is_optional(meaning: str) -> bool:
+    """True when a source may leave this contract column out."""
+    match = _HINT.search(meaning)
+    return bool(match and (match.group(2) or match.group(3)))
 
 
 def load_domain(name: str, root: Path = DOMAINS_ROOT) -> dict[str, Any]:

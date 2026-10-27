@@ -212,6 +212,21 @@ def test_domain_detector_binds_parameters_in_query_order(tmp_path: Path) -> None
     assert oneshot.run_detectors({"lobbying_filings": filings}, [request], approved=True) == []
 
 
+def test_domain_detector_loads_an_absent_optional_column_as_null(tmp_path: Path) -> None:
+    # client_general_description is optional in the lobbying contract, so a
+    # register that does not publish it can still run the detector.
+    entry = _entries()["lobbying.single_client_juggernauts"]
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings", [_filing("f1", "solo", 900000)])
+    lines = filings.read_text(encoding="utf-8").splitlines()
+    drop = lines[0].split(",").index("client_general_description")
+    filings.write_text("\n".join(",".join(v for i, v in enumerate(line.split(",")) if i != drop) for line in lines) + "\n", encoding="utf-8")
+    request = {"id": entry["id"], "version": entry["version"]}
+
+    signals = oneshot.run_detectors({"lobbying_filings": filings}, [request], approved=True)
+
+    assert [signal["values"]["registrant_id"] for signal in signals] == ["solo"]
+
+
 @pytest.mark.parametrize(("tables", "columns", "match"), [
     ({}, None, "missing tables"),
     ({"lobbying_filings": "short"}, None, "lacks contract columns"),

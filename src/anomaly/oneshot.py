@@ -219,19 +219,23 @@ def _load_contract(connection, tables: dict[str, Path], request: dict[str, Any],
         input_format, read_function, _ = _table_file(table)
         contract_columns = contract["tables"][name]["columns"]
         mapping = {column: maps.get(name, {}).get(column, column) for column in contract_columns}
-        missing = sorted({source for source in mapping.values()} - _file_columns(connection, read_function, table, input_format))
+        present = _file_columns(connection, read_function, table, input_format)
+        # An optional column the file does not carry is loaded as NULL.
+        absent = {column for column, meaning in contract_columns.items()
+                  if domains.is_optional(meaning) and mapping[column] not in present}
+        missing = sorted({mapping[column] for column in contract_columns if column not in absent} - present)
         if missing:
             raise OneShotError(f"{name} lacks contract columns: {missing}")
         # Load only contract columns, cast to the contract's types.
         projection = ", ".join(
-            f"CAST({_quote(mapping[column])} AS {domains.column_type(meaning)}) AS {_quote(column)}"
+            f"CAST({'NULL' if column in absent else _quote(mapping[column])} AS {domains.column_type(meaning)}) AS {_quote(column)}"
             for column, meaning in contract_columns.items()
         )
         try:
             connection.execute(f"CREATE TABLE {_quote(name)} AS SELECT {projection} FROM {read_function}(?)", [str(table)])
         except duckdb.Error as error:
             raise OneShotError(f"{name} does not match the {metadata['data_type']} contract types") from error
-        loaded[name] = mapping
+        loaded[name] = {column: source for column, source in mapping.items() if column not in absent}
     return loaded
 
 
