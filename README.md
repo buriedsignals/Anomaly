@@ -228,5 +228,4 @@ imply affiliation or endorsement.)*
 
 ## License
 
-No LICENSE file has been published yet. All rights reserved by Buried Signals
-pending an explicit license.
+[MIT](LICENSE).
