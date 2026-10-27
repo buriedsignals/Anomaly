@@ -1,0 +1,88 @@
+id: us/fara/registrants
+title: FARA.gov — Foreign Agents Registration Act Registrants
+description: >-
+  Active and terminated registrants under the US Foreign Agents Registration
+  Act from the DOJ FARA.gov API, returned as foreign_agent_registrants rows
+  of the lobbying domain contract with registration number and dates.
+provider_scope: >-
+  FARA.gov publishes registrants (active, terminated, new by date range),
+  registration documents, short-form registrants, and foreign principals,
+  plus bulk data files. This skill releases the registrant lists only.
+roadmap_scope:
+  - Foreign principals, short-form registrants, and registration documents are not released operations.
+category: lobbying
+jurisdiction: us
+runtime: local
+endpoint: https://efile.fara.gov/api/v1/Registrants/json/
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: US Department of Justice public records; no licence or reuse terms stated on the API pages
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27
+  (https://efile.fara.gov/api/, https://efile.fara.gov/ords/fara/r/fara_ws/api/endpoints,
+  https://efile.fara.gov/ords/fara/r/fara_ws/api/bulkdata). Endpoints need no
+  authorization, return ISO-8859-1 JSON, and are throttled to 5 requests per
+  10 seconds. Each call returns the whole active or terminated list (live on
+  2026-10-27: 540 active, 6,558 terminated); the adapter filters names
+  locally. documents_url is the documented RegDocs endpoint for the
+  registrant's filed PDFs. FARA names are free text: match them to LDA
+  registrant names only after normalising and checking by hand.
+
+provides:
+  foreign_agent_registrants: {}
+
+examples:
+  - List every active and terminated FARA registrant
+  - Find FARA registrants whose name contains "Hill & Knowlton"
+
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [foreign-agent-registrants]}
+    status: {type: string, enum: [all, active, terminated], default: all}
+    q: {type: string, description: Case-insensitive substring of the registrant name}
+    limit: {type: integer, minimum: 1, maximum: 20000, default: 20000}
+  additionalProperties: false
+
+output_schema:
+  entity: ForeignAgentRegistrant
+  fields: [registrant_name, registration_number, status, registration_date, termination_date, documents_url]
+
+operations:
+  - id: foreign-agent-registrants
+    title: FARA registrants as foreign_agent_registrants rows
+    description: Active and/or terminated FARA registrants, optionally filtered by name substring.
+    status: queryable
+    entities: [ForeignAgentRegistrant]
+    actions: [list, search]
+    input_fields: [status, q, limit]
+    required: []
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {operation: foreign-agent-registrants}
+    output_fields: [registrant_name, registration_number, status, registration_date, termination_date, documents_url]
+    semantics: {enumeration: full, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [efile.fara.gov]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not conclude that an organisation should have registered under FARA from its absence in this list.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Congress Roster"
+  short_description: "Current Congress members and committee seats"
+  default_prompt: "Use $congress-legislators-roster to fetch current members and committee seats as lobbying contract rows joined on bioguide_id; do not use them to describe past Congresses."
+
+policy:
+  allow_implicit_invocation: true

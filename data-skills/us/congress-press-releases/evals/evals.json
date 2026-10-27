@@ -1,0 +1,15 @@
+{
+  "skill_name": "congress-press-releases",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "No member mentioned private equity in September, so Congress ignored it.",
+      "expected_output": "The agent says the collection has gaps and an empty result is not evidence of silence."
+    },
+    {
+      "id": 2,
+      "prompt": "Get a year of releases about Apollo.",
+      "expected_output": "The agent calls the adapter once per month with q set and concatenates the rows."
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+id: us/lda/lobbying-disclosures
+title: LDA.gov — US Lobbying Disclosure Act Filings
+description: >-
+  Federal lobbying registrations and quarterly activity reports (LD-1/LD-2)
+  and political contribution reports (LD-203) from the LDA.gov REST API,
+  returned as rows of the lobbying domain contract: filings, foreign
+  entities, activities, lobbyists, and contributions.
+provider_scope: >-
+  LDA.gov publishes filings, contribution reports, registrants, clients,
+  lobbyists, and constants. This skill releases bounded filing and
+  contribution-report queries mapped onto the lobbying contract tables.
+roadmap_scope:
+  - Registrant, client, and lobbyist directory endpoints are not released.
+  - Government entities contacted and conviction disclosures are not mapped.
+category: lobbying
+jurisdiction: us
+runtime: local
+endpoint: https://lda.gov/api/v1/
+
+auth:
+  type: none
+  optional: true
+  key_name: lda
+  setup_url: https://lda.gov/api/register/
+  setup_help: >-
+    Anonymous use works but is throttled to 15 requests per minute per IP.
+    Register at https://lda.gov/api/register/ for a free key (120 per minute)
+    and provide it through the execution context as `lda`; the adapter sends
+    it as `Authorization: Token <key>`.
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: US Senate public records; cite the retrieval date and state that the Senate Office of Public Records cannot vouch for the data or analyses after retrieval
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27 (https://lda.gov/api/,
+  https://lda.gov/api/redoc/v1/, https://lda.gov/api/tos/). The API moved
+  from lda.senate.gov to lda.gov; the old host was deprecated on 2026-01-09
+  and sunset on 2026-07-31. Pages hold at most 25 results, and paginating
+  past page 1 needs at least one filter. Direct requests from a Swiss host
+  (and to senate.gov and congress.gov) got HTTP 403 "Access Denied" from the
+  CDN on 2026-10-27 while Firecrawl fetched the same API URLs, so the API may
+  refuse non-US networks; the live check used Firecrawl-fetched API pages fed
+  through this adapter. filing_period is rewritten to Q1-Q4 (quarters) and
+  H1/H2 (LD-203 mid-year and year-end) so periods sort in calendar order.
+  client_id is the API's client record id. Amendments keep their own
+  filing_type codes (for example 1A), so detectors that read Q1-Q4 see
+  original reports only.
+
+provides:
+  lobbying_filings: {}
+  lobbying_foreign_entities: {}
+  lobbying_activities: {}
+  lobbying_activity_lobbyists: {}
+  lobbying_contributions: {}
+
+examples:
+  - Fetch one registrant's 2025 filings as lobbying_filings rows
+  - Fetch the lobbyists and covered positions on a client's 2024 reports
+  - Fetch a registrant's 2025 LD-203 contribution items
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [lobbying-filings, lobbying-foreign-entities, lobbying-activities, lobbying-activity-lobbyists, lobbying-contributions]
+      description: The contract table to fill.
+    registrant_name: {type: string, description: Registrant name text match}
+    registrant_id: {type: integer, minimum: 1}
+    client_name: {type: string, description: Client name text match (filings only)}
+    client_id: {type: integer, minimum: 1, description: Filings only}
+    filing_year: {type: integer, minimum: 1999, maximum: 2100}
+    filing_period: {type: string, enum: [first_quarter, second_quarter, third_quarter, fourth_quarter, mid_year, year_end]}
+    filing_type: {type: string, description: API filing type code such as Q1, RR or 1A (filings only)}
+    filing_uuid: {type: string}
+    lobbyist_name: {type: string, description: Contributions only}
+    contribution_payee: {type: string, description: Contributions only}
+    contribution_honoree: {type: string, description: Contributions only}
+    page: {type: integer, minimum: 1, description: First API page to read}
+    pages: {type: integer, minimum: 1, maximum: 40, default: 1, description: Pages of 25 results to read}
+  additionalProperties: false
+
+output_schema:
+  entity: LobbyingContractRow
+  fields: [filing_uuid, filing_year, filing_period, filing_type, registrant_id, registrant_name, client_id, client_name, client_country, client_ppb_country, client_general_description, income, url, posted_by_name, foreign_entity_name, country, ppb_country, general_issue_code, description, activity_index, lobbyist_id, first_name, last_name, covered_position, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
+
+operations:
+  - id: lobbying-filings
+    title: Filings as lobbying_filings rows
+    description: One row per LD-1/LD-2 filing matching the filters.
+    status: queryable
+    entities: [LobbyingFiling]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
+    adapter_input: {operation: lobbying-filings}
+    output_fields: [filing_uuid, filing_year, filing_period, filing_type, registrant_id, registrant_name, client_id, client_name, client_country, client_ppb_country, client_general_description, income, url, posted_by_name]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, client, year, period, and filing-type filters]
+      sensitive_inputs: [registrant_name, client_name]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a missing income value as concealment without opening the filing document at url.
+
+  - id: lobbying-foreign-entities
+    title: Foreign entities as lobbying_foreign_entities rows
+    description: One row per foreign entity listed on the matching filings.
+    status: queryable
+    entities: [ForeignEntity]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
+    adapter_input: {operation: lobbying-foreign-entities}
+    output_fields: [filing_uuid, foreign_entity_name, country, ppb_country]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, client, year, period, and filing-type filters]
+      sensitive_inputs: [registrant_name, client_name]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not equate a listed foreign entity with a foreign principal under FARA.
+
+  - id: lobbying-activities
+    title: Activities as lobbying_activities rows
+    description: One row per lobbying activity (issue) on the matching filings.
+    status: queryable
+    entities: [LobbyingActivity]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
+    adapter_input: {operation: lobbying-activities}
+    output_fields: [filing_uuid, general_issue_code, description, activity_index]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, client, year, period, and filing-type filters]
+      sensitive_inputs: [registrant_name, client_name]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer which bill or office was lobbied from the issue code alone.
+
+  - id: lobbying-activity-lobbyists
+    title: Lobbyists as lobbying_activity_lobbyists rows
+    description: One row per lobbyist and disclosed covered position on the matching filings.
+    status: queryable
+    entities: [Lobbyist]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
+    adapter_input: {operation: lobbying-activity-lobbyists}
+    output_fields: [filing_uuid, lobbyist_id, first_name, last_name, covered_position]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, client, year, period, and filing-type filters]
+      sensitive_inputs: [registrant_name, client_name]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Covered positions are self-disclosed free text; confirm a former role from primary records before reporting it.
+
+  - id: lobbying-contributions
+    title: LD-203 items as lobbying_contributions rows
+    description: One row per contribution item on the matching LD-203 reports.
+    status: queryable
+    entities: [Contribution]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree]
+    adapter_input: {operation: lobbying-contributions}
+    output_fields: [filing_uuid, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, lobbyist, payee, honoree, and year filters]
+      sensitive_inputs: [lobbyist_name, contribution_payee, contribution_honoree]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present a contribution as a quid pro quo; LD-203 reports lawful contributions.

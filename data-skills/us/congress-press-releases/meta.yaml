@@ -1,0 +1,92 @@
+id: us/congress-press/press-releases
+title: Congress Press — US Congress Member Press Releases
+description: >-
+  Press releases by members of the US Congress, with full text and bioguide
+  IDs, from Derek Willis's Congress Press collection (scraped daily from
+  official House and Senate websites), returned as press_releases rows of the
+  lobbying domain contract one month at a time.
+provider_scope: >-
+  Congress Press holds more than 670,000 releases from 2001 to the present as
+  monthly JSONL files: 2001-2020 imported from the ProPublica Congress API,
+  2020 onward from daily scrapers.
+roadmap_scope:
+  - Multi-month ranges are not released; call once per month.
+category: lobbying
+jurisdiction: us
+runtime: local
+endpoint: https://raw.githubusercontent.com/dwillis/congress-press/main/data/
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: MIT licence on the dwillis/congress-press repository; release texts are published by members' official websites
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27 (https://github.com/dwillis/congress-press,
+  https://congressionaldata.org/congress-press/). The ProPublica Congress API,
+  which used to serve member statements, is no longer available
+  (https://projects.propublica.org/api-docs/congress-api/). Congress
+  Press is not a comprehensive collection: coverage gaps exist for departed
+  members and periods of incomplete scraping, some records have null text or
+  null date, and deduplication is by URL only (README "Caveats"). The
+  2026-09 file was 17 MB with 4,059 releases on 2026-10-27; the adapter
+  streams it and filters locally. Maintained by one person, so check
+  freshness (updated_at in the raw file) before relying on recent months.
+
+provides:
+  press_releases: {}
+
+examples:
+  - Fetch every September 2026 press release that mentions "private equity"
+  - Fetch one member's press releases for March 2026
+
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [press-releases]}
+    month: {type: string, pattern: "^\\d{4}-(0[1-9]|1[0-2])$", description: Month as YYYY-MM}
+    bioguide_id: {type: string, description: Exact bioguide ID}
+    q: {type: string, description: Case-insensitive substring of title or text}
+    limit: {type: integer, minimum: 1, maximum: 5000, default: 500}
+  required: [month]
+  additionalProperties: false
+
+output_schema:
+  entity: PressRelease
+  fields: [bioguide_id, date, member_name, text, title, url]
+
+operations:
+  - id: press-releases
+    title: One month of releases as press_releases rows
+    description: Releases from one month, optionally filtered by member and text substring.
+    status: queryable
+    entities: [PressRelease]
+    actions: [search]
+    input_fields: [month, bioguide_id, q, limit]
+    required: [month]
+    any_of_required: []
+    aliases: {query: q}
+    adapter_input: {operation: press-releases}
+    output_fields: [bioguide_id, date, member_name, text, title, url]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [raw.githubusercontent.com]
+      data_classes: [month only; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not conclude a member said nothing on a topic from an empty result; the collection has gaps.

@@ -1,0 +1,15 @@
+{
+  "skill_name": "congress-legislators-roster",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Who sat on the Senate Finance Committee in 2019?",
+      "expected_output": "The agent says this source is current only and points to historical committee records instead."
+    },
+    {
+      "id": 2,
+      "prompt": "List current Armed Services members.",
+      "expected_output": "The agent filters committee-assignments by name and reports bioguide IDs with roles, noting subcommittees are included."
+    }
+  ]
+}
