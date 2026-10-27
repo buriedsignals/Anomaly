@@ -57,10 +57,13 @@ always give the same result, and every output is a lead, never a finding.
 
 ## Brand Commitments
 
-- A Buried Signals product: charcoal, cream, amber, steel teal; Space Grotesk
-  and Space Mono; Detection motifs for tool pages (brand skill).
-- Sibling of Spotlight (spotlight.buriedsignals.com), which has a numbered
-  pipeline diagram; Tom asked for a comparable flow diagram here.
+- Anomaly has its own look, separate from Buried Signals branding (Tom,
+  2026-10-27). It is presented as a plugin for Spotlight
+  (spotlight.buriedsignals.com), with Buried Signals credited in the footer.
+- Simple and friendly, with animated data flows (reference: the Anatomy skill
+  page at skills.wheresryan.sh/anatomy).
+- Main call to action is Install (buriedsignals.com/join); GitHub is the
+  source-code link; Open Spotlight is secondary.
 - Tom's voice rules (wiki `writing/VOICE.md`): plain sentences, numbers and
   mechanisms over adjectives, no hype.
 

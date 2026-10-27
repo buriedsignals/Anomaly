@@ -1,0 +1,6 @@
+{
+  "id": "numeric.zscore_outliers",
+  "version": "1.1.0",
+  "fields": {"id": "donation_id", "amount": "amount"},
+  "parameters": {"z_threshold": 3.0}
+}

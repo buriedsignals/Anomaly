@@ -3,372 +3,237 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anomaly · find the record that doesn't fit</title>
-  <link rel="canonical" href="https://anomaly.buriedsignals.com/">
-  <meta name="description" content="Anomaly tells an investigating agent which data sources could help its case, how to get them, and which detectors fit. It then runs those detectors deterministically and returns every unusual record as a lead.">
-  <meta property="og:url" content="https://anomaly.buriedsignals.com/">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Anomaly · find the record that doesn't fit">
-  <meta property="og:description" content="Data sources and anomaly detectors for investigating agents, by Buried Signals.">
-  <meta name="theme-color" content="#16191B">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2316191B'/%3E%3Cg fill='%23F5F2ED' fill-opacity='.35'%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Ccircle cx='16' cy='9' r='2'/%3E%3Ccircle cx='23' cy='9' r='2'/%3E%3Ccircle cx='9' cy='16' r='2'/%3E%3Ccircle cx='16' cy='16' r='2'/%3E%3Ccircle cx='9' cy='23' r='2'/%3E%3Ccircle cx='16' cy='23' r='2'/%3E%3Ccircle cx='23' cy='23' r='2'/%3E%3C/g%3E%3Ccircle cx='24' cy='16' r='3' fill='%23D4A853'/%3E%3C/svg%3E">
+  <title>Anomaly · a Spotlight plugin for data</title>
+  <meta name="description" content="Anomaly is a Spotlight plugin for data. It shows your agent which datasets cover your story and which checks fit them, runs those checks and flags every record that stands out as a lead you can trace.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F5F6F0'/%3E%3Cpath d='M4 21h5l3-4 3 3 3-13 3 14h7' fill='none' stroke='%23161B22' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='18' cy='8' r='4.6' fill='none' stroke='%23D42A3C' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #16191B;
-      --housing: #1B1F21;
-      --cell: #0D0F10;
-      --cell-line: #22272A;
-      --amber: #D4A853;
-      --amber-hot: #F2C266;
-      --amber-dim: rgba(212, 168, 83, 0.15);
-      --amber-muted: rgba(212, 168, 83, 0.4);
-      --text: #F5F2ED;
-      --muted: rgba(245, 242, 237, 0.66);
-      --faint: rgba(245, 242, 237, 0.56);
-      --rule: rgba(245, 242, 237, 0.13);
-      --teal: #7DB1AE;
-      --teal-dim: rgba(91, 138, 138, 0.28);
-      --font: 'Space Grotesk', system-ui, sans-serif;
-      --mono: 'Space Mono', ui-monospace, monospace;
-      --led: 'Doto', 'Space Mono', monospace;
-      --max: 78rem;
+      --paper: #F5F6F0;
+      --paper-2: #ECEEE5;
+      --paper-3: #E2E5DA;
+      --grid: rgba(28, 115, 80, 0.10);
+      --grid-major: rgba(28, 115, 80, 0.22);
+      --ink: #161B22;
+      --ink-2: #434C55;
+      --ink-3: #626B73;
+      --rule: rgba(22, 27, 34, 0.14);
+      --rule-2: rgba(22, 27, 34, 0.26);
+      --blue: #2546B5;
+      --blue-tint: rgba(37, 70, 181, 0.09);
+      --green: #1C7350;
+      --green-tint: rgba(28, 115, 80, 0.10);
+      --red: #D42A3C;
+      --red-tint: rgba(212, 42, 60, 0.09);
+      --font: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --wrap: min(100% - 2.5rem, 74rem);
+      color-scheme: light;
     }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; color-scheme: dark; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
-      margin: 0;
-      background-color: var(--bg);
-      background-image:
-        linear-gradient(rgba(212, 168, 83, 0.028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(212, 168, 83, 0.028) 1px, transparent 1px);
-      background-size: 40px 40px;
-      color: var(--text);
-      font: 400 1rem/1.6 var(--font);
-      -webkit-font-smoothing: antialiased;
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: var(--font); font-stretch: 87.5%; font-weight: 360;
+      font-size: 0.94rem; line-height: 1.7; font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     }
-    ::selection { background: var(--text); color: var(--cell); }
-    a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1px; }
-    a:hover { color: var(--amber); }
-    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: var(--cell); }
-    ::-webkit-scrollbar-thumb { background: #2C3236; border-radius: 6px; border: 2px solid var(--cell); }
-    html { scrollbar-color: #2C3236 var(--cell); }
-    .wrap { width: min(calc(100% - 2.5rem), var(--max)); margin-inline: auto; }
+    ::selection { background: rgba(37, 70, 181, 0.18); color: var(--ink); }
+    input { caret-color: var(--blue); }
+    a { color: inherit; text-decoration-line: underline; text-decoration-color: var(--rule-2); text-underline-offset: 0.22em; text-decoration-thickness: 1px; transition: text-decoration-color .2s; }
+    a:hover { text-decoration-color: var(--ink); }
+    :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
+    code { font-family: var(--font); font-stretch: 87.5%; font-size: 0.92em; background: var(--paper-2); padding: 0.1em 0.35em; border-radius: 4px; }
+    .wrap { width: var(--wrap); margin-inline: auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .skip { position: fixed; left: 1rem; top: 1rem; z-index: 50; background: var(--text); color: var(--cell); padding: .5rem .8rem; transform: translateY(-200%); }
-    .skip:focus { transform: none; }
-    .skip:hover { color: var(--cell); }
+    .skip { position: absolute; left: -999px; top: 0.75rem; background: var(--ink); color: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; z-index: 10; }
+    .skip:focus { left: 0.75rem; }
+    svg { display: block; }
 
-    /* Title bar */
-    .titlebar {
-      position: sticky; top: 0; z-index: 20;
-      background: rgba(22, 25, 27, 0.92);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--rule);
-    }
-    .titlebar .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 3.75rem; gap: 1rem; }
-    .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; }
-    .brand svg { width: 26px; height: 26px; }
-    .brand b { font-weight: 600; font-size: 1.12rem; letter-spacing: -0.01em; }
-    .brand small { font: 400 .78rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
-    .nav { display: flex; gap: 1.6rem; align-items: center; }
-    .nav a { font: 400 .78rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; text-decoration: none; color: var(--muted); }
-    .nav a:hover { color: var(--text); }
-    .nav .gh { display: inline-flex; align-items: center; gap: .5rem; color: var(--text); border: 1px solid var(--rule); padding: .55rem .8rem; border-radius: 5px; }
-    .nav .gh:hover { border-color: var(--amber-muted); color: var(--amber); }
-    .nav .gh svg { width: 15px; height: 15px; }
+    /* ---------- top line ---------- */
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.5rem 0 0; }
+    .mark { display: inline-flex; align-items: center; gap: 0.7rem; text-decoration: none; }
+    .mark svg { width: 34px; height: 24px; flex: none; }
+    .mark b { font-weight: 640; font-stretch: 100%; font-size: 1.02rem; letter-spacing: -0.01em; }
+    .mark span { color: var(--ink-3); font-size: 0.82rem; }
+    .mark span a { color: var(--ink-2); }
+    .links { display: flex; align-items: center; gap: 0.9rem; }
+    .gh { width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center; color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-2); transition: background .2s, box-shadow .2s; }
+    .gh:hover { background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--ink); }
+    .gh svg { width: 18px; height: 18px; }
 
-    /* Hero */
-    .hero { padding: clamp(2.2rem, 6vh, 4.5rem) 0 3.5rem; }
-    .hero-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 3rem; align-items: end; }
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(2.9rem, 6.4vw, 5.6rem); line-height: .95; font-weight: 600; letter-spacing: -0.035em;
-      text-wrap: balance;
-    }
-    .hero h1 em { font-style: normal; color: var(--amber); }
-    .hero-lede p { margin: 0 0 .35rem; max-width: 46ch; color: var(--muted); font-size: 1.12rem; line-height: 1.55; }
-    .hero-lede p strong { color: var(--text); font-weight: 500; }
+    /* ---------- hero ---------- */
+    .hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem 4rem; align-items: center; padding: clamp(3.2rem, 9vh, 6rem) 0 clamp(3.4rem, 8vh, 5.2rem); }
+    h1 { margin: 0; font-weight: 560; font-stretch: 112.5%; font-size: clamp(2.1rem, 4vw, 3.4rem); line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance; }
+    h1 .odd { color: var(--red); position: relative; white-space: nowrap; }
+    h1 .odd svg { position: absolute; left: -5%; top: 8%; width: 110%; height: 98%; overflow: visible; pointer-events: none; }
+    h1 .odd svg ellipse { fill: none; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: ink 1.1s var(--ease) .5s forwards; vector-effect: non-scaling-stroke; }
+    @keyframes ink { to { stroke-dashoffset: 0; } }
+    .tagline { margin: 0 0 0.7rem; font-weight: 600; font-stretch: 112.5%; font-size: 1.3rem; letter-spacing: -0.02em; }
+    .lede { margin: 0; color: var(--ink-2); max-width: 46ch; font-size: 0.98rem; }
+    .lede a { color: var(--ink); font-weight: 560; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.8rem; margin-top: 1.8rem; }
+    .btn { position: relative; display: inline-flex; align-items: center; gap: 0.65rem; height: 3.1rem; padding: 0 1.5rem; border-radius: 999px; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 560; font-size: 0.88rem; transition: background .2s; }
+    .btn.sm { height: 2.6rem; padding: 0 1.15rem; font-size: 0.82rem; }
+    .btn .arr { width: 17px; height: 17px; transition: translate .3s var(--ease); }
+    .btn:hover .arr { translate: 3px 0; }
+    .btn .ring { position: absolute; left: -9px; top: -8px; width: calc(100% + 18px); height: calc(100% + 16px); overflow: visible; pointer-events: none; }
+    .btn .ring ellipse { fill: none; stroke: var(--red); stroke-width: 1.8; stroke-linecap: round; stroke-dasharray: 1600; stroke-dashoffset: 1600; opacity: 0; transition: stroke-dashoffset .9s var(--ease), opacity .15s; vector-effect: non-scaling-stroke; }
+    .btn:hover .ring ellipse, .btn:focus-visible .ring ellipse { stroke-dashoffset: 0; opacity: 1; }
+    .link { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 560; font-size: 0.88rem; color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule-2); text-underline-offset: 0.35em; }
+    .link .arr { width: 16px; height: 16px; transition: translate .3s var(--ease); }
+    .link:hover .arr { translate: 3px 0; }
 
-    /* The board */
-    .board {
-      margin-top: 2.2rem;
-      background: var(--housing);
-      border: 1px solid #2A3033;
-      border-radius: 10px;
-      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
-      overflow: hidden;
-    }
-    .board-head {
-      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-      padding: .85rem 1.1rem; border-bottom: 1px solid #2A3033;
-      font: 400 .76rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
-    }
-    .board-head .live { display: inline-flex; align-items: center; gap: .55rem; color: var(--text); }
-    .board-head .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); animation: pulse 2s var(--ease) infinite; }
-    @keyframes pulse { 50% { opacity: .35; } }
-    .board-head .clock { font-family: var(--led); font-weight: 700; font-size: 1.05rem; letter-spacing: .06em; color: var(--amber); }
+    /* ---------- the machine ---------- */
+    .machine { margin: 0; border-block: 1px solid var(--rule-2); }
+    .bench { position: relative; cursor: crosshair; height: clamp(290px, 44vh, 430px); background-color: var(--paper);
+      background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px; background-position: center; }
+    .bench canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .mc-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.6rem 2rem; padding: 0.9rem 0 1rem; font-size: 0.8rem; color: var(--ink-3); }
+    .mc-foot p { margin: 0; max-width: 70ch; }
+    .tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1.4rem; white-space: nowrap; }
+    .tally b { color: var(--ink); font-weight: 600; }
+    .tally .l b { color: var(--red); }
+    .pause { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--rule-2); text-underline-offset: 0.3em; cursor: pointer; }
+    .pause:hover { color: var(--ink); }
 
-    .grid-rows {
-      background: radial-gradient(circle, rgba(212, 168, 83, 0.075) 0.9px, transparent 1.3px) 0 0 / 5px 5px, var(--cell);
-      padding: .35rem 0;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 6.5rem 6.2rem minmax(0, 1fr) 7.5rem 4.5rem 7.4rem;
-      gap: 0 1.2rem; align-items: center;
-      padding: .42rem 1.1rem;
-      border-bottom: 1px solid var(--rule);
-      font-family: var(--led); font-weight: 700; font-size: 1.28rem; letter-spacing: .03em;
-      color: var(--amber);
-      text-shadow: 0 0 8px rgba(212, 168, 83, 0.35);
-      min-height: 2.6rem;
-    }
-    .row:last-child { border-bottom: 0; }
-    .row.label {
-      font: 400 .66rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
-      color: var(--faint); text-shadow: none; min-height: 0; padding-top: .6rem; padding-bottom: .6rem;
-    }
-    .row .num { text-align: right; font-variant-numeric: tabular-nums; }
-    .row .dim { color: rgba(212, 168, 83, 0.72); text-shadow: none; }
-    .row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .status { justify-self: start; display: inline-flex; }
-    .status .ch {
-      display: inline-block; min-width: .9em; margin-right: 2px; text-align: center;
-      transform-origin: 50% 50%; border-radius: 2px;
-      background: linear-gradient(to bottom, transparent calc(50% - .5px), var(--cell) calc(50% - .5px), var(--cell) calc(50% + .5px), transparent calc(50% + .5px)), #171A1C;
-    }
-    .status.lead .ch { background: linear-gradient(to bottom, transparent calc(50% - .5px), rgba(13, 15, 16, .3) calc(50% - .5px), rgba(13, 15, 16, .3) calc(50% + .5px), transparent calc(50% + .5px)), var(--amber-hot); }
-    .status.ok { color: var(--teal); text-shadow: 0 0 6px rgba(125, 177, 174, .35); }
-    .status.lead {
-      color: var(--cell); text-shadow: none;
-    }
-    .row.is-lead { background: linear-gradient(90deg, rgba(212,168,83,.12), rgba(212,168,83,0) 70%); }
-    .row.enter { animation: rowin .55s var(--ease) both; }
-    @keyframes rowin { from { clip-path: inset(0 0 100% 0); opacity: .2; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
-    .flip { animation: flap .09s linear both; }
-    @keyframes flap { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); opacity: .4; } 100% { transform: rotateX(0); } }
-
-    .board-rail {
-      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center;
-      padding: 1rem 1.1rem; border-top: 1px solid #2A3033;
-    }
-    .search { position: relative; }
-    .search svg { position: absolute; left: 1rem; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--amber); pointer-events: none; }
-    .search input {
-      width: 100%; height: 3.1rem; padding: 0 1rem 0 2.9rem;
-      background: var(--cell); color: var(--text); caret-color: var(--amber);
-      border: 1px solid #333A3E; border-radius: 6px;
-      font: 400 1rem var(--font);
-      transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
-    }
-    .search input::placeholder { color: var(--faint); }
-    .search input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-dim); }
-    .btn {
-      display: inline-flex; align-items: center; gap: .55rem; height: 3.1rem; padding: 0 1.2rem;
-      border-radius: 6px; border: 1px solid var(--text); background: var(--text); color: var(--cell);
-      font: 600 .95rem var(--font); text-decoration: none; cursor: pointer; white-space: nowrap;
-      transition: transform .15s var(--ease), background .2s var(--ease);
-    }
-    .btn:hover { text-decoration: underline; text-underline-offset: .2em; color: var(--cell); }
-    .btn:active { transform: translateY(1px); }
-    .btn svg { width: 16px; height: 16px; }
-    .board-note { margin: .9rem 0 0; font: 400 .78rem/1.5 var(--mono); color: var(--faint); max-width: 90ch; }
-    .board-note code { color: var(--muted); }
-
-    /* Sections */
+    /* ---------- sections ---------- */
     section { padding: clamp(4.5rem, 10vw, 7.5rem) 0 0; }
-    h2 {
-      margin: 0 0 1rem; max-width: 22ch;
-      font-size: clamp(2rem, 4.2vw, 3.3rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; text-wrap: balance;
-    }
-    .intro { margin: 0; max-width: 62ch; color: var(--muted); font-size: 1.08rem; }
-    code, kbd { font-family: var(--mono); font-size: .9em; }
-    p code { color: var(--text); background: rgba(245,242,237,.06); padding: .08em .35em; border-radius: 3px; }
+    h2 { margin: 0; font-weight: 560; font-stretch: 112.5%; font-size: clamp(1.6rem, 3vw, 2.35rem); line-height: 1.12; letter-spacing: -0.035em; max-width: 24ch; text-wrap: balance; }
+    h3 { margin: 0; font-weight: 600; font-stretch: 100%; font-size: 0.92rem; letter-spacing: -0.005em; }
+    .intro { margin: 1.1rem 0 0; color: var(--ink-2); max-width: 66ch; }
+    .note { color: var(--ink-3); font-size: 0.8rem; margin: 1rem 0 0; max-width: 78ch; }
 
-    /* Route strip */
-    .route { margin-top: 3.2rem; position: relative; }
-    .route ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; position: relative; }
-    .route-line { position: absolute; left: 0; right: 0; top: 1.05rem; height: 4px; background: #2A3033; border-radius: 2px; overflow: hidden; }
-    .route-line i { position: absolute; inset: 0; width: var(--progress, 0%); background: rgba(245, 242, 237, .7); transition: width .8s var(--ease); }
-    .stop { position: relative; padding-right: 1.4rem; cursor: pointer; }
-    .stop h3 { color: var(--muted); transition: color .4s var(--ease); }
-    .stop.now h3, .stop:hover h3 { color: var(--text); }
-    .stop p { color: var(--faint); transition: color .4s var(--ease); }
-    .stop.now p { color: var(--muted); }
-    .stop .dot {
-      width: 2.2rem; height: 2.2rem; border-radius: 50%; position: relative; z-index: 1;
-      background: var(--bg); border: 4px solid #3A4246; display: grid; place-items: center;
-      font: 700 .78rem/1 var(--mono); color: var(--muted); transition: all .4s var(--ease);
-    }
-    .stop.past .dot { border-color: rgba(245, 242, 237, .45); color: var(--text); }
-    .stop.now .dot { border-color: var(--text); background: var(--text); color: var(--cell); outline: 6px solid rgba(245, 242, 237, .1); }
-    .stop h3 { margin: 1.15rem 0 .35rem; font-size: 1.22rem; font-weight: 600; letter-spacing: -0.01em; }
-    .stop p { margin: 0; font-size: .92rem; line-height: 1.5; }
-    .stop p code { font-size: .8rem; }
-    .route-cmd {
-      margin-top: 2.4rem; background: var(--cell); border: 1px solid #2A3033; border-radius: 8px;
-      padding: 1.1rem 1.25rem; font: 400 .9rem/1.6 var(--mono); color: var(--muted); min-height: 5.4rem;
-    }
-    .route-cmd .who { color: var(--amber); }
-    .route-cmd b { color: var(--text); font-weight: 400; }
+    /* ---------- route ---------- */
+    .route { margin-top: 2.6rem; }
+    .route svg { width: 100%; height: auto; }
+    .stops { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); }
+    .stop { padding: 0.9rem 0.9rem 1rem; border-radius: 8px; cursor: pointer; text-align: center; transition: background .25s; }
+    .stop:hover { background: var(--paper-2); }
+    .stop p { margin: 0.35rem 0 0; color: var(--ink-3); font-size: 0.78rem; line-height: 1.55; }
+    .stop[aria-current="step"] { background: var(--paper-2); }
+    .stop[aria-current="step"] h3 { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.35em; }
+    .stop.lead-stop[aria-current="step"] h3 { color: var(--red); }
+    .readout { margin-top: 1.2rem; min-height: 6.2rem; padding: 1rem 1.2rem; border-radius: 10px; background: var(--paper-2); font-size: 0.82rem; line-height: 1.6; color: var(--ink-2); }
+    .readout .who { color: var(--ink-3); }
+    .readout b { color: var(--ink); font-weight: 520; overflow-wrap: anywhere; }
 
-    /* Interchange */
-    .interchange { margin-top: 2.6rem; display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 2rem; align-items: start; }
-    .lines { display: flex; flex-direction: column; gap: .2rem; }
-    .line-btn {
-      display: flex; justify-content: space-between; align-items: center; gap: .8rem;
-      text-align: left; padding: .55rem .7rem; border-radius: 5px; border: 1px solid transparent;
-      background: none; color: var(--muted); font: 500 .92rem var(--font); cursor: pointer;
-      transition: background .2s var(--ease), color .2s var(--ease);
-    }
-    .line-btn:hover { background: rgba(245,242,237,.05); color: var(--text); }
-    .line-btn[aria-pressed="true"] { background: var(--amber-dim); border-color: var(--amber-muted); color: var(--text); }
-    .line-btn small { font: 400 .7rem var(--mono); color: var(--faint); white-space: nowrap; }
-    .line-btn[aria-pressed="true"] small { color: var(--amber); }
-    .map-frame { background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; padding: 1.4rem; }
-    .map-frame svg { width: 100%; height: auto; display: block; }
+    /* ---------- domains ---------- */
+    .domain-pick { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 2.4rem; }
+    .chip { appearance: none; border: 0; font: inherit; font-size: 0.8rem; color: var(--ink-2); background: transparent; box-shadow: inset 0 0 0 1px var(--rule); height: 2.25rem; padding: 0 0.85rem; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: background .2s, color .2s, box-shadow .2s; }
+    .chip small { color: var(--ink-3); font-size: 0.76rem; }
+    .chip:hover { box-shadow: inset 0 0 0 1px var(--rule-2); color: var(--ink); }
+    .chip[aria-pressed="true"], .chip[aria-selected="true"] { background: var(--ink); color: var(--paper); box-shadow: none; }
+    .chip[aria-pressed="true"] small, .chip[aria-selected="true"] small { color: rgba(245, 246, 240, 0.7); }
+    .map-frame { margin-top: 1.2rem; border-radius: 12px; background-color: var(--paper);
+      background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px; box-shadow: inset 0 0 0 1px var(--rule-2); padding: 1rem 0.6rem; }
+    #map { width: 100%; height: auto; }
     .map-stack { display: none; }
-    .map-stack h4 { margin: 0 0 .5rem; font: 400 .72rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
-    .map-stack ul { list-style: none; margin: 0 0 1rem; padding: 0 0 0 1rem; border-left: 3px solid #2A3033; }
-    .map-stack li { padding: .3rem 0; font-size: .92rem; }
-    .map-stack li.q::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--teal); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
-    .map-stack li.c::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--faint); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
-    .map-stack li.d { font-family: var(--mono); font-size: .85rem; }
-    .map-stack li.d::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--amber); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
-    .map-hub { margin: 0 0 1rem; padding: .9rem 1rem; border: 2px solid var(--amber); border-radius: 10px; }
-    .map-hub b { display: block; font-family: var(--led); font-size: 1.28rem; color: var(--amber); margin-bottom: .3rem; }
-    .map-hub span { font: 400 .78rem/1.7 var(--mono); color: var(--muted); }
-    .map-caption { margin: 1rem .2rem 0; font-size: .92rem; color: var(--muted); max-width: 70ch; }
-    .flow { stroke-dasharray: 2 10; stroke-linecap: round; animation: flow 1.6s linear infinite; }
-    @keyframes flow { to { stroke-dashoffset: -24; } }
+    .map-caption { color: var(--ink-2); font-size: 0.84rem; margin: 1rem 0 0; max-width: 78ch; }
+    .map-caption b { color: var(--ink); font-weight: 600; }
 
-    /* Catalogue */
-    .cat-tools { margin-top: 2.4rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; }
-    .tabs, .chips { display: flex; flex-wrap: wrap; gap: .45rem; }
-    .key {
-      height: 2.5rem; padding: 0 .95rem; border-radius: 5px;
-      background: #22272A; color: var(--muted); border: 1px solid #333A3E;
-      font: 400 .78rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
-      transition: transform .08s linear, box-shadow .08s linear, color .2s, background .2s;
-    }
-    .key:hover { color: var(--text); }
-    .key:active { transform: translateY(1px); }
-    .key[aria-pressed="true"], .key[aria-selected="true"] { background: rgba(245, 242, 237, .1); color: var(--text); border-color: var(--text); }
-    .key .n { opacity: .7; margin-left: .35rem; }
-    .cat-search { margin-top: 1rem; }
-    .cat-board { margin-top: 1rem; background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; overflow: hidden; }
-    .crow {
-      display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr) 9rem 7rem 8.5rem;
-      gap: 1.2rem; align-items: center; padding: .7rem 1.1rem; border-bottom: 1px solid var(--cell-line);
-      cursor: pointer; transition: background .15s;
-    }
-    .crow:hover { background: rgba(212,168,83,.05); }
-    .crow.head { cursor: default; font: 400 .66rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); background: #111415; }
-    .crow.head:hover { background: #111415; }
-    .crow .id { padding: .15rem .35rem; margin-left: -.35rem; border-radius: 3px; background: radial-gradient(circle, rgba(212, 168, 83, 0.07) 0.8px, transparent 1.2px) 0 0 / 4px 4px; font-family: var(--led); font-weight: 700; font-size: 1.05rem; color: var(--amber); text-shadow: 0 0 6px rgba(212,168,83,.3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .crow .t { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .crow .m { font: 400 .78rem var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pill { display: inline-block; font: 400 .7rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: .35rem .5rem; border-radius: 3px; }
-    .pill.q { color: var(--teal); background: var(--teal-dim); }
-    .pill.c { color: var(--muted); background: rgba(245,242,237,.07); }
-    .pill.free { color: var(--teal); }
-    .pill.key-p { color: var(--amber); }
-    .pill.paid { color: var(--amber-hot); background: var(--amber-dim); }
-    .crow[aria-expanded="true"] { background: rgba(212,168,83,.07); }
-    .detail { display: none; padding: 1.1rem 1.1rem 1.4rem; border-bottom: 1px solid var(--cell-line); background: #111415; }
-    .detail.open { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem; animation: rowin .4s var(--ease) both; }
-    .detail p { margin: 0 0 .8rem; color: var(--muted); max-width: 72ch; }
-    .detail dl { margin: 0; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .45rem 1rem; font-size: .88rem; }
-    .detail dt { font: 400 .68rem/1.9 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
-    .detail dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
-    .detail ul { margin: .2rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: .9rem; }
-    .tags { display: flex; flex-wrap: wrap; gap: .35rem; }
-    .tag { font: 400 .78rem var(--mono); padding: .2rem .45rem; border-radius: 3px; background: rgba(245,242,237,.06); color: var(--text); }
-    .empty { padding: 2.4rem 1.1rem; color: var(--muted); }
-    .empty b { font-family: var(--led); color: var(--amber); font-size: 1.28rem; display: block; margin-bottom: .4rem; }
-    .cat-count { font: 400 .78rem var(--mono); color: var(--faint); letter-spacing: .08em; }
+    /* ---------- catalogue ---------- */
+    #catalogue { padding-top: clamp(3.5rem, 7vw, 5rem); }
+    .cat-search { position: relative; display: block; margin-top: 2rem; }
+    .cat-search svg { position: absolute; left: 1.1rem; top: 50%; translate: 0 -50%; width: 19px; height: 19px; color: var(--ink-3); pointer-events: none; }
+    .cat-search input { width: 100%; height: 3.6rem; border-radius: 12px; border: 0; background: #fff; box-shadow: inset 0 0 0 1px var(--rule-2), 0 1px 0 rgba(22,27,34,.04); padding: 0 1.2rem 0 3.1rem; font: inherit; font-size: 0.95rem; color: var(--ink); transition: box-shadow .2s; }
+    .cat-search input::placeholder { color: var(--ink-3); }
+    .cat-search input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--blue), 0 0 0 4px var(--blue-tint); }
+    .cat-tools { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.8rem; margin-top: 1rem; }
+    .tabs, .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .chip .n { font-size: 0.76rem; color: inherit; opacity: 0.7; }
+    .ledger { margin-top: 1rem; border-top: 1px solid var(--rule-2); }
+    .crow { display: grid; grid-template-columns: 17rem minmax(0, 1fr) 10rem 6.5rem 7.5rem; gap: 1rem; align-items: center; padding: 0.8rem 0.4rem; border-bottom: 1px solid var(--rule); font-size: 0.82rem; }
+    .crow.head { font-size: 0.76rem; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; padding-block: 0.7rem; }
+    .crow[data-key] { cursor: pointer; transition: background .2s; }
+    .crow[data-key]:hover { background: rgba(22, 27, 34, 0.035); }
+    .crow[aria-expanded="true"] { background: var(--paper-2); border-bottom-color: transparent; }
+    .crow .id { font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .crow .t { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .crow .m { color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tag-s { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--ink-2); }
+    .tag-s::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--ink-3); }
+    .tag-s.q { color: var(--blue); } .tag-s.q::before { border-color: var(--blue); background: var(--blue); }
+    .tag-s.c::before { border-style: dashed; }
+    .tag-s.det { color: var(--green); } .tag-s.det::before { border-color: var(--green); background: var(--green); border-radius: 2px; }
+    .detail { display: none; }
+    .detail.open { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.4rem 2.4rem; padding: 0.4rem 0.4rem 1.4rem; background: var(--paper-2); border-bottom: 1px solid var(--rule); font-size: 0.82rem; color: var(--ink-2); }
+    .detail p { margin: 0.4rem 0 0.6rem; }
+    .detail dl { margin: 0.4rem 0 0; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.45rem 1rem; }
+    .detail dt { color: var(--ink-3); font-size: 0.78rem; padding-top: 0.1em; }
+    .detail dd { margin: 0; overflow-wrap: anywhere; color: var(--ink); }
+    .detail ul { margin: 0; padding-left: 1.1rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .tag { font-size: 0.76rem; padding: 0.15rem 0.5rem; border-radius: 5px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--rule); color: var(--ink-2); }
+    .empty { padding: 2.2rem 0.4rem; color: var(--ink-2); border-bottom: 1px solid var(--rule); }
+    .empty b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 0.3rem; }
+    .cat-count { color: var(--ink-3); font-size: 0.78rem; margin: 0.9rem 0 0; }
+    .more { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: var(--blue); text-decoration: underline; text-underline-offset: 0.22em; cursor: pointer; }
+    @keyframes rowin { from { opacity: 0; translate: 0 6px; } }
 
-    /* Lead ticket */
-    .lead-wrap { margin-top: 2.6rem; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 3rem; align-items: start; }
-    .ticket {
-      background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; overflow: hidden;
-      font: 400 .84rem/1.6 var(--mono);
-    }
-    .ticket-top { display: flex; justify-content: space-between; align-items: center; padding: .9rem 1.1rem; background: var(--amber); color: var(--cell); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: .76rem; }
-    .ticket-top span:first-child { font-family: var(--led); font-size: 1.15rem; letter-spacing: .05em; }
-    .ticket pre { margin: 0; padding: 1.1rem; overflow-x: auto; color: var(--muted); }
-    .ticket pre .k { color: var(--teal); }
-    .ticket pre .v { color: var(--text); }
-    .ticket pre .h { color: var(--amber); }
-    .ticket-foot { border-top: 1px dashed #333A3E; padding: .75rem 1.1rem; color: var(--faint); font-size: .8rem; }
-    .promises { list-style: none; margin: 0; padding: 0; }
-    .promises li { padding: 1.15rem 0; border-top: 1px solid var(--rule); }
-    .promises li:last-child { border-bottom: 1px solid var(--rule); }
-    .promises b { display: block; font-weight: 600; font-size: 1.08rem; margin-bottom: .25rem; }
-    .promises span { color: var(--muted); }
-
-    /* Commands */
-    .cmds { margin-top: 2.4rem; display: grid; gap: .7rem; }
-    .cmd { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: 1rem; align-items: center; background: var(--cell); border: 1px solid #2A3033; border-radius: 8px; padding: .55rem .6rem .55rem 1.1rem; }
-    .cmd span { font: 400 .76rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
-    .cmd code { color: var(--text); font-size: .88rem; overflow-x: auto; white-space: nowrap; padding: .5rem 0; }
-    .copy { width: 2.4rem; height: 2.4rem; border-radius: 5px; border: 1px solid #333A3E; background: #1B1F21; color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: color .2s, border-color .2s; }
-    .copy:hover { color: var(--amber); border-color: var(--amber-muted); }
+    /* ---------- install ---------- */
+    .cmds { margin-top: 2.4rem; display: grid; gap: 0.55rem; }
+    .cmd { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 0.55rem 0.55rem 0.55rem 1.1rem; border-radius: 10px; background: var(--paper-2); }
+    .cmd span { font-size: 0.78rem; color: var(--ink-3); }
+    .cmd code { background: none; padding: 0; font-size: 0.84rem; color: var(--ink); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+    .cmd code::-webkit-scrollbar { display: none; }
+    .copy { appearance: none; border: 0; width: 2.4rem; height: 2.4rem; border-radius: 7px; background: var(--paper); color: var(--ink-2); cursor: pointer; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--rule); transition: color .2s, box-shadow .2s; }
+    .copy:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-2); }
+    .copy.done { color: var(--green); }
     .copy svg { width: 16px; height: 16px; }
-    .copy.done { color: var(--teal); border-color: var(--teal); }
 
-    footer { margin-top: clamp(5rem, 10vw, 8rem); border-top: 1px solid var(--rule); padding: 2.4rem 0 3rem; }
-    footer .wrap { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
-    footer p { margin: 0; color: var(--muted); max-width: 52ch; font-size: .92rem; }
-    footer nav { display: flex; gap: 1.4rem; flex-wrap: wrap; }
-    footer nav a { font: 400 .78rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
-    footer nav a:hover { color: var(--amber); }
+    /* ---------- footer ---------- */
+    footer { margin-top: clamp(5rem, 11vw, 8rem); border-top: 1px solid var(--rule-2); padding: 2rem 0 2.6rem; font-size: 0.8rem; color: var(--ink-3); }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem 2rem; }
+    footer p { margin: 0; max-width: 60ch; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 1.4rem; }
+    footer a { color: var(--ink-2); }
 
-    @media (max-width: 980px) {
-      .route ol { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 2.2rem; }
-      .route-line { display: none; }
-      .interchange { grid-template-columns: 1fr; }
-      .lines { flex-direction: row; flex-wrap: wrap; max-height: none; }
-      .lead-wrap { grid-template-columns: 1fr; }
-      .detail.open { grid-template-columns: 1fr; }
+    /* ---------- responsive ---------- */
+    @media (max-width: 960px) {
+      .hero { grid-template-columns: 1fr; align-items: start; }
+            .crow { grid-template-columns: 14rem minmax(0, 1fr) 7rem; }
+      .crow > :nth-child(4), .crow > :nth-child(5) { display: none; }
     }
     @media (max-width: 760px) {
-      .nav a:not(.gh) { display: none; }
-      .hero-top { grid-template-columns: 1fr; gap: 1.2rem; }
-      .row { grid-template-columns: minmax(0, 1fr) 2.6rem 4.4rem; font-size: 1rem; gap: .15rem .6rem; padding-inline: .8rem; min-height: 0; padding-block: .45rem; }
-      .row > :first-child, .row .c-rec { display: none; }
-      .row:not(.label) .name { grid-column: 1 / -1; white-space: normal; }
-      .row.label .num:not(.c-z) { text-align: left; }
-      .row.label > :nth-child(3) { display: none; }
-      .hero { padding-top: 1.6rem; }
-      .hero-lede p { font-size: 1rem; }
-      .board { margin-top: 1.4rem; }
-      .board-head { padding: .7rem .8rem; }
-      .board-rail { padding: .8rem; }
-      .grid-rows .row:nth-child(n+5) { display: none; }
-      .row:not(.label) .num:not(.c-z) { text-align: left; }
-      .map-frame svg { display: none; }
-      .map-stack { display: block; }
-      .brand small { display: none; }
-      .board-rail { grid-template-columns: 1fr; }
-      .route ol { grid-template-columns: 1fr 1fr; }
-      .cat-tools { grid-template-columns: 1fr; }
-      .crow { grid-template-columns: minmax(0, 1fr) auto; gap: .3rem 1rem; }
+      h1 { line-height: 1.16; }
+      h1 .odd svg { top: -8%; height: 118%; }
+      #route-svg { display: none; }
+      .tabs, .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -1.25rem; padding-inline: 1.25rem; }
+      .tabs::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
+      .chip { flex: none; }
+      .mark span { display: none; }
+      .stops { grid-template-columns: repeat(2, 1fr); gap: 0.3rem; }
+      .stop { text-align: left; padding: 0.7rem; }
+      #map { display: none; }
+      .map-frame { padding: 1.1rem 1rem; }
+      .map-stack { display: block; font-size: 0.8rem; }
+      .map-stack h4 { margin: 0.4rem 0 0.4rem; font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+      .map-stack ul { list-style: none; margin: 0 0 0.9rem; padding: 0; display: grid; gap: 0.3rem; }
+      .map-stack li { display: flex; gap: 0.55rem; align-items: center; }
+      .map-stack li::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+      .map-stack li.c::before { background: transparent; border: 1.5px dashed var(--ink-3); }
+      .map-stack li.d::before { background: var(--green); border-radius: 2px; }
+      .map-hub { margin: 0.2rem 0 1rem; padding: 0.8rem 0.9rem; border-radius: 10px; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
+      .map-hub b { display: block; font-weight: 640; font-stretch: 112.5%; }
+      .map-hub span { color: var(--ink-3); font-size: 0.78rem; }
+      .crow { grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 0.8rem; }
       .crow .t { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
-      .crow .c-dom, .crow .c-acc { display: none; }
-      .crow.head { display: none; }
-      .cmd { grid-template-columns: minmax(0, 1fr) auto; }
+      .crow > :nth-child(3) { display: none; }
+      .crow > :nth-child(5) { display: block; grid-column: 2; grid-row: 1; }
+      .crow.head > :nth-child(2) { display: none; }
+      .detail.open { grid-template-columns: 1fr; }
+      .cmd { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0.2rem; padding-block: 0.7rem; }
       .cmd span { grid-column: 1 / -1; }
+      .cmd code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
+      h1 .odd svg ellipse { stroke-dashoffset: 0; }
       html { scroll-behavior: auto; }
     }
   </style>
@@ -376,182 +241,122 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
-  <header class="titlebar">
-    <div class="wrap">
-      <a class="brand" href="#top" aria-label="Anomaly home">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#0D0F10" stroke="#2A3033"/><g fill="#F5F2ED" fill-opacity=".35"><circle cx="9" cy="9" r="2"/><circle cx="16" cy="9" r="2"/><circle cx="23" cy="9" r="2"/><circle cx="9" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="9" cy="23" r="2"/><circle cx="16" cy="23" r="2"/><circle cx="23" cy="23" r="2"/></g><circle cx="24" cy="16" r="3" fill="#D4A853"/></svg>
-        <b>Anomaly</b>
-        <small>by Buried Signals</small>
-      </a>
-      <nav class="nav" aria-label="Primary">
-        <a href="#route">How it works</a>
-        <a href="#catalogue">Catalogue</a>
-        <a href="#use">Use it</a>
-        <a class="gh" href="https://github.com/buriedsignals/Anomaly">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub
-        </a>
-      </nav>
-    </div>
+  <header class="wrap top">
+    <a class="mark" href="#top" aria-label="Anomaly, back to top">
+      <svg viewBox="0 0 34 24" aria-hidden="true"><path d="M1 18h7l3-4 3 3 4-13 3 14h12" fill="none" stroke="#161B22" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="18.2" cy="5.4" rx="5" ry="4.4" fill="none" stroke="#D42A3C" stroke-width="1.8"/></svg>
+      <b>anomaly</b>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a class="gh" href="https://github.com/buriedsignals/Anomaly" aria-label="Source code on GitHub" title="Source code on GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a class="btn sm" href="https://buriedsignals.com/join">Install<svg class="ring" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="48" ry="18" pathLength="600"/></svg></a>
+    </nav>
   </header>
 
   <main id="main">
     <div class="wrap hero" id="top">
-      <div class="hero-top">
-      <h1>Find the record that <em>doesn't fit</em>.</h1>
-      <div class="hero-lede">
-        <p>Anomaly tells an investigating agent which data could help its case, how to get it, and which detectors fit that kind of data. <strong>Then it runs those detectors on the tables the agent fetched, and every unusual record comes back as a lead you can trace.</strong></p>
-      </div>
-      </div>
-
-      <div class="board" aria-labelledby="board-title">
-        <div class="board-head">
-          <span class="live" id="board-title"><i aria-hidden="true"></i>Incoming records · donations</span>
-          <span class="clock" id="clock" aria-hidden="true">00:00:00</span>
+      <h1>Find the record that <span class="odd">doesn't fit<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="49" ry="19" pathLength="600"/></svg></span>.</h1>
+      <div>
+        <p class="tagline">A <a href="https://spotlight.buriedsignals.com/">Spotlight</a> plugin for data.</p>
+        <p class="lede">Anomaly shows your agent which datasets cover your story and which checks fit them. It runs those checks and flags every record that stands out as a lead you can trace.</p>
+        <div class="actions">
+          <a class="btn" href="https://buriedsignals.com/join">Install Anomaly<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="ring" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="48" ry="18" pathLength="600"/></svg></a>
+          <a class="link" href="https://spotlight.buriedsignals.com/">Open Spotlight<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </div>
-        <div class="grid-rows" id="stream" aria-hidden="true">
-          <div class="row label"><span>Time</span><span class="c-rec">Record</span><span>Recipient</span><span class="num">Amount</span><span class="num c-z">Z</span><span>Status</span></div>
-        </div>
-        <form class="board-rail" id="hero-search" role="search">
-          <label class="search">
-            <span class="sr-only">Search the catalogue</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input id="hero-q" type="search" placeholder="Search data sources and detectors: lobbying, sanctions, procurement…" autocomplete="off">
-          </label>
-          <button class="btn" type="submit">Search the catalogue
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
-        </form>
       </div>
-      <p class="board-note">These donation records are synthetic. Your browser scores each one with the leave-one-out z-score that <code>numeric.zscore_outliers</code> runs in SQL, over the last 40 records, and flips anything at 3.0 or above to LEAD.</p>
     </div>
 
-    <section id="route" aria-labelledby="route-h">
-      <div class="wrap">
-        <h2 id="route-h">An agent asks the questions and code does the counting.</h2>
-        <p class="intro">Anomaly sits between an investigating agent, such as <a href="https://spotlight.buriedsignals.com/">Spotlight</a>, and the data. The model chooses what to look at, and deterministic code computes every flag.</p>
-        <div class="route">
-          <div class="route-line" aria-hidden="true"><i></i></div>
-          <ol id="stops">
-            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>I'm looking at who lobbies the finance committee, and whether any of them used to work there.</b>">
-              <div class="dot">1</div><h3>Ask</h3><p>A journalist or agent starts with a question about a person, a company or a beat.</p></li>
-            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --domain lobbying</b><br>Returns the lobbying sources with their access, cost and licence, the table contract, and every lobbying detector.">
-              <div class="dot">2</div><h3>Look up</h3><p><code>anomaly.context</code> lists the data that covers the domain and the detectors that fit it.</p></li>
-            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --source &lt;id&gt;</b><br>Reads the source's SKILL.md, then fetches the tables itself with the key and terms the source needs.">
-              <div class="dot">3</div><h3>Fetch</h3><p>The agent gets the tables itself, following each source's SKILL.md.</p></li>
-            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.oneshot --tables lobbying_filings=f.csv --tables lobbying_activity_lobbyists=l.csv --request r.json --approved</b><br>Loads only the contract columns into DuckDB, seals it from the network, runs the query.">
-              <div class="dot">4</div><h3>Run</h3><p><code>anomaly.oneshot</code> runs the detector's SQL in a sealed DuckDB. The same tables always give the same result.</p></li>
-            <li class="stop" data-cmd="<span class='who'>runner ›</span> <b>{&quot;status&quot;: &quot;lead&quot;, &quot;detector_id&quot;: &quot;lobbying.revolving_door_committee_match&quot;, &quot;input_hashes&quot;: {…}}</b><br>One JSON line per flagged record, with the detector hash and a hash of every input table.">
-              <div class="dot">5</div><h3>Lead</h3><p>Each flagged record comes back as a JSON line with its detector, inputs and parameters.</p></li>
-            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>Accept as a lead · Dismiss</b><br>Spotlight's integration, in review now, puts this at its Investigation gate. Nothing becomes a finding until a person and the fact-checker have been through it.">
-              <div class="dot">6</div><h3>Gate</h3><p>A person accepts or dismisses each lead. A detector never decides what's true.</p></li>
-          </ol>
-          <div class="route-cmd" id="route-cmd" aria-live="polite"></div>
-        </div>
-      </div>
-    </section>
+    <figure class="machine" aria-labelledby="mc-cap">
+      <div class="bench" id="bench"><canvas id="mc" aria-hidden="true"></canvas></div>
+      <figcaption class="wrap mc-foot">
+        <p id="mc-cap">Records flow in from the sources an agent fetched. Detectors test every one, most pass straight through, and the few that don't fit come out as leads for a person to check.</p>
+        <p class="tally"><span aria-hidden="true"><b id="n-rec">0</b> simulated records tested</span><span class="l" aria-hidden="true"><b id="n-lead">0</b> leads</span><button class="pause" id="mc-pause" type="button" aria-pressed="false">Pause</button></p>
+      </figcaption>
+    </figure>
+
+    
 
     <section id="domains" aria-labelledby="domains-h">
       <div class="wrap">
         <h2 id="domains-h">Sources and detectors meet at a domain.</h2>
         <p class="intro">A domain is a type of data, such as lobbying or procurement. A source says which domain it covers, and a detector says which domain it reads. When a detector joins several tables, the domain publishes their shape, so any source that fills it works with every detector in that family. No source is ever wired to a detector.</p>
-        <div class="interchange">
-          <div class="lines" id="domain-list" role="group" aria-label="Choose a domain"></div>
-          <div>
-            <div class="map-frame"><svg id="map" role="img" aria-labelledby="map-desc"><desc id="map-desc">Diagram of the selected domain's sources and detectors.</desc></svg><div class="map-stack" id="map-stack"></div></div>
-            <p class="map-caption" id="map-caption"></p>
-          </div>
+        <div class="domain-pick" id="domain-list" role="group" aria-label="Choose a domain"></div>
+        <div class="map-frame">
+          <svg id="map" role="img" aria-labelledby="map-desc"><desc id="map-desc">Diagram of the selected domain's sources and detectors.</desc></svg>
+          <div class="map-stack" id="map-stack"></div>
         </div>
+        <p class="map-caption" id="map-caption"></p>
       </div>
     </section>
 
     <section id="catalogue" aria-labelledby="cat-h">
       <div class="wrap">
-        <h2 id="cat-h">Search the catalogue.</h2>
-        <p class="intro" id="cat-intro">Everything here is generated from the repository, so what you see is what an agent gets back from <code>anomaly.context</code>.</p>
+        <h2 id="cat-h">Look through the catalogue.</h2>
+        <p class="intro" id="cat-intro">The catalogue is every data source, domain and detector an agent can look up. It is generated from the repository, so what you see here is exactly what <code>anomaly.context</code> returns.</p>
+        <label class="cat-search">
+          <span class="sr-only">Search the catalogue</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="cat-q" type="search" placeholder="Search sources, domains and detectors" autocomplete="off">
+        </label>
         <div class="cat-tools">
           <div class="tabs" role="tablist" aria-label="Catalogue view">
-            <button class="key" role="tab" aria-selected="true" data-view="sources">Sources<span class="n" id="n-sources"></span></button>
-            <button class="key" role="tab" aria-selected="false" data-view="detectors">Detectors<span class="n" id="n-detectors"></span></button>
-            <button class="key" role="tab" aria-selected="false" data-view="domains">Domains<span class="n" id="n-domains"></span></button>
+            <button class="chip" role="tab" aria-selected="true" data-view="sources">Sources <span class="n" id="n-sources"></span></button>
+            <button class="chip" role="tab" aria-selected="false" data-view="detectors">Detectors <span class="n" id="n-detectors"></span></button>
+            <button class="chip" role="tab" aria-selected="false" data-view="domains">Domains <span class="n" id="n-domains"></span></button>
           </div>
-          <div class="chips" id="filters" role="group" aria-label="Filter sources">
-            <button class="key" aria-pressed="false" data-f="free">Free</button>
-            <button class="key" aria-pressed="false" data-f="key">Needs key</button>
-            <button class="key" aria-pressed="false" data-f="paid">Paid</button>
-            <button class="key" aria-pressed="false" data-f="catalogued">Catalogued</button>
+          <div class="filters" id="filters" role="group" aria-label="Filter sources">
+            <button class="chip" aria-pressed="false" data-f="free">Free</button>
+            <button class="chip" aria-pressed="false" data-f="key">Needs key</button>
+            <button class="chip" aria-pressed="false" data-f="paid">Paid</button>
+            <button class="chip" aria-pressed="false" data-f="catalogued">Catalogued</button>
           </div>
         </div>
-        <label class="search cat-search">
-          <span class="sr-only">Filter the catalogue</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="cat-q" type="search" placeholder="Filter by name, domain, country or anything in the description" autocomplete="off">
-        </label>
-        <div class="cat-board" id="cat-board" aria-live="polite"></div>
-        <p class="board-note cat-count" id="cat-count"></p>
+        <div class="ledger" id="ledger" aria-live="polite"></div>
+        <p class="cat-count" id="cat-count"></p>
       </div>
     </section>
 
-    <section id="lead" aria-labelledby="lead-h">
+    <section id="how" aria-labelledby="how-h">
       <div class="wrap">
-        <h2 id="lead-h">Every flag comes back as a lead you can check.</h2>
-        <p class="intro">This one came from running <code>lobbying.foreign_filings</code> on two sample filing tables. The values say what was flagged, and the hashes say exactly which detector and which files produced it.</p>
-        <div class="lead-wrap">
-          <div class="ticket">
-            <div class="ticket-top"><span>Lead</span><span>lobbying.foreign_filings · 1.2.0</span></div>
-<pre id="ticket-json"><span class="k">"status"</span>: <span class="h">"lead"</span>,
-<span class="k">"candidate_id"</span>: <span class="v">"f2"</span>,
-<span class="k">"values"</span>: {
-  <span class="k">"registrant_name"</span>: <span class="v">"R TWO"</span>,
-  <span class="k">"client_name"</span>: <span class="v">"Client Two"</span>,
-  <span class="k">"foreign_entity_name"</span>: <span class="v">"Acme SA"</span>,
-  <span class="k">"foreign_entity_country"</span>: <span class="v">"FR"</span>,
-  <span class="k">"income"</span>: <span class="v">9000.0</span>
-},
-<span class="k">"detector_hash"</span>: <span class="h">"sha256:8f4d60af…aa29"</span>,
-<span class="k">"provenance"</span>: {
-  <span class="k">"input_hashes"</span>: {
-    <span class="k">"lobbying_filings"</span>: <span class="h">"sha256:4d9e9f30…433d"</span>,
-    <span class="k">"lobbying_foreign_entities"</span>: <span class="h">"sha256:79402677…cf89"</span>
-  },
-  <span class="k">"parameters"</span>: { <span class="k">"limit"</span>: <span class="v">500</span> },
-  <span class="k">"approval"</span>: <span class="v">"caller-recorded"</span>
-}</pre>
-            <div class="ticket-foot">Sample tables with made-up names. Excerpt of one JSON line from <code>anomaly.oneshot</code>.</div>
-          </div>
-          <ul class="promises">
-            <li><b>It only flags.</b><span>A lead says a record is unusual for a stated reason. It never claims identity, intent or wrongdoing, and the known false positives travel with every detector.</span></li>
-            <li><b>The same tables give the same answer.</b><span>Detectors are read-only SQL, pinned by an implementation hash, so anyone can rerun a lead and get it back.</span></li>
-            <li><b>It sees only what it needs.</b><span>The runner loads only the mapped or contract columns, then cuts DuckDB off from files and the network before the query runs.</span></li>
-            <li><b>Paid and restricted data stays visible.</b><span>A catalogued source has no adapter but still tells the agent the data exists, what it costs and how a person can get it.</span></li>
-          </ul>
+        <h2 id="how-h">An agent asks the questions and code does the counting.</h2>
+        <p class="intro">Anomaly sits between an investigating agent, such as <a href="https://spotlight.buriedsignals.com/">Spotlight</a>, and the data. The model chooses what to look at, and deterministic code computes every flag. Pick a step to see what runs there.</p>
+        <div class="route">
+          <svg id="route-svg" viewBox="0 0 1200 120" aria-hidden="true"></svg>
+          <ol class="stops" id="stops">
+            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>I'm looking at who lobbies the finance committee, and whether any of them used to work there.</b>"><h3>Ask</h3><p>A journalist or agent starts with a question about a person, a company or a beat.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --domain lobbying</b><br>Returns the lobbying sources with their access, cost and licence, the table contract, and every lobbying detector."><h3>Look up</h3><p><code>anomaly.context</code> lists the data for the domain and the detectors that fit it.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --source &lt;id&gt;</b><br>Reads the source's SKILL.md, then fetches the tables itself with the key and terms the source needs."><h3>Fetch</h3><p>The agent gets the tables itself, following each source's SKILL.md.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.oneshot --tables lobbying_filings=f.csv --tables lobbying_activity_lobbyists=l.csv --request r.json --approved</b><br>Loads only the contract columns into DuckDB, seals it from the network, runs the query."><h3>Run</h3><p><code>anomaly.oneshot</code> runs the detector's SQL in a sealed DuckDB. The same tables always give the same result.</p></li>
+            <li class="stop lead-stop" data-cmd="<span class='who'>runner ›</span> <b>{&quot;status&quot;: &quot;lead&quot;, &quot;detector_id&quot;: &quot;lobbying.revolving_door_committee_match&quot;, &quot;input_hashes&quot;: {…}}</b><br>One JSON line per flagged record, with the detector hash and a hash of every input table."><h3>Lead</h3><p>Each flagged record comes back as a JSON line with its detector, inputs and parameters.</p></li>
+            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>Accept as a lead · Dismiss</b><br>Spotlight's integration, in review now, puts this at its Investigation gate. Nothing becomes a finding until a person and the fact-checker have been through it."><h3>Gate</h3><p>A person accepts or dismisses each lead. A detector never decides what's true.</p></li>
+          </ol>
+          <div class="readout" id="readout"></div>
         </div>
       </div>
     </section>
 
-    <section id="use" aria-labelledby="use-h">
+    
+
+    <section id="install" aria-labelledby="install-h">
       <div class="wrap">
-        <h2 id="use-h">Install it once, then three commands do the work.</h2>
+        <h2 id="install-h">Install it once, then three commands do the work.</h2>
         <p class="intro">Anomaly is a local Python package with no account, server or API key of its own. It needs Python 3.11 or later and <a href="https://docs.astral.sh/uv/">uv</a>.</p>
         <div class="cmds">
           <div class="cmd"><span>Install</span><code>git clone https://github.com/buriedsignals/Anomaly.git &amp;&amp; cd Anomaly &amp;&amp; uv sync</code><button class="copy" type="button" aria-label="Copy install command"></button></div>
           <div class="cmd"><span>Look up</span><code>uv run python -m anomaly.context --domain lobbying</code><button class="copy" type="button" aria-label="Copy lookup command"></button></div>
           <div class="cmd"><span>Source</span><code>uv run python -m anomaly.context --source global/opensanctions</code><button class="copy" type="button" aria-label="Copy source command"></button></div>
-          <div class="cmd"><span>Run</span><code>uv run python -m anomaly.oneshot --table donations.csv --request request.json --approved</code><button class="copy" type="button" aria-label="Copy run command"></button></div>
+          <div class="cmd"><span>Run</span><code>uv run python -m anomaly.oneshot --table examples/donations.csv --request examples/zscore_request.json --approved</code><button class="copy" type="button" aria-label="Copy run command"></button></div>
         </div>
-        <p class="board-note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. Anomaly also runs a full standalone case, with two journalist gates, replay and an independent reviewer: see the <a href="docs/flow.html">case workflow</a>.</p>
+        <p class="note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. The run command uses a small example in the repository and flags one donation. Without Spotlight, Anomaly can also run a full standalone case: see the <a href="https://github.com/buriedsignals/Anomaly#standalone-case-workflow">README</a>.</p>
       </div>
     </section>
   </main>
 
   <footer>
     <div class="wrap">
-      <p>Anomaly is built by <a href="https://buriedsignals.com/">Buried Signals</a> and works alongside <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. The source is on GitHub; a licence has not been published yet.</p>
+      <p>Anomaly is made by <a href="https://buriedsignals.com/">Buried Signals</a> as a plugin for <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. The source is on GitHub under the MIT licence.</p>
       <nav aria-label="Footer">
         <a href="https://github.com/buriedsignals/Anomaly">GitHub</a>
-        <a href="docs/flow.html">Case workflow</a>
         <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">Catalogue schema</a>
-        <a href="mailto:tom@buriedsignals.com">Contact</a>
       </nav>
     </div>
   </footer>
@@ -562,123 +367,284 @@
     const $ = (s, el = document) => el.querySelector(s);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const REPO = 'https://github.com/buriedsignals/Anomaly/blob/main/';
+    const INK = '#161B22', BLUE = '#2546B5', GREEN = '#1C7350', RED = '#D42A3C';
+    const FONT = "'Martian Mono', ui-monospace, monospace";
+    const whenVisible = (el, on, off) => new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? on() : off()), { rootMargin: '80px' }).observe(el);
 
-    /* ---------- split-flap ---------- */
-    const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    function flap(el, text) {
-      el.textContent = '';
-      [...text].forEach((ch, i) => {
-        const s = document.createElement('span');
-        s.className = 'ch'; s.textContent = ch;
-        el.appendChild(s);
-        if (reduced || ch === ' ') return;
-        let n = 3 + i * 2;
-        const tick = () => {
-          if (n-- <= 0) { s.textContent = ch; s.classList.remove('flip'); return; }
-          s.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
-          s.classList.remove('flip'); void s.offsetWidth; s.classList.add('flip');
-          setTimeout(tick, 55);
-        };
-        tick();
+    /* ================= the machine =================
+       An abstract picture of what Anomaly does: records leave the sources,
+       pass the detectors, and the few that don't fit are pulled out as caughtList. */
+    const SOURCES = ['lobbying', 'procurement', 'companies', 'court'];
+    const GATES = ['outliers', 'rare values', 'duplicates'];
+    const cv = $('#mc'), ctx = cv.getContext('2d'), bench = $('#bench');
+    let W = 0, H = 0, dpr = 1, s = 1, L = {};
+    const flow = [], caughtList = [], flash = [0, 0, 0];
+    let nRec = 0, nLead = 0, spawnAcc = 0, leadNo = 0, sinceLead = 0, hover = null;
+    const notes = [];
+    // What each core detector would say about a record it caught (simulated).
+    const WHY = { 'outliers': 'amount far from the rest', 'rare values': 'category seen once', 'duplicates': 'same row twice' };
+
+    function layout() {
+      const r = bench.getBoundingClientRect();
+      dpr = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      s = Math.max(0.55, Math.min(1, W / 1240));
+      const m = Math.max(14, (W - Math.min(W, 1240)) / 2 + 24 * s);
+      const top = 64 * s + 10, bot = H - 30 * s;
+      L = {
+        top, bot, mid: (top + bot) / 2,
+        srcX: m + 18 * s, srcW: 70 * s, srcH: 44 * s,
+        srcY: SOURCES.map((_, i) => top + (bot - top) * (i + 0.5) / SOURCES.length),
+        trayX: W - m - (W < 560 ? 92 : 190 * s), trayW: W < 560 ? 92 : 190 * s,
+      };
+      L.outX = L.srcX + L.srcW;
+      // On narrow screens spread the gates across the whole stream so their labels fit.
+      L.gates = GATES.map((_, i) => W < 560 ? L.outX + (L.trayX - L.outX) * (0.3 + i * 0.25) : W * (0.42 + i * 0.1));
+    }
+    const ease = u => 1 - (1 - u) ** 3;
+    function spawn() {
+      const src = (Math.random() * SOURCES.length) | 0;
+      // Roughly one record in forty fails a detector.
+      const caught = Math.random() < 0.04 || sinceLead > 70 ? (Math.random() * GATES.length) | 0 : -1;
+      sinceLead = caught >= 0 ? 0 : sinceLead + 1;
+      flow.push({ no: nRec + 1, src, x: L.outX, y0: L.srcY[src] + (Math.random() - .5) * L.srcH * .5, lane: (Math.random() - .5) * (L.bot - L.top) * .3, caught, state: 'flow', v: (120 + Math.random() * 40) * s });
+      nRec++;
+    }
+    function step(dt) {
+      spawnAcc += dt * 15;
+      while (spawnAcc > 1) { spawn(); spawnAcc--; }
+      for (let i = flow.length - 1; i >= 0; i--) {
+        const p = flow[i];
+        if (p.state === 'flow') {
+          p.x += p.v * dt;
+          const u = Math.min(1, (p.x - L.outX) / (L.gates[0] - L.outX));
+          p.y = p.y0 + (L.mid + p.lane - p.y0) * ease(u);
+          if (p.caught >= 0 && p.x >= L.gates[p.caught]) {
+            p.state = 'pull'; p.t = 0; p.fx = p.x; p.fy = p.y; flash[p.caught] = 1;
+            p.slot = leadNo++; p.gate = GATES[p.caught];
+            if (W >= 560) notes.push({ x: p.x, y: p.y, text: WHY[p.gate], age: 0 });  // no room for notes on phones
+          }
+          if (p.x > L.trayX - 30 * s) flow.splice(i, 1);
+        } else {
+          p.t += dt / 1.1;
+          const u = ease(Math.min(1, p.t));
+          const tx = L.trayX + 22 * s, ty = trayY(0);
+          const cx = (p.fx + tx) / 2, cy = Math.min(p.fy, ty) - 70 * s;
+          p.x = (1 - u) ** 2 * p.fx + 2 * (1 - u) * u * cx + u * u * tx;
+          p.y = (1 - u) ** 2 * p.fy + 2 * (1 - u) * u * cy + u * u * ty;
+          if (p.t >= 1) { flow.splice(i, 1); caughtList.unshift({ no: p.slot + 1, gate: p.gate, age: 0 }); nLead++; if (caughtList.length > 6) caughtList.pop(); }
+        }
+      }
+      caughtList.forEach(l => l.age += dt);
+      for (let i = notes.length - 1; i >= 0; i--) { notes[i].age += dt; if (notes[i].age > 2.4) notes.splice(i, 1); }
+      for (let g = 0; g < 3; g++) flash[g] = Math.max(0, flash[g] - dt * 1.8);
+    }
+    const trayY = i => L.top + 26 * s + i * Math.max(26, 38 * s);
+    function label(text, x, y, align, color, weight = 400, size = 11) {
+      ctx.font = `${weight} ${Math.max(10, size * s + 2)}px ${FONT}`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y);
+    }
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      const head = 26 * s + 8;
+      label('DATA SOURCES', L.srcX, head, 'left', '#626B73');
+      label('DETECTORS', L.gates[1], head, 'center', '#626B73');
+      label('LEADS', L.trayX, head, 'left', '#626B73');
+      // Sources: small tables.
+      L.srcY.forEach((y, i) => {
+        const x = L.srcX, w = L.srcW, h = L.srcH;
+        ctx.fillStyle = '#F5F6F0'; ctx.strokeStyle = BLUE; ctx.lineWidth = 1.4;
+        mRect(x, y - h / 2, w, h, 6); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(37,70,181,.35)'; ctx.lineWidth = 1;
+        for (let k = 1; k < 4; k++) { const ry = y - h / 2 + h * k / 4; ctx.beginPath(); ctx.moveTo(x + 6, ry); ctx.lineTo(x + w - 6, ry); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(x + w * .38, y - h / 2 + 4); ctx.lineTo(x + w * .38, y + h / 2 - 4); ctx.stroke();
+        label(SOURCES[i], W < 560 ? x : x + w / 2, y + h / 2 + 13 * s + 2, W < 560 ? 'left' : 'center', '#434C55', 400, 10.5);
       });
+      // Detectors: gates the stream must pass.
+      L.gates.forEach((x, g) => {
+        const y0 = L.top + 4, y1 = L.bot - 4;
+        ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+        ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(28,115,80,.55)';
+        for (let y = y0 + 8; y < y1; y += 12 * s + 4) { ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke(); }
+        if (flash[g] > 0) { ctx.globalAlpha = flash[g]; ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.globalAlpha = 1; }
+        // Narrow screens alternate gate labels above and below so they never overlap.
+        label(GATES[g], x, W < 560 && g === 1 ? y0 - 12 : y1 + 16 * s + 2, 'center', '#434C55', 400, 10.5);
+      });
+      // Records.
+      for (const p of flow) {
+        if (p.state === 'flow') {
+          const past = Math.max(0, (p.x - L.gates[2]) / (L.trayX - 30 * s - L.gates[2]));
+          ctx.globalAlpha = 0.85 * (1 - past);
+          ctx.fillStyle = p.x > L.gates[2] ? '#8A939B' : BLUE;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 3.2 * s + .6, 0, 7); ctx.fill();
+        } else {
+          ctx.globalAlpha = 1; ctx.fillStyle = RED;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4.6 * s + 1, 0, 7); ctx.fill();
+          ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(p.x, p.y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      // Leads tray.
+      ctx.strokeStyle = 'rgba(22,27,34,.3)'; ctx.lineWidth = 1.2; ctx.fillStyle = 'rgba(255,255,255,.75)';
+      mRect(L.trayX, L.top, L.trayW, L.bot - L.top, 10); ctx.fill(); ctx.stroke();
+      caughtList.forEach((l, i) => {
+        const y = trayY(i), x = L.trayX + 22 * s, a = Math.min(1, l.age / 0.25);
+        if (y > L.bot - 14) return;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(x, y, 4.6 * s + 1, 0, 7); ctx.fill();
+        ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke();
+        if (W > 560) { label(`lead ${String(l.no).padStart(3, '0')}`, x + 22 * s, y - 6 * s, 'left', INK, 600, 11); label(l.gate, x + 22 * s, y + 8 * s, 'left', '#626B73', 400, 10); }
+        else label(String(l.no).padStart(3, '0'), x + 18, y, 'left', INK, 600, 11);
+        ctx.globalAlpha = 1;
+      });
+      // Margin notes in red pen where a detector caught a record.
+      for (const n of notes) {
+        const a = n.age < 0.2 ? n.age / 0.2 : n.age > 1.9 ? Math.max(0, (2.4 - n.age) / 0.5) : 1;
+        const tx = n.x + 16, ty = Math.max(L.top + 12, n.y - 30 * s - 8);
+        ctx.globalAlpha = a; ctx.strokeStyle = RED; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(n.x + 6, n.y - 6); ctx.quadraticCurveTo(n.x + 8, ty + 4, tx, ty); ctx.stroke();
+        ctx.font = `500 ${Math.max(10, 10.5 * s + 2)}px ${FONT}`;
+        const tw = ctx.measureText(n.text).width;
+        ctx.fillStyle = 'rgba(245,246,240,.92)'; mRect(tx, ty - 9, tw + 8, 18, 4); ctx.fill();
+        label(n.text, tx + 4, ty, 'left', RED, 500, 10.5);
+        ctx.globalAlpha = 1;
+      }
+      // Hover readout: the record nearest the pointer.
+      if (hover) {
+        let best = null, bd = 18;
+        for (const p of flow) { const d = Math.hypot(p.x - hover.x, p.y - hover.y); if (d < bd) { bd = d; best = p; } }
+        if (best) {
+          const status = best.state === 'pull' ? `caught by ${best.gate}` : best.x > L.gates[2] ? 'passed every check' : `checked by ${GATES.filter((_, g) => best.x > L.gates[g]).length} of 3`;
+          const lines = [`record ${String(best.no).padStart(4, '0')}`, `from ${SOURCES[best.src]}`, status];
+          ctx.font = `600 ${Math.max(10, 11 * s + 2)}px ${FONT}`;
+          const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 24, h = 60;
+          let bx = best.x + 14; if (bx + w > W - 8) bx = best.x - 14 - w;
+          const by = Math.min(Math.max(L.top, best.y - h / 2), L.bot - h);
+          ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 7); ctx.stroke();
+          ctx.fillStyle = INK; mRect(bx, by, w, h, 8); ctx.fill();
+          lines.forEach((l, i) => label(l, bx + 11, by + 15 + i * 15, 'left', i === 2 && best.state === 'pull' ? '#FF8A95' : '#F5F6F0', i === 0 ? 600 : 400, 11));
+        }
+      }
+    }
+    function mRect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+    function tally() { $('#n-rec').textContent = nRec.toLocaleString('en-US'); $('#n-lead').textContent = nLead; }
+    let mRun = false, mRaf = 0, mLast = 0;
+    function mFrame(ts) {
+      const dt = Math.min(0.05, (ts - mLast) / 1000 || 0); mLast = ts;
+      step(dt); draw(); tally();
+      if (mRun) mRaf = requestAnimationFrame(mFrame);
+    }
+    function bootMachine() {
+      layout();
+      for (let i = 0; i < 1500; i++) step(1 / 60);   // start mid-flow
+      draw(); tally();
+      let paused = reduced, seen = false;
+      const play = () => { if (!mRun && seen && !paused) { mRun = true; mLast = performance.now(); mRaf = requestAnimationFrame(mFrame); } };
+      const halt = () => { mRun = false; cancelAnimationFrame(mRaf); };
+      const btn = $('#mc-pause');
+      if (reduced) btn.hidden = true;
+      btn.addEventListener('click', () => { paused = !paused; btn.setAttribute('aria-pressed', String(paused)); btn.textContent = paused ? 'Play' : 'Pause'; paused ? halt() : play(); });
+      if (!reduced) whenVisible(bench, () => { seen = true; play(); }, () => { seen = false; halt(); });
+    }
+    let mrt; addEventListener('resize', () => { clearTimeout(mrt); mrt = setTimeout(() => { layout(); flow.length = 0; for (let i = 0; i < 200; i++) step(1 / 60); draw(); }, 120); });
+    bench.addEventListener('pointermove', e => { const b = bench.getBoundingClientRect(); hover = { x: e.clientX - b.left, y: e.clientY - b.top }; if (!mRun) draw(); });
+    bench.addEventListener('pointerleave', () => { hover = null; if (!mRun) draw(); });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(bootMachine);
+
+    /* ================= how it works: records along the route ================= */
+    const rsvg = $('#route-svg');
+    const SX = i => 100 + i * 200, RY = 60;
+    const NS = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+    rsvg.appendChild(mk('line', { x1: SX(0), y1: RY, x2: SX(5), y2: RY, stroke: 'rgba(22,27,34,.22)', 'stroke-width': 1.5 }));
+    // Records only exist from Fetch onward; leads only from Run onward.
+    rsvg.appendChild(mk('line', { x1: SX(2), y1: RY, x2: SX(3), y2: RY, stroke: BLUE, 'stroke-width': 1.5, 'stroke-opacity': .35 }));
+    rsvg.appendChild(mk('line', { x1: SX(3), y1: RY, x2: SX(5), y2: RY, stroke: RED, 'stroke-width': 1.5, 'stroke-opacity': .35, 'stroke-dasharray': '4 4' }));
+    const rings = [];
+    for (let i = 0; i < 6; i++) {
+      const g = mk('g', {});
+      g.appendChild(mk('circle', { cx: SX(i), cy: RY, r: 17, fill: '#F5F6F0', stroke: INK, 'stroke-width': 1.5 }));
+      const t = mk('text', { x: SX(i), y: RY + 4.5, 'text-anchor': 'middle', 'font-family': FONT, 'font-size': 13, 'font-weight': 600, fill: INK });
+      t.textContent = i + 1; g.appendChild(t);
+      rsvg.appendChild(g); rings.push(g);
+    }
+    const dots = mk('g', {}); rsvg.insertBefore(dots, rings[0]);
+    const parts = [];
+    function spawnQuery(t) { parts.push({ kind: 'q', t0: t }); }
+    function routeTick(now) {
+      dots.innerHTML = '';
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i], age = now - p.t0;
+        if (p.kind === 'q') {
+          // A question travels from Ask to Fetch, then becomes a batch of records.
+          const u = Math.min(1, age / 1900), x = SX(0) + (SX(2) - SX(0)) * easeInOut(u);
+          dots.appendChild(mk('circle', { cx: x, cy: RY, r: 6, fill: INK }));
+          if (u >= 1) { parts.splice(i, 1); const lead = (Math.random() * 9) | 0; for (let k = 0; k < 9; k++) parts.push({ kind: 'r', t0: now + k * 120, dy: (k - 4) * 4.2, lead: k === lead && Math.random() < 0.8 }); }
+        } else {
+          if (age < 0) continue;
+          const u = age / 1700;
+          if (u < 1) {
+            const x = SX(2) + (SX(3) - SX(2)) * easeInOut(u), y = RY + p.dy * Math.sin(Math.PI * u);
+            dots.appendChild(mk('circle', { cx: x, cy: y, r: 4, fill: BLUE, 'fill-opacity': .8 }));
+          } else if (!p.lead) {
+            const f = Math.min(1, (u - 1) / 0.35);
+            dots.appendChild(mk('circle', { cx: SX(3) + 8 * f, cy: RY + p.dy * f * 2, r: 4 * (1 - f), fill: BLUE, 'fill-opacity': .8 * (1 - f) }));
+            if (f >= 1) parts.splice(i, 1);
+          } else {
+            const v = Math.min(1, (u - 1) / 1.6), x = SX(3) + (SX(5) - SX(3)) * easeInOut(v);
+            dots.appendChild(mk('circle', { cx: x, cy: RY, r: 6, fill: RED }));
+            dots.appendChild(mk('ellipse', { cx: x, cy: RY, rx: 12, ry: 10, fill: 'none', stroke: RED, 'stroke-width': 1.5 }));
+            if (v >= 1) { p.hold = (p.hold || now); const h = (now - p.hold) / 1200; if (h >= 1) parts.splice(i, 1); }
+          }
+        }
+      }
+    }
+    const easeInOut = u => u < .5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
+    let routeRaf = 0, routeOn = false, lastQ = 0;
+    function routeFrame() {
+      const now = performance.now();
+      if (now - lastQ > 4300) { spawnQuery(now); lastQ = now; }
+      routeTick(now);
+      if (routeOn) routeRaf = requestAnimationFrame(routeFrame);
+    }
+    if (reduced) {
+      // A still: a batch of records at Run and one lead at Lead.
+      [-12, -4, 4, 12].forEach(dy => dots.appendChild(mk('circle', { cx: SX(2) + 120, cy: RY + dy, r: 4, fill: BLUE, 'fill-opacity': .8 })));
+      dots.appendChild(mk('circle', { cx: SX(4), cy: RY, r: 6, fill: RED }));
+    } else {
+      whenVisible(rsvg, () => { if (!routeOn) { routeOn = true; routeRaf = requestAnimationFrame(routeFrame); } }, () => { routeOn = false; cancelAnimationFrame(routeRaf); });
     }
 
-    /* ---------- live board: synthetic donations, leave-one-out z ---------- */
-    const RECIPIENTS = ['Friends of Ward 4', 'Harbour Citizens PAC', 'Committee to Elect Ortiz', 'Valley Growth Fund', 'Neighbours for Lin', 'Clearwater Action', 'Northside Unity', 'Patel for Council', 'Riverside Forward', 'Okafor 2026'];
-    const stream = $('#stream');
-    const window_ = [];
-    const ROWS = 6;
-    let seq = 48213;
-    function amount() {
-      // Mostly small donations around $250, with a rare outsized one.
-      if (Math.random() < 0.06) return Math.round(2600 + Math.random() * 5200);
-      const g = (Math.random() + Math.random() + Math.random() - 1.5) * 1.2;
-      return Math.max(10, Math.round(Math.exp(5.6 + g * 0.85)));
-    }
-    function looZ(x, xs) {
-      // Same leave-one-out score as numeric.zscore_outliers: compare x with the others.
-      const others = xs.slice(0, -1);
-      if (others.length < 3) return 0;
-      const m = others.reduce((a, b) => a + b, 0) / others.length;
-      const v = others.reduce((a, b) => a + (b - m) ** 2, 0) / others.length;
-      return v > 0 ? Math.abs(x - m) / Math.sqrt(v) : 0;
-    }
-    const pad = n => String(n).padStart(2, '0');
-    const now = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
-    function addRow(initial) {
-      const x = amount();
-      window_.push(x); if (window_.length > 40) window_.shift();
-      const z = looZ(x, window_);
-      const isLead = z >= 3;
-      const row = document.createElement('div');
-      row.className = 'row' + (initial ? '' : ' enter');
-      row.innerHTML = `<span class="dim">${now()}</span><span class="c-rec">D-${seq++}</span><span class="name">${esc(RECIPIENTS[(Math.random() * RECIPIENTS.length) | 0])}</span><span class="num">$${x.toLocaleString('en-US')}</span><span class="num c-z dim">${z.toFixed(1)}</span><span class="status ok"></span>`;
-      const label = stream.querySelector('.label');
-      label.after(row);
-      const st = row.querySelector('.status');
-      flap(st, initial ? 'OK' : '····'.replace(/·/g, ' ').trim() || 'OK');
-      if (!initial) {
-        setTimeout(() => {
-          if (isLead) { row.classList.add('is-lead'); st.className = 'status lead'; flap(st, 'LEAD'); }
-          else flap(st, 'OK');
-        }, reduced ? 0 : 420);
-      } else if (isLead) { row.classList.add('is-lead'); st.className = 'status lead'; flap(st, 'LEAD'); }
-      const rows = stream.querySelectorAll('.row:not(.label)');
-      if (rows.length > ROWS) rows[rows.length - 1].remove();
-    }
-    // Warm the window so the first scores mean something.
-    for (let i = 0; i < 34; i++) { const x = amount(); window_.push(x > 2600 ? 310 : x); }
-    for (let i = 0; i < ROWS; i++) addRow(true);
-    // Guarantee one visible flag early so the mechanism is seen.
-    setTimeout(() => {
-      const x = 6400; window_.push(x); window_.shift();
-      const z = looZ(x, window_);
-      const row = document.createElement('div');
-      row.className = 'row enter';
-      row.innerHTML = `<span class="dim">${now()}</span><span class="c-rec">D-${seq++}</span><span class="name">Harbour Citizens PAC</span><span class="num">$${x.toLocaleString('en-US')}</span><span class="num c-z dim">${z.toFixed(1)}</span><span class="status ok"></span>`;
-      stream.querySelector('.label').after(row);
-      const st = row.querySelector('.status');
-      setTimeout(() => { if (z >= 3) { row.classList.add('is-lead'); st.className = 'status lead'; } flap(st, z >= 3 ? 'LEAD' : 'OK'); }, reduced ? 0 : 420);
-      const rows = stream.querySelectorAll('.row:not(.label)'); if (rows.length > ROWS) rows[rows.length - 1].remove();
-    }, reduced ? 0 : 1600);
-    const clock = $('#clock');
-    setInterval(() => { clock.textContent = now(); }, 1000); clock.textContent = now();
-    let streaming = !reduced;
-    if (streaming) {
-      const tick = () => { if (!document.hidden) addRow(false); setTimeout(tick, 2300 + Math.random() * 1400); };
-      setTimeout(tick, 3800);
-    }
-
-    /* ---------- route strip ---------- */
     const stops = [...document.querySelectorAll('.stop')];
-    const routeCmd = $('#route-cmd');
-    const line = $('.route-line i');
-    let current = 0, routeTimer;
+    const readout = $('#readout');
+    let current = 0, stepTimer = 0, userPicked = false;
     function setStop(i) {
       current = i;
-      stops.forEach((s, k) => { s.classList.toggle('now', k === i); s.classList.toggle('past', k < i); });
-      line.style.setProperty('--progress', `${(i / (stops.length - 1)) * 100}%`);
-      routeCmd.innerHTML = stops[i].dataset.cmd;
+      stops.forEach((s, k) => { k === i ? s.setAttribute('aria-current', 'step') : s.removeAttribute('aria-current'); });
+      rings.forEach((g, k) => {
+        const c = g.firstChild, t = g.lastChild, on = k === i, col = k >= 4 ? RED : (k >= 2 ? BLUE : INK);
+        c.setAttribute('fill', on ? col : '#F5F6F0'); c.setAttribute('stroke', on ? col : INK);
+        t.setAttribute('fill', on ? '#F5F6F0' : INK);
+      });
+      readout.innerHTML = stops[i].dataset.cmd;
     }
     stops.forEach((s, i) => {
-      s.tabIndex = 0;
-      const go = () => { clearInterval(routeTimer); setStop(i); };
+      s.tabIndex = 0; s.setAttribute('role', 'button');
+      const go = () => { userPicked = true; clearInterval(stepTimer); readout.setAttribute('aria-live', 'polite'); setStop(i); };
       s.addEventListener('click', go);
       s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     });
     setStop(0);
-    const routeObs = new IntersectionObserver(es => {
-      es.forEach(e => {
-        clearInterval(routeTimer);
-        if (e.isIntersecting && !reduced) routeTimer = setInterval(() => setStop((current + 1) % stops.length), 3200);
-      });
-    }, { threshold: 0.4 });
-    routeObs.observe($('.route'));
+    let routeHeld = false;
+    const route = $('.route');
+    ['pointerenter', 'focusin'].forEach(ev => route.addEventListener(ev, () => { routeHeld = true; }));
+    ['pointerleave', 'focusout'].forEach(ev => route.addEventListener(ev, () => { routeHeld = false; }));
+    if (!reduced) whenVisible(route, () => { clearInterval(stepTimer); if (!userPicked) stepTimer = setInterval(() => { if (!routeHeld) setStop((current + 1) % stops.length); }, 3400); }, () => clearInterval(stepTimer));
 
-    /* ---------- catalogue data ---------- */
+    /* ================= catalogue data ================= */
     let DATA = null;
-    const state = { view: 'sources', q: '', filters: new Set(), domain: 'lobbying', open: null };
-
+    const state = { view: 'sources', q: '', filters: new Set(), domain: 'lobbying', open: null, all: false };
     const access = s => {
       if (s.auth === 'subscription' || (s.cost || []).includes('paid') || (s.cost || []).includes('credits')) return 'paid';
       if (s.auth === 'api_key') return 'key';
@@ -687,144 +653,139 @@
     const ACCESS_LABEL = { free: 'Free', key: 'Needs key', paid: 'Paid' };
     const allSources = () => DATA.domains.flatMap(d => d.sources);
     const allDetectors = () => [...DATA.any_table.map(d => ({ ...d, domain: null })), ...DATA.domains.flatMap(d => d.detectors)];
+    const short = s => s.title.split(' — ')[0];
 
     function render() {
-      const board = $('#cat-board');
+      const board = $('#ledger');
       const q = state.q.trim().toLowerCase();
       const match = obj => !q || JSON.stringify(obj).toLowerCase().includes(q);
       $('#filters').style.visibility = state.view === 'sources' ? 'visible' : 'hidden';
       let rows = [], head = '';
       if (state.view === 'sources') {
-        head = '<div class="crow head"><span>Source</span><span>Name</span><span class="c-dom">Domain</span><span class="c-acc">Access</span><span>Status</span></div>';
+        head = '<div class="crow head"><span>Source</span><span>Name</span><span>Domain</span><span>Access</span><span>Status</span></div>';
         rows = allSources().filter(match).filter(s => {
           if (!state.filters.size) return true;
           return [...state.filters].every(f => f === 'catalogued' ? s.status === 'catalogued' : access(s) === f);
         }).map(s => ({
           key: 's:' + s.id,
-          html: `<span class="id" title="${esc(s.id)}">${esc(s.id)}</span><span class="t">${esc(s.title)}</span><span class="m c-dom">${esc(s.domain)}</span><span class="c-acc"><span class="pill ${access(s) === 'key' ? 'key-p' : access(s)}">${ACCESS_LABEL[access(s)]}</span></span><span><span class="pill ${s.status === 'catalogued' ? 'c' : 'q'}">${esc(s.status)}</span></span>`,
+          html: `<span class="id" title="${esc(s.id)}">${esc(s.id)}</span><span class="t">${esc(s.title)}</span><span class="m">${esc(s.domain)}</span><span class="m">${ACCESS_LABEL[access(s)]}</span><span><span class="tag-s ${s.status === 'catalogued' ? 'c' : 'q'}">${esc(s.status)}</span></span>`,
           detail: () => `<div><p>${esc(s.description)}</p>${s.provides && s.provides.length ? `<p>Fills the ${esc(s.domain)} contract tables:</p><div class="tags">${s.provides.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
             <dl><dt>Licence</dt><dd>${esc(s.license)}</dd><dt>Access</dt><dd>${esc(ACCESS_LABEL[access(s)])}${s.auth && s.auth !== 'none' ? ` (${esc(s.auth.replace('_', ' '))})` : ''}${(s.cost || []).filter(c => c !== 'free').length ? ` · ${esc(s.cost.filter(c => c !== 'free').join(', ').replace(/_/g, ' '))}` : ''}</dd>${s.jurisdiction ? `<dt>Scope</dt><dd>${esc(s.jurisdiction)}</dd>` : ''}${s.setup_url ? `<dt>Setup</dt><dd><a href="${esc(s.setup_url)}">${esc(s.setup_url)}</a></dd>` : ''}<dt>How to use</dt><dd><a href="${REPO + esc(s.skill)}">${esc(s.skill)}</a></dd></dl>`
         }));
       } else if (state.view === 'detectors') {
-        head = '<div class="crow head"><span>Detector</span><span>What it flags</span><span class="c-dom">Domain</span><span class="c-acc">Severity</span><span>Reads</span></div>';
+        head = '<div class="crow head"><span>Detector</span><span>What it flags</span><span>Domain</span><span>Severity</span><span>Reads</span></div>';
         rows = allDetectors().filter(match).map(d => ({
           key: 'd:' + d.id,
-          html: `<span class="id" title="${esc(d.id)}">${esc(d.id)}</span><span class="t">${esc(d.title)}</span><span class="m c-dom">${esc(d.domain || 'any table')}</span><span class="m c-acc">${esc(d.severity || '')}</span><span><span class="pill ${d.domain ? 'c' : 'q'}">${d.domain ? (d.required_tables || []).length + ' tables' : 'roles'}</span></span>`,
+          html: `<span class="id" title="${esc(d.id)}">${esc(d.id)}</span><span class="t">${esc(d.title)}</span><span class="m">${esc(d.domain || 'any table')}</span><span class="m">${esc(d.severity || '')}</span><span><span class="tag-s det">${d.domain ? (d.required_tables || []).length + ' tables' : 'any table'}</span></span>`,
           detail: () => `<div><p>${esc(d.description)}</p>${(d.assumptions || []).length ? `<dl><dt>Assumes</dt><dd><ul>${d.assumptions.map(a => `<li>${esc(a)}</li>`).join('')}</ul></dd><dt>False positives</dt><dd><ul>${(d.false_positives || []).map(a => `<li>${esc(a)}</li>`).join('')}</ul></dd></dl>` : ''}</div>
             <dl><dt>Version</dt><dd>${esc(d.version)}</dd><dt>${d.domain ? 'Tables' : 'Roles'}</dt><dd><div class="tags">${(d.domain ? d.required_tables : (d.required_fields || []).map(f => f.name)).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></dd><dt>Parameters</dt><dd>${Object.entries(d.parameters || {}).map(([k, v]) => `${esc(k)} = ${esc(v.default)}`).join(' · ') || 'none'}</dd></dl>`
         }));
       } else {
-        head = '<div class="crow head"><span>Domain</span><span>Sources</span><span class="c-dom">Detectors</span><span class="c-acc">Contract</span><span>Status</span></div>';
+        head = '<div class="crow head"><span>Domain</span><span>Sources</span><span>Detectors</span><span>Contract</span><span>Covers</span></div>';
         rows = DATA.domains.filter(match).map(d => ({
           key: 'm:' + d.domain,
-          html: `<span class="id">${esc(d.domain)}</span><span class="t">${esc(d.sources.map(s => s.title.split(' — ')[0]).join(' · '))}</span><span class="m c-dom">${d.detectors.length ? d.detectors.length + ' + core' : 'core only'}</span><span class="m c-acc">${d.contract ? Object.keys(d.contract).length + ' tables' : 'none yet'}</span><span><span class="pill ${d.detectors.length ? 'q' : 'c'}">${d.sources.length} source${d.sources.length === 1 ? '' : 's'}</span></span>`,
+          html: `<span class="id">${esc(d.domain)}</span><span class="t">${esc(d.sources.map(short).join(' · '))}</span><span class="m">${d.detectors.length ? d.detectors.length + ' + core' : 'core only'}</span><span class="m">${d.contract ? Object.keys(d.contract).length + ' tables' : 'none yet'}</span><span><span class="tag-s q">${d.sources.length} source${d.sources.length === 1 ? '' : 's'}</span></span>`,
           detail: () => `<div><p>${d.contract ? `The ${esc(d.domain)} contract defines ${Object.keys(d.contract).length} tables that its ${d.detectors.length} detectors read.` : `No multi-table detectors read ${esc(d.domain)} yet, so its sources work with the ${DATA.any_table.length} core detectors, which run on any table.`}</p>${d.contract ? `<div class="tags">${Object.keys(d.contract).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
             <dl><dt>Sources</dt><dd>${d.sources.map(s => esc(s.id)).join('<br>')}</dd>${d.detectors.length ? `<dt>Detectors</dt><dd>${d.detectors.map(x => esc(x.id)).join('<br>')}</dd>` : ''}</dl>`
         }));
       }
+      const found = rows.length, cap = state.all || q || state.filters.size ? found : 8;
+      rows = rows.slice(0, cap);
       if (!rows.length) {
-        board.innerHTML = head + `<div class="empty"><b>NO MATCH</b>Nothing on the board matches “${esc(state.q)}”. Try a domain such as procurement, a source such as OpenFEC, or a country.</div>`;
+        board.innerHTML = head + `<div class="empty"><b>Nothing matches “${esc(state.q)}”.</b>Try a domain such as procurement, a source such as OpenFEC, or a country code such as FR.</div>`;
       } else {
-        board.innerHTML = head + rows.map((r, i) => `<div class="crow" role="button" tabindex="0" aria-expanded="${state.open === r.key}" data-key="${esc(r.key)}" style="${reduced ? '' : `animation: rowin .35s var(--ease) ${Math.min(i, 12) * 22}ms both`}">${r.html}</div><div class="detail${state.open === r.key ? ' open' : ''}">${state.open === r.key ? r.detail() : ''}</div>`).join('');
-        board.querySelectorAll('.crow[data-key]').forEach((el, i) => {
+        board.innerHTML = head + rows.map((r, i) => `<div class="crow" role="button" tabindex="0" aria-expanded="${state.open === r.key}" data-key="${esc(r.key)}" style="${reduced ? '' : `animation: rowin .35s var(--ease) ${Math.min(i, 12) * 20}ms both`}">${r.html}</div><div class="detail${state.open === r.key ? ' open' : ''}">${state.open === r.key ? r.detail() : ''}</div>`).join('');
+        board.querySelectorAll('.crow[data-key]').forEach(el => {
           const toggle = () => { state.open = state.open === el.dataset.key ? null : el.dataset.key; render(); };
           el.addEventListener('click', toggle);
           el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
         });
       }
       const total = state.view === 'sources' ? allSources().length : state.view === 'detectors' ? allDetectors().length : DATA.domains.length;
-      $('#cat-count').textContent = `${rows.length} of ${total} ${state.view} shown`;
+      $('#cat-count').innerHTML = `${rows.length} of ${total} ${state.view} shown` + (found > rows.length ? ` · <button class="more" type="button">Show all ${found}</button>` : '');
+      const more = $('#cat-count .more'); if (more) more.addEventListener('click', () => { state.all = true; render(); });
     }
-
     document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
-      state.view = b.dataset.view; state.open = null;
+      state.view = b.dataset.view; state.open = null; state.all = false;
       document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
-      render();
+      if (DATA) render();
     }));
     document.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
       const f = b.dataset.f;
       state.filters.has(f) ? state.filters.delete(f) : state.filters.add(f);
       b.setAttribute('aria-pressed', String(state.filters.has(f)));
-      render();
+      if (DATA) render();
     }));
     $('#cat-q').addEventListener('input', e => { state.q = e.target.value; state.open = null; if (DATA) render(); });
-    $('#hero-search').addEventListener('submit', e => {
-      e.preventDefault();
-      const q = $('#hero-q').value;
-      $('#cat-q').value = q; state.q = q; state.open = null;
-      if (DATA) render();
-      $('#catalogue').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
-    });
 
-    /* ---------- interchange map ---------- */
+    /* ================= domain diagram ================= */
     function drawMap() {
       const d = DATA.domains.find(x => x.domain === state.domain) || DATA.domains[0];
       const svg = $('#map');
-      const W = 900;
+      const W = 960;
       const src = d.sources.slice(0, 9), srcMore = d.sources.length - src.length;
-      const dets = d.detectors.length ? d.detectors.slice(0, 9) : [];
-      const detMore = d.detectors.length - dets.length;
+      const dets = d.detectors.slice(0, 9), detMore = d.detectors.length - dets.length;
       const left = src.length + (srcMore > 0 ? 1 : 0);
       const right = (dets.length + (detMore > 0 ? 1 : 0)) || 1;
-      const rowsN = Math.max(left, right, 4);
-      const ROW = 46, TOP = 40, H = TOP * 2 + rowsN * ROW;
+      const tables = d.contract ? Object.keys(d.contract) : [];
+      const rowsN = Math.max(left, right, 4, Math.ceil(tables.length * 0.42));
+      const ROW = 44, TOP = 46, H = TOP * 2 + rowsN * ROW;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      const cx = W / 2, cy = H / 2;
+      const cx = W / 2, cy = H / 2 + 6;
       const yL = i => TOP + (rowsN - left) * ROW / 2 + i * ROW + ROW / 2;
       const yR = i => TOP + (rowsN - right) * ROW / 2 + i * ROW + ROW / 2;
-      const tables = d.contract ? Object.keys(d.contract) : [];
-      let g = '';
-      const hub = { w: 220, h: Math.max(84, 56 + Math.min(tables.length, 9) * 15) };
-      // lines
-      const fan = (i, n) => n <= 1 ? cy : cy - hub.h * 0.34 + (hub.h * 0.68) * (i / (n - 1));
+      const hub = { w: 236, h: Math.max(88, 62 + Math.min(tables.length, 9) * 16) };
+      const fan = (i, n) => n <= 1 ? cy : cy - hub.h * 0.32 + (hub.h * 0.64) * (i / (n - 1));
+      const XL = 272, XR = W - 272;
+      let g = '', moving = '';
+      const dot = (id, color, r, dur, delay) => reduced ? '' : `<circle r="${r}" fill="${color}"><animateMotion dur="${dur}s" begin="${delay}s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .6 1"><mpath href="#${id}"/></animateMotion></circle>`;
       src.forEach((s, i) => {
-        const y = yL(i), x1 = 262, x2 = cx - hub.w / 2, hy = fan(i, src.length);
-        const col = s.status === 'catalogued' ? 'rgba(245,242,237,.28)' : '#7DB1AE';
-        g += `<path d="M${x1} ${y} C ${x1 + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="#22272A" stroke-width="3"/>`;
-        g += `<path class="flow" d="M${x1} ${y} C ${x1 + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="${col}" stroke-width="3" style="animation-delay:${-i * .17}s"/>`;
-        g += `<circle cx="${x1}" cy="${y}" r="5" fill="#0D0F10" stroke="${col}" stroke-width="2.5"/>`;
-        g += `<text x="${x1 - 14}" y="${y + 4}" text-anchor="end" font-family="Space Grotesk" font-size="14" fill="#F5F2ED">${esc(s.title.split(' — ')[0].slice(0, 30))}</text>`;
+        const y = yL(i), x2 = cx - hub.w / 2, hy = fan(i, src.length), id = `ps${i}`;
+        const cat = s.status === 'catalogued';
+        g += `<path id="${id}" d="M${XL} ${y} C ${XL + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="${cat ? '#626B73' : BLUE}" stroke-opacity="${cat ? .55 : .7}" stroke-width="1.5" ${cat ? 'stroke-dasharray="4 4"' : ''}/>`;
+        g += `<circle cx="${XL}" cy="${y}" r="5" fill="${cat ? '#F5F6F0' : BLUE}" stroke="${cat ? '#626B73' : BLUE}" stroke-width="1.5" ${cat ? 'stroke-dasharray="2 2"' : ''}/>`;
+        g += `<text x="${XL - 14}" y="${y + 4}" text-anchor="end" font-family="${FONT}" font-size="12.5" fill="${INK}">${esc(short(s).slice(0, 28))}</text>`;
+        if (!cat) moving += dot(id, BLUE, 3.2, 2.4 + (i % 3) * .5, -i * .55);
       });
-      if (srcMore > 0) g += `<text x="248" y="${yL(src.length) + 4}" text-anchor="end" font-family="Space Mono" font-size="12" fill="rgba(245,242,237,.6)">+${srcMore} more</text>`;
+      if (srcMore > 0) g += `<text x="${XL - 14}" y="${yL(src.length) + 4}" text-anchor="end" font-family="${FONT}" font-size="11.5" fill="#626B73">+${srcMore} more</text>`;
+      const leadPath = dets.length ? (Math.random() * dets.length) | 0 : -1;
       if (dets.length) {
         dets.forEach((x, i) => {
-          const y = yR(i), x1 = cx + hub.w / 2, x2 = W - 262, hy = fan(i, dets.length);
-          g += `<path d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${x2 - 90} ${y}, ${x2} ${y}" fill="none" stroke="#22272A" stroke-width="3"/>`;
-          g += `<path class="flow" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${x2 - 90} ${y}, ${x2} ${y}" fill="none" stroke="#D4A853" stroke-width="3" style="animation-delay:${-i * .21}s"/>`;
-          g += `<circle cx="${x2}" cy="${y}" r="5" fill="#0D0F10" stroke="#D4A853" stroke-width="2.5"/>`;
-          g += `<text x="${x2 + 14}" y="${y + 4}" font-family="Space Mono" font-size="12.5" fill="#F5F2ED">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</text>`;
+          const y = yR(i), x1 = cx + hub.w / 2, hy = fan(i, dets.length), id = `pd${i}`;
+          g += `<path id="${id}" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${XR - 90} ${y}, ${XR} ${y}" fill="none" stroke="${GREEN}" stroke-opacity=".7" stroke-width="1.5"/>`;
+          g += `<rect x="${XR - 4.5}" y="${y - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
+          g += `<text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" fill="${INK}">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</text>`;
+          moving += dot(id, GREEN, 3, 2.8 + (i % 3) * .4, -i * .6);
+          if (i === leadPath) moving += dot(id, RED, 4.5, 3.6, 1.2);
         });
-        if (detMore > 0) g += `<text x="${W - 248}" y="${yR(dets.length) + 4}" font-family="Space Mono" font-size="12" fill="rgba(245,242,237,.6)">+${detMore} more</text>`;
+        if (detMore > 0) g += `<text x="${XR + 14}" y="${yR(dets.length) + 4}" font-family="${FONT}" font-size="11.5" fill="#626B73">+${detMore} more</text>`;
       } else {
-        const x1 = cx + hub.w / 2, x2 = W - 262;
-        g += `<path class="flow" d="M${x1} ${cy} L ${x2} ${cy}" fill="none" stroke="#D4A853" stroke-width="3"/>`;
-        g += `<circle cx="${x2}" cy="${cy}" r="5" fill="#0D0F10" stroke="#D4A853" stroke-width="2.5"/>`;
-        g += `<text x="${x2 + 14}" y="${cy - 4}" font-family="Space Mono" font-size="12.5" fill="#F5F2ED">${DATA.any_table.length} core detectors</text>`;
-        g += `<text x="${x2 + 14}" y="${cy + 14}" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.6)">run on any table</text>`;
+        const x1 = cx + hub.w / 2;
+        g += `<path id="pd0" d="M${x1} ${cy} L ${XR} ${cy}" fill="none" stroke="${GREEN}" stroke-opacity=".7" stroke-width="1.5"/>`;
+        g += `<rect x="${XR - 4.5}" y="${cy - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
+        g += `<text x="${XR + 14}" y="${cy - 3}" font-family="${FONT}" font-size="12" fill="${INK}">${DATA.any_table.length} core detectors</text>`;
+        g += `<text x="${XR + 14}" y="${cy + 14}" font-family="${FONT}" font-size="11" fill="#626B73">run on any table</text>`;
+        moving += dot('pd0', GREEN, 3, 2.6, 0) + dot('pd0', RED, 4.5, 3.4, 1.1);
       }
-      // hub
-      g += `<rect x="${cx - hub.w / 2}" y="${cy - hub.h / 2}" width="${hub.w}" height="${hub.h}" rx="12" fill="#16191B" stroke="#D4A853" stroke-width="2"/>`;
-      g += `<text x="${cx}" y="${cy - hub.h / 2 + 30}" text-anchor="middle" font-family="Doto" font-weight="700" font-size="22" fill="#D4A853">${esc(d.domain.toUpperCase())}</text>`;
-      if (tables.length) {
-        tables.slice(0, 9).forEach((t, i) => { g += `<text x="${cx}" y="${cy - hub.h / 2 + 54 + i * 15}" text-anchor="middle" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.66)">${esc(t)}</text>`; });
-      } else {
-        g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.6)">single-table domain</text>`;
-      }
-      g += `<text x="262" y="22" text-anchor="end" font-family="Space Mono" font-size="11" letter-spacing="2" fill="rgba(245,242,237,.6)">SOURCES</text>`;
-      g += `<text x="${W - 262}" y="22" font-family="Space Mono" font-size="11" letter-spacing="2" fill="rgba(245,242,237,.6)">DETECTORS</text>`;
-      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources and ${d.detectors.length || DATA.any_table.length + ' core'} detectors.</desc>` + g;
-      $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(s.title.split(' — ')[0])}</li>`).join('')}</ul>`
-        + `<div class="map-hub"><b>${esc(d.domain.toUpperCase())}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
+      g += `<rect x="${cx - hub.w / 2}" y="${cy - hub.h / 2}" width="${hub.w}" height="${hub.h}" rx="12" fill="#F5F6F0" stroke="${INK}" stroke-width="1.6"/>`;
+      g += `<text x="${cx}" y="${cy - hub.h / 2 + 30}" text-anchor="middle" font-family="${FONT}" font-weight="640" font-stretch="112.5%" font-size="17" fill="${INK}">${esc(d.domain)}</text>`;
+      if (tables.length) tables.slice(0, 9).forEach((t, i) => { g += `<text x="${cx}" y="${cy - hub.h / 2 + 54 + i * 16}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#434C55">${esc(t)}</text>`; });
+      else g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#626B73">single-table domain</text>`;
+      g += `<text x="${XL}" y="24" text-anchor="end" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">SOURCES</text>`;
+      g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">DETECTORS</text>`;
+      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources and ${d.detectors.length || DATA.any_table.length + ' core'} detectors.</desc>` + g + moving;
+      $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(short(s))}</li>`).join('')}</ul>`
+        + `<div class="map-hub"><b>${esc(d.domain)}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
         + `<h4>Detectors</h4><ul>${d.detectors.length ? d.detectors.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('') : `<li class="d">${DATA.any_table.length} core detectors, any table</li>`}</ul>`;
       const q = d.sources.filter(s => s.status !== 'catalogued').length;
       $('#map-caption').innerHTML = d.contract
-        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them. Teal lines are queryable sources and grey lines are catalogued ones.`
-        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b>. Nothing reads several ${esc(d.domain)} tables at once yet, so these sources feed the ${DATA.any_table.length} core detectors, which take any single table and map its columns to roles such as amount or date.`;
+        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them. Blue lines are queryable sources, dashed grey lines are catalogued ones, and green lines are detectors.`
+        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Nothing reads several ${esc(d.domain)} tables at once yet, so these sources feed the ${DATA.any_table.length} core detectors, which take any single table and map its columns to roles such as amount or date.`;
     }
     function drawDomainList() {
       const list = $('#domain-list');
       const sorted = [...DATA.domains].sort((a, b) => (b.detectors.length - a.detectors.length) || (b.sources.length - a.sources.length) || a.domain.localeCompare(b.domain));
-      list.innerHTML = sorted.map(d => `<button class="line-btn" aria-pressed="${d.domain === state.domain}" data-d="${esc(d.domain)}">${esc(d.domain)}<small>${d.sources.length} src${d.detectors.length ? ' · ' + d.detectors.length + ' det' : ''}</small></button>`).join('');
+      list.innerHTML = sorted.map(d => `<button class="chip" aria-pressed="${d.domain === state.domain}" data-d="${esc(d.domain)}">${esc(d.domain)}<small>${d.sources.length}${d.detectors.length ? ' · ' + d.detectors.length : ''}</small></button>`).join('');
       list.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => {
         state.domain = b.dataset.d;
         list.querySelectorAll('[data-d]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
@@ -836,15 +797,15 @@
       DATA = data;
       const S = allSources().length, D = allDetectors().length, M = DATA.domains.length;
       $('#n-sources').textContent = S; $('#n-detectors').textContent = D; $('#n-domains').textContent = M;
-      $('#cat-intro').innerHTML = `${S} data sources across ${M} domains, and ${D} detectors. Everything here is generated from the repository, so it is exactly what an agent gets back from <code>anomaly.context</code>.`;
+      $('#cat-intro').innerHTML = `The catalogue is every data source, domain and detector an agent can look up: ${S} sources across ${M} domains, and ${D} detectors. It is generated from the repository, so what you see here is exactly what <code>anomaly.context</code> returns.`;
       drawDomainList(); drawMap(); render();
     }
     fetch('docs/context.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(boot).catch(() => {
-      $('#cat-board').innerHTML = '<div class="empty"><b>BOARD OFFLINE</b>The catalogue snapshot did not load. The same data is one command away: <code>python -m anomaly.context</code>.</div>';
+      $('#ledger').innerHTML = '<div class="empty"><b>The catalogue snapshot did not load.</b>The same data is one command away: <code>python -m anomaly.context</code>.</div>';
       $('#map-caption').textContent = 'The domain diagram needs the catalogue snapshot, which did not load.';
     });
 
-    /* ---------- copy buttons ---------- */
+    /* ================= copy buttons ================= */
     const COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
     const DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
     document.querySelectorAll('.copy').forEach(b => {
