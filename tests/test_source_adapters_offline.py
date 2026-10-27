@@ -753,3 +753,122 @@ def test_electoral_commission_refuses_an_unfiltered_donations_export(run_source)
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []
 
+
+
+# --- Court contract sources ----------------------------------------------------
+# CourtListener database endpoints (documented at
+# https://wiki.free.law/c/courtlistener/help/api/rest/v4/pacer-data and
+# .../financial-disclosures; nested field names from cl/disclosures/models.py)
+# filled through the court domain contract (domains/court.yaml).
+
+CL = "https://www.courtlistener.com/api/rest/v4"
+CL_DOCKET = {
+    "id": 4214664, "court_id": "dcd", "case_name": "National Veterans Legal Services Program v. United States",
+    "docket_number": "1:16-cv-00745", "date_filed": "2016-04-21", "date_terminated": None,
+    "nature_of_suit": "Other Statutory Actions", "federal_dn_office_code": "1",
+    "assigned_to": f"{CL}/people/1124/", "assigned_to_str": "Paul L. Friedman",
+    "absolute_url": "/docket/4214664/national-veterans-legal-services-program-v-united-states/",
+}
+CL_PARTY = {"id": 42, "name": "Acme Widgets Inc.", "attorneys": [],
+            "party_types": [{"docket_id": 4214664, "name": "Defendant"}]}
+CL_DISCLOSURE = {
+    "id": 9, "person": f"{CL}/people/1124/", "year": 2017,
+    "filepath": "https://storage.courtlistener.com/financial-disclosures/1124-2017.pdf",
+    "investments": [{"description": "Acme Widgets Inc. (ACME)", "gross_value_code": "P4", "redacted": False}],
+    "gifts": [{"source": "Harlan Crow", "description": "Season pass", "value": "$1,199.00", "redacted": False}],
+    "reimbursements": [{"source": "Big Law LLP", "date_raw": "May 2017", "location": "Aspen, CO",
+                        "purpose": "Speaker", "items_paid_or_provided": "Travel, lodging"}],
+    "positions": [{"position": "Trustee", "organization_name": "Example University"}],
+    "agreements": [], "debts": [], "non_investment_incomes": [], "spouse_incomes": [],
+}
+
+
+def _court_columns(table: str) -> set[str]:
+    return set(domains.load_domain("court")["tables"][table]["columns"])
+
+
+def test_courtlistener_court_cases_list_one_court_by_date_and_stop_at_the_page_bound(run_source) -> None:
+    second = f"{CL}/dockets/?cursor=abc"
+    pages = {f"{CL}/dockets/": json.dumps({"next": second, "results": [CL_DOCKET]}),
+             second: json.dumps({"next": f"{CL}/dockets/?cursor=def", "results": [CL_DOCKET]})}
+
+    result = run_source("us/courtlistener/docket", {"operation": "court-cases", "court": "dcd",
+                                                    "filed_after": "2016-01-01", "pages": 2}, pages)
+
+    assert run_source.requested == [f"{CL}/dockets/", second]
+    assert {k: run_source.params[0][k] for k in ("court", "date_filed__gte")} == {
+        "court": "dcd", "date_filed__gte": "2016-01-01"}
+    row = result["records"][0]
+    assert _court_columns("court_cases") <= set(row)
+    assert (row["case_id"], row["assigned_judge_id"], row["division"], row["date_terminated"], row["url"]) == (
+        "4214664", "1124", "1", None,
+        "https://www.courtlistener.com/docket/4214664/national-veterans-legal-services-program-v-united-states/")
+
+
+def test_courtlistener_parties_and_counsel_are_read_per_docket(run_source) -> None:
+    roleless = {"id": 43, "name": "John Doe", "party_types": []}
+    attorney = {"id": 9247906, "name": "ERIC ALAN ISAACSON", "parties_represented": []}
+    routes = {f"{CL}/parties/": json.dumps({"next": None, "results": [CL_PARTY, roleless]}),
+              f"{CL}/attorneys/": json.dumps({"next": None, "results": [attorney]})}
+
+    parties = run_source("us/courtlistener/docket", {"operation": "case-parties", "docket_ids": [4214664]}, routes)
+    counsel = run_source("us/courtlistener/docket", {"operation": "case-counsel", "docket_ids": [4214664]})
+
+    assert run_source.params[0] == {"docket": 4214664, "filter_nested_results": "True"}
+    assert [(r["case_id"], r["party_name"], r["party_role"]) for r in parties["records"]] == [
+        ("4214664", "Acme Widgets Inc.", "Defendant"), ("4214664", "John Doe", None)]
+    assert [(r["case_id"], r["counsel_name"], r["firm_name"]) for r in counsel["records"]] == [
+        ("4214664", "ERIC ALAN ISAACSON", None)]
+    assert _court_columns("case_counsel") <= set(counsel["records"][0])
+
+
+@pytest.mark.parametrize("payload", [
+    {"operation": "case-parties", "docket_ids": list(range(1, 12))},
+    {"operation": "court-cases", "court": "dcd", "pages": 6},
+    {"operation": "court-cases"},
+])
+def test_courtlistener_refuses_unbounded_contract_requests_before_any_request(run_source, payload) -> None:
+    result = run_source("us/courtlistener/docket", payload)
+
+    assert result["error"]["code"] == "invalid-source-request"
+    assert run_source.requested == []
+
+
+def test_courtlistener_disclosures_flatten_into_judge_interests_that_join_dockets(run_source, tmp_path: Path) -> None:
+    import csv
+
+    from anomaly import catalogue, oneshot
+
+    routes = {f"{CL}/financial-disclosures/": json.dumps({"next": None, "results": [CL_DISCLOSURE]}),
+              f"{CL}/dockets/": json.dumps({"next": None, "results": [CL_DOCKET]}),
+              f"{CL}/parties/": json.dumps({"next": None, "results": [CL_PARTY]})}
+    interests = run_source("us/courtlistener/financial-disclosures",
+                           {"operation": "judge-interests", "person_id": 1124}, routes)["records"]
+
+    assert all(_court_columns("judge_interests") <= set(row) for row in interests)
+    assert [(r["interest_type"], r["counterparty"], r["value_low"], r["value_high"]) for r in interests] == [
+        ("investment", "Acme Widgets Inc. (ACME)", 50000001.0, None),
+        ("gift", "Harlan Crow", 1199.0, 1199.0),
+        ("reimbursement", "Big Law LLP", None, None),
+        ("position", "Example University", None, None)]
+    assert interests[2]["description"] == "May 2017; Aspen, CO; Speaker; Travel, lodging"
+    assert {(r["judge_id"], r["report_year"]) for r in interests} == {("1124", 2017)}
+
+    tables = {
+        "court_cases": run_source("us/courtlistener/docket", {"operation": "court-cases", "court": "dcd"})["records"],
+        "case_parties": run_source("us/courtlistener/docket",
+                                   {"operation": "case-parties", "docket_ids": [4214664]})["records"],
+        "judge_interests": interests,
+    }
+    paths = {}
+    for table, rows in tables.items():
+        paths[table] = tmp_path / f"{table}.csv"
+        with paths[table].open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+    version = {e["id"]: e["version"] for e in catalogue.build_catalogue()["detectors"]}["court.judge_holds_party_stock"]
+    signals = oneshot.run_detectors(paths, [{"id": "court.judge_holds_party_stock", "version": version}], approved=True)
+
+    assert [(s["values"]["case_id"], s["values"]["judge_id"], s["values"]["holding"], s["values"]["match_type"])
+            for s in signals] == [("4214664", "1124", "Acme Widgets Inc. (ACME)", "exact")]
