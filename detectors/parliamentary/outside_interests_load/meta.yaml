@@ -12,7 +12,7 @@ description: Members who declare many paid outside mandates, or high declared ou
 required_tables: [parl_members, parl_interests]
 required_fields: [id]
 parameters:
-  min_paid: 8
+  min_paid: 10
   min_income: 100000
   limit: 200
 parameter_bounds:
@@ -25,6 +25,7 @@ expected_output: [member_id, name, parliament, interests, paid_interests, unpaid
 assumptions:
   - Tables follow the parliamentary domain contract in domains/parliamentary.yaml.
   - Only declaration lines without an end_date count as current.
+  - "The default min_paid of 10 sits just above the 90th percentile of paid mandates per sitting member in the Swiss federal register on 2026-10-27 (OpenParlData interests export: median 3, 90th percentile 9, 24 of 261 members at 10 or more); it is not a legal or published threshold."
   - "Swiss members declare for each mandate whether it is honorary or paid, without amounts (Parlamentsgesetz Art. 11 para. 1bis, https://www.fedlex.admin.ch/eli/cc/2003/510/de), so income_high is empty for Swiss data and only min_paid applies."
   - "MEPs declare remunerated outside activities with income bands when the total exceeds EUR 5,000 a year (Code of Conduct Art. 4, https://www.europarl.europa.eu/pdf/meps/Code_of_Conduct_EN.pdf); min_income 100,000 follows Transparency International EU's count of MEPs who 'potentially earn more than 100,000 EUR a year from their side activities' (https://transparency.eu/burning-candle-mep-income/). Income is summed in the declared currency without conversion."
 false_positives:

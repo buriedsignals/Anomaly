@@ -8,6 +8,7 @@ cast_votes AS (
     FROM parl_member_votes v
     JOIN parl_votings t ON t.parliament = v.parliament AND t.voting_id = v.voting_id
     WHERE lower(v.position) IN ('for', 'against', 'abstain') AND v.group_at_vote IS NOT NULL
+      AND v.group_at_vote NOT IN (SELECT trim(label) FROM unnest(string_split(?, '|')) AS t(label))
 ),
 group_positions AS (
     SELECT parliament, voting_id, group_at_vote, position, count(*) AS n

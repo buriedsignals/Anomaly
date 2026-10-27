@@ -20,10 +20,10 @@ tables:
       member_id: Member, as in parl_members.
       parliament: Parliament, as in parl_members.
       affiliation_type: Kind of membership, group (parliamentary group or faction) or party (national party).
-      org_id: Source identifier of the group or party.
-      org_name: Name or short label of the group or party, the same across terms for the same group.
+      org_name: Name or short label of the group or party; switches are changes of this name.
       start_date: First day of the membership (date).
       end_date: Last day of the membership; empty while it lasts (date, optional).
+      term: Legislative term the membership falls in, such as 10; moves between terms are not switches (optional).
   parl_votings:
     description: One row per recorded roll-call vote.
     columns:
@@ -31,7 +31,7 @@ tables:
       parliament: Parliament the vote took place in, as in parl_members.
       chamber: Chamber within the parliament, such as Nationalrat; empty for a single chamber (optional).
       vote_date: Day of the vote (date).
-      title: Title or subject of the vote as published.
+      title: Title or subject of the vote as published (optional).
       dossier_id: Procedure, affair or document the vote is about (optional).
       url: Link to the published result (optional).
   parl_member_votes:

@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:9c67d7258a9997849544b79f4fee24d671164a1151535223f3f0ab6d71c821d1",
+  "catalogue_hash": "sha256:8dd2eafe2e11325c0cc087d31e7556823ea963fe3640cbfc9bda97e01cab15ad",
   "detectors": [
     {
       "assumptions": [
@@ -1329,12 +1329,13 @@
       "false_positives": [
         "The President chairs sittings and rarely votes, so shows near-total absence (https://fichedepute.eu/methode).",
         "Illness, parental leave, official missions and excused absences look the same as unexcused ones unless the source separates them.",
+        "A source can keep a mandate open after a member stopped sitting. In a four-sitting European Parliament sample (2025-07-09/10, 2025-10-22/23) seven MEPs with open mandates appeared in no voter list, among them the President; check the official member page before reporting a rate near 1.",
         "Members who joined or left mid-sample are on fewer rolls; the rate is per roll they were on, not per sitting day."
       ],
       "family": "parliamentary",
       "group": "domain",
       "id": "parliamentary.absence_outlier",
-      "implementation_hash": "sha256:36faa1e6e4df379a0c7123d5525fe40462363ad2b61ccf83c6572b76b960a341",
+      "implementation_hash": "sha256:30bcbcc018c43750c5e569762ac93ad82f4f752a1313457fd625b9c3fc9d4308",
       "parameters": {
         "limit": {
           "default": 200,
@@ -1385,6 +1386,7 @@
     {
       "assumptions": [
         "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
         "A group's line on a vote is the position (for, against or abstain) most of its voting members took, as in FicheD\u00e9put\u00e9's group loyalty measure, which 'compares each vote to the European political group's majority line' (https://fichedepute.eu/methode). The member's own vote counts towards the line.",
         "Votes where the group is smaller than min_group_size or the top positions tie have no line and are skipped; absent members are not compared.",
         "The group is the one the member belonged to on the day of the vote (group_at_vote); latest_group is the most recent one in the sample.",
@@ -1409,7 +1411,7 @@
       "family": "parliamentary",
       "group": "domain",
       "id": "parliamentary.group_rebellion_rate",
-      "implementation_hash": "sha256:84cf33c9a74ed730f69a641151790f62e8875d38d205e8ada1de118ed7448a80",
+      "implementation_hash": "sha256:6af624b033b939e19adf68254c18daaebdd2e7fbbc2591ed5b39e26532a3e11c",
       "parameters": {
         "limit": {
           "default": 200,
@@ -1434,6 +1436,11 @@
           "maximum": 100000,
           "minimum": 1,
           "type": "integer"
+        },
+        "unattached_groups": {
+          "default": "NI|Fraktionslos",
+          "max_length": 200,
+          "type": "string"
         }
       },
       "required_fields": [
@@ -1461,11 +1468,12 @@
       "assumptions": [
         "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
         "Members' memberships are ordered by start_date and a switch is a change of org_name (case and spacing ignored). HowTheyVote notes that 'MEPs can change their political group during the term' (https://github.com/HowTheyVote/data/releases/latest).",
+        "When the source fills term, memberships are only compared within one term, so joining a new group after an election is not a switch; without term every pair of consecutive memberships is compared.",
         "Comparing names rather than identifiers keeps a re-elected member in the same group from showing as a switch where the source gives the group a new identifier each term, as the European Parliament does.",
         "affiliation_type is group (parliamentary groups) or party (national parties); any other value matches no rows."
       ],
       "data_type": "parliamentary",
-      "description": "Members who moved from one parliamentary group (or party) to another, with the date of each move.",
+      "description": "Members who moved from one parliamentary group (or party) to another during a legislative term, with the date of each move.",
       "expected_output": [
         "member_id",
         "name",
@@ -1476,14 +1484,15 @@
         "switch_date"
       ],
       "false_positives": [
-        "Groups that merge, split or rename appear as switches for all their members.",
+        "Groups that merge, split or rename within a term appear as switches for all their members.",
+        "Without a term column, a group renamed between terms (the European Parliament's PPE-DE became PPE) shows as a switch at the term start.",
         "Moves between a group and the non-attached members are switches by this definition.",
         "Where a source derives group spans from votes, as the Swiss adapter does, a mislabelled vote row looks like a short switch."
       ],
       "family": "parliamentary",
       "group": "domain",
       "id": "parliamentary.group_switch",
-      "implementation_hash": "sha256:b73c58bded53f25a74dcb4f8ad92cfd99bf6785aaf1a2280c7bca7db60149331",
+      "implementation_hash": "sha256:09cd0e8212a294129ee8d49ea5ae2cfb813c9fc392ea70ff23155f7611ce3a2b",
       "parameters": {
         "affiliation_type": {
           "default": "group",
@@ -1521,6 +1530,7 @@
       "assumptions": [
         "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
         "Only declaration lines without an end_date count as current.",
+        "The default min_paid of 10 sits just above the 90th percentile of paid mandates per sitting member in the Swiss federal register on 2026-10-27 (OpenParlData interests export: median 3, 90th percentile 9, 24 of 261 members at 10 or more); it is not a legal or published threshold.",
         "Swiss members declare for each mandate whether it is honorary or paid, without amounts (Parlamentsgesetz Art. 11 para. 1bis, https://www.fedlex.admin.ch/eli/cc/2003/510/de), so income_high is empty for Swiss data and only min_paid applies.",
         "MEPs declare remunerated outside activities with income bands when the total exceeds EUR 5,000 a year (Code of Conduct Art. 4, https://www.europarl.europa.eu/pdf/meps/Code_of_Conduct_EN.pdf); min_income 100,000 follows Transparency International EU's count of MEPs who 'potentially earn more than 100,000 EUR a year from their side activities' (https://transparency.eu/burning-candle-mep-income/). Income is summed in the declared currency without conversion."
       ],
@@ -1543,7 +1553,7 @@
       "family": "parliamentary",
       "group": "domain",
       "id": "parliamentary.outside_interests_load",
-      "implementation_hash": "sha256:6c177d78e3cc3d249f415ca53457b16ee7234e4b4e7b51a85dc3641fd4c6c7d9",
+      "implementation_hash": "sha256:18432eb58dc955c2cbdb6533599925bc69bf0c4780f9a85828b99227b71960a0",
       "parameters": {
         "limit": {
           "default": 200,
@@ -1558,7 +1568,7 @@
           "type": "number"
         },
         "min_paid": {
-          "default": 8,
+          "default": 10,
           "maximum": 1000,
           "minimum": 1,
           "type": "integer"
@@ -1587,6 +1597,7 @@
     {
       "assumptions": [
         "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
         "Group lines are computed as in parliamentary.group_rebellion_rate (majority position of the group's voting members, after FicheD\u00e9put\u00e9, https://fichedepute.eu/methode); ties and groups under min_group_size are skipped.",
         "Periods are calendar quarters of vote_date; a quarter with fewer than min_votes_per_period comparisons is dropped, so the previous period is the last quarter that qualified, not always the one before.",
         "The defaults are uncalibrated starting points."
@@ -1613,7 +1624,7 @@
       "family": "parliamentary",
       "group": "domain",
       "id": "parliamentary.rebellion_rise",
-      "implementation_hash": "sha256:eb6823f32a25c3791b96085d2302c1d5402fa2d3edadf5f6210e2828c0a570fd",
+      "implementation_hash": "sha256:b7f54c3e3c54ca13f139f9e8f4be3fd2d584f58cf2c613d77ce60f32bec1dd21",
       "parameters": {
         "limit": {
           "default": 200,
@@ -1638,6 +1649,11 @@
           "maximum": 100000,
           "minimum": 1,
           "type": "integer"
+        },
+        "unattached_groups": {
+          "default": "NI|Fraktionslos",
+          "max_length": 200,
+          "type": "string"
         }
       },
       "required_fields": [

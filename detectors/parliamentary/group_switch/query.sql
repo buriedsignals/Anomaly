@@ -4,7 +4,7 @@ WITH members AS (
     GROUP BY ALL
 ),
 spans AS (
-    SELECT DISTINCT parliament, member_id, lower(trim(org_name)) AS org_key, org_name, start_date, end_date
+    SELECT DISTINCT parliament, member_id, coalesce(term, '') AS term_key, lower(trim(org_name)) AS org_key, org_name, start_date, end_date
     FROM parl_affiliations
     WHERE affiliation_type = ? AND start_date IS NOT NULL AND org_name IS NOT NULL
 ),
@@ -14,7 +14,7 @@ ordered AS (
            lag(org_name) OVER w AS previous_name,
            lag(end_date) OVER w AS previous_end
     FROM spans
-    WINDOW w AS (PARTITION BY parliament, member_id ORDER BY start_date, end_date NULLS LAST, org_key)
+    WINDOW w AS (PARTITION BY parliament, member_id, term_key ORDER BY start_date, end_date NULLS LAST, org_key)
 )
 SELECT
     o.member_id,

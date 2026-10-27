@@ -33,6 +33,7 @@ assumptions:
 false_positives:
   - "The President chairs sittings and rarely votes, so shows near-total absence (https://fichedepute.eu/methode)."
   - Illness, parental leave, official missions and excused absences look the same as unexcused ones unless the source separates them.
+  - A source can keep a mandate open after a member stopped sitting. In a four-sitting European Parliament sample (2025-07-09/10, 2025-10-22/23) seven MEPs with open mandates appeared in no voter list, among them the President; check the official member page before reporting a rate near 1.
   - Members who joined or left mid-sample are on fewer rolls; the rate is per roll they were on, not per sitting day.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 10, memory_mb: 256}
