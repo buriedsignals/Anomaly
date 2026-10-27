@@ -31,18 +31,18 @@ CORE_DETECTOR_IDS = (
 )
 
 US_LOBBYING_DETECTOR_IDS = (
-    "us_lobbying.committee_say_vs_pay",
-    "us_lobbying.fara_gap_narrowed",
-    "us_lobbying.foreign_filings",
-    "us_lobbying.missing_income_filings",
-    "us_lobbying.new_registrant_surge",
-    "us_lobbying.pac_contribution_flow",
-    "us_lobbying.revolving_door_candidates",
-    "us_lobbying.revolving_door_committee_match",
-    "us_lobbying.shell_pattern_filings",
-    "us_lobbying.single_client_juggernauts",
-    "us_lobbying.spending_spikes",
-    "us_lobbying.issue_concentration_shifts",
+    "lobbying.committee_say_vs_pay",
+    "lobbying.fara_gap_narrowed",
+    "lobbying.foreign_filings",
+    "lobbying.missing_income_filings",
+    "lobbying.new_registrant_surge",
+    "lobbying.pac_contribution_flow",
+    "lobbying.revolving_door_candidates",
+    "lobbying.revolving_door_committee_match",
+    "lobbying.shell_pattern_filings",
+    "lobbying.single_client_juggernauts",
+    "lobbying.spending_spikes",
+    "lobbying.issue_concentration_shifts",
 )
 
 
@@ -85,15 +85,15 @@ def _valid_user_package(root: Path) -> Path:
     return package
 
 
-def test_registry_discovers_core_and_us_lobbying_detectors_with_scalable_groups() -> None:
+def test_registry_discovers_core_and_lobbying_detectors_with_scalable_groups() -> None:
     # Explicit limit is authoritative: the whole registry is listable.
     detectors = _registry_api().discover_detectors(limit=100)
     ids = tuple(item["id"] for item in detectors)
     expected = set(CORE_DETECTOR_IDS) | set(US_LOBBYING_DETECTOR_IDS)
     assert set(ids) == expected
     assert all(isinstance(item["group"], str) and item["group"] for item in detectors)
-    us_lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("us_lobbying.")}
-    assert not us_lobbying_families or us_lobbying_families == {"us_lobbying"}
+    lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("lobbying.")}
+    assert not lobbying_families or lobbying_families == {"lobbying"}
     required = {
         "id", "version", "title", "author", "license", "group", "description",
         "required_tables", "required_fields", "parameters", "signal_category",
