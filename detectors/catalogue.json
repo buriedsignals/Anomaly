@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:46bce5cd147cac89691658e95687b4879c47e8284e1205fce3c609a5e6a68bd5",
+  "catalogue_hash": "sha256:0dabc7adf9d7f2d2b14aefe7bf09731c704f56dd2c2bfe72ae4736790c3043aa",
   "detectors": [
     {
       "assumptions": [
@@ -1014,10 +1014,12 @@
     "detector_version": "string",
     "provenance": {
       "approval": "always 'caller-recorded'; the caller owns the approval record",
+      "column_map": "object; domain detectors only: contract table -> {contract column -> file column}",
       "executed_at": "string; ISO 8601 UTC",
-      "field_map": "object; required field -> supplied column",
-      "input_format": "csv | jsonl | parquet",
-      "input_hash": "string; sha256:<hex> of the supplied table file",
+      "field_map": "object; core detectors only: required field -> supplied column",
+      "input_format": "csv | jsonl | parquet, or 'tables' for domain detectors",
+      "input_hash": "string; sha256:<hex> of the supplied table file, or for domain detectors of the sorted JSON of input_hashes",
+      "input_hashes": "object; domain detectors only: contract table -> sha256:<hex> of its file",
       "limits": "object; effective execution limits",
       "parameters": "object; effective parameter values",
       "run_id": "string"
