@@ -1,0 +1,4 @@
+[
+  {"member_id": "C1", "name": "Claude Muster", "parliament": "CHE", "interests": 11, "paid_interests": 9, "unpaid_interests": 2, "income_high": null},
+  {"member_id": "E1", "name": "Erik Example", "parliament": "EP", "interests": 2, "paid_interests": 2, "unpaid_interests": 0, "income_high": 110000.0}
+]

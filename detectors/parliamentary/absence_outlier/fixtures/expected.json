@@ -1,0 +1,4 @@
+[
+  {"member_id": "P4", "name": "Peter Vier", "parliament": "CHE", "chamber": "Nationalrat", "votings": 50, "absences": 25, "absence_rate": 0.5, "median_rate": 0.06},
+  {"member_id": "R3", "name": "Ruth Drei", "parliament": "CHE", "chamber": "Ständerat", "votings": 60, "absences": 6, "absence_rate": 0.1, "median_rate": 0.0}
+]

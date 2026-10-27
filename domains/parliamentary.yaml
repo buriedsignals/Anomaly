@@ -1,0 +1,55 @@
+# Parliamentary domain contract: the tables parliamentary detectors read and
+# the columns they need. The European Parliament (eu/europarl/open-data) and
+# Swiss parliaments (ch/openparldata/parliamentary-data) fill every table; each
+# source's SKILL.md says which field fills which column. Identifiers are only
+# unique within one parliament, so every join also matches on parliament.
+# Columns marked optional may be left out of a file and load as NULL.
+domain: parliamentary
+description: Members of a parliament, their dated group and party affiliations, recorded roll-call votes and declared outside interests.
+tables:
+  parl_members:
+    description: One row per member of the parliament the votes or interests come from.
+    columns:
+      member_id: Parliament's identifier for the member, the join key for every other table.
+      parliament: Code of the parliament, such as EP or CHE; the same value parl_votings uses.
+      name: Member's full name.
+      country: Country or constituency the member represents (optional).
+  parl_affiliations:
+    description: One row per dated membership of a political group or party; ended memberships are kept.
+    columns:
+      member_id: Member, as in parl_members.
+      parliament: Parliament, as in parl_members.
+      affiliation_type: Kind of membership, group (parliamentary group or faction) or party (national party).
+      org_id: Source identifier of the group or party.
+      org_name: Name or short label of the group or party, the same across terms for the same group.
+      start_date: First day of the membership (date).
+      end_date: Last day of the membership; empty while it lasts (date, optional).
+  parl_votings:
+    description: One row per recorded roll-call vote.
+    columns:
+      voting_id: Identifier of the vote, the join key for parl_member_votes.
+      parliament: Parliament the vote took place in, as in parl_members.
+      chamber: Chamber within the parliament, such as Nationalrat; empty for a single chamber (optional).
+      vote_date: Day of the vote (date).
+      title: Title or subject of the vote as published.
+      dossier_id: Procedure, affair or document the vote is about (optional).
+      url: Link to the published result (optional).
+  parl_member_votes:
+    description: One row per member on the roll of a vote, including members who did not vote.
+    columns:
+      voting_id: Vote, as in parl_votings.
+      parliament: Parliament, as in parl_votings.
+      member_id: Member, as in parl_members.
+      position: for, against, abstain or absent (did not vote although holding a seat that day); other source values are kept but ignored.
+      group_at_vote: Parliamentary group the member belonged to on the day of the vote (optional).
+  parl_interests:
+    description: One row per declared outside activity, mandate or interest.
+    columns:
+      interest_id: Source identifier of the declaration line.
+      member_id: Member, as in parl_members.
+      parliament: Parliament, as in parl_members.
+      organisation: Organisation or activity declared.
+      role: Role in that organisation (optional).
+      paid: paid or unpaid, as the member declared it; empty when the register does not say (optional).
+      income_high: Upper bound of the yearly income declared for the line (number, optional).
+      end_date: Day the activity ended; empty while it lasts (date, optional).

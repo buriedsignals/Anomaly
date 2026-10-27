@@ -1,0 +1,38 @@
+id: parliamentary.rebellion_rise
+version: 1.0.0
+release: released
+title: Rebellion rise
+author: buried-signals
+license: internal
+group: domain
+family: parliamentary
+data_type: parliamentary
+menu_order: 5
+description: Members whose rate of voting against their own group's line jumps from one calendar quarter to the next.
+required_tables: [parl_members, parl_votings, parl_member_votes]
+required_fields: [id]
+parameters:
+  min_group_size: 3
+  min_votes_per_period: 30
+  min_increase: 0.2
+  limit: 200
+parameter_bounds:
+  min_group_size: {type: integer, minimum: 2, maximum: 1000}
+  min_votes_per_period: {type: integer, minimum: 1, maximum: 100000}
+  min_increase: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: parliamentary
+severity: low
+expected_output: [member_id, name, parliament, previous_period_start, period_start, previous_votes_compared, votes_compared, previous_rate, rate, increase]
+assumptions:
+  - Tables follow the parliamentary domain contract in domains/parliamentary.yaml.
+  - "Group lines are computed as in parliamentary.group_rebellion_rate (majority position of the group's voting members, after FicheDéputé, https://fichedepute.eu/methode); ties and groups under min_group_size are skipped."
+  - Periods are calendar quarters of vote_date; a quarter with fewer than min_votes_per_period comparisons is dropped, so the previous period is the last quarter that qualified, not always the one before.
+  - The defaults are uncalibrated starting points.
+false_positives:
+  - "Defection rates vary by policy area (https://journals.sagepub.com/doi/10.1177/1354068813487114), so a quarter dominated by one contested file can raise any member's rate."
+  - A member who changed group is compared with the new group's line; check parliamentary.group_switch for the same member.
+  - Quarters with few roll-call votes give unstable rates.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql
