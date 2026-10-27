@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:df1c64d25292ac2c6e3be8df91f25436f44ddeb347fa4b45ee4b74e3a4d3b7f7",
+  "catalogue_hash": "sha256:a76bf43dfac1d4bc8bda3599365e7b3598a5358c061dca294886853ec49c887a",
   "detectors": [
     {
       "assumptions": [
@@ -283,6 +283,369 @@
       "signal_category": "anomaly",
       "title": "Rare categorical levels",
       "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml.",
+        "Indicator: Global Witness identified 328 UK companies in circular control structures, where a group of companies each name another as PSC and the last names the first, and notes that UK company law prohibits circular shareholding (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/).",
+        "The walk follows controller_company_id, so it only sees a chain whose links the adapters resolved to company_ids; a corporate controller without a register number breaks the chain.",
+        "Every company on a cycle is reported once, with its shortest cycle; cycle_length 1 is a company naming itself.",
+        "Cycles longer than max_depth (default 6) are not found."
+      ],
+      "data_type": "companies",
+      "description": "Companies that control themselves, directly or through a chain of companies that leads back to them.",
+      "expected_output": [
+        "candidate_id",
+        "company_id",
+        "cycle_length",
+        "cycle_path"
+      ],
+      "false_positives": [
+        "Data-entry errors, such as a company filing its own number as the PSC's registration number, look like a one-company cycle."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.circular_control",
+      "implementation_hash": "sha256:d3af6a65188222503c7862cb70636d6c342aefb3470699f37aa5df3f59a9f242",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_depth": {
+          "default": 6,
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "company_controllers"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "companies",
+      "title": "Circular control",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml.",
+        "Indicator: Global Witness flags active companies that changed their name more than 5 times as an attempt to obscure their real activities, citing FATF (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); the default of 6 previous names is that threshold.",
+        "previous_name_count is the number of earlier names the register lists: Companies House previous_company_names on the company profile, Brreg historiskeNavn, OpenCorporates previous_names. A register that does not list earlier names leaves it empty and the company is not tested."
+      ],
+      "data_type": "companies",
+      "description": "Companies that have changed their registered name many times.",
+      "expected_output": [
+        "candidate_id",
+        "company_id",
+        "name",
+        "jurisdiction",
+        "previous_name_count",
+        "incorporation_date",
+        "status",
+        "source_url"
+      ],
+      "false_positives": [
+        "Rebrands, mergers and group restructurings rename companies legitimately; a register can also list a punctuation or legal-form change as a new name."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.frequent_name_changes",
+      "implementation_hash": "sha256:1173e88bd3e98982bc8aff403716c7e613509a295cf89bcc3e41781b95d97e4c",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_previous_names": {
+          "default": 6,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "companies"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "companies",
+      "title": "Frequent name changes",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml. A register without controllers (Brreg) is run with a company_controllers file holding only the header row.",
+        "Indicator: Global Witness counted 9,199 UK companies controlled by a PSC that controls more than 100 companies and treats such PSCs as likely nominees (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); FATF and Egmont describe nominee directors anchoring shell companies (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63). The default of 100 follows Global Witness.",
+        "Only current appointments and control count: an empty resigned_on or ceased_on.",
+        "An officer is one officer_id. Companies House officer ids are per officer across appointments; controllers carry no register-wide id, so adapters key them by name plus birth month, which merges namesakes and splits spelling variants.",
+        "exclude_roles drops roles that are not control, compared in upper case: the default drops Brreg auditors (REVI) and accountants (REGN).",
+        "Counts cover only the rows loaded. Load an officer's full appointment list (Companies House /officers/{id}/appointments) before reading a count as complete."
+      ],
+      "data_type": "companies",
+      "description": "One officer or one controller holding current appointments or control in many companies, the pattern of nominee directors and nominee owners.",
+      "expected_output": [
+        "candidate_id",
+        "holder_type",
+        "holder_id",
+        "name",
+        "companies",
+        "example_companies"
+      ],
+      "false_positives": [
+        "Group parent companies control their own subsidiaries; a parent with many subsidiaries is not a nominee.",
+        "Company secretarial firms, insolvency practitioners and corporate directors of fund or property vehicles hold many appointments legitimately."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.prolific_officer",
+      "implementation_hash": "sha256:bf4deb29d08b292ce3f210ad902ff2c1acc43caa87c9efb9ea0b5c553d38fc1e",
+      "parameters": {
+        "exclude_roles": {
+          "default": "REVI|REGN",
+          "max_length": 500,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_companies": {
+          "default": 100,
+          "maximum": 1000000,
+          "minimum": 2,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "company_officers",
+        "company_controllers"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "companies",
+      "title": "Prolific officer or controller",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml.",
+        "Indicator: Open Ownership's red-flag queries over UK beneficial ownership data ask how many entities were founded and dissolved within a year (https://www.openownership.org/en/blog/spotting-red-flags-in-beneficial-ownership-datasets/); the default of 365 days follows it.",
+        "Only companies whose register publishes both dates are tested; Brreg removes deleted entities from its API and Zefix's legacy search publishes neither date."
+      ],
+      "data_type": "companies",
+      "description": "Companies dissolved within a short time of incorporation, the throwaway vehicles of one-off schemes.",
+      "expected_output": [
+        "candidate_id",
+        "company_id",
+        "name",
+        "jurisdiction",
+        "incorporation_date",
+        "dissolution_date",
+        "days_existed",
+        "registered_address",
+        "source_url"
+      ],
+      "false_positives": [
+        "Most short-lived companies are failed start-ups, abandoned formations or vehicles closed after a completed transaction; read it with the address, officer and controller signals."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.rapid_dissolution",
+      "implementation_hash": "sha256:b945c50f9c251231997e3eacb64f1124dc88413e3256113e23376090bd76f8fe",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_days": {
+          "default": 365,
+          "maximum": 3650,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "companies"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "companies",
+      "title": "Rapid incorporation and dissolution",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml.",
+        "Indicator: Global Witness found more than 10,000 UK companies declaring a foreign company as their PSC, 72% of them linked to a secrecy jurisdiction; its red-flag table counts a jurisdiction with a Financial Secrecy Index secrecy score above 60 as a secrecy jurisdiction (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/).",
+        "The default jurisdictions are the 82 of 141 jurisdictions with a secrecy score above 60 in the Tax Justice Network Financial Secrecy Index full list as displayed on 2026-10-27 (https://fsi.taxjustice.net/full-list/), as ISO 3166-1 alpha-2 codes separated by a vertical bar. Pass your own list to override it.",
+        "Only current legal-entity controllers count, and only when their country differs from the company's own jurisdiction (taken from companies, else the company_id prefix).",
+        "controller_country must be an ISO alpha-2 code; a register that publishes country names (Companies House country_registered) must be normalised first or the row is missed."
+      ],
+      "data_type": "companies",
+      "description": "Companies controlled by a legal entity registered in another country that scores high on financial secrecy.",
+      "expected_output": [
+        "candidate_id",
+        "company_id",
+        "company_name",
+        "company_jurisdiction",
+        "controller_id",
+        "controller_name",
+        "controller_country",
+        "controller_company_id",
+        "control_type",
+        "notified_on"
+      ],
+      "false_positives": [
+        "The list includes large onshore economies (United States, Switzerland, Singapore, Hong Kong, China), so ordinary foreign parent groups match; narrow the list to small-island secrecy havens for a stricter run.",
+        "Listed and regulated parent companies are exempt from look-through in several registers and are not concealment."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.secrecy_jurisdiction_controller",
+      "implementation_hash": "sha256:1859cc50d855c4ff800a771b078677f280a338c74fe9ad899342b624d177cee4",
+      "parameters": {
+        "jurisdictions": {
+          "default": "US|CH|SG|HK|AE|GG|TW|KR|CN|PA|VG|KY|SA|JE|RU|MY|DZ|EG|BS|MT|NG|KZ|TH|MO|KW|GT|QA|KE|NZ|BD|VN|BH|BM|MU|JO|CL|LK|LI|UY|BO|MA|LB|TZ|IM|CW|BB|VE|SC|PK|KN|OM|SV|AW|NA|RS|WS|GI|CM|PR|BZ|AI|LC|FJ|TC|VI|GD|CK|VC|XK|BN|GU|MH|MC|AS|MV|TT|VU|GM|LR|AG|AO|MS",
+          "max_length": 1000,
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "company_controllers",
+        "companies"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "companies",
+      "title": "Controller in a secrecy jurisdiction",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the companies domain contract in domains/companies.yaml.",
+        "Two addresses match when they are equal after dropping case, spaces and punctuation; a different flat number, a missing postcode or an added country makes two keys.",
+        "Indicator: OCCRP reported one London address used to register 4,000 to 5,000 businesses (https://www.occrp.org/en/news/uk-strikes-off-11500-companies-in-crackdown-on-fraud-and-shell-entities); Transparency International UK found over 6,000 identikit shell companies at just 10 addresses (https://www.transparency.org.uk/news/house-horrors-what-leaked-documents-tell-us-about-uks-fight-against-dirty-money); FATF and Egmont list a post-box-only address as a shell company indicator (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63).",
+        "The default of 50 companies is a judgement, far below the published cases; lower it for a small sample.",
+        "Counts cover only the rows loaded, not the whole register. Enumerate an address first (Companies House advanced search by location, Brreg search by postal code) before reading a count as the address's total."
+      ],
+      "data_type": "companies",
+      "description": "Registered office addresses shared by many companies, the mailbox and formation-agent addresses that shell company schemes use.",
+      "expected_output": [
+        "candidate_id",
+        "registered_address",
+        "companies",
+        "current_companies",
+        "jurisdictions",
+        "first_incorporated",
+        "last_incorporated",
+        "example_companies"
+      ],
+      "false_positives": [
+        "Accountants, registered-agent services, serviced offices, business centres and group head offices legitimately host many companies.",
+        "Global Witness counted 208,572 UK companies at company-factory or mailbox addresses (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/), so the address alone is common; combine with rapid dissolution, prolific officers or offshore controllers."
+      ],
+      "family": "companies",
+      "group": "domain",
+      "id": "companies.shared_registered_address",
+      "implementation_hash": "sha256:dd7e4fe5324bef1f20e18746601129a3d9bd1804ed8d64cc6c2f5ae405e4e700",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_companies": {
+          "default": 50,
+          "maximum": 1000000,
+          "minimum": 2,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "companies"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "companies",
+      "title": "Mass registration address",
+      "version": "1.0.0"
     },
     {
       "assumptions": [

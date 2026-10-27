@@ -1,0 +1,4 @@
+[
+  {"candidate_id": "officer|O1", "holder_type": "officer", "holder_id": "O1", "name": "AGENT, Ann", "companies": 101, "example_companies": "CO 001 LTD|CO 002 LTD|CO 003 LTD|CO 004 LTD|CO 005 LTD"},
+  {"candidate_id": "controller|gb:psc:NOMINEE, NINA|1970-01", "holder_type": "controller", "holder_id": "gb:psc:NOMINEE, NINA|1970-01", "name": "NOMINEE, Nina", "companies": 100, "example_companies": "gb:00000001|gb:00000002|gb:00000003|gb:00000004|gb:00000005"}
+]

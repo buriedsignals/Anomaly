@@ -1,0 +1,31 @@
+id: companies.frequent_name_changes
+version: 1.0.0
+release: released
+title: Frequent name changes
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 6
+description: Companies that have changed their registered name many times.
+required_tables: [companies]
+required_fields: [id]
+parameters:
+  min_previous_names: 6
+  limit: 200
+parameter_bounds:
+  min_previous_names: {type: integer, minimum: 1, maximum: 1000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: low
+expected_output: [candidate_id, company_id, name, jurisdiction, previous_name_count, incorporation_date, status, source_url]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml."
+  - "Indicator: Global Witness flags active companies that changed their name more than 5 times as an attempt to obscure their real activities, citing FATF (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); the default of 6 previous names is that threshold."
+  - "previous_name_count is the number of earlier names the register lists: Companies House previous_company_names on the company profile, Brreg historiskeNavn, OpenCorporates previous_names. A register that does not list earlier names leaves it empty and the company is not tested."
+false_positives:
+  - "Rebrands, mergers and group restructurings rename companies legitimately; a register can also list a punctuation or legal-form change as a new name."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

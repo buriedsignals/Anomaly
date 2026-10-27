@@ -1,0 +1,33 @@
+id: companies.circular_control
+version: 1.0.0
+release: released
+title: Circular control
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 5
+description: Companies that control themselves, directly or through a chain of companies that leads back to them.
+required_tables: [company_controllers]
+required_fields: [id]
+parameters:
+  max_depth: 6
+  limit: 200
+parameter_bounds:
+  max_depth: {type: integer, minimum: 1, maximum: 12}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: high
+expected_output: [candidate_id, company_id, cycle_length, cycle_path]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml."
+  - "Indicator: Global Witness identified 328 UK companies in circular control structures, where a group of companies each name another as PSC and the last names the first, and notes that UK company law prohibits circular shareholding (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/)."
+  - "The walk follows controller_company_id, so it only sees a chain whose links the adapters resolved to company_ids; a corporate controller without a register number breaks the chain."
+  - "Every company on a cycle is reported once, with its shortest cycle; cycle_length 1 is a company naming itself."
+  - "Cycles longer than max_depth (default 6) are not found."
+false_positives:
+  - "Data-entry errors, such as a company filing its own number as the PSC's registration number, look like a one-company cycle."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

@@ -1,0 +1,37 @@
+id: companies.prolific_officer
+version: 1.0.0
+release: released
+title: Prolific officer or controller
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 2
+description: One officer or one controller holding current appointments or control in many companies, the pattern of nominee directors and nominee owners.
+required_tables: [company_officers, company_controllers]
+required_fields: [id]
+parameters:
+  min_companies: 100
+  exclude_roles: 'REVI|REGN'
+  limit: 200
+parameter_bounds:
+  min_companies: {type: integer, minimum: 2, maximum: 1000000}
+  exclude_roles: {type: string, max_length: 500}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: medium
+expected_output: [candidate_id, holder_type, holder_id, name, companies, example_companies]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml. A register without controllers (Brreg) is run with a company_controllers file holding only the header row."
+  - "Indicator: Global Witness counted 9,199 UK companies controlled by a PSC that controls more than 100 companies and treats such PSCs as likely nominees (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); FATF and Egmont describe nominee directors anchoring shell companies (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63). The default of 100 follows Global Witness."
+  - "Only current appointments and control count: an empty resigned_on or ceased_on."
+  - "An officer is one officer_id. Companies House officer ids are per officer across appointments; controllers carry no register-wide id, so adapters key them by name plus birth month, which merges namesakes and splits spelling variants."
+  - "exclude_roles drops roles that are not control, compared in upper case: the default drops Brreg auditors (REVI) and accountants (REGN)."
+  - "Counts cover only the rows loaded. Load an officer's full appointment list (Companies House /officers/{id}/appointments) before reading a count as complete."
+false_positives:
+  - "Group parent companies control their own subsidiaries; a parent with many subsidiaries is not a nominee."
+  - "Company secretarial firms, insolvency practitioners and corporate directors of fund or property vehicles hold many appointments legitimately."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql
