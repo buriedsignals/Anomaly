@@ -4,13 +4,11 @@
 
 ### Evidence-led data investigations for AI agents
 
-**Turns a dataset into reviewed, traceable findings — deterministic detectors, replayed calculations, independent review, and two journalist gates. 34 public-data skills, 18 released detectors, one portable case format.**
+**Anomaly finds unusual patterns in structured data and turns them into reviewed findings you can replay. It has 34 public-data sources, 18 released detectors and two journalist gates.**
 
-[Workflow](#investigation-workflow) | [Detectors](#detectors) | [Data Skills](#public-data-skills) | [Evidence Viewer](#evidence-viewer) | [Website](https://anomaly.buriedsignals.com/)
+[How it works](#how-it-works) | [Tables](#how-a-detector-gets-its-table) | [Workflow](#workflow) | [Spotlight](#use-from-spotlight) | [Website](https://anomaly.buriedsignals.com/)
 
-[![34 Data Skills](https://img.shields.io/badge/data_skills-34-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#public-data-skills)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#investigation-workflow)[![Website](https://img.shields.io/badge/site-anomaly.buriedsignals.com-00c853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://anomaly.buriedsignals.com/)
-
-[![Stars](https://img.shields.io/github/stars/buriedsignals/Anomaly?style=flat-square&logo=github&label=Stars)](https://github.com/buriedsignals/Anomaly/stargazers)[![Issues](https://img.shields.io/github/issues/buriedsignals/Anomaly?style=flat-square&logo=github&label=Issues)](https://github.com/buriedsignals/Anomaly/issues)[![Last Commit](https://img.shields.io/github/last-commit/buriedsignals/Anomaly?style=flat-square&logo=github&label=Last%20Commit)](https://github.com/buriedsignals/Anomaly/commits)[![Contributors](https://img.shields.io/github/contributors/buriedsignals/Anomaly?style=flat-square&logo=github&label=Contributors)](https://github.com/buriedsignals/Anomaly/graphs/contributors)
+[![34 Data Sources](https://img.shields.io/badge/data_sources-34-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#data-sources)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#workflow)
 
 Built by [**Buried Signals**](https://buriedsignals.com/) • [tom@buriedsignals.com](mailto:tom@buriedsignals.com)
 
@@ -18,129 +16,109 @@ Built by [**Buried Signals**](https://buriedsignals.com/) • [tom@buriedsignals
 
 ---
 
-Anomaly is an agent workflow for finding anomalies in structured data. It
-acquires or registers data, profiles it with Python and DuckDB, recommends
-compatible anomaly detectors, runs the tests the journalist approves, and
-checks proposed findings through deterministic replay and independent review.
+Anomaly is an agent workflow for structured-data investigations. You give it a
+CSV, a folder of files or a public-data source. It profiles what is actually
+there, runs the detectors you approve, and records every unusual pattern as a
+lead with its provenance. A lead becomes a finding only after its calculation
+is replayed, an independent reviewer has challenged it, and you accept it.
 
-It is built for active structured-data investigations. Give it a CSV, a folder
-of local files, or a public-data source; it builds a portable case folder,
-profiles what is actually there, and records every unusual pattern as a lead —
-never a conclusion. An unusual value, a repeated payment, a shared address, or
-a copied passage becomes a structured signal with provenance, and only replay,
-independent review, and journalist approval can turn a lead into a finding.
+A detector flags an observation. It never establishes identity, intent,
+causation or wrongdoing, and its severity is a triage priority, not proof.
 
-## What Anomaly Does
+## How it works
 
-- Registers journalist-supplied files or acquires public records through
-  source-specific data skills, with hashes, licensing, and provenance.
-- Profiles tables, fields, types, missingness, distributions, duplicates, and
-  coverage before any test runs.
-- Recommends no more than ten compatible detectors, each with parameters,
-  assumptions, selection reasons, and known false positives.
-- Waits for Gate A: no detector executes until the journalist approves scope,
-  mappings, and the detector plan.
-- Runs approved detectors read-only in DuckDB with external access disabled,
-  bounded memory, time, threads, and output.
-- Drafts proposed findings from ranked, redacted signal previews with
-  alternative explanations, limitations, and confidence.
-- Replays every cited calculation against recorded source and detector hashes.
-- Runs an independent, read-only data reviewer that challenges coverage,
-  denominators, baselines, selection bias, and claim wording.
-- Waits for Gate B: only claims the journalist accepts become findings.
-- Writes the report, deterministic charts, and a self-contained evidence
-  viewer into a portable case folder.
+Anomaly is built from three catalogues. Data sources produce tables, detectors
+consume tables, and the table shapes in the middle are what let any source
+work with any detector that fits.
 
-## Investigation Workflow
-
-```text
-P0 Create or resume case
-  -> P1 Acquire or register data
-  -> P2 Prepare, contextualize, and profile
-  -> P3 Recommend <= 10 detectors
-  -> GATE A journalist approves scope and detector plan
-  -> P4 Run approved detectors
-  -> P5 Draft proposed findings
-  -> P6 Replay calculations + independent review
-  -> GATE B journalist accepts, revises, or rejects
-  -> P7 Findings, report, charts, evidence viewer
+```mermaid
+flowchart LR
+    subgraph S["Data sources · data-skills/"]
+        S1["Public APIs<br/>OpenFEC, SEC EDGAR, Party Facts…"]
+        S2["Catalogued sources<br/>documented, no adapter"]
+        S3["Your own files<br/>CSV, JSON, Parquet, XML"]
+    end
+    subgraph T["Tables"]
+        T1["Any table<br/>columns mapped to roles<br/>id · amount · observed_at · group"]
+        T2["Table contracts<br/>named shapes such as<br/>senate_filings · congress_members"]
+    end
+    subgraph D["Detectors · detectors/"]
+        D1["6 core detectors<br/>outliers, level shifts,<br/>duplicates, gaps…"]
+        D2["12 lobbying detectors<br/>revolving door, spending spikes,<br/>foreign filings…"]
+    end
+    S1 --> T1
+    S3 --> T1
+    S1 -.->|fills, planned| T2
+    S2 -.->|says how to get| T2
+    T1 --> D1
+    T2 --> D2
+    D1 --> L["Leads<br/>evidence/signals.jsonl"]
+    D2 --> L
+    L --> R["Replay + independent review"] --> G{"Gate B<br/>journalist decides"} --> F["Findings<br/>report · charts · viewer"]
 ```
 
-Both gates are explicit. Anomaly does not auto-advance through detector-plan
-approval or the findings decision, and it never infers progress from report
-files. One remediation pass may return from review to detector execution or
-drafting; further cycles require journalist approval.
+## How a detector gets its table
 
-A detector identifies an observation. It does not establish identity, intent,
-causation, fraud, or wrongdoing. Severity is triage priority, not proof.
+There are two ways, and every detector uses exactly one of them.
 
-## Case Outputs
+**Field roles.** The detector asks for roles, not column names. The six core
+detectors need some mix of `id`, `amount`, `observed_at` and `group`, and you
+map those roles onto columns of any table at Gate A. This is why a z-score
+outlier test works the same on campaign donations, procurement awards or a
+leaked spreadsheet.
 
-Each investigation gets a portable case folder. All references are relative;
-moving the folder changes nothing.
+| Detector | Roles it needs |
+|---|---|
+| `numeric.zscore_outliers` | `id`, `amount` |
+| `numeric.level_shift` | `id`, `observed_at`, `amount` |
+| `table.duplicate_rows` | `id` |
+| `temporal.coverage_gaps` | `id`, `observed_at` |
+| `categorical.rare_levels` | `group` |
+| `table.missingness_clusters` | `group`, `amount` |
 
-```text
-{CASE}/
-├── AGENTS.md                    # safety instructions for any agent
-├── README.md                    # journalist entry point and status
-├── case.json
-├── instructions/                # methodology, context, data dictionary, handling
-├── data/
-│   ├── sources.json             # every input: hash, license, sensitivity
-│   ├── raw/                     # included originals
-│   ├── prepared/                # normalized tables + transformation notes
-│   └── index.duckdb             # investigation database
-├── detectors/
-│   ├── plan.json                # recommended + approved plan
-│   └── used/                    # content-addressed detector snapshots
-├── evidence/
-│   ├── signals.jsonl            # canonical leads
-│   ├── replay.json              # replayed calculations
-│   └── runs/                    # full outputs + provenance per run
-├── findings/
-│   ├── draft.json               # proposed claims (immutable)
-│   ├── review.json              # replay status + independent verdicts
-│   ├── findings.json            # only Gate-B-accepted claims
-│   ├── unresolved.md
-│   ├── report.md
-│   ├── charts/                  # deterministic SVGs
-│   └── viewer.html              # self-contained evidence viewer
-└── .anomaly/                    # durable state, receipts, attempts
-```
+**Table contracts.** Some patterns only exist across several related tables,
+such as a lobbyist who used to work for the committee their client lobbies.
+These detectors name the tables they join. A table contract is the agreed
+shape of one such table, its columns and their meaning, so that any data
+source able to fill it works with every detector that needs it. Sources and
+detectors map many-to-many through the contract, never directly to each other.
 
-## Detectors
+The twelve lobbying detectors use nine contracts today:
 
-Detectors are executable packages in a generated registry, grouped by the kind
-of data they inspect. The 18 released packages cover **table, numeric,
-categorical, temporal, and domain** data, including 12 US lobbying detectors.
-Another 14 packages (relational, network, text, cross-dataset, credential, and
-further temporal and domain checks) are drafts with placeholder SQL; they are
-excluded from the catalogue and never recommended. Anomaly
-profiles the dataset first, removes incompatible packages, and loads only the
-metadata relevant to the current dataset.
+| Contract | Detectors that need it |
+|---|---|
+| `senate_filings` | 11 of 12 (all except PAC contribution flow) |
+| `senate_lobbying_activities` | issue concentration shifts, revolving door committee match, shell pattern filings, FARA gap narrowed |
+| `senate_activity_lobbyists` | revolving door candidates, revolving door committee match, shell pattern filings, committee say vs pay |
+| `senate_foreign_entities` | foreign filings, FARA gap narrowed |
+| `senate_contribution_items` | PAC contribution flow |
+| `fara_registrants` | FARA gap narrowed |
+| `congress_members` | committee say vs pay |
+| `congress_committee_assignments` | committee say vs pay |
+| `press_releases` | committee say vs pay |
 
-A detector package is one folder: `meta.yaml` (requirements, parameters,
-assumptions, false positives, resource limits), one parameterized read-only
-SQL query or trusted Python file, and positive/negative/boundary/false-positive
-fixtures. SQL runs sandboxed in DuckDB; DDL, DML, `ATTACH`, `COPY`, and
-external readers are rejected. Add your own by copying
-[`detectors/_template/`](detectors/_template/) and running the validator.
+**Status.** The contract names exist in each detector's `required_tables`, but
+the shapes are not yet written down as separate files, and no data source
+declares which contracts it fills. Until both exist, the lobbying detectors
+run only on tables you prepare yourself. The next sources to build are the
+Senate Lobbying Disclosure Act filings, FARA and an official Congress roster,
+because they fill all nine contracts.
 
-Released detectors are published in a versioned catalogue
-(`detectors/catalogue.json`), and other tools can run one on a supplied table
-without a case: see [`docs/catalogue.md`](docs/catalogue.md).
+## Data sources
 
-## Public Data Skills
+Each source in `data-skills/` is a folder with `meta.yaml` (endpoint, access,
+cost, licence, operations), `SKILL.md` (how to use it) and, for queryable
+sources, `adapter.py`. An adapter loads only when its source is requested and
+records hashes, licence and provenance for everything it fetches.
 
-The `data-skills/` catalogue teaches Anomaly how to acquire public records:
-each skill defines the source query, response validation, normalization, and
-provenance/licensing capture. An adapter loads only when its source is
-requested. Catalogued sources ship a `meta.yaml` and `SKILL.md` describing
-access, cost, licence, and limits, but no adapter: Anomaly cannot query them
-and returns `unavailable` (`source-not-queryable`) if asked to.
+A **catalogued** source has `meta.yaml` and `SKILL.md` but no adapter. It tells
+an agent that the data exists and how a person can get it, which matters for
+paid, login-only or reuse-restricted sources. Asking Anomaly to query one
+returns `unavailable` with the code `source-not-queryable`.
 
-Unmarked sources need no key. *(key)*: free or member-provided API key.
-*(paid)*: paid key or credits. *(catalogued)*: documented, not queryable.
+Unmarked sources need no key. *(key)* means a free or member-provided API key,
+*(paid)* means a paid key or credits, and *(catalogued)* means documented but
+not queryable.
 
 | Region | Sources |
 |---|---|
@@ -150,59 +128,94 @@ Unmarked sources need no key. *(key)*: free or member-provided API key.
 | **Global** | OpenSanctions *(key)* · OpenCorporates *(key)* · GLEIF LEI records · OCCRP Aleph *(key)* · Wikidata · GDELT news · Bluesky posts · Party Facts party crosswalk · DataHub Core datasets · ICC cases *(catalogued)* · Wikimapia places *(key, catalogued)* |
 | **National registries** | CH Zefix companies · FR Pappers companies *(paid)* · NO Brreg enheter · OpenParldata parliamentary data |
 
-Journalist-supplied files enter the same workflow and receive the same
-provenance, profiling, and replay treatment as acquired data.
+## Detectors
 
-## Evidence Viewer
+A detector is one folder with `meta.yaml` (roles or tables, parameters,
+assumptions, false positives, resource limits), one read-only SQL query or
+trusted Python file, and positive, negative, boundary and false-positive
+fixtures. SQL runs sandboxed in DuckDB, and DDL, DML, `ATTACH`, `COPY` and
+external readers are rejected. Copy [`detectors/_template/`](detectors/_template/)
+to add one.
 
-Every completed case ships `findings/viewer.html`: a self-contained evidence
-inspector with no external resources. Click any accepted claim to open its
-full chain — supporting signals with detector identity and severity, evidence
-references, replayed calculations, redacted previews, detector provenance —
-plus the independent-review context and unresolved work. All case-controlled
-text is redacted and rendered inert; the file can be shared like any other
-case artifact.
+The 18 released detectors are listed in `detectors/catalogue.json`, which
+carries a `catalogue_hash` so other tools can pin an exact version. Another 14
+packages are drafts with placeholder SQL; they are left out of the catalogue
+and never recommended. [`docs/catalogue.md`](docs/catalogue.md) describes the
+catalogue schema and the one-shot runner.
+
+## Workflow
+
+```text
+P0 Create or resume case
+P1 Acquire or register data         sources.json records hash, licence, sensitivity
+P2 Prepare and profile              typed tables in data/index.duckdb, column types inferred
+P3 Recommend up to 10 detectors     only ones whose roles or contracts the data can fill
+   GATE A  journalist approves the field mappings and the detector plan
+P4 Run approved detectors           read-only DuckDB, bounded memory, time and output
+P5 Draft proposed findings          ranked, redacted signal previews
+P6 Replay every calculation and run the independent reviewer
+   GATE B  journalist accepts, revises or rejects each claim
+P7 Findings, report, charts and evidence viewer
+```
+
+Neither gate advances on its own. One remediation pass may return from review
+to detection or drafting, and further cycles need the journalist's approval.
+
+Each case is a portable folder with relative paths only:
+
+```text
+{CASE}/
+├── data/            sources.json · raw/ · prepared/ · index.duckdb
+├── detectors/       plan.json · used/ (content-addressed detector snapshots)
+├── evidence/        signals.jsonl (leads) · replay.json · runs/
+├── findings/        draft.json · review.json · findings.json · report.md · charts/ · viewer.html
+└── .anomaly/        durable state, receipts, attempts
+```
+
+`findings/viewer.html` is a self-contained evidence viewer. Clicking a claim
+opens its supporting signals, replayed calculations, detector provenance and
+the reviewer's verdict.
+
+## Use from Spotlight
+
+Spotlight reads `detectors/catalogue.json` at a pinned `catalogue_hash` and runs
+detectors through the one-shot runner (`python -m anomaly.oneshot`), so a change
+to data sources or to this README never moves the pin. Today Spotlight offers
+only the field-role detectors, attached to research topics as clue methods.
+
+The agreed direction moves Anomaly out of research. A journalist opts in during
+Methodology, Spotlight checks the catalogue for detectors that fit the case,
+and Anomaly then runs as its own step inside the Investigation phase. Anomaly's
+two gates fold into Spotlight's, with the detector plan approved at
+Methodology and findings accepted at the Investigation gate.
 
 ## Install
 
-Anomaly is a local Python package plus one installed skill and one reviewer
-agent. Requirements: Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+Anomaly needs Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/buriedsignals/Anomaly.git
 cd Anomaly
 uv sync --extra test
-uv run pytest tests/          # 853 tests, fully local
+uv run pytest tests/
 ```
 
 Point your agent runtime at [`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md)
 (the operator contract) and
 [`agents/anomaly-data-reviewer.md`](agents/anomaly-data-reviewer.md) (the
-independent reviewer). The packaged demo in `tests/fixtures/` walks a complete
-case from source registration through Gate B, report, charts, and viewer.
+independent reviewer). The demo in `tests/fixtures/` walks one case from
+source registration through Gate B to the viewer.
 
 ## Documentation
 
 | Doc | For |
 |---|---|
-| [Website](https://anomaly.buriedsignals.com/) | Product overview. |
-| [Workflow reference](https://anomaly.buriedsignals.com/docs/flow.html) | Every phase, both gates, artifacts, and remediation. |
-| [`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md) | Operator contract: dispatch table, gates, retries, redaction. |
-| [`agents/anomaly-data-reviewer.md`](agents/anomaly-data-reviewer.md) | Independent reviewer contract and verdict taxonomy. |
-| [`docs/catalogue.md`](docs/catalogue.md) | Detector catalogue schema and one-shot runs for other tools. |
-| [`AGENTS.md`](AGENTS.md) | Repository workflow and product constraints. |
-| [`PRD`-lineage design notes](skills/anomaly/SKILL.md) | Case-folder and registry rationale. |
+| [Workflow reference](https://anomaly.buriedsignals.com/docs/flow.html) | Every phase, both gates, artifacts and remediation |
+| [`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md) | Operator contract, gates, retries and redaction |
+| [`agents/anomaly-data-reviewer.md`](agents/anomaly-data-reviewer.md) | Reviewer contract and verdicts |
+| [`docs/catalogue.md`](docs/catalogue.md) | Catalogue schema and one-shot runs |
+| [`AGENTS.md`](AGENTS.md) | Repository workflow and product constraints |
 
-## What Belongs Where
-
-- **Anomaly** is structured-data investigation: acquisition, profiling,
-  detectors, replay, reviewed findings, and the portable case folder.
-- **Spotlight** is active OSINT casework: leads, source captures, fact-checks,
-  and review artifacts across public web sources.
-- **Splash** is visual journalism: storyboards, rendered visuals, and
-  delivery.
-- Findings from Anomaly are hand-off artifacts — a reviewed findings file and
-  evidence viewer a journalist can carry into any editorial workflow.
 
 ## Acknowledgements
 
