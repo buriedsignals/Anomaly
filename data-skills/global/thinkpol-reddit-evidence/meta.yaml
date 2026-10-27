@@ -2,6 +2,7 @@ id: global/thinkpol/reddit-evidence
 title: ThinkPol — Reddit Evidence
 description: Search ThinkPol's documented Reddit submission and comment archive.
 runtime: local
+status: queryable
 jurisdiction: global
 category: social
 endpoint: https://api.think-pol.com/v2/search
