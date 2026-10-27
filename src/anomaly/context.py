@@ -7,7 +7,7 @@
 For each domain (a type of data such as lobbying or procurement) it lists the
 data sources that cover it, with access, cost, licence and the SKILL.md that
 explains how to get and use the data, and the detectors that read that type
-of data. Core detectors that run on any table are listed once under
+of data. Statistical detectors that run on any table are listed once under
 ``any_table``. Detectors come from the published catalogue, so what is listed
 is exactly what ``anomaly.oneshot`` will run. Nothing here touches the network.
 """

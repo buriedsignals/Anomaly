@@ -1,6 +1,6 @@
 """Run released detectors on tables the caller supplies, without an Anomaly case.
 
-A core detector runs on one table whose columns the caller maps to the
+A statistical detector runs on one table whose columns the caller maps to the
 detector's required fields. A domain detector reads named tables: the caller
 supplies one file per table in the domain contract (``domains/<data_type>.yaml``)
 and may map contract columns to differently named file columns. The caller
@@ -244,7 +244,7 @@ def run_detectors(
 ) -> list[dict[str, Any]]:
     """Run up to ten catalogued detectors in a sealed in-memory DuckDB.
 
-    ``table`` is one file for core detectors (``required_tables == ["*"]``) or
+    ``table`` is one file for statistical detectors (``required_tables == ["*"]``) or
     ``{contract_table: file}`` for domain detectors.
     """
     if approved is not True:
@@ -324,7 +324,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m anomaly.oneshot", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--table", type=Path, help="CSV, JSONL or Parquet file for core detectors")
+    source.add_argument("--table", type=Path, help="CSV, JSONL or Parquet file for statistical detectors")
     source.add_argument("--tables", type=_named_table, action="append",
                         help="NAME=PATH for each contract table a domain detector reads (repeatable)")
     parser.add_argument("--request", required=True, type=Path, help="JSON request object or list")

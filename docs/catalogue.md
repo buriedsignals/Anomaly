@@ -34,7 +34,7 @@ Each detector entry:
 | `id`, `version` | Package identity. |
 | `implementation_hash` | `sha256:` over every file in the package; equals `detector_hash` on the signals it produces. |
 | `family`, `group`, `signal_category`, `severity`, `title`, `description` | Classification and labels. |
-| `data_type` | The domain a detector reads (e.g. `lobbying`); absent for core detectors that run on any table. Its tables are declared in `domains/<data_type>.yaml`. |
+| `data_type` | The domain a detector reads (e.g. `lobbying`); absent for statistical detectors that run on any table. Its tables are declared in `domains/<data_type>.yaml`. |
 | `required_tables` | `["*"]` means any one table; named tables need a prepared case. |
 | `required_fields` | `[{name, types}]`. `types` is the package's declared `required_types` for that field, or `null` when the package declares none. |
 | `parameters` | `{name: {default, type, ...bounds}}`. `integer`/`number` carry `minimum`/`maximum` (inclusive); `string` carries `max_length`. |
@@ -52,7 +52,7 @@ package with a missing, incomplete or violated bound.
 ## One-shot runs
 
 ```bash
-# Core detectors: one table, columns mapped to roles with "fields".
+# Statistical detectors: one table, columns mapped to roles with "fields".
 python -m anomaly.oneshot --table records.csv --request request.json --approved
 
 # Domain detectors: one file per contract table (domains/<data_type>.yaml).
@@ -84,7 +84,7 @@ The run refuses:
 - a detector absent from the released catalogue, or whose `version` or
   `implementation_hash` differs from it;
 - an installed package that no longer matches its catalogue entry;
-- a core detector given named tables, or a domain detector given one table;
+- a statistical detector given named tables, or a domain detector given one table;
 - a missing contract table, a file without a contract column, or a `columns`
   map naming anything outside the detector's tables and contract columns;
 - unmapped required fields, mapped columns missing from the table, and unknown,

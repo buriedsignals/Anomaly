@@ -132,6 +132,11 @@
       background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
       background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px; box-shadow: inset 0 0 0 1px var(--rule-2); padding: 1rem 0.6rem; }
     #map { width: 100%; height: auto; }
+    .stat-toggle { cursor: pointer; }
+    .stat-toggle:hover text { fill: var(--green); }
+    .stat-toggle:focus { outline: none; }
+    .stat-toggle:focus-visible text { fill: var(--blue); }
+    .stat-list summary { cursor: pointer; font-weight: 560; margin: 0.2rem 0 0.5rem; }
     .map-stack { display: none; }
     .map-caption { color: var(--ink-2); font-size: 0.84rem; margin: 1rem 0 0; max-width: 78ch; }
     .map-caption b { color: var(--ink); font-weight: 600; }
@@ -381,7 +386,7 @@
     const flow = [], caughtList = [], flash = [0, 0, 0];
     let nRec = 0, nLead = 0, spawnAcc = 0, leadNo = 0, sinceLead = 0, hover = null;
     const notes = [];
-    // What each core detector would say about a record it caught (simulated).
+    // What each detector would say about a record it caught (simulated).
     const WHY = { 'outliers': 'amount far from the rest', 'rare values': 'category seen once', 'duplicates': 'same row twice' };
 
     function layout() {
@@ -684,8 +689,8 @@
         head = '<div class="crow head"><span>Domain</span><span>Sources</span><span>Detectors</span><span>Contract</span><span>Covers</span></div>';
         rows = DATA.domains.filter(match).map(d => ({
           key: 'm:' + d.domain,
-          html: `<span class="id">${esc(d.domain)}</span><span class="t">${esc(d.sources.map(short).join(' · '))}</span><span class="m">${d.detectors.length ? d.detectors.length + ' + core' : 'core only'}</span><span class="m">${d.contract ? Object.keys(d.contract).length + ' tables' : 'none yet'}</span><span><span class="tag-s q">${d.sources.length} source${d.sources.length === 1 ? '' : 's'}</span></span>`,
-          detail: () => `<div><p>${d.contract ? `The ${esc(d.domain)} contract defines ${Object.keys(d.contract).length} tables that its ${d.detectors.length} detectors read.` : `No multi-table detectors read ${esc(d.domain)} yet, so its sources work with the ${DATA.any_table.length} core detectors, which run on any table.`}</p>${d.contract ? `<div class="tags">${Object.keys(d.contract).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
+          html: `<span class="id">${esc(d.domain)}</span><span class="t">${esc(d.sources.map(short).join(' · '))}</span><span class="m">${d.detectors.length ? d.detectors.length + ' + statistical' : 'statistical only'}</span><span class="m">${d.contract ? Object.keys(d.contract).length + ' tables' : 'none yet'}</span><span><span class="tag-s q">${d.sources.length} source${d.sources.length === 1 ? '' : 's'}</span></span>`,
+          detail: () => `<div><p>${d.contract ? `The ${esc(d.domain)} contract defines ${Object.keys(d.contract).length} tables that its ${d.detectors.length} detectors read.` : `No multi-table detectors read ${esc(d.domain)} yet, so its sources work with the ${DATA.any_table.length} statistical detectors, which run on any table.`}</p>${d.contract ? `<div class="tags">${Object.keys(d.contract).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
             <dl><dt>Sources</dt><dd>${d.sources.map(s => esc(s.id)).join('<br>')}</dd>${d.detectors.length ? `<dt>Detectors</dt><dd>${d.detectors.map(x => esc(x.id)).join('<br>')}</dd>` : ''}</dl>`
         }));
       }
@@ -724,14 +729,20 @@
       const svg = $('#map');
       const W = 960;
       const src = d.sources.slice(0, 9), srcMore = d.sources.length - src.length;
-      // Domains without their own detectors use the core detectors, which run on any table.
-      const detList = d.detectors.length ? d.detectors : DATA.any_table;
-      const dets = detList.slice(0, 9), detMore = detList.length - dets.length;
+      // Right column: the domain's own detectors, then the statistical detectors every domain gets.
+      const own = d.detectors.slice(0, 8), ownMore = d.detectors.length - own.length;
+      const rows = [
+        ...(own.length ? [{ k: 'head', t: `${d.domain} detectors` }] : []),
+        ...own.map(x => ({ k: 'det', t: x.id.split('.').pop().replace(/_/g, ' ') })),
+        ...(ownMore > 0 ? [{ k: 'more', t: `+${ownMore} more` }] : []),
+        { k: 'statnode', t: `statistical detectors (${DATA.any_table.length})` },
+        ...(state.statOpen ? DATA.any_table.map(x => ({ k: 'stat', t: x.id.split('.').pop().replace(/_/g, ' ') })) : []),
+      ];
       const left = src.length + (srcMore > 0 ? 1 : 0);
-      const right = (dets.length + (detMore > 0 ? 1 : 0)) || 1;
+      const right = rows.length;
       const tables = d.contract ? Object.keys(d.contract) : [];
       const rowsN = Math.max(left, right, 4, Math.ceil(tables.length * 0.42));
-      const ROW = 44, TOP = 46, H = TOP * 2 + rowsN * ROW;
+      const ROW = rowsN > 11 ? 32 : 40, TOP = 46, H = TOP * 2 + rowsN * ROW;
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       const cx = W / 2, cy = H / 2 + 6;
       const yL = i => TOP + (rowsN - left) * ROW / 2 + i * ROW + ROW / 2;
@@ -750,39 +761,45 @@
         if (!cat) moving += dot(id, BLUE, 3.2, 2.4 + (i % 3) * .5, -i * .55);
       });
       if (srcMore > 0) g += `<text x="${XL - 14}" y="${yL(src.length) + 4}" text-anchor="end" font-family="${FONT}" font-size="11.5" fill="#626B73">+${srcMore} more</text>`;
-      const leadPath = dets.length ? (Math.random() * dets.length) | 0 : -1;
-      if (dets.length) {
-        dets.forEach((x, i) => {
-          const y = yR(i), x1 = cx + hub.w / 2, hy = fan(i, dets.length), id = `pd${i}`;
-          g += `<path id="${id}" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${XR - 90} ${y}, ${XR} ${y}" fill="none" stroke="${GREEN}" stroke-opacity=".7" stroke-width="1.5"/>`;
-          g += `<rect x="${XR - 4.5}" y="${y - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
-          g += `<text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" fill="${INK}">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</text>`;
-          moving += dot(id, GREEN, 3, 2.8 + (i % 3) * .4, -i * .6);
-          if (i === leadPath) moving += dot(id, RED, 4.5, 3.6, 1.2);
-        });
-        if (detMore > 0) g += `<text x="${XR + 14}" y="${yR(dets.length) + 4}" font-family="${FONT}" font-size="11.5" fill="#626B73">+${detMore} more</text>`;
-      } else {
-        const x1 = cx + hub.w / 2;
-        g += `<path id="pd0" d="M${x1} ${cy} L ${XR} ${cy}" fill="none" stroke="${GREEN}" stroke-opacity=".7" stroke-width="1.5"/>`;
-        g += `<rect x="${XR - 4.5}" y="${cy - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
-        g += `<text x="${XR + 14}" y="${cy - 3}" font-family="${FONT}" font-size="12" fill="${INK}">${DATA.any_table.length} core detectors</text>`;
-        g += `<text x="${XR + 14}" y="${cy + 14}" font-family="${FONT}" font-size="11" fill="#626B73">run on any table</text>`;
-        moving += dot('pd0', GREEN, 3, 2.6, 0) + dot('pd0', RED, 4.5, 3.4, 1.1);
-      }
+      const lines = rows.map((r, i) => ({ ...r, y: yR(i) })).filter(r => r.k === 'det' || r.k === 'statnode');
+      const leadPath = (Math.random() * lines.length) | 0;
+      let li = 0;
+      rows.forEach((r, i) => {
+        const y = yR(i);
+        if (r.k === 'head') { g += `<text x="${XR - 4}" y="${y + 4}" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">${esc(r.t.toUpperCase())}</text>`; return; }
+        if (r.k === 'more') { g += `<text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="11.5" fill="#626B73">${esc(r.t)}</text>`; return; }
+        if (r.k === 'stat') { g += `<text x="${XR + 30}" y="${y + 4}" font-family="${FONT}" font-size="11.5" fill="#434C55">${esc(r.t)}</text>`; return; }
+        const k = li++, x1 = cx + hub.w / 2, hy = fan(k, lines.length), id = `pd${k}`, stat = r.k === 'statnode';
+        g += `<path id="${id}" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${XR - 90} ${y}, ${XR} ${y}" fill="none" stroke="${GREEN}" stroke-opacity="${stat ? .4 : .7}" stroke-width="1.5"/>`;
+        g += stat ? `<rect x="${XR - 4}" y="${y - 4}" width="8" height="8" rx="2" fill="#F5F6F0" stroke="${GREEN}" stroke-width="1.5"/>` : `<rect x="${XR - 4.5}" y="${y - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
+        g += stat
+          ? `<g class="stat-toggle" role="button" tabindex="0" aria-expanded="${!!state.statOpen}" aria-label="${state.statOpen ? 'Hide' : 'Show'} the ${DATA.any_table.length} statistical detectors"><rect x="${XR + 6}" y="${y - 13}" width="250" height="26" fill="transparent"/><text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" font-weight="560" fill="${INK}" text-decoration="underline">${esc(r.t)} ${state.statOpen ? '−' : '+'}</text></g>`
+          : `<text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" fill="${INK}">${esc(r.t)}</text>`;
+        moving += dot(id, GREEN, 3, 2.8 + (k % 3) * .4, -k * .6);
+        if (k === leadPath) moving += dot(id, RED, 4.5, 3.6, 1.2);
+      });
       g += `<rect x="${cx - hub.w / 2}" y="${cy - hub.h / 2}" width="${hub.w}" height="${hub.h}" rx="12" fill="#F5F6F0" stroke="${INK}" stroke-width="1.6"/>`;
       g += `<text x="${cx}" y="${cy - hub.h / 2 + 30}" text-anchor="middle" font-family="${FONT}" font-weight="640" font-stretch="112.5%" font-size="17" fill="${INK}">${esc(d.domain)}</text>`;
       if (tables.length) tables.slice(0, 9).forEach((t, i) => { g += `<text x="${cx}" y="${cy - hub.h / 2 + 54 + i * 16}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#434C55">${esc(t)}</text>`; });
       else g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#626B73">single-table domain</text>`;
       g += `<text x="${XL}" y="24" text-anchor="end" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">SOURCES</text>`;
-      g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">${d.detectors.length ? 'DETECTORS' : 'CORE DETECTORS'}</text>`;
-      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources and ${d.detectors.length || DATA.any_table.length + ' core'} detectors.</desc>` + g + moving;
+      g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">DETECTORS</text>`;
+      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources, ${d.detectors.length} ${esc(d.domain)} detectors and ${DATA.any_table.length} statistical detectors.</desc>` + g + moving;
+      const tog = svg.querySelector('.stat-toggle');
+      if (tog) {
+        const flip = () => { state.statOpen = !state.statOpen; drawMap(); const t = $('#map .stat-toggle'); if (t) t.focus(); };
+        tog.addEventListener('click', flip);
+        tog.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+      }
       $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(short(s))}</li>`).join('')}</ul>`
         + `<div class="map-hub"><b>${esc(d.domain)}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
-        + `<h4>${d.detectors.length ? 'Detectors' : 'Core detectors'}</h4><ul>${detList.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul>`;
+        + (d.detectors.length ? `<h4>${esc(d.domain)} detectors</h4><ul>${d.detectors.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul>` : '')
+        + `<details class="stat-list"><summary>Statistical detectors (${DATA.any_table.length})</summary><ul>${DATA.any_table.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul></details>`;
       const q = d.sources.filter(s => s.status !== 'catalogued').length;
-      $('#map-caption').innerHTML = d.contract
-        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them. Blue lines are queryable sources, dashed grey lines are catalogued ones, and green lines are detectors.`
-        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Nothing reads several ${esc(d.domain)} tables at once yet, so these sources feed the ${DATA.any_table.length} core detectors, which take any single table and map its columns to roles such as amount or date.`;
+      $('#map-caption').innerHTML = (d.contract
+        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} ${esc(d.domain)} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them.`
+        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). No detectors are written for ${esc(d.domain)} data yet.`)
+        + ` The ${DATA.any_table.length} statistical detectors work on any one table once its columns are mapped to roles such as amount, date or category.`;
     }
     function drawDomainList() {
       const list = $('#domain-list');

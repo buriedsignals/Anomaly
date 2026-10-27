@@ -44,7 +44,7 @@ flowchart LR
     end
     subgraph F["Detector families · detectors/"]
         F1["lobbying family<br/>data_type: lobbying"]
-        F0["core detectors<br/>any table, mapped by role"]
+        F0["statistical detectors<br/>any table, mapped by role"]
     end
     S1 --> D1
     S2 --> D1
@@ -63,7 +63,7 @@ flowchart LR
 
 ## How a detector gets its table
 
-**Core detectors run on any table.** They ask for roles, and the caller maps
+**Statistical detectors run on any table.** They ask for roles, and the caller maps
 those roles onto columns. A z-score outlier test works the same on donations,
 contract awards or a leaked spreadsheet.
 
@@ -105,7 +105,7 @@ nothing but its contract's columns.
 | social | Bluesky · ThinkPol | — |
 | statistics | Eurostat · DataHub | — |
 
-Core detectors serve every domain. Run `python -m anomaly.context` for the live
+Statistical detectors serve every domain. Run `python -m anomaly.context` for the live
 version of this table with access, cost and licence per source.
 
 A source is **queryable** when it ships an adapter, or **catalogued** when it
