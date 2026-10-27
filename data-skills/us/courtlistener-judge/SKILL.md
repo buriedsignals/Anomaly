@@ -58,6 +58,14 @@ Read [the API reference](references/api-reference.md) for people/search behavior
 fields, aliases, date granularity, and authentication. Read
 [the query guide](references/query-guide.md) for identity resolution and reporting.
 
+## Court domain join
+
+The `id` this skill returns is the CourtListener person id that the docket
+skill's `court-cases` rows carry as `assigned_judge_id` and the
+financial-disclosures skill's `judge-interests` rows carry as `judge_id`, so
+court detectors join cases to disclosures on it. Use the person record's name
+to fill `judge_interests.judge_name` when needed.
+
 ## Bundled resources
 
 - `references/api-reference.md` — Firecrawl-preserved official judge and REST documentation plus OPTIONS evidence.

@@ -1,0 +1,4 @@
+[
+  {"party_name": "Gadget LLC", "court_id": "txnd", "judge_id": "403", "cases_before_judge": 3, "party_cases": 3, "judge_share": 1.0, "judges_in_court": 3},
+  {"party_name": "Alliance for Hippocratic Medicine", "court_id": "txnd", "judge_id": "401", "cases_before_judge": 3, "party_cases": 4, "judge_share": 0.75, "judges_in_court": 3}
+]

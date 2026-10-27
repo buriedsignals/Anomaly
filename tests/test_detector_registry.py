@@ -54,10 +54,35 @@ PROCUREMENT_DETECTOR_IDS = (
     "procurement.value_growth_after_award",
 )
 
+COMPANIES_DETECTOR_IDS = (
+    "companies.circular_control",
+    "companies.frequent_name_changes",
+    "companies.prolific_officer",
+    "companies.rapid_dissolution",
+    "companies.secrecy_jurisdiction_controller",
+    "companies.shared_registered_address",
+)
+
 CAMPAIGN_FINANCE_DETECTOR_IDS = (
     "campaign_finance.maxed_donor_clusters",
     "campaign_finance.new_recipient_single_funder",
     "campaign_finance.structured_gifts",
+)
+
+PARLIAMENTARY_DETECTOR_IDS = (
+    "parliamentary.absence_outlier",
+    "parliamentary.group_rebellion_rate",
+    "parliamentary.group_switch",
+    "parliamentary.outside_interests_load",
+    "parliamentary.rebellion_rise",
+)
+
+COURT_DETECTOR_IDS = (
+    "court.gift_from_litigant_or_counsel",
+    "court.judge_holds_party_stock",
+    "court.long_pending_cases",
+    "court.repeat_party_before_judge",
+    "court.single_judge_concentration",
 )
 
 
@@ -105,7 +130,8 @@ def test_registry_discovers_core_and_lobbying_detectors_with_scalable_groups() -
     detectors = _registry_api().discover_detectors(limit=100)
     ids = tuple(item["id"] for item in detectors)
     expected = (set(CORE_DETECTOR_IDS) | set(LOBBYING_DETECTOR_IDS)
-                | set(PROCUREMENT_DETECTOR_IDS) | set(CAMPAIGN_FINANCE_DETECTOR_IDS))
+                | set(PROCUREMENT_DETECTOR_IDS) | set(CAMPAIGN_FINANCE_DETECTOR_IDS)
+                | set(COMPANIES_DETECTOR_IDS) | set(PARLIAMENTARY_DETECTOR_IDS) | set(COURT_DETECTOR_IDS))
     assert set(ids) == expected
     assert all(isinstance(item["group"], str) and item["group"] for item in detectors)
     lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("lobbying.")}

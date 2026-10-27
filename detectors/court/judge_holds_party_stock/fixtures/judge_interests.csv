@@ -1,0 +1,9 @@
+judge_id,judge_name,report_year,interest_type,counterparty,description,value_low,value_high,url
+101,Judge A,2020,investment,Apple Inc. (AAPL),,15001,50000,https://example.org/fd/101-2020.pdf
+101,Judge A,2021,investment,Apple Inc. (AAPL),,50001,100000,https://example.org/fd/101-2021.pdf
+101,Judge A,2020,investment,Ford Motor Co,,1,15000,https://example.org/fd/101-2020.pdf
+101,Judge A,2020,investment,3M Co,,1,15000,https://example.org/fd/101-2020.pdf
+101,Judge A,2020,gift,Apple Inc.,Conference pass,500,500,https://example.org/fd/101-2020.pdf
+102,Judge B,2023,investment,Exxon Mobil Corp Common Stock,,1000001,5000000,https://example.org/fd/102-2023.pdf
+102,Judge B,2023,investment,Exxon Mobil Pipeline Partners,,15001,50000,https://example.org/fd/102-2023.pdf
+102,Judge B,2019,investment,Exxon Mobil Corp,,1,15000,https://example.org/fd/102-2019.pdf

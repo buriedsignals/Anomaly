@@ -1,0 +1,12 @@
+[
+  {"candidate_id": "gb:D", "cycle_length": 1, "cycle_path": "gb:D > gb:D"},
+  {"candidate_id": "gb:A", "cycle_length": 3, "cycle_path": "gb:A > gb:B > gb:C > gb:A"},
+  {"candidate_id": "gb:B", "cycle_length": 3, "cycle_path": "gb:B > gb:C > gb:A > gb:B"},
+  {"candidate_id": "gb:C", "cycle_length": 3, "cycle_path": "gb:C > gb:A > gb:B > gb:C"},
+  {"candidate_id": "gb:M1", "cycle_length": 6, "cycle_path": "gb:M1 > gb:M2 > gb:M3 > gb:M4 > gb:M5 > gb:M6 > gb:M1"},
+  {"candidate_id": "gb:M2", "cycle_length": 6},
+  {"candidate_id": "gb:M3", "cycle_length": 6},
+  {"candidate_id": "gb:M4", "cycle_length": 6},
+  {"candidate_id": "gb:M5", "cycle_length": 6},
+  {"candidate_id": "gb:M6", "cycle_length": 6, "cycle_path": "gb:M6 > gb:M1 > gb:M2 > gb:M3 > gb:M4 > gb:M5 > gb:M6"}
+]

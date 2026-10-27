@@ -1,0 +1,40 @@
+id: parliamentary.absence_outlier
+version: 1.0.0
+release: released
+title: Absence outlier
+author: buried-signals
+license: internal
+group: domain
+family: parliamentary
+data_type: parliamentary
+menu_order: 2
+description: Members who miss a far higher share of roll-call votes than the median member of their chamber.
+required_tables: [parl_members, parl_votings, parl_member_votes]
+required_fields: [id]
+parameters:
+  min_votings: 50
+  ratio: 2.0
+  min_rate: 0.1
+  limit: 200
+parameter_bounds:
+  min_votings: {type: integer, minimum: 1, maximum: 100000}
+  ratio: {type: number, minimum: 1, maximum: 100}
+  min_rate: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: parliamentary
+severity: low
+expected_output: [member_id, name, parliament, chamber, votings, absences, absence_rate, median_rate]
+assumptions:
+  - Tables follow the parliamentary domain contract in domains/parliamentary.yaml.
+  - "absent means the member held a seat that day and cast no vote. HowTheyVote defines 'Did not vote' as not participating, 'for example because the MEP was not present' (https://howtheyvote.eu/about); FicheDéputé counts it as an absence (https://fichedepute.eu/methode)."
+  - A member is flagged when the absence rate reaches both ratio times the chamber median and min_rate; members with fewer than min_votings recorded votes are left out, and so is their share of the median.
+  - Source values other than for, against, abstain and absent (such as an excused flag) are ignored.
+  - The defaults are uncalibrated starting points.
+false_positives:
+  - "The President chairs sittings and rarely votes, so shows near-total absence (https://fichedepute.eu/methode)."
+  - Illness, parental leave, official missions and excused absences look the same as unexcused ones unless the source separates them.
+  - A source can keep a mandate open after a member stopped sitting. In a four-sitting European Parliament sample (2025-07-09/10, 2025-10-22/23) seven MEPs with open mandates appeared in no voter list, among them the President; check the official member page before reporting a rate near 1.
+  - Members who joined or left mid-sample are on fewer rolls; the rate is per roll they were on, not per sitting day.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

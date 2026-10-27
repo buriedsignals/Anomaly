@@ -1,0 +1,34 @@
+id: companies.shared_registered_address
+version: 1.0.0
+release: released
+title: Mass registration address
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 1
+description: Registered office addresses shared by many companies, the mailbox and formation-agent addresses that shell company schemes use.
+required_tables: [companies]
+required_fields: [id]
+parameters:
+  min_companies: 50
+  limit: 200
+parameter_bounds:
+  min_companies: {type: integer, minimum: 2, maximum: 1000000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: medium
+expected_output: [candidate_id, registered_address, companies, current_companies, jurisdictions, first_incorporated, last_incorporated, example_companies]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml."
+  - "Two addresses match when they are equal after dropping case, spaces and punctuation; a different flat number, a missing postcode or an added country makes two keys."
+  - "Indicator: OCCRP reported one London address used to register 4,000 to 5,000 businesses (https://www.occrp.org/en/news/uk-strikes-off-11500-companies-in-crackdown-on-fraud-and-shell-entities); Transparency International UK found over 6,000 identikit shell companies at just 10 addresses (https://www.transparency.org.uk/news/house-horrors-what-leaked-documents-tell-us-about-uks-fight-against-dirty-money); FATF and Egmont list a post-box-only address as a shell company indicator (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63)."
+  - "The default of 50 companies is a judgement, far below the published cases; lower it for a small sample."
+  - "Counts cover only the rows loaded, not the whole register. Enumerate an address first (Companies House advanced search by location, Brreg search by postal code) before reading a count as the address's total."
+false_positives:
+  - "Accountants, registered-agent services, serviced offices, business centres and group head offices legitimately host many companies."
+  - "Global Witness counted 208,572 UK companies at company-factory or mailbox addresses (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/), so the address alone is common; combine with rapid dissolution, prolific officers or offshore controllers."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

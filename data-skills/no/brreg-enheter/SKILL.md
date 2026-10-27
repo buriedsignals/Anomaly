@@ -27,6 +27,8 @@ other sections in this playbook may document provider or unreleased adapter scop
 
 - `no/brreg/enheter:search-companies` — Search Norwegian main entities by provider name semantics with explicit page and page size.
 - `no/brreg/enheter:get-company` — Retrieve one Norwegian main entity by its exact nine-digit organisation number.
+- `no/brreg/enheter:companies` — Main entities by number, name or business postal code as companies-contract rows.
+- `no/brreg/enheter:company-officers` — An entity's current roles as company_officers rows.
 <!-- END GENERATED OPERATION STATUS -->
 ## Workflow
 
@@ -54,9 +56,40 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Source boundary
 
 Released scope covers the provider's `enheter` main-entity search and detail
-routes. Sub-entities (`underenheter`), roles, group structure, change feeds,
+routes, plus the open roles route. Sub-entities (`underenheter`), group structure, change feeds,
 nonprofit information, organisation forms, and bulk downloads are documented
 provider capabilities but are not released operations here.
+
+## Fill the companies contract
+
+`companies` (one `organisasjonsnummer`, or `navn` and/or a four-digit
+`postnummer`, up to 100 per page) and `company-officers` (one
+`organisasjonsnummer`, via `/enheter/{orgnr}/roller`) return rows of
+`domains/companies.yaml`. The open API publishes no ownership, so Brreg fills
+no `company_controllers`; run `prolific_officer` with a header-only
+controllers file. Parameters follow the API documentation
+(https://data.brreg.no/enhetsregisteret/api/dokumentasjon/en/index.html, read
+2026-10-27).
+
+| If the source publishes | map it to column |
+|---|---|
+| `organisasjonsnummer` | `company_id` = `no:` + number; `jurisdiction` = `NO` |
+| `navn` | `name` |
+| `konkurs`; `underAvvikling` or `underTvangsavviklingEllerTvangsopplosning` | `status` = `bankrupt`; `in_liquidation`; else `active` |
+| `stiftelsesdato`, else `registreringsdatoEnhetsregisteret` | `incorporation_date` |
+| (deleted entities leave the open API) | `dissolution_date` stays empty |
+| `forretningsadresse.adresse[]`, `postnummer`, `poststed` | `registered_address` |
+| `historiskeNavn[]` | `previous_name_count` |
+| role `enhet.organisasjonsnummer` (corporate role) | `officer_id` = `no:` + number |
+| role `person.navn` + `person.fodselsdato` | `officer_id` = `no:person:` + upper-case name + `\|` + birth date |
+| role `type.kode` (DAGL, LEDE, MEDL, REVI, REGN, ...) | `role` |
+| role `avregistrert: true` | dropped: the open API gives no end date |
+| (not published) | `appointed_on`, `resigned_on`, `company_name` stay empty |
+
+A postal code covers an area, not one building, so search by `postnummer` to
+collect candidates and let `shared_registered_address` group them by the full
+street address. Auditors (REVI) and accountants (REGN) hold many roles by
+trade; `prolific_officer` excludes them by default.
 
 ## Interpretation cautions
 

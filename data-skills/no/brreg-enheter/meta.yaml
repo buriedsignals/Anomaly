@@ -47,7 +47,7 @@ input_schema:
   properties:
     operation:
       type: string
-      enum: [search-companies, get-company]
+      enum: [search-companies, get-company, companies, company-officers]
       description: Internal operation discriminator supplied by the registry.
     navn:
       type: string
@@ -67,6 +67,10 @@ input_schema:
       minimum: 0
       default: 0
       description: Zero-based provider page number for name search.
+    postnummer:
+      type: string
+      pattern: '^[0-9]{4}$'
+      description: Business-address postal code filter (companies operation).
   additionalProperties: false
 
 output_schema:
@@ -145,3 +149,53 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not describe mutable fields as current without an observation date.
+
+  - id: companies
+    title: Main entities as companies-contract rows
+    description: Read one organisation number, or search by name or business-address postal code, and return rows of domains/companies.yaml with earlier names counted.
+    status: queryable
+    entities: [Company]
+    actions: [search, get]
+    input_fields: [organisasjonsnummer, navn, postnummer, size, page]
+    required: []
+    any_of_required: [organisasjonsnummer, navn, postnummer]
+    aliases: {}
+    adapter_input: {operation: companies}
+    output_fields: [company_id, jurisdiction, name, status, incorporation_date, dissolution_date, registered_address, previous_name_count, source_url]
+    filters: [navn, postnummer, size, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.brreg.no]
+      data_classes: [query parameters]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read a postal-code page as every entity at one street address; the code covers an area.
+
+  - id: company-officers
+    title: Current roles as company_officers rows
+    description: Read an entity's current roles (board, managing director, auditor, accountant) from the open roles endpoint.
+    status: queryable
+    entities: [Officer]
+    actions: [get]
+    input_fields: [organisasjonsnummer]
+    required: [organisasjonsnummer]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: company-officers}
+    output_fields: [company_id, officer_id, name, company_name, role, appointed_on, resigned_on]
+    filters: []
+    semantics: {enumeration: none, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [data.brreg.no]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat name plus birth date as a verified identity; the open API withholds national identity numbers.

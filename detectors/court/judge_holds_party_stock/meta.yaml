@@ -1,0 +1,38 @@
+id: court.judge_holds_party_stock
+version: 1.0.0
+release: released
+title: Judge holds stock in a party
+author: buried-signals
+license: internal
+group: domain
+family: court
+data_type: court
+menu_order: 1
+description: Cases assigned to a judge whose financial disclosure lists an investment whose name matches a party, in a report year overlapping the case.
+required_tables: [court_cases, case_parties, judge_interests]
+required_fields: [id]
+parameters:
+  min_name_length: 4
+  year_slack: 1
+  limit: 200
+parameter_bounds:
+  min_name_length: {type: integer, minimum: 1, maximum: 50}
+  year_slack: {type: integer, minimum: 0, maximum: 5}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: court
+severity: high
+expected_output: [case_id, court_id, case_name, docket_number, date_filed, date_terminated, judge_id, judge_name, party_name, party_role, holding, match_type, first_report_year, last_report_year, max_value_low, max_value_high, report_url, url]
+assumptions:
+  - Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier (CourtListener person id).
+  - "Indicator: the Wall Street Journal found 131 federal judges failed to recuse from 685 cases (2010-2018) involving companies they or their family held shares in (https://www.wsj.com/us-news/law/131-federal-judges-broke-the-law-by-hearing-cases-where-they-had-a-financial-interest-11632834421); see also Fix the Court (https://fixthecourt.com/2021/09/100-federal-judges-failed-recuse-owned-stock-litigant-whats-excuses/)."
+  - "Names are matched after upper-casing, dropping bracketed text such as tickers, punctuation and legal-form words (Inc, Corp, LLC, Common Stock, Class): equal keys are an exact match, and one key starting with the other followed by a space is a prefix match. Both keys must have at least min_name_length characters."
+  - A holding counts when its report year falls between year_slack years before the filing year and year_slack years after the termination year; a pending case has no upper bound.
+  - Value bounds come from the disclosure value codes; the top band has no upper bound, so max_value_high can be empty.
+false_positives:
+  - "Name matching is the main false-positive risk: a prefix match links Apple Inc to Apple Hospitality REIT, and different companies share words. Check every lead against the disclosure PDF and the party's corporate identity."
+  - "Ownership in a mutual or common investment fund is not a financial interest in the securities it holds unless the judge helps manage the fund (28 U.S.C. 455(d)(4)(i), https://www.law.cornell.edu/uscode/text/28/455); a fund whose name contains an issuer's name can still match."
+  - "assigned_judge_id is the judge assigned when the record was captured; the judge may have recused, been reassigned, or divested before acting in the case. Read the docket before treating a lead as a failure to recuse."
+  - Parents, subsidiaries and renamed companies are missed (false negatives), not flagged.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

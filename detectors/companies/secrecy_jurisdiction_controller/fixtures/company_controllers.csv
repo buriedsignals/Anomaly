@@ -1,0 +1,9 @@
+company_id,controller_id,controller_name,controller_kind,controller_country,controller_company_id,control_type,notified_on,ceased_on
+gb:00000001,gb:psc:ISLAND HOLDINGS LIMITED,ISLAND HOLDINGS LIMITED,legal_entity,VG,,ownership-of-shares-75-to-100-percent,2019-04-06,
+gb:00000002,"gb:psc:RESIDENT, RITA|1980-02","RESIDENT, Rita",individual,VG,,ownership-of-shares-25-to-50-percent,2019-04-06,
+gb:00000003,gb:psc:HOME PARENT PLC,HOME PARENT PLC,legal_entity,GB,gb:00000099,ownership-of-shares-75-to-100-percent,2019-04-06,
+ch:CHE-100.000.004,lei:SWISSPARENT000000001,SWISS PARENT AG,legal_entity,CH,lei:SWISSPARENT000000001,direct-parent,,
+lei:549300A8CJBWDXKOC509,lei:CAYMANPARENT00000001,CAYMAN PARENT LTD,legal_entity,KY,lei:CAYMANPARENT00000001,direct-parent,,
+lei:549300A8CJBWDXKOC509,lei:CAYMANPARENT00000001,CAYMAN PARENT LTD,legal_entity,KY,lei:CAYMANPARENT00000001,ultimate-parent,,
+gb:00000005,gb:psc:LOWER CASE LTD,LOWER CASE LTD,legal_entity, vg ,,voting-rights-75-to-100-percent,2020-01-01,
+gb:00000006,gb:psc:FORMER OFFSHORE LTD,FORMER OFFSHORE LTD,legal_entity,VG,,ownership-of-shares-75-to-100-percent,2018-01-01,2021-01-01

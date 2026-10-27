@@ -1,0 +1,5 @@
+[
+  {"candidate_id": "lei:549300A8CJBWDXKOC509|lei:CAYMANPARENT00000001", "company_name": "GERMAN DAUGHTER GMBH", "company_jurisdiction": "DE", "controller_country": "KY", "controller_company_id": "lei:CAYMANPARENT00000001", "control_type": "direct-parent"},
+  {"candidate_id": "gb:00000001|gb:psc:ISLAND HOLDINGS LIMITED", "company_name": "ONSHORE ONE LTD", "company_jurisdiction": "GB", "controller_name": "ISLAND HOLDINGS LIMITED", "controller_country": "VG", "notified_on": "2019-04-06"},
+  {"candidate_id": "gb:00000005|gb:psc:LOWER CASE LTD", "company_name": null, "company_jurisdiction": "GB", "controller_country": "VG"}
+]

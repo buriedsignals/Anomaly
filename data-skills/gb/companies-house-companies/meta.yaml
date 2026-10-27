@@ -58,7 +58,7 @@ input_schema:
   properties:
     operation:
       type: string
-      enum: [search-companies, get-company]
+      enum: [search-companies, get-company, companies, company-officers, officer-appointments, company-controllers]
       description: Internal operation discriminator supplied by the registry.
     q:
       type: string
@@ -76,6 +76,20 @@ input_schema:
       type: integer
       minimum: 0
       default: 0
+    location:
+      type: string
+      description: Registered-office location for advanced search (companies operation).
+    incorporated_from: {type: string, format: date}
+    incorporated_to: {type: string, format: date}
+    company_status: {type: string}
+    officer_id:
+      type: string
+      description: Officer id from a company-officers row (officer-appointments operation).
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 5000
+      description: Maximum rows for the contract operations.
   additionalProperties: false
 
 output_schema:
@@ -154,3 +168,103 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not infer ownership, directors, or current trading activity from the basic profile.
+
+  - id: companies
+    title: Companies as companies-contract rows
+    description: Read company profiles by number (with previous names) or every company an advanced search returns for a registered-office location, as rows of domains/companies.yaml.
+    status: queryable
+    entities: [Company]
+    actions: [search, get]
+    input_fields: [company_number, location, incorporated_from, incorporated_to, company_status, limit]
+    required: []
+    any_of_required: [company_number, location]
+    aliases: {}
+    adapter_input: {operation: companies}
+    output_fields: [company_id, jurisdiction, name, status, incorporation_date, dissolution_date, registered_address, previous_name_count, source_url]
+    filters: [location, incorporated_from, incorporated_to, company_status, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [query parameters, record identifier]
+      sensitive_inputs: [location]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read an advanced-search count as the whole address; it is capped by size (at most 5,000 per request).
+
+  - id: company-officers
+    title: A company's officers as company_officers rows
+    description: List a company's current and resigned officers with the officer id that joins their other appointments.
+    status: queryable
+    entities: [Officer]
+    actions: [get]
+    input_fields: [company_number, limit]
+    required: [company_number]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: company-officers}
+    output_fields: [company_id, officer_id, name, company_name, role, appointed_on, resigned_on]
+    filters: [limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat two officers with the same name as one person; join on officer_id.
+
+  - id: officer-appointments
+    title: One officer's appointments as company_officers rows
+    description: List every appointment of one officer id across companies, the input prolific_officer needs.
+    status: queryable
+    entities: [Officer]
+    actions: [get]
+    input_fields: [officer_id, limit]
+    required: [officer_id]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: officer-appointments}
+    output_fields: [company_id, officer_id, name, company_name, role, appointed_on, resigned_on]
+    filters: [limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [record identifier]
+      sensitive_inputs: [officer_id]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present a prolific officer as a nominee without reading the appointments and filings.
+
+  - id: company-controllers
+    title: A company's persons with significant control as company_controllers rows
+    description: List a company's PSCs; a UK corporate PSC with a registration number resolves to its own company_id.
+    status: queryable
+    entities: [PersonWithSignificantControl]
+    actions: [get]
+    input_fields: [company_number, limit]
+    required: [company_number]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: company-controllers}
+    output_fields: [company_id, controller_id, controller_name, controller_kind, controller_country, controller_company_id, control_type, notified_on, ceased_on]
+    filters: [limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [api.company-information.service.gov.uk]
+      data_classes: [record identifier]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a PSC filing as verified ownership; Companies House records what companies declare.

@@ -1,0 +1,8 @@
+company_id,jurisdiction,name,status,incorporation_date,dissolution_date,registered_address,source_url
+gb:00000001,GB,QUICK ONE LTD,dissolved,2025-01-01,2025-03-01,"1 Short Street, London, E1 1AA",https://find-and-update.company-information.service.gov.uk/company/00000001
+gb:00000001,GB,QUICK ONE LTD,dissolved,2025-01-01,2025-03-01,"1 Short Street, London, E1 1AA",https://find-and-update.company-information.service.gov.uk/company/00000001
+gb:00000002,GB,ALMOST A YEAR LTD,dissolved,2024-01-01,2024-12-30,,
+gb:00000003,GB,JUST OVER LTD,dissolved,2024-01-01,2025-01-01,,
+gb:00000004,GB,STILL HERE LTD,active,2025-01-01,,,
+gb:00000005,GB,BAD DATES LTD,dissolved,2025-06-01,2025-01-01,,
+lei:549300OQR8FAZBOXTC51,DE,SAME DAY GMBH,INACTIVE,2025-05-05,2025-05-05,,

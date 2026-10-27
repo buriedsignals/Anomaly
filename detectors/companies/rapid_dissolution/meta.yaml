@@ -1,0 +1,31 @@
+id: companies.rapid_dissolution
+version: 1.0.0
+release: released
+title: Rapid incorporation and dissolution
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 3
+description: Companies dissolved within a short time of incorporation, the throwaway vehicles of one-off schemes.
+required_tables: [companies]
+required_fields: [id]
+parameters:
+  max_days: 365
+  limit: 200
+parameter_bounds:
+  max_days: {type: integer, minimum: 0, maximum: 3650}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: low
+expected_output: [candidate_id, company_id, name, jurisdiction, incorporation_date, dissolution_date, days_existed, registered_address, source_url]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml."
+  - "Indicator: Open Ownership's red-flag queries over UK beneficial ownership data ask how many entities were founded and dissolved within a year (https://www.openownership.org/en/blog/spotting-red-flags-in-beneficial-ownership-datasets/); the default of 365 days follows it."
+  - "Only companies whose register publishes both dates are tested; Brreg removes deleted entities from its API and Zefix's legacy search publishes neither date."
+false_positives:
+  - "Most short-lived companies are failed start-ups, abandoned formations or vehicles closed after a completed transaction; read it with the address, officer and controller signals."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

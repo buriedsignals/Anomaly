@@ -16,14 +16,13 @@ jurisdiction: us
 runtime: local
 endpoint: https://www.courtlistener.com/api/rest/v4/search/
 auth:
-  type: none
-  optional: true
+  type: api_key
   key_name: courtlistener
   setup_url: https://www.courtlistener.com/profile/api-token/
   setup_help: >-
-    Public experimentation can work without a token. CourtListener asks deployed
-    API clients to authenticate. Create an account, copy the profile API token,
-    through the execution context; access limits depend on account tier.
+    Every v4 endpoint returned 401 without a token when tested on 2026-10-27.
+    Create a free account and pass the profile API token through the execution
+    context; access limits depend on account tier.
 verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
 license:
   data_license: Mixed court-record rights; judicial opinions are generally public domain, while embedded third-party material may remain copyrighted

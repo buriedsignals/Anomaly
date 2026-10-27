@@ -44,8 +44,15 @@ examples:
 
 input_schema:
   type: object
-  required: [q]
   properties:
+    operation:
+      type: string
+      enum: [search-lei-records, companies, company-controllers]
+      default: search-lei-records
+    lei:
+      type: string
+      pattern: '^[A-Za-z0-9]{20}$'
+      description: One LEI for the companies and company-controllers operations, instead of q.
     q:
       type: string
       description: Search value interpreted according to search_field.
@@ -109,3 +116,53 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not equate LAPSED registration with a dissolved legal entity.
+
+  - id: companies
+    title: LEI records as companies-contract rows
+    description: Search LEI records (or read one LEI) and return rows of domains/companies.yaml with creation and dissolution dates.
+    status: queryable
+    entities: [LegalEntity]
+    actions: [search, get]
+    input_fields: [q, search_field, jurisdiction, lei, limit, page]
+    required: []
+    any_of_required: [q, lei]
+    aliases: {query: q, name: q}
+    adapter_input: {operation: companies}
+    output_fields: [company_id, jurisdiction, name, status, incorporation_date, dissolution_date, registered_address, previous_name_count, source_url]
+    filters: [q, search_field, jurisdiction, limit, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.gleif.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read a missing LEI as a missing company; most companies have no LEI.
+
+  - id: company-controllers
+    title: LEI parents as company_controllers rows
+    description: For each LEI record found (at most 50), read the direct and ultimate accounting-consolidation parents (GLEIF Level 2).
+    status: queryable
+    entities: [LegalEntity]
+    actions: [search, get]
+    input_fields: [q, search_field, jurisdiction, lei, limit, page]
+    required: []
+    any_of_required: [q, lei]
+    aliases: {query: q, name: q}
+    adapter_input: {operation: company-controllers}
+    output_fields: [company_id, controller_id, controller_name, controller_kind, controller_country, controller_company_id, control_type, notified_on, ceased_on]
+    filters: [q, search_field, jurisdiction, limit, page]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.gleif.org]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read an accounting-consolidation parent as a beneficial owner; Level 2 names legal-entity parents only.

@@ -1,0 +1,4 @@
+case_id,court_id,case_name,date_filed,date_terminated,assigned_judge_id,assigned_judge_name
+G1,dcd,Acme Holdings LLC v. Agency,2019-04-01,2020-09-30,201,Judge D
+G2,dcd,Crow v. Agency,2010-01-01,2011-01-01,201,Judge D
+G3,dcd,Lee v. Agency,2019-04-01,,202,Judge E

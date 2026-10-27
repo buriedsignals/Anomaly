@@ -1,0 +1,6 @@
+case_id,court_id,case_name,docket_number,date_filed,date_terminated,nature_of_suit,assigned_judge_id,assigned_judge_name,url
+C1,txnd,Doe v. Apple Inc.,3:20-cv-00001,2020-03-01,2021-06-30,Patent,101,Judge A,https://www.courtlistener.com/docket/1/
+C2,txnd,Roe v. Exxon Mobil Corp.,3:22-cv-00002,2022-05-01,,Contract,102,Judge B,https://www.courtlistener.com/docket/2/
+C3,txnd,Poe v. Apple Inc.,3:15-cv-00003,2015-01-01,2016-01-01,Patent,101,Judge A,https://www.courtlistener.com/docket/3/
+C4,txnd,Loe v. Ford Motor Company,3:20-cv-00004,2020-02-01,,Contract,103,Judge C,https://www.courtlistener.com/docket/4/
+C5,txnd,Moe v. 3M Company,3:20-cv-00005,2020-02-01,,Product Liability,101,Judge A,https://www.courtlistener.com/docket/5/

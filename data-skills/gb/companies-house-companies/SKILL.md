@@ -27,6 +27,10 @@ other sections in this playbook may document provider or unreleased adapter scop
 
 - `gb/companies-house/companies:search-companies` — Search official Companies House company summaries by term with offset pagination.
 - `gb/companies-house/companies:get-company` — Retrieve official basic company information by exact Companies House company number.
+- `gb/companies-house/companies:companies` — Company profiles, or every company an advanced search returns for a registered-office location, as companies-contract rows.
+- `gb/companies-house/companies:company-officers` — A company's officers as company_officers rows.
+- `gb/companies-house/companies:officer-appointments` — One officer's appointments across companies as company_officers rows.
+- `gb/companies-house/companies:company-controllers` — A company's persons with significant control as company_controllers rows.
 <!-- END GENERATED OPERATION STATUS -->
 ## Authentication and quota
 
@@ -62,9 +66,48 @@ five minutes; exceeding it returns 429. A 401 means unauthorised, not quota.
 - Leading zeros and letter prefixes are meaningful.
 - Basic profile status does not prove current commercial activity or status on
   a historical date.
-- Officers, filings, charges, insolvency, registers, disqualifications, and PSC
-  endpoints are documented provider scope but not released here.
+- Filings, charges, insolvency, registers, disqualifications, and PSC
+  statements are documented provider scope but not released here.
 - Register data is filed information and can be corrected or updated.
+
+## Fill the companies contract
+
+`companies`, `company-officers`, `officer-appointments` and
+`company-controllers` return rows of `domains/companies.yaml`. Write each to
+CSV and run the companies detectors with
+`python -m anomaly.oneshot --tables companies=... --tables company_officers=... --tables company_controllers=...`.
+Endpoints follow the Public Data API specification
+(https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference,
+read 2026-10-27). No key was configured when these operations were written, so
+they are tested offline against the documented response shapes only.
+
+```bash
+catalogue query gb/companies-house/companies --operation companies \
+  --input '{"location":"10 Queen Street Place","limit":2000}'
+catalogue query gb/companies-house/companies --operation officer-appointments \
+  --input '{"officer_id":"<id from company-officers>"}'
+```
+
+| If the source publishes | map it to column |
+|---|---|
+| `company_number` | `company_id` = `gb:` + number (leading zeros kept); `jurisdiction` = `GB` |
+| `company_name`, `company_status` | `name`, `status` |
+| `date_of_creation`, `date_of_cessation` | `incorporation_date`, `dissolution_date` |
+| `registered_office_address` (premises, lines, locality, region, postal code; care-of and country dropped) | `registered_address` |
+| `previous_company_names[]` (profile only; empty from advanced search) | `previous_name_count` |
+| officer `links.officer.appointments` (`/officers/{id}/appointments`) | `officer_id` |
+| officer `name`, `officer_role`, `appointed_on`, `resigned_on` | `name`, `role`, `appointed_on`, `resigned_on` |
+| appointment `appointed_to.company_number`, `.company_name` | `company_id`, `company_name` |
+| PSC `kind` individual / corporate-entity or legal-person / super-secure | `controller_kind` = `individual` / `legal_entity` / `statement` |
+| PSC `name` (+ `date_of_birth` year-month for a person) | `controller_id` = `gb:psc:` + upper-case name (+ `\|YYYY-MM`), `controller_name` |
+| PSC `country_of_residence` (person) or `identification.country_registered` (entity) | `controller_country`, as free text: convert to ISO alpha-2 before running `secrecy_jurisdiction_controller` |
+| UK `identification.registration_number` | `controller_company_id` = `gb:` + number zero-padded to 8 digits |
+| `natures_of_control[]`, `notified_on`, `ceased_on` | `control_type` (joined by `\|`), `notified_on`, `ceased_on` |
+
+Advanced search returns at most 5,000 companies per request (`size`), and
+`location` matches the registered-office address text; an address count is only
+as complete as that search. PSCs carry no register-wide identifier, so the same
+person under two spellings counts twice in `prolific_officer`.
 
 Read [the API reference](references/api-reference.md) and
 [the query guide](references/query-guide.md) for response vocabulary,

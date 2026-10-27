@@ -1,0 +1,34 @@
+id: companies.secrecy_jurisdiction_controller
+version: 1.0.0
+release: released
+title: Controller in a secrecy jurisdiction
+author: buried-signals
+license: internal
+group: domain
+family: companies
+data_type: companies
+menu_order: 4
+description: Companies controlled by a legal entity registered in another country that scores high on financial secrecy.
+required_tables: [company_controllers, companies]
+required_fields: [id]
+parameters:
+  jurisdictions: 'US|CH|SG|HK|AE|GG|TW|KR|CN|PA|VG|KY|SA|JE|RU|MY|DZ|EG|BS|MT|NG|KZ|TH|MO|KW|GT|QA|KE|NZ|BD|VN|BH|BM|MU|JO|CL|LK|LI|UY|BO|MA|LB|TZ|IM|CW|BB|VE|SC|PK|KN|OM|SV|AW|NA|RS|WS|GI|CM|PR|BZ|AI|LC|FJ|TC|VI|GD|CK|VC|XK|BN|GU|MH|MC|AS|MV|TT|VU|GM|LR|AG|AO|MS'
+  limit: 500
+parameter_bounds:
+  jurisdictions: {type: string, max_length: 1000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: companies
+severity: medium
+expected_output: [candidate_id, company_id, company_name, company_jurisdiction, controller_id, controller_name, controller_country, controller_company_id, control_type, notified_on]
+assumptions:
+  - "Tables follow the companies domain contract in domains/companies.yaml."
+  - "Indicator: Global Witness found more than 10,000 UK companies declaring a foreign company as their PSC, 72% of them linked to a secrecy jurisdiction; its red-flag table counts a jurisdiction with a Financial Secrecy Index secrecy score above 60 as a secrecy jurisdiction (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/)."
+  - "The default jurisdictions are the 82 of 141 jurisdictions with a secrecy score above 60 in the Tax Justice Network Financial Secrecy Index full list as displayed on 2026-10-27 (https://fsi.taxjustice.net/full-list/), as ISO 3166-1 alpha-2 codes separated by a vertical bar. Pass your own list to override it."
+  - "Only current legal-entity controllers count, and only when their country differs from the company's own jurisdiction (taken from companies, else the company_id prefix)."
+  - "controller_country must be an ISO alpha-2 code; a register that publishes country names (Companies House country_registered) must be normalised first or the row is missed."
+false_positives:
+  - "The list includes large onshore economies (United States, Switzerland, Singapore, Hong Kong, China), so ordinary foreign parent groups match; narrow the list to small-island secrecy havens for a stricter run."
+  - "Listed and regulated parent companies are exempt from look-through in several registers and are not concealment."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

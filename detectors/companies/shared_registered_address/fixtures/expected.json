@@ -1,0 +1,4 @@
+[
+  {"candidate_id": "10queenstreetplacelondonec4r1ag", "registered_address": "10 QUEEN STREET PLACE LONDON EC4R1AG", "companies": 52, "current_companies": 50, "jurisdictions": "GB", "first_incorporated": "2023-01-01", "last_incorporated": "2023-01-28", "example_companies": "ALPHA 01 LTD|ALPHA 02 LTD|ALPHA 03 LTD|ALPHA 04 LTD|ALPHA 05 LTD"},
+  {"candidate_id": "grevwedelsplass90151oslo", "registered_address": "Grev Wedels plass 9, 0151 Oslo", "companies": 50, "current_companies": 50, "jurisdictions": "GB|NO", "first_incorporated": "2020-02-02", "last_incorporated": "2021-03-03", "example_companies": "CHARLIE 01 AS|CHARLIE 02 AS|CHARLIE 03 AS|CHARLIE 04 AS|CHARLIE 05 AS"}
+]

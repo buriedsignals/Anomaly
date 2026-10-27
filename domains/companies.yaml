@@ -1,0 +1,45 @@
+# Companies domain contract: the tables company-register detectors read.
+# Any register that can fill these tables (Companies House, GLEIF, Brreg,
+# Pappers, OpenCorporates, Zefix) works with every companies detector; each
+# source's SKILL.md says which field fills which column. A company_id is
+# "<ISO country, lower case>:<register number>" for a national register (gb:00102498,
+# no:923609016) and "lei:<LEI>" for GLEIF, so rows from several registers join.
+# Columns marked optional may be absent from a supplied file; the runner loads
+# them as NULL.
+domain: companies
+description: Company register entries, the officers appointed to them, and the persons or entities that control them.
+tables:
+  companies:
+    description: One row per company or legal entity.
+    columns:
+      company_id: Register prefix and number, such as gb:00102498 or lei:549300OQR8FAZBOXTC51; the join key for the other tables.
+      jurisdiction: ISO 3166-1 alpha-2 country of registration, such as GB or NO.
+      name: Current registered name.
+      status: Register status as published, such as active, dissolved or liquidation (optional).
+      incorporation_date: Date of incorporation or foundation (date, optional).
+      dissolution_date: Date the company was dissolved or struck off; empty while it exists (date, optional).
+      registered_address: Registered office address as one line, without care-of names (optional).
+      previous_name_count: Number of earlier names the register lists for the company (integer, optional).
+      source_url: Link to the register entry (optional).
+  company_officers:
+    description: One row per appointment of a person or corporate body to a company (director, secretary, board member, manager).
+    columns:
+      company_id: Company the appointment is to, as in companies.company_id.
+      officer_id: Register's identifier for the officer across appointments, else the name plus birth date.
+      name: Officer's name as published.
+      company_name: Name of the company the appointment is to (optional).
+      role: Role in the register's own vocabulary, such as director, secretary or MEDL (optional).
+      appointed_on: Date of appointment (date, optional).
+      resigned_on: Date the appointment ended; empty while it is current (date, optional).
+  company_controllers:
+    description: One row per person with significant control, beneficial owner or parent entity of a company.
+    columns:
+      company_id: Controlled company, as in companies.company_id.
+      controller_id: Register's identifier for the controller, else its name plus birth month.
+      controller_name: Controller's name as published.
+      controller_kind: individual, legal_entity, or statement for a published no-controller or protected statement.
+      controller_country: ISO 3166-1 alpha-2 country where a legal entity is registered, or where a person lives, else the register's text (optional).
+      controller_company_id: The controller's own company_id when it is a registered company, the link circular_control follows (optional).
+      control_type: Nature of control, such as ownership-of-shares-75-to-100-percent or direct-parent, several separated by a vertical bar (optional).
+      notified_on: Date the control was notified or began (date, optional).
+      ceased_on: Date the control ended; empty while it is current (date, optional).

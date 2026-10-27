@@ -1,0 +1,5 @@
+[
+  {"case_id": "C2", "party_name": "Exxon Mobil Corporation", "holding": "Exxon Mobil Corp Common Stock", "match_type": "exact", "first_report_year": 2023, "last_report_year": 2023, "max_value_low": 1000001.0},
+  {"case_id": "C1", "party_name": "Apple Inc.", "holding": "Apple Inc. (AAPL)", "match_type": "exact", "first_report_year": 2020, "last_report_year": 2021, "max_value_low": 50001.0, "max_value_high": 100000.0},
+  {"case_id": "C2", "party_name": "Exxon Mobil Corporation", "holding": "Exxon Mobil Pipeline Partners", "match_type": "prefix", "first_report_year": 2023, "last_report_year": 2023, "max_value_low": 15001.0}
+]

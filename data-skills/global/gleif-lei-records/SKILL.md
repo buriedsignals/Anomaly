@@ -26,6 +26,8 @@ other sections in this playbook may document provider or unreleased adapter scop
 **Released**
 
 - `global/gleif/lei-records:search-lei-records` — Search LEI records by documented full-text, legal-name, or exact-LEI filters with bounded pagination.
+- `global/gleif/lei-records:companies` — LEI records as companies-contract rows.
+- `global/gleif/lei-records:company-controllers` — Direct and ultimate parents (Level 2) as company_controllers rows.
 <!-- END GENERATED OPERATION STATUS -->
 ## Workflow
 
@@ -52,10 +54,38 @@ other sections in this playbook may document provider or unreleased adapter scop
 ## Source boundary
 
 Released scope is the LEI-record collection with three documented filters.
-GLEIF also documents Level 2 ownership relationships, fuzzy completions, and
-identifier mappings; those are not released here. Read
+Level 2 direct and ultimate parents are released through
+`company-controllers`. Reporting exceptions, child lists, fuzzy completions,
+and identifier mappings are documented but not released here. Read
 [the API reference](references/api-reference.md) before adding filters or
 interpreting statuses.
+
+## Fill the companies contract
+
+`companies` and `company-controllers` take the search inputs (`q`,
+`search_field`, `jurisdiction`, `limit` up to 50) or one `lei`, and return
+rows of `domains/companies.yaml`. For each record, `company-controllers` reads
+`/lei-records/{lei}/direct-parent` and `/ultimate-parent`; a 404 means the
+entity reported an exception (for example `NON_CONSOLIDATING`) instead of a
+parent. Routes checked live on 2026-10-27 against the record links GLEIF
+returns (`relationships.direct-parent.links.lei-record`); the Level 2 model is
+described at https://www.gleif.org/en/lei-data/access-and-use-lei-data/level-2-data-who-owns-whom.
+
+| If the source publishes | map it to column |
+|---|---|
+| `attributes.lei` | `company_id` = `lei:` + LEI |
+| `entity.jurisdiction` (subdivision such as `US-DE` cut to `US`), else `legalAddress.country` | `jurisdiction` |
+| `entity.legalName.name`, `entity.status` | `name`, `status` |
+| `entity.creationDate` | `incorporation_date` |
+| `entity.expiration.date` when `expiration.reason` is `DISSOLVED` | `dissolution_date` |
+| `entity.legalAddress` lines, postal code, city | `registered_address` |
+| (not published) | `previous_name_count` stays empty |
+| parent `lei` | `controller_id` and `controller_company_id` = `lei:` + parent LEI |
+| parent `legalName.name`, `jurisdiction` | `controller_name`, `controller_country` |
+| route used | `control_type` = `direct-parent` or `ultimate-parent` (one row when both name the same parent); `controller_kind` = `legal_entity` |
+
+Parents are accounting-consolidation parents, not beneficial owners, and only
+entities that hold an LEI appear.
 
 ## Interpretation cautions
 
