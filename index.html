@@ -3,684 +3,860 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anomaly — find anomalies in structured data</title>
+  <title>Anomaly · find the record that doesn't fit</title>
   <link rel="canonical" href="https://anomaly.buriedsignals.com/">
+  <meta name="description" content="Anomaly tells an investigating agent which data sources could help its case, how to get them, and which detectors fit. It then runs those detectors deterministically and returns every unusual record as a lead.">
   <meta property="og:url" content="https://anomaly.buriedsignals.com/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Anomaly — find anomalies in structured data">
-  <meta property="og:description" content="An agent workflow for acquiring, profiling, and investigating structured data with deterministic detectors, replay, and independent review.">
-  <meta name="description" content="Anomaly is an agent workflow for acquiring, profiling, and investigating structured data with deterministic detectors, replay, and independent review.">
+  <meta property="og:title" content="Anomaly · find the record that doesn't fit">
+  <meta property="og:description" content="Data sources and anomaly detectors for investigating agents, by Buried Signals.">
+  <meta name="theme-color" content="#16191B">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2316191B'/%3E%3Cg fill='%23F5F2ED' fill-opacity='.35'%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Ccircle cx='16' cy='9' r='2'/%3E%3Ccircle cx='23' cy='9' r='2'/%3E%3Ccircle cx='9' cy='16' r='2'/%3E%3Ccircle cx='16' cy='16' r='2'/%3E%3Ccircle cx='9' cy='23' r='2'/%3E%3Ccircle cx='16' cy='23' r='2'/%3E%3Ccircle cx='23' cy='23' r='2'/%3E%3C/g%3E%3Ccircle cx='24' cy='16' r='3' fill='%23D4A853'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --paper: #fff;
-      --ink: #080808;
-      --muted: #565656;
-      --line: #cfcfcf;
-      --soft: #f3f3f3;
-      --max: 76rem;
+      --bg: #16191B;
+      --housing: #1B1F21;
+      --cell: #0D0F10;
+      --cell-line: #22272A;
+      --amber: #D4A853;
+      --amber-hot: #F2C266;
+      --amber-dim: rgba(212, 168, 83, 0.15);
+      --amber-muted: rgba(212, 168, 83, 0.4);
+      --text: #F5F2ED;
+      --muted: rgba(245, 242, 237, 0.66);
+      --faint: rgba(245, 242, 237, 0.56);
+      --rule: rgba(245, 242, 237, 0.13);
+      --teal: #7DB1AE;
+      --teal-dim: rgba(91, 138, 138, 0.28);
+      --font: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'Space Mono', ui-monospace, monospace;
+      --led: 'Doto', 'Space Mono', monospace;
+      --max: 78rem;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * { box-sizing: border-box; }
-
-    html {
-      color-scheme: light;
-      scroll-behavior: smooth;
-    }
-
+    html { scroll-behavior: smooth; color-scheme: dark; }
     body {
       margin: 0;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 1rem;
-      line-height: 1.55;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(212, 168, 83, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212, 168, 83, 0.028) 1px, transparent 1px);
+      background-size: 40px 40px;
+      color: var(--text);
+      font: 400 1rem/1.6 var(--font);
       -webkit-font-smoothing: antialiased;
     }
+    ::selection { background: var(--text); color: var(--cell); }
+    a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 1px; }
+    a:hover { color: var(--amber); }
+    :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--cell); }
+    ::-webkit-scrollbar-thumb { background: #2C3236; border-radius: 6px; border: 2px solid var(--cell); }
+    html { scrollbar-color: #2C3236 var(--cell); }
+    .wrap { width: min(calc(100% - 2.5rem), var(--max)); margin-inline: auto; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .skip { position: fixed; left: 1rem; top: 1rem; z-index: 50; background: var(--text); color: var(--cell); padding: .5rem .8rem; transform: translateY(-200%); }
+    .skip:focus { transform: none; }
+    .skip:hover { color: var(--cell); }
 
-    a { color: inherit; }
-
-    a:hover { text-decoration-thickness: 2px; }
-
-    a:focus-visible {
-      outline: 3px solid var(--ink);
-      outline-offset: 4px;
+    /* Title bar */
+    .titlebar {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(22, 25, 27, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--rule);
     }
+    .titlebar .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 3.75rem; gap: 1rem; }
+    .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; }
+    .brand svg { width: 26px; height: 26px; }
+    .brand b { font-weight: 600; font-size: 1.12rem; letter-spacing: -0.01em; }
+    .brand small { font: 400 .78rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+    .nav { display: flex; gap: 1.6rem; align-items: center; }
+    .nav a { font: 400 .78rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; text-decoration: none; color: var(--muted); }
+    .nav a:hover { color: var(--text); }
+    .nav .gh { display: inline-flex; align-items: center; gap: .5rem; color: var(--text); border: 1px solid var(--rule); padding: .55rem .8rem; border-radius: 5px; }
+    .nav .gh:hover { border-color: var(--amber-muted); color: var(--amber); }
+    .nav .gh svg { width: 15px; height: 15px; }
 
-    .skip-link {
-      position: fixed;
-      top: 0.75rem;
-      left: 0.75rem;
-      z-index: 10;
-      padding: 0.6rem 0.8rem;
-      background: var(--ink);
-      color: var(--paper);
-      transform: translateY(-180%);
-    }
-
-    .skip-link:focus { transform: translateY(0); }
-
-    .wrap {
-      width: min(calc(100% - 2rem), var(--max));
-      margin-inline: auto;
-    }
-
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      border-bottom: 1px solid var(--ink);
-      background: rgba(255, 255, 255, 0.96);
-    }
-
-    .nav {
-      min-height: 4rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-    }
-
-    .brand {
-      font-size: 1.1rem;
-      font-weight: 700;
-      text-decoration: none;
-      letter-spacing: -0.02em;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .nav-links a { text-underline-offset: 0.25rem; }
-
-    .nav-links .button {
-      padding: 0.55rem 0.7rem;
-      border: 1px solid var(--ink);
-      text-decoration: none;
-    }
-
-    .nav-links .button:hover {
-      background: var(--ink);
-      color: var(--paper);
-    }
-
-    main { overflow: hidden; }
-
-    .hero {
-      min-height: calc(100svh - 4rem);
-      display: grid;
-      align-content: space-between;
-      padding-block: clamp(3.5rem, 9vw, 8rem) 2rem;
-    }
-
+    /* Hero */
+    .hero { padding: clamp(2.2rem, 6vh, 4.5rem) 0 3.5rem; }
+    .hero-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 3rem; align-items: end; }
     .hero h1 {
-      max-width: 16ch;
       margin: 0;
-      font-size: clamp(3rem, 8.6vw, 8rem);
-      font-weight: 700;
-      line-height: 0.94;
-      letter-spacing: -0.065em;
+      font-size: clamp(2.9rem, 6.4vw, 5.6rem); line-height: .95; font-weight: 600; letter-spacing: -0.035em;
+      text-wrap: balance;
     }
+    .hero h1 em { font-style: normal; color: var(--amber); }
+    .hero-lede p { margin: 0 0 .35rem; max-width: 46ch; color: var(--muted); font-size: 1.12rem; line-height: 1.55; }
+    .hero-lede p strong { color: var(--text); font-weight: 500; }
 
-    .hero-bottom {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(18rem, 31rem);
-      gap: 2rem;
-      align-items: end;
-      padding-top: 4rem;
-    }
-
-    .hero-label,
-    .section-label,
-    .minor-label {
-      margin: 0;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .hero-copy p { margin: 0; }
-
-    .hero-copy .description {
-      font-size: clamp(1.25rem, 2vw, 1.65rem);
-      line-height: 1.3;
-      letter-spacing: -0.025em;
-    }
-
-    .hero-copy .explanation {
-      margin-top: 1.25rem;
-      color: var(--muted);
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-top: 1.75rem;
-    }
-
-    .action {
-      display: inline-flex;
-      align-items: center;
-      min-height: 2.9rem;
-      padding: 0.65rem 0.9rem;
-      border: 1px solid var(--ink);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.76rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-decoration: none;
-      text-transform: uppercase;
-    }
-
-    .action.primary {
-      background: var(--ink);
-      color: var(--paper);
-    }
-
-    .action:hover {
-      background: var(--soft);
-      color: var(--ink);
-    }
-
-    .section {
-      padding-block: clamp(4rem, 8vw, 7rem);
-      border-top: 1px solid var(--ink);
-    }
-
-    .section-head {
-      display: grid;
-      grid-template-columns: 12rem minmax(0, 1fr);
-      gap: 2rem;
-      margin-bottom: clamp(2.5rem, 6vw, 5rem);
-    }
-
-    .section h2 {
-      max-width: 18ch;
-      margin: 0;
-      font-size: clamp(2.25rem, 5.3vw, 5rem);
-      line-height: 1;
-      letter-spacing: -0.055em;
-    }
-
-    .problem-copy {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1px;
-      border: 1px solid var(--ink);
-      background: var(--ink);
-    }
-
-    .problem-copy p {
-      margin: 0;
-      padding: clamp(1.5rem, 4vw, 3rem);
-      background: var(--paper);
-      font-size: clamp(1.05rem, 1.8vw, 1.35rem);
-    }
-
-    .definition {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.6fr);
-      gap: 3rem;
-      align-items: start;
-      margin-bottom: 3rem;
-    }
-
-    .definition .lead {
-      margin: 0;
-      font-size: clamp(1.45rem, 3vw, 2.4rem);
-      line-height: 1.25;
-      letter-spacing: -0.035em;
-    }
-
-    .definition .aside {
-      margin: 0;
-      padding-left: 1rem;
-      border-left: 3px solid var(--ink);
-      color: var(--muted);
-    }
-
-    .detector-stream {
+    /* The board */
+    .board {
+      margin-top: 2.2rem;
+      background: var(--housing);
+      border: 1px solid #2A3033;
+      border-radius: 10px;
+      box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
       overflow: hidden;
-      margin-block: 3rem;
-      border-top: 1px solid var(--ink);
-      border-bottom: 1px solid var(--ink);
     }
-
-    .detector-track {
-      display: flex;
-      width: max-content;
-      animation: detector-scroll 32s linear infinite;
+    .board-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: .85rem 1.1rem; border-bottom: 1px solid #2A3033;
+      font: 400 .76rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
     }
+    .board-head .live { display: inline-flex; align-items: center; gap: .55rem; color: var(--text); }
+    .board-head .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); animation: pulse 2s var(--ease) infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    .board-head .clock { font-family: var(--led); font-weight: 700; font-size: 1.05rem; letter-spacing: .06em; color: var(--amber); }
 
-    .detector-track + .detector-track {
-      border-top: 1px solid var(--ink);
-      animation-direction: reverse;
-      animation-duration: 38s;
+    .grid-rows {
+      background: radial-gradient(circle, rgba(212, 168, 83, 0.075) 0.9px, transparent 1.3px) 0 0 / 5px 5px, var(--cell);
+      padding: .35rem 0;
     }
-
-    .detector-stream:hover .detector-track { animation-play-state: paused; }
-
-    .detector-chip {
-      width: 15rem;
-      flex: 0 0 15rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 1rem;
-      border-right: 1px solid var(--ink);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.76rem;
-      text-transform: uppercase;
-    }
-
-    .detector-chip span { color: var(--muted); }
-
-    @keyframes detector-scroll {
-      to { transform: translateX(-50%); }
-    }
-
-    .detail-grid {
+    .row {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 2rem;
-      margin-top: 3rem;
+      grid-template-columns: 6.5rem 6.2rem minmax(0, 1fr) 7.5rem 4.5rem 7.4rem;
+      gap: 0 1.2rem; align-items: center;
+      padding: .42rem 1.1rem;
+      border-bottom: 1px solid var(--rule);
+      font-family: var(--led); font-weight: 700; font-size: 1.28rem; letter-spacing: .03em;
+      color: var(--amber);
+      text-shadow: 0 0 8px rgba(212, 168, 83, 0.35);
+      min-height: 2.6rem;
     }
-
-    .detail-grid article {
-      padding-top: 1rem;
-      border-top: 1px solid var(--ink);
+    .row:last-child { border-bottom: 0; }
+    .row.label {
+      font: 400 .66rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
+      color: var(--faint); text-shadow: none; min-height: 0; padding-top: .6rem; padding-bottom: .6rem;
     }
-
-    .detail-grid h3 {
-      margin: 0 0 0.75rem;
-      font-size: 1rem;
+    .row .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .row .dim { color: rgba(212, 168, 83, 0.72); text-shadow: none; }
+    .row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status { justify-self: start; display: inline-flex; }
+    .status .ch {
+      display: inline-block; min-width: .9em; margin-right: 2px; text-align: center;
+      transform-origin: 50% 50%; border-radius: 2px;
+      background: linear-gradient(to bottom, transparent calc(50% - .5px), var(--cell) calc(50% - .5px), var(--cell) calc(50% + .5px), transparent calc(50% + .5px)), #171A1C;
     }
-
-    .detail-grid p {
-      margin: 0;
-      color: var(--muted);
+    .status.lead .ch { background: linear-gradient(to bottom, transparent calc(50% - .5px), rgba(13, 15, 16, .3) calc(50% - .5px), rgba(13, 15, 16, .3) calc(50% + .5px), transparent calc(50% + .5px)), var(--amber-hot); }
+    .status.ok { color: var(--teal); text-shadow: 0 0 6px rgba(125, 177, 174, .35); }
+    .status.lead {
+      color: var(--cell); text-shadow: none;
     }
+    .row.is-lead { background: linear-gradient(90deg, rgba(212,168,83,.12), rgba(212,168,83,0) 70%); }
+    .row.enter { animation: rowin .55s var(--ease) both; }
+    @keyframes rowin { from { clip-path: inset(0 0 100% 0); opacity: .2; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+    .flip { animation: flap .09s linear both; }
+    @keyframes flap { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); opacity: .4; } 100% { transform: rotateX(0); } }
 
-    .source-list {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0;
-      margin: 3rem 0 0;
-      padding: 0;
-      border-top: 1px solid var(--line);
-      list-style: none;
+    .board-rail {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center;
+      padding: 1rem 1.1rem; border-top: 1px solid #2A3033;
     }
-
-    .source-list li {
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--line);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.78rem;
-      text-transform: uppercase;
+    .search { position: relative; }
+    .search svg { position: absolute; left: 1rem; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--amber); pointer-events: none; }
+    .search input {
+      width: 100%; height: 3.1rem; padding: 0 1rem 0 2.9rem;
+      background: var(--cell); color: var(--text); caret-color: var(--amber);
+      border: 1px solid #333A3E; border-radius: 6px;
+      font: 400 1rem var(--font);
+      transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
     }
-
-    .source-list li:nth-child(3n + 2) { text-align: center; }
-    .source-list li:nth-child(3n) { text-align: right; }
-
-    .findings-flow {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      margin-top: 3rem;
-      border: 1px solid var(--ink);
+    .search input::placeholder { color: var(--faint); }
+    .search input:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-dim); }
+    .btn {
+      display: inline-flex; align-items: center; gap: .55rem; height: 3.1rem; padding: 0 1.2rem;
+      border-radius: 6px; border: 1px solid var(--text); background: var(--text); color: var(--cell);
+      font: 600 .95rem var(--font); text-decoration: none; cursor: pointer; white-space: nowrap;
+      transition: transform .15s var(--ease), background .2s var(--ease);
     }
+    .btn:hover { text-decoration: underline; text-underline-offset: .2em; color: var(--cell); }
+    .btn:active { transform: translateY(1px); }
+    .btn svg { width: 16px; height: 16px; }
+    .board-note { margin: .9rem 0 0; font: 400 .78rem/1.5 var(--mono); color: var(--faint); max-width: 90ch; }
+    .board-note code { color: var(--muted); }
 
-    .flow-step {
-      position: relative;
-      min-height: 13rem;
-      padding: 1rem;
-      border-right: 1px solid var(--ink);
+    /* Sections */
+    section { padding: clamp(4.5rem, 10vw, 7.5rem) 0 0; }
+    h2 {
+      margin: 0 0 1rem; max-width: 22ch;
+      font-size: clamp(2rem, 4.2vw, 3.3rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.03em; text-wrap: balance;
     }
+    .intro { margin: 0; max-width: 62ch; color: var(--muted); font-size: 1.08rem; }
+    code, kbd { font-family: var(--mono); font-size: .9em; }
+    p code { color: var(--text); background: rgba(245,242,237,.06); padding: .08em .35em; border-radius: 3px; }
 
-    .flow-step:last-child { border-right: 0; }
-
-    .flow-step::after {
-      content: "→";
-      position: absolute;
-      top: 50%;
-      right: 0;
-      width: 1.8rem;
-      height: 1.8rem;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--ink);
-      background: var(--paper);
-      transform: translate(50%, -50%);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      z-index: 1;
+    /* Route strip */
+    .route { margin-top: 3.2rem; position: relative; }
+    .route ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; position: relative; }
+    .route-line { position: absolute; left: 0; right: 0; top: 1.05rem; height: 4px; background: #2A3033; border-radius: 2px; overflow: hidden; }
+    .route-line i { position: absolute; inset: 0; width: var(--progress, 0%); background: rgba(245, 242, 237, .7); transition: width .8s var(--ease); }
+    .stop { position: relative; padding-right: 1.4rem; cursor: pointer; }
+    .stop h3 { color: var(--muted); transition: color .4s var(--ease); }
+    .stop.now h3, .stop:hover h3 { color: var(--text); }
+    .stop p { color: var(--faint); transition: color .4s var(--ease); }
+    .stop.now p { color: var(--muted); }
+    .stop .dot {
+      width: 2.2rem; height: 2.2rem; border-radius: 50%; position: relative; z-index: 1;
+      background: var(--bg); border: 4px solid #3A4246; display: grid; place-items: center;
+      font: 700 .78rem/1 var(--mono); color: var(--muted); transition: all .4s var(--ease);
     }
-
-    .flow-step:last-child::after { display: none; }
-
-    .flow-step .number {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.72rem;
+    .stop.past .dot { border-color: rgba(245, 242, 237, .45); color: var(--text); }
+    .stop.now .dot { border-color: var(--text); background: var(--text); color: var(--cell); outline: 6px solid rgba(245, 242, 237, .1); }
+    .stop h3 { margin: 1.15rem 0 .35rem; font-size: 1.22rem; font-weight: 600; letter-spacing: -0.01em; }
+    .stop p { margin: 0; font-size: .92rem; line-height: 1.5; }
+    .stop p code { font-size: .8rem; }
+    .route-cmd {
+      margin-top: 2.4rem; background: var(--cell); border: 1px solid #2A3033; border-radius: 8px;
+      padding: 1.1rem 1.25rem; font: 400 .9rem/1.6 var(--mono); color: var(--muted); min-height: 5.4rem;
     }
+    .route-cmd .who { color: var(--amber); }
+    .route-cmd b { color: var(--text); font-weight: 400; }
 
-    .flow-step h3 {
-      margin: 3.5rem 0 0;
-      font-size: 1.1rem;
+    /* Interchange */
+    .interchange { margin-top: 2.6rem; display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 2rem; align-items: start; }
+    .lines { display: flex; flex-direction: column; gap: .2rem; }
+    .line-btn {
+      display: flex; justify-content: space-between; align-items: center; gap: .8rem;
+      text-align: left; padding: .55rem .7rem; border-radius: 5px; border: 1px solid transparent;
+      background: none; color: var(--muted); font: 500 .92rem var(--font); cursor: pointer;
+      transition: background .2s var(--ease), color .2s var(--ease);
     }
+    .line-btn:hover { background: rgba(245,242,237,.05); color: var(--text); }
+    .line-btn[aria-pressed="true"] { background: var(--amber-dim); border-color: var(--amber-muted); color: var(--text); }
+    .line-btn small { font: 400 .7rem var(--mono); color: var(--faint); white-space: nowrap; }
+    .line-btn[aria-pressed="true"] small { color: var(--amber); }
+    .map-frame { background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; padding: 1.4rem; }
+    .map-frame svg { width: 100%; height: auto; display: block; }
+    .map-stack { display: none; }
+    .map-stack h4 { margin: 0 0 .5rem; font: 400 .72rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+    .map-stack ul { list-style: none; margin: 0 0 1rem; padding: 0 0 0 1rem; border-left: 3px solid #2A3033; }
+    .map-stack li { padding: .3rem 0; font-size: .92rem; }
+    .map-stack li.q::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--teal); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
+    .map-stack li.c::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--faint); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
+    .map-stack li.d { font-family: var(--mono); font-size: .85rem; }
+    .map-stack li.d::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; border: 2px solid var(--amber); margin: 0 .55rem 0 -1.45rem; vertical-align: middle; background: var(--cell); }
+    .map-hub { margin: 0 0 1rem; padding: .9rem 1rem; border: 2px solid var(--amber); border-radius: 10px; }
+    .map-hub b { display: block; font-family: var(--led); font-size: 1.28rem; color: var(--amber); margin-bottom: .3rem; }
+    .map-hub span { font: 400 .78rem/1.7 var(--mono); color: var(--muted); }
+    .map-caption { margin: 1rem .2rem 0; font-size: .92rem; color: var(--muted); max-width: 70ch; }
+    .flow { stroke-dasharray: 2 10; stroke-linecap: round; animation: flow 1.6s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset: -24; } }
 
-    .flow-step p {
-      margin: 0.5rem 0 0;
-      color: var(--muted);
-      font-size: 0.9rem;
+    /* Catalogue */
+    .cat-tools { margin-top: 2.4rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; }
+    .tabs, .chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+    .key {
+      height: 2.5rem; padding: 0 .95rem; border-radius: 5px;
+      background: #22272A; color: var(--muted); border: 1px solid #333A3E;
+      font: 400 .78rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
+      transition: transform .08s linear, box-shadow .08s linear, color .2s, background .2s;
     }
-
-    .roles {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin-top: 3rem;
-      border-top: 1px solid var(--ink);
+    .key:hover { color: var(--text); }
+    .key:active { transform: translateY(1px); }
+    .key[aria-pressed="true"], .key[aria-selected="true"] { background: rgba(245, 242, 237, .1); color: var(--text); border-color: var(--text); }
+    .key .n { opacity: .7; margin-left: .35rem; }
+    .cat-search { margin-top: 1rem; }
+    .cat-board { margin-top: 1rem; background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; overflow: hidden; }
+    .crow {
+      display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr) 9rem 7rem 8.5rem;
+      gap: 1.2rem; align-items: center; padding: .7rem 1.1rem; border-bottom: 1px solid var(--cell-line);
+      cursor: pointer; transition: background .15s;
     }
+    .crow:hover { background: rgba(212,168,83,.05); }
+    .crow.head { cursor: default; font: 400 .66rem/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); background: #111415; }
+    .crow.head:hover { background: #111415; }
+    .crow .id { padding: .15rem .35rem; margin-left: -.35rem; border-radius: 3px; background: radial-gradient(circle, rgba(212, 168, 83, 0.07) 0.8px, transparent 1.2px) 0 0 / 4px 4px; font-family: var(--led); font-weight: 700; font-size: 1.05rem; color: var(--amber); text-shadow: 0 0 6px rgba(212,168,83,.3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .crow .t { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .crow .m { font: 400 .78rem var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill { display: inline-block; font: 400 .7rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: .35rem .5rem; border-radius: 3px; }
+    .pill.q { color: var(--teal); background: var(--teal-dim); }
+    .pill.c { color: var(--muted); background: rgba(245,242,237,.07); }
+    .pill.free { color: var(--teal); }
+    .pill.key-p { color: var(--amber); }
+    .pill.paid { color: var(--amber-hot); background: var(--amber-dim); }
+    .crow[aria-expanded="true"] { background: rgba(212,168,83,.07); }
+    .detail { display: none; padding: 1.1rem 1.1rem 1.4rem; border-bottom: 1px solid var(--cell-line); background: #111415; }
+    .detail.open { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem; animation: rowin .4s var(--ease) both; }
+    .detail p { margin: 0 0 .8rem; color: var(--muted); max-width: 72ch; }
+    .detail dl { margin: 0; display: grid; grid-template-columns: auto minmax(0,1fr); gap: .45rem 1rem; font-size: .88rem; }
+    .detail dt { font: 400 .68rem/1.9 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .detail dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+    .detail ul { margin: .2rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: .9rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .tag { font: 400 .78rem var(--mono); padding: .2rem .45rem; border-radius: 3px; background: rgba(245,242,237,.06); color: var(--text); }
+    .empty { padding: 2.4rem 1.1rem; color: var(--muted); }
+    .empty b { font-family: var(--led); color: var(--amber); font-size: 1.28rem; display: block; margin-bottom: .4rem; }
+    .cat-count { font: 400 .78rem var(--mono); color: var(--faint); letter-spacing: .08em; }
 
-    .role {
-      padding: 1.25rem 1.25rem 0 0;
+    /* Lead ticket */
+    .lead-wrap { margin-top: 2.6rem; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 3rem; align-items: start; }
+    .ticket {
+      background: var(--cell); border: 1px solid #2A3033; border-radius: 10px; overflow: hidden;
+      font: 400 .84rem/1.6 var(--mono);
     }
+    .ticket-top { display: flex; justify-content: space-between; align-items: center; padding: .9rem 1.1rem; background: var(--amber); color: var(--cell); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: .76rem; }
+    .ticket-top span:first-child { font-family: var(--led); font-size: 1.15rem; letter-spacing: .05em; }
+    .ticket pre { margin: 0; padding: 1.1rem; overflow-x: auto; color: var(--muted); }
+    .ticket pre .k { color: var(--teal); }
+    .ticket pre .v { color: var(--text); }
+    .ticket pre .h { color: var(--amber); }
+    .ticket-foot { border-top: 1px dashed #333A3E; padding: .75rem 1.1rem; color: var(--faint); font-size: .8rem; }
+    .promises { list-style: none; margin: 0; padding: 0; }
+    .promises li { padding: 1.15rem 0; border-top: 1px solid var(--rule); }
+    .promises li:last-child { border-bottom: 1px solid var(--rule); }
+    .promises b { display: block; font-weight: 600; font-size: 1.08rem; margin-bottom: .25rem; }
+    .promises span { color: var(--muted); }
 
-    .role + .role {
-      padding-left: 1.25rem;
-      border-left: 1px solid var(--line);
+    /* Commands */
+    .cmds { margin-top: 2.4rem; display: grid; gap: .7rem; }
+    .cmd { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: 1rem; align-items: center; background: var(--cell); border: 1px solid #2A3033; border-radius: 8px; padding: .55rem .6rem .55rem 1.1rem; }
+    .cmd span { font: 400 .76rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+    .cmd code { color: var(--text); font-size: .88rem; overflow-x: auto; white-space: nowrap; padding: .5rem 0; }
+    .copy { width: 2.4rem; height: 2.4rem; border-radius: 5px; border: 1px solid #333A3E; background: #1B1F21; color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: color .2s, border-color .2s; }
+    .copy:hover { color: var(--amber); border-color: var(--amber-muted); }
+    .copy svg { width: 16px; height: 16px; }
+    .copy.done { color: var(--teal); border-color: var(--teal); }
+
+    footer { margin-top: clamp(5rem, 10vw, 8rem); border-top: 1px solid var(--rule); padding: 2.4rem 0 3rem; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
+    footer p { margin: 0; color: var(--muted); max-width: 52ch; font-size: .92rem; }
+    footer nav { display: flex; gap: 1.4rem; flex-wrap: wrap; }
+    footer nav a { font: 400 .78rem var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+    footer nav a:hover { color: var(--amber); }
+
+    @media (max-width: 980px) {
+      .route ol { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 2.2rem; }
+      .route-line { display: none; }
+      .interchange { grid-template-columns: 1fr; }
+      .lines { flex-direction: row; flex-wrap: wrap; max-height: none; }
+      .lead-wrap { grid-template-columns: 1fr; }
+      .detail.open { grid-template-columns: 1fr; }
     }
-
-    .role h3 { margin: 0 0 0.6rem; }
-    .role p { margin: 0; color: var(--muted); }
-
-
-
-    .site-footer {
-      border-top: 1px solid var(--ink);
-      padding-block: 1.25rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-    }
-
-    .footer-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-
     @media (max-width: 760px) {
-      .wrap { width: min(calc(100% - 1.25rem), var(--max)); }
-      .nav { min-height: 3.5rem; }
-      .nav-links > a:first-child { display: none; }
-      .hero { min-height: calc(100svh - 3.5rem); }
-      .hero-bottom,
-      .section-head,
-      .definition { grid-template-columns: 1fr; }
-      .hero-bottom { gap: 1rem; }
-      .section-head { gap: 1rem; }
-      .problem-copy { grid-template-columns: 1fr; }
-      .detector-chip { width: 12rem; flex-basis: 12rem; }
-      .detail-grid,
-      .roles { grid-template-columns: 1fr; }
-      .source-list { grid-template-columns: 1fr; }
-      .source-list li,
-      .source-list li:nth-child(3n + 2),
-      .source-list li:nth-child(3n) { text-align: left; }
-      .findings-flow { grid-template-columns: 1fr; }
-      .flow-step {
-        min-height: auto;
-        padding: 1.25rem;
-        border-right: 0;
-        border-bottom: 1px solid var(--ink);
-      }
-      .flow-step:last-child { border-bottom: 0; }
-      .flow-step::after {
-        top: auto;
-        right: 50%;
-        bottom: 0;
-        content: "↓";
-        transform: translate(50%, 50%);
-      }
-      .flow-step h3 { margin-top: 1.5rem; }
-      .role { padding: 1.25rem 0; }
-      .role + .role {
-        padding-left: 0;
-        border-top: 1px solid var(--line);
-        border-left: 0;
-      }
+      .nav a:not(.gh) { display: none; }
+      .hero-top { grid-template-columns: 1fr; gap: 1.2rem; }
+      .row { grid-template-columns: minmax(0, 1fr) 2.6rem 4.4rem; font-size: 1rem; gap: .15rem .6rem; padding-inline: .8rem; min-height: 0; padding-block: .45rem; }
+      .row > :first-child, .row .c-rec { display: none; }
+      .row:not(.label) .name { grid-column: 1 / -1; white-space: normal; }
+      .row.label .num:not(.c-z) { text-align: left; }
+      .row.label > :nth-child(3) { display: none; }
+      .hero { padding-top: 1.6rem; }
+      .hero-lede p { font-size: 1rem; }
+      .board { margin-top: 1.4rem; }
+      .board-head { padding: .7rem .8rem; }
+      .board-rail { padding: .8rem; }
+      .grid-rows .row:nth-child(n+5) { display: none; }
+      .row:not(.label) .num:not(.c-z) { text-align: left; }
+      .map-frame svg { display: none; }
+      .map-stack { display: block; }
+      .brand small { display: none; }
+      .board-rail { grid-template-columns: 1fr; }
+      .route ol { grid-template-columns: 1fr 1fr; }
+      .cat-tools { grid-template-columns: 1fr; }
+      .crow { grid-template-columns: minmax(0, 1fr) auto; gap: .3rem 1rem; }
+      .crow .t { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
+      .crow .c-dom, .crow .c-acc { display: none; }
+      .crow.head { display: none; }
+      .cmd { grid-template-columns: minmax(0, 1fr) auto; }
+      .cmd span { grid-column: 1 / -1; }
     }
-
     @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
       html { scroll-behavior: auto; }
-      .detector-stream { overflow: visible; }
-      .detector-track {
-        width: auto;
-        flex-wrap: wrap;
-        animation: none;
-      }
-      .detector-track [aria-hidden="true"] { display: none; }
-    }
-
-    @media print {
-      .site-header { position: static; }
-      .hero { min-height: auto; }
-      .section { break-inside: avoid; }
-      .action[href]::after { content: " (" attr(href) ")"; }
     }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#content">Skip to content</a>
+  <a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-header">
-    <nav class="nav wrap" aria-label="Primary navigation">
-      <a class="brand" href="/">Anomaly</a>
-      <div class="nav-links">
-        <a href="docs/flow.html">Full workflow</a>
-        <a class="button" href="https://github.com/buriedsignals/Anomaly">GitHub</a>
-      </div>
-    </nav>
+  <header class="titlebar">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="Anomaly home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="#0D0F10" stroke="#2A3033"/><g fill="#F5F2ED" fill-opacity=".35"><circle cx="9" cy="9" r="2"/><circle cx="16" cy="9" r="2"/><circle cx="23" cy="9" r="2"/><circle cx="9" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="9" cy="23" r="2"/><circle cx="16" cy="23" r="2"/><circle cx="23" cy="23" r="2"/></g><circle cx="24" cy="16" r="3" fill="#D4A853"/></svg>
+        <b>Anomaly</b>
+        <small>by Buried Signals</small>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#route">How it works</a>
+        <a href="#catalogue">Catalogue</a>
+        <a href="#use">Use it</a>
+        <a class="gh" href="https://github.com/buriedsignals/Anomaly">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
   </header>
 
-  <main id="content">
-    <section class="hero wrap" aria-labelledby="hero-title">
-      <h1 id="hero-title">An agent workflow for finding anomalies in structured data.</h1>
-      <div class="hero-bottom">
-        <p class="hero-label">Anomaly / open source</p>
-        <div class="hero-copy">
-          <p class="description">Turn your agent into a structured-data investigation system.</p>
-          <p class="explanation">A portable skill that acquires or registers data, profiles it with Python and DuckDB, recommends relevant anomaly detectors, runs the tests you approve, and checks proposed findings through replay and independent review.</p>
-          <div class="actions">
-            <a class="action primary" href="https://github.com/buriedsignals/Anomaly">View on GitHub →</a>
-            <a class="action" href="docs/flow.html">Read the full workflow →</a>
+  <main id="main">
+    <div class="wrap hero" id="top">
+      <div class="hero-top">
+      <h1>Find the record that <em>doesn't fit</em>.</h1>
+      <div class="hero-lede">
+        <p>Anomaly tells an investigating agent which data could help its case, how to get it, and which detectors fit that kind of data. <strong>Then it runs those detectors on the tables the agent fetched, and every unusual record comes back as a lead you can trace.</strong></p>
+      </div>
+      </div>
+
+      <div class="board" aria-labelledby="board-title">
+        <div class="board-head">
+          <span class="live" id="board-title"><i aria-hidden="true"></i>Incoming records · donations</span>
+          <span class="clock" id="clock" aria-hidden="true">00:00:00</span>
+        </div>
+        <div class="grid-rows" id="stream" aria-hidden="true">
+          <div class="row label"><span>Time</span><span class="c-rec">Record</span><span>Recipient</span><span class="num">Amount</span><span class="num c-z">Z</span><span>Status</span></div>
+        </div>
+        <form class="board-rail" id="hero-search" role="search">
+          <label class="search">
+            <span class="sr-only">Search the catalogue</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="hero-q" type="search" placeholder="Search data sources and detectors: lobbying, sanctions, procurement…" autocomplete="off">
+          </label>
+          <button class="btn" type="submit">Search the catalogue
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+      <p class="board-note">These donation records are synthetic. Your browser scores each one with the leave-one-out z-score that <code>numeric.zscore_outliers</code> runs in SQL, over the last 40 records, and flips anything at 3.0 or above to LEAD.</p>
+    </div>
+
+    <section id="route" aria-labelledby="route-h">
+      <div class="wrap">
+        <h2 id="route-h">An agent asks the questions and code does the counting.</h2>
+        <p class="intro">Anomaly sits between an investigating agent, such as <a href="https://spotlight.buriedsignals.com/">Spotlight</a>, and the data. The model chooses what to look at, and deterministic code computes every flag.</p>
+        <div class="route">
+          <div class="route-line" aria-hidden="true"><i></i></div>
+          <ol id="stops">
+            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>I'm looking at who lobbies the finance committee, and whether any of them used to work there.</b>">
+              <div class="dot">1</div><h3>Ask</h3><p>A journalist or agent starts with a question about a person, a company or a beat.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --domain lobbying</b><br>Returns the lobbying sources with their access, cost and licence, the table contract, and every lobbying detector.">
+              <div class="dot">2</div><h3>Look up</h3><p><code>anomaly.context</code> lists the data that covers the domain and the detectors that fit it.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.context --source &lt;id&gt;</b><br>Reads the source's SKILL.md, then fetches the tables itself with the key and terms the source needs.">
+              <div class="dot">3</div><h3>Fetch</h3><p>The agent gets the tables itself, following each source's SKILL.md.</p></li>
+            <li class="stop" data-cmd="<span class='who'>agent ›</span> <b>python -m anomaly.oneshot --tables lobbying_filings=f.csv --tables lobbying_activity_lobbyists=l.csv --request r.json --approved</b><br>Loads only the contract columns into DuckDB, seals it from the network, runs the query.">
+              <div class="dot">4</div><h3>Run</h3><p><code>anomaly.oneshot</code> runs the detector's SQL in a sealed DuckDB. The same tables always give the same result.</p></li>
+            <li class="stop" data-cmd="<span class='who'>runner ›</span> <b>{&quot;status&quot;: &quot;lead&quot;, &quot;detector_id&quot;: &quot;lobbying.revolving_door_committee_match&quot;, &quot;input_hashes&quot;: {…}}</b><br>One JSON line per flagged record, with the detector hash and a hash of every input table.">
+              <div class="dot">5</div><h3>Lead</h3><p>Each flagged record comes back as a JSON line with its detector, inputs and parameters.</p></li>
+            <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>Accept as a lead · Dismiss</b><br>Spotlight's integration, in review now, puts this at its Investigation gate. Nothing becomes a finding until a person and the fact-checker have been through it.">
+              <div class="dot">6</div><h3>Gate</h3><p>A person accepts or dismisses each lead. A detector never decides what's true.</p></li>
+          </ol>
+          <div class="route-cmd" id="route-cmd" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="domains" aria-labelledby="domains-h">
+      <div class="wrap">
+        <h2 id="domains-h">Sources and detectors meet at a domain.</h2>
+        <p class="intro">A domain is a type of data, such as lobbying or procurement. A source says which domain it covers, and a detector says which domain it reads. When a detector joins several tables, the domain publishes their shape, so any source that fills it works with every detector in that family. No source is ever wired to a detector.</p>
+        <div class="interchange">
+          <div class="lines" id="domain-list" role="group" aria-label="Choose a domain"></div>
+          <div>
+            <div class="map-frame"><svg id="map" role="img" aria-labelledby="map-desc"><desc id="map-desc">Diagram of the selected domain's sources and detectors.</desc></svg><div class="map-stack" id="map-stack"></div></div>
+            <p class="map-caption" id="map-caption"></p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" aria-labelledby="problem-title">
+    <section id="catalogue" aria-labelledby="cat-h">
       <div class="wrap">
-        <div class="section-head">
-          <p class="section-label">The problem</p>
-          <h2 id="problem-title">One dataset can contain many kinds of anomalies.</h2>
-        </div>
-        <div class="problem-copy">
-          <p>An unusual value, a sudden change over time, a repeated payment, a shared address, a network cluster, and a copied passage are different patterns. Each requires a detector built for that kind of data.</p>
-          <p>Before any test runs, the system needs to understand the dataset, identify which detectors are compatible, and make their assumptions and known false positives visible.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="detectors" aria-labelledby="detectors-title">
-      <div class="wrap">
-        <div class="section-head">
-          <p class="section-label">Anomaly detectors</p>
-          <h2 id="detectors-title">Run the right tests for the data in front of you.</h2>
-        </div>
-        <div class="definition">
-          <p class="lead">A detector is a reusable test for one pattern: duplicate payments, unusual timing, shared entities, geographic clusters, copied text, and more.</p>
-          <p class="aside">Anomaly profiles the dataset, recommends up to ten compatible detectors, and shows why each was selected before you approve the run.</p>
-        </div>
-      </div>
-      <div class="detector-stream" aria-label="Examples from the detector registry">
-        <div class="detector-track">
-          <div class="detector-chip"><span>Table</span> Duplicate rows</div>
-          <div class="detector-chip"><span>Numeric</span> Level shifts</div>
-          <div class="detector-chip"><span>Temporal</span> Backdated records</div>
-          <div class="detector-chip"><span>Network</span> Shared infrastructure</div>
-          <div class="detector-chip"><span>Text</span> Portfolio cloning</div>
-          <div class="detector-chip"><span>Relational</span> Shared identifiers</div>
-          <div class="detector-chip"><span>Domain</span> Procurement clusters</div>
-          <div class="detector-chip"><span>Credential</span> Secret patterns</div>
-          <div class="detector-chip" aria-hidden="true"><span>Table</span> Duplicate rows</div>
-          <div class="detector-chip" aria-hidden="true"><span>Numeric</span> Level shifts</div>
-          <div class="detector-chip" aria-hidden="true"><span>Temporal</span> Backdated records</div>
-          <div class="detector-chip" aria-hidden="true"><span>Network</span> Shared infrastructure</div>
-          <div class="detector-chip" aria-hidden="true"><span>Text</span> Portfolio cloning</div>
-          <div class="detector-chip" aria-hidden="true"><span>Relational</span> Shared identifiers</div>
-          <div class="detector-chip" aria-hidden="true"><span>Domain</span> Procurement clusters</div>
-          <div class="detector-chip" aria-hidden="true"><span>Credential</span> Secret patterns</div>
-        </div>
-        <div class="detector-track">
-          <div class="detector-chip"><span>Table</span> Missingness clusters</div>
-          <div class="detector-chip"><span>Numeric</span> Z-score outliers</div>
-          <div class="detector-chip"><span>Categorical</span> Rare levels</div>
-          <div class="detector-chip"><span>Temporal</span> Activity shifts</div>
-          <div class="detector-chip"><span>Cross-data</span> Location conflicts</div>
-          <div class="detector-chip"><span>Text</span> Hostname leakage</div>
-          <div class="detector-chip"><span>Network</span> Cross-commit overlap</div>
-          <div class="detector-chip"><span>Domain</span> Contractor concentration</div>
-          <div class="detector-chip" aria-hidden="true"><span>Table</span> Missingness clusters</div>
-          <div class="detector-chip" aria-hidden="true"><span>Numeric</span> Z-score outliers</div>
-          <div class="detector-chip" aria-hidden="true"><span>Categorical</span> Rare levels</div>
-          <div class="detector-chip" aria-hidden="true"><span>Temporal</span> Activity shifts</div>
-          <div class="detector-chip" aria-hidden="true"><span>Cross-data</span> Location conflicts</div>
-          <div class="detector-chip" aria-hidden="true"><span>Text</span> Hostname leakage</div>
-          <div class="detector-chip" aria-hidden="true"><span>Network</span> Cross-commit overlap</div>
-          <div class="detector-chip" aria-hidden="true"><span>Domain</span> Contractor concentration</div>
-        </div>
-      </div>
-      <div class="wrap">
-        <div class="detail-grid">
-          <article>
-            <h3>Matched automatically</h3>
-            <p>Detectors that cannot run on the available fields, types, or coverage are removed.</p>
-          </article>
-          <article>
-            <h3>Explained before execution</h3>
-            <p>Every recommendation includes its parameters, assumptions, and known false positives.</p>
-          </article>
-          <article>
-            <h3>Built to expand</h3>
-            <p>New detector packages join the same registry without loading the whole catalogue into the agent context.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="sources" aria-labelledby="sources-title">
-      <div class="wrap">
-        <div class="section-head">
-          <p class="section-label">Public-data skills</p>
-          <h2 id="sources-title">Bring public records into the same case.</h2>
-        </div>
-        <div class="definition">
-          <p class="lead">Choose a source skill and Anomaly handles the source-specific query, validation, normalization, and provenance.</p>
-          <p class="aside">Add your own files alongside public data. Everything is profiled and tested through the same workflow.</p>
-        </div>
-        <ul class="source-list" aria-label="Sources in the public-data catalogue">
-          <li>USAspending</li>
-          <li>SEC EDGAR</li>
-          <li>OpenFEC</li>
-          <li>TED procurement</li>
-          <li>Companies House</li>
-          <li>OpenCorporates</li>
-          <li>CourtListener</li>
-          <li>OpenSanctions</li>
-          <li>Wikidata</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section" id="findings" aria-labelledby="findings-title">
-      <div class="wrap">
-        <div class="section-head">
-          <p class="section-label">Findings and report</p>
-          <h2 id="findings-title">Every proposed finding points back to the data.</h2>
-        </div>
-        <div class="definition">
-          <p class="lead">Anomaly turns detector signals into draft claims with evidence references, source and detector hashes, recorded runs, previews, and calculations.</p>
-          <p class="aside">Replay checks the math. A separate reviewer challenges the draft. You decide what becomes a finding.</p>
-        </div>
-        <div class="findings-flow" aria-label="Path from signal to finding">
-          <article class="flow-step">
-            <span class="number">01</span>
-            <h3>Signal</h3>
-            <p>A recorded pattern linked to its detector run.</p>
-          </article>
-          <article class="flow-step">
-            <span class="number">02</span>
-            <h3>Proposed finding</h3>
-            <p>A draft claim linked to evidence and calculations.</p>
-          </article>
-          <article class="flow-step">
-            <span class="number">03</span>
-            <h3>Replay and review</h3>
-            <p>Calculations and wording are checked independently.</p>
-          </article>
-          <article class="flow-step">
-            <span class="number">04</span>
-            <h3>Your decision</h3>
-            <p>Accept, revise, reject, or leave the claim unresolved.</p>
-          </article>
-        </div>
-        <div class="detail-grid" aria-label="Report outputs">
-          <article>
-            <h3>Traceable claims</h3>
-            <p>Claims retain signal IDs, source and detector hashes, run IDs, evidence references, and replayable calculations.</p>
-          </article>
-          <article>
-            <h3>Reviewed findings</h3>
-            <p>Only claims accepted after replay and independent review enter the final findings file.</p>
-          </article>
-          <article>
-            <h3>Report and charts</h3>
-            <p>Anomaly writes a Markdown report, unresolved questions, and deterministic SVG charts from accepted findings.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" aria-labelledby="run-title">
-      <div class="wrap">
-        <div class="section-head">
-          <p class="section-label">Run Anomaly</p>
-          <h2 id="run-title">Run Anomaly on your data.</h2>
-        </div>
-        <div class="definition">
-          <p class="lead">Start a case with your own files or choose a source from the public-data catalogue.</p>
-          <div class="actions">
-            <a class="action primary" href="https://github.com/buriedsignals/Anomaly">Open Anomaly on GitHub →</a>
-            <a class="action" href="docs/flow.html">Read the full workflow →</a>
+        <h2 id="cat-h">Search the catalogue.</h2>
+        <p class="intro" id="cat-intro">Everything here is generated from the repository, so what you see is what an agent gets back from <code>anomaly.context</code>.</p>
+        <div class="cat-tools">
+          <div class="tabs" role="tablist" aria-label="Catalogue view">
+            <button class="key" role="tab" aria-selected="true" data-view="sources">Sources<span class="n" id="n-sources"></span></button>
+            <button class="key" role="tab" aria-selected="false" data-view="detectors">Detectors<span class="n" id="n-detectors"></span></button>
+            <button class="key" role="tab" aria-selected="false" data-view="domains">Domains<span class="n" id="n-domains"></span></button>
+          </div>
+          <div class="chips" id="filters" role="group" aria-label="Filter sources">
+            <button class="key" aria-pressed="false" data-f="free">Free</button>
+            <button class="key" aria-pressed="false" data-f="key">Needs key</button>
+            <button class="key" aria-pressed="false" data-f="paid">Paid</button>
+            <button class="key" aria-pressed="false" data-f="catalogued">Catalogued</button>
           </div>
         </div>
+        <label class="search cat-search">
+          <span class="sr-only">Filter the catalogue</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="cat-q" type="search" placeholder="Filter by name, domain, country or anything in the description" autocomplete="off">
+        </label>
+        <div class="cat-board" id="cat-board" aria-live="polite"></div>
+        <p class="board-note cat-count" id="cat-count"></p>
+      </div>
+    </section>
+
+    <section id="lead" aria-labelledby="lead-h">
+      <div class="wrap">
+        <h2 id="lead-h">Every flag comes back as a lead you can check.</h2>
+        <p class="intro">This one came from running <code>lobbying.foreign_filings</code> on two sample filing tables. The values say what was flagged, and the hashes say exactly which detector and which files produced it.</p>
+        <div class="lead-wrap">
+          <div class="ticket">
+            <div class="ticket-top"><span>Lead</span><span>lobbying.foreign_filings · 1.2.0</span></div>
+<pre id="ticket-json"><span class="k">"status"</span>: <span class="h">"lead"</span>,
+<span class="k">"candidate_id"</span>: <span class="v">"f2"</span>,
+<span class="k">"values"</span>: {
+  <span class="k">"registrant_name"</span>: <span class="v">"R TWO"</span>,
+  <span class="k">"client_name"</span>: <span class="v">"Client Two"</span>,
+  <span class="k">"foreign_entity_name"</span>: <span class="v">"Acme SA"</span>,
+  <span class="k">"foreign_entity_country"</span>: <span class="v">"FR"</span>,
+  <span class="k">"income"</span>: <span class="v">9000.0</span>
+},
+<span class="k">"detector_hash"</span>: <span class="h">"sha256:8f4d60af…aa29"</span>,
+<span class="k">"provenance"</span>: {
+  <span class="k">"input_hashes"</span>: {
+    <span class="k">"lobbying_filings"</span>: <span class="h">"sha256:4d9e9f30…433d"</span>,
+    <span class="k">"lobbying_foreign_entities"</span>: <span class="h">"sha256:79402677…cf89"</span>
+  },
+  <span class="k">"parameters"</span>: { <span class="k">"limit"</span>: <span class="v">500</span> },
+  <span class="k">"approval"</span>: <span class="v">"caller-recorded"</span>
+}</pre>
+            <div class="ticket-foot">Sample tables with made-up names. Excerpt of one JSON line from <code>anomaly.oneshot</code>.</div>
+          </div>
+          <ul class="promises">
+            <li><b>It only flags.</b><span>A lead says a record is unusual for a stated reason. It never claims identity, intent or wrongdoing, and the known false positives travel with every detector.</span></li>
+            <li><b>The same tables give the same answer.</b><span>Detectors are read-only SQL, pinned by an implementation hash, so anyone can rerun a lead and get it back.</span></li>
+            <li><b>It sees only what it needs.</b><span>The runner loads only the mapped or contract columns, then cuts DuckDB off from files and the network before the query runs.</span></li>
+            <li><b>Paid and restricted data stays visible.</b><span>A catalogued source has no adapter but still tells the agent the data exists, what it costs and how a person can get it.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="use" aria-labelledby="use-h">
+      <div class="wrap">
+        <h2 id="use-h">Install it once, then three commands do the work.</h2>
+        <p class="intro">Anomaly is a local Python package with no account, server or API key of its own. It needs Python 3.11 or later and <a href="https://docs.astral.sh/uv/">uv</a>.</p>
+        <div class="cmds">
+          <div class="cmd"><span>Install</span><code>git clone https://github.com/buriedsignals/Anomaly.git &amp;&amp; cd Anomaly &amp;&amp; uv sync</code><button class="copy" type="button" aria-label="Copy install command"></button></div>
+          <div class="cmd"><span>Look up</span><code>uv run python -m anomaly.context --domain lobbying</code><button class="copy" type="button" aria-label="Copy lookup command"></button></div>
+          <div class="cmd"><span>Source</span><code>uv run python -m anomaly.context --source global/opensanctions</code><button class="copy" type="button" aria-label="Copy source command"></button></div>
+          <div class="cmd"><span>Run</span><code>uv run python -m anomaly.oneshot --table donations.csv --request request.json --approved</code><button class="copy" type="button" aria-label="Copy run command"></button></div>
+        </div>
+        <p class="board-note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. Anomaly also runs a full standalone case, with two journalist gates, replay and an independent reviewer: see the <a href="docs/flow.html">case workflow</a>.</p>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="footer-row wrap">
-      <span>Anomaly</span>
-      <a href="https://github.com/buriedsignals/Anomaly">GitHub</a>
+  <footer>
+    <div class="wrap">
+      <p>Anomaly is built by <a href="https://buriedsignals.com/">Buried Signals</a> and works alongside <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. The source is on GitHub; a licence has not been published yet.</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/buriedsignals/Anomaly">GitHub</a>
+        <a href="docs/flow.html">Case workflow</a>
+        <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">Catalogue schema</a>
+        <a href="mailto:tom@buriedsignals.com">Contact</a>
+      </nav>
     </div>
   </footer>
+
+  <script>
+  (() => {
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const $ = (s, el = document) => el.querySelector(s);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const REPO = 'https://github.com/buriedsignals/Anomaly/blob/main/';
+
+    /* ---------- split-flap ---------- */
+    const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    function flap(el, text) {
+      el.textContent = '';
+      [...text].forEach((ch, i) => {
+        const s = document.createElement('span');
+        s.className = 'ch'; s.textContent = ch;
+        el.appendChild(s);
+        if (reduced || ch === ' ') return;
+        let n = 3 + i * 2;
+        const tick = () => {
+          if (n-- <= 0) { s.textContent = ch; s.classList.remove('flip'); return; }
+          s.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          s.classList.remove('flip'); void s.offsetWidth; s.classList.add('flip');
+          setTimeout(tick, 55);
+        };
+        tick();
+      });
+    }
+
+    /* ---------- live board: synthetic donations, leave-one-out z ---------- */
+    const RECIPIENTS = ['Friends of Ward 4', 'Harbour Citizens PAC', 'Committee to Elect Ortiz', 'Valley Growth Fund', 'Neighbours for Lin', 'Clearwater Action', 'Northside Unity', 'Patel for Council', 'Riverside Forward', 'Okafor 2026'];
+    const stream = $('#stream');
+    const window_ = [];
+    const ROWS = 6;
+    let seq = 48213;
+    function amount() {
+      // Mostly small donations around $250, with a rare outsized one.
+      if (Math.random() < 0.06) return Math.round(2600 + Math.random() * 5200);
+      const g = (Math.random() + Math.random() + Math.random() - 1.5) * 1.2;
+      return Math.max(10, Math.round(Math.exp(5.6 + g * 0.85)));
+    }
+    function looZ(x, xs) {
+      // Same leave-one-out score as numeric.zscore_outliers: compare x with the others.
+      const others = xs.slice(0, -1);
+      if (others.length < 3) return 0;
+      const m = others.reduce((a, b) => a + b, 0) / others.length;
+      const v = others.reduce((a, b) => a + (b - m) ** 2, 0) / others.length;
+      return v > 0 ? Math.abs(x - m) / Math.sqrt(v) : 0;
+    }
+    const pad = n => String(n).padStart(2, '0');
+    const now = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+    function addRow(initial) {
+      const x = amount();
+      window_.push(x); if (window_.length > 40) window_.shift();
+      const z = looZ(x, window_);
+      const isLead = z >= 3;
+      const row = document.createElement('div');
+      row.className = 'row' + (initial ? '' : ' enter');
+      row.innerHTML = `<span class="dim">${now()}</span><span class="c-rec">D-${seq++}</span><span class="name">${esc(RECIPIENTS[(Math.random() * RECIPIENTS.length) | 0])}</span><span class="num">$${x.toLocaleString('en-US')}</span><span class="num c-z dim">${z.toFixed(1)}</span><span class="status ok"></span>`;
+      const label = stream.querySelector('.label');
+      label.after(row);
+      const st = row.querySelector('.status');
+      flap(st, initial ? 'OK' : '····'.replace(/·/g, ' ').trim() || 'OK');
+      if (!initial) {
+        setTimeout(() => {
+          if (isLead) { row.classList.add('is-lead'); st.className = 'status lead'; flap(st, 'LEAD'); }
+          else flap(st, 'OK');
+        }, reduced ? 0 : 420);
+      } else if (isLead) { row.classList.add('is-lead'); st.className = 'status lead'; flap(st, 'LEAD'); }
+      const rows = stream.querySelectorAll('.row:not(.label)');
+      if (rows.length > ROWS) rows[rows.length - 1].remove();
+    }
+    // Warm the window so the first scores mean something.
+    for (let i = 0; i < 34; i++) { const x = amount(); window_.push(x > 2600 ? 310 : x); }
+    for (let i = 0; i < ROWS; i++) addRow(true);
+    // Guarantee one visible flag early so the mechanism is seen.
+    setTimeout(() => {
+      const x = 6400; window_.push(x); window_.shift();
+      const z = looZ(x, window_);
+      const row = document.createElement('div');
+      row.className = 'row enter';
+      row.innerHTML = `<span class="dim">${now()}</span><span class="c-rec">D-${seq++}</span><span class="name">Harbour Citizens PAC</span><span class="num">$${x.toLocaleString('en-US')}</span><span class="num c-z dim">${z.toFixed(1)}</span><span class="status ok"></span>`;
+      stream.querySelector('.label').after(row);
+      const st = row.querySelector('.status');
+      setTimeout(() => { if (z >= 3) { row.classList.add('is-lead'); st.className = 'status lead'; } flap(st, z >= 3 ? 'LEAD' : 'OK'); }, reduced ? 0 : 420);
+      const rows = stream.querySelectorAll('.row:not(.label)'); if (rows.length > ROWS) rows[rows.length - 1].remove();
+    }, reduced ? 0 : 1600);
+    const clock = $('#clock');
+    setInterval(() => { clock.textContent = now(); }, 1000); clock.textContent = now();
+    let streaming = !reduced;
+    if (streaming) {
+      const tick = () => { if (!document.hidden) addRow(false); setTimeout(tick, 2300 + Math.random() * 1400); };
+      setTimeout(tick, 3800);
+    }
+
+    /* ---------- route strip ---------- */
+    const stops = [...document.querySelectorAll('.stop')];
+    const routeCmd = $('#route-cmd');
+    const line = $('.route-line i');
+    let current = 0, routeTimer;
+    function setStop(i) {
+      current = i;
+      stops.forEach((s, k) => { s.classList.toggle('now', k === i); s.classList.toggle('past', k < i); });
+      line.style.setProperty('--progress', `${(i / (stops.length - 1)) * 100}%`);
+      routeCmd.innerHTML = stops[i].dataset.cmd;
+    }
+    stops.forEach((s, i) => {
+      s.tabIndex = 0;
+      const go = () => { clearInterval(routeTimer); setStop(i); };
+      s.addEventListener('click', go);
+      s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
+    setStop(0);
+    const routeObs = new IntersectionObserver(es => {
+      es.forEach(e => {
+        clearInterval(routeTimer);
+        if (e.isIntersecting && !reduced) routeTimer = setInterval(() => setStop((current + 1) % stops.length), 3200);
+      });
+    }, { threshold: 0.4 });
+    routeObs.observe($('.route'));
+
+    /* ---------- catalogue data ---------- */
+    let DATA = null;
+    const state = { view: 'sources', q: '', filters: new Set(), domain: 'lobbying', open: null };
+
+    const access = s => {
+      if (s.auth === 'subscription' || (s.cost || []).includes('paid') || (s.cost || []).includes('credits')) return 'paid';
+      if (s.auth === 'api_key') return 'key';
+      return 'free';
+    };
+    const ACCESS_LABEL = { free: 'Free', key: 'Needs key', paid: 'Paid' };
+    const allSources = () => DATA.domains.flatMap(d => d.sources);
+    const allDetectors = () => [...DATA.any_table.map(d => ({ ...d, domain: null })), ...DATA.domains.flatMap(d => d.detectors)];
+
+    function render() {
+      const board = $('#cat-board');
+      const q = state.q.trim().toLowerCase();
+      const match = obj => !q || JSON.stringify(obj).toLowerCase().includes(q);
+      $('#filters').style.visibility = state.view === 'sources' ? 'visible' : 'hidden';
+      let rows = [], head = '';
+      if (state.view === 'sources') {
+        head = '<div class="crow head"><span>Source</span><span>Name</span><span class="c-dom">Domain</span><span class="c-acc">Access</span><span>Status</span></div>';
+        rows = allSources().filter(match).filter(s => {
+          if (!state.filters.size) return true;
+          return [...state.filters].every(f => f === 'catalogued' ? s.status === 'catalogued' : access(s) === f);
+        }).map(s => ({
+          key: 's:' + s.id,
+          html: `<span class="id" title="${esc(s.id)}">${esc(s.id)}</span><span class="t">${esc(s.title)}</span><span class="m c-dom">${esc(s.domain)}</span><span class="c-acc"><span class="pill ${access(s) === 'key' ? 'key-p' : access(s)}">${ACCESS_LABEL[access(s)]}</span></span><span><span class="pill ${s.status === 'catalogued' ? 'c' : 'q'}">${esc(s.status)}</span></span>`,
+          detail: () => `<div><p>${esc(s.description)}</p>${s.provides && s.provides.length ? `<p>Fills the ${esc(s.domain)} contract tables:</p><div class="tags">${s.provides.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
+            <dl><dt>Licence</dt><dd>${esc(s.license)}</dd><dt>Access</dt><dd>${esc(ACCESS_LABEL[access(s)])}${s.auth && s.auth !== 'none' ? ` (${esc(s.auth.replace('_', ' '))})` : ''}${(s.cost || []).filter(c => c !== 'free').length ? ` · ${esc(s.cost.filter(c => c !== 'free').join(', ').replace(/_/g, ' '))}` : ''}</dd>${s.jurisdiction ? `<dt>Scope</dt><dd>${esc(s.jurisdiction)}</dd>` : ''}${s.setup_url ? `<dt>Setup</dt><dd><a href="${esc(s.setup_url)}">${esc(s.setup_url)}</a></dd>` : ''}<dt>How to use</dt><dd><a href="${REPO + esc(s.skill)}">${esc(s.skill)}</a></dd></dl>`
+        }));
+      } else if (state.view === 'detectors') {
+        head = '<div class="crow head"><span>Detector</span><span>What it flags</span><span class="c-dom">Domain</span><span class="c-acc">Severity</span><span>Reads</span></div>';
+        rows = allDetectors().filter(match).map(d => ({
+          key: 'd:' + d.id,
+          html: `<span class="id" title="${esc(d.id)}">${esc(d.id)}</span><span class="t">${esc(d.title)}</span><span class="m c-dom">${esc(d.domain || 'any table')}</span><span class="m c-acc">${esc(d.severity || '')}</span><span><span class="pill ${d.domain ? 'c' : 'q'}">${d.domain ? (d.required_tables || []).length + ' tables' : 'roles'}</span></span>`,
+          detail: () => `<div><p>${esc(d.description)}</p>${(d.assumptions || []).length ? `<dl><dt>Assumes</dt><dd><ul>${d.assumptions.map(a => `<li>${esc(a)}</li>`).join('')}</ul></dd><dt>False positives</dt><dd><ul>${(d.false_positives || []).map(a => `<li>${esc(a)}</li>`).join('')}</ul></dd></dl>` : ''}</div>
+            <dl><dt>Version</dt><dd>${esc(d.version)}</dd><dt>${d.domain ? 'Tables' : 'Roles'}</dt><dd><div class="tags">${(d.domain ? d.required_tables : (d.required_fields || []).map(f => f.name)).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></dd><dt>Parameters</dt><dd>${Object.entries(d.parameters || {}).map(([k, v]) => `${esc(k)} = ${esc(v.default)}`).join(' · ') || 'none'}</dd></dl>`
+        }));
+      } else {
+        head = '<div class="crow head"><span>Domain</span><span>Sources</span><span class="c-dom">Detectors</span><span class="c-acc">Contract</span><span>Status</span></div>';
+        rows = DATA.domains.filter(match).map(d => ({
+          key: 'm:' + d.domain,
+          html: `<span class="id">${esc(d.domain)}</span><span class="t">${esc(d.sources.map(s => s.title.split(' — ')[0]).join(' · '))}</span><span class="m c-dom">${d.detectors.length ? d.detectors.length + ' + core' : 'core only'}</span><span class="m c-acc">${d.contract ? Object.keys(d.contract).length + ' tables' : 'none yet'}</span><span><span class="pill ${d.detectors.length ? 'q' : 'c'}">${d.sources.length} source${d.sources.length === 1 ? '' : 's'}</span></span>`,
+          detail: () => `<div><p>${d.contract ? `The ${esc(d.domain)} contract defines ${Object.keys(d.contract).length} tables that its ${d.detectors.length} detectors read.` : `No multi-table detectors read ${esc(d.domain)} yet, so its sources work with the ${DATA.any_table.length} core detectors, which run on any table.`}</p>${d.contract ? `<div class="tags">${Object.keys(d.contract).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}</div>
+            <dl><dt>Sources</dt><dd>${d.sources.map(s => esc(s.id)).join('<br>')}</dd>${d.detectors.length ? `<dt>Detectors</dt><dd>${d.detectors.map(x => esc(x.id)).join('<br>')}</dd>` : ''}</dl>`
+        }));
+      }
+      if (!rows.length) {
+        board.innerHTML = head + `<div class="empty"><b>NO MATCH</b>Nothing on the board matches “${esc(state.q)}”. Try a domain such as procurement, a source such as OpenFEC, or a country.</div>`;
+      } else {
+        board.innerHTML = head + rows.map((r, i) => `<div class="crow" role="button" tabindex="0" aria-expanded="${state.open === r.key}" data-key="${esc(r.key)}" style="${reduced ? '' : `animation: rowin .35s var(--ease) ${Math.min(i, 12) * 22}ms both`}">${r.html}</div><div class="detail${state.open === r.key ? ' open' : ''}">${state.open === r.key ? r.detail() : ''}</div>`).join('');
+        board.querySelectorAll('.crow[data-key]').forEach((el, i) => {
+          const toggle = () => { state.open = state.open === el.dataset.key ? null : el.dataset.key; render(); };
+          el.addEventListener('click', toggle);
+          el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+        });
+      }
+      const total = state.view === 'sources' ? allSources().length : state.view === 'detectors' ? allDetectors().length : DATA.domains.length;
+      $('#cat-count').textContent = `${rows.length} of ${total} ${state.view} shown`;
+    }
+
+    document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+      state.view = b.dataset.view; state.open = null;
+      document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+      render();
+    }));
+    document.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
+      const f = b.dataset.f;
+      state.filters.has(f) ? state.filters.delete(f) : state.filters.add(f);
+      b.setAttribute('aria-pressed', String(state.filters.has(f)));
+      render();
+    }));
+    $('#cat-q').addEventListener('input', e => { state.q = e.target.value; state.open = null; if (DATA) render(); });
+    $('#hero-search').addEventListener('submit', e => {
+      e.preventDefault();
+      const q = $('#hero-q').value;
+      $('#cat-q').value = q; state.q = q; state.open = null;
+      if (DATA) render();
+      $('#catalogue').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    });
+
+    /* ---------- interchange map ---------- */
+    function drawMap() {
+      const d = DATA.domains.find(x => x.domain === state.domain) || DATA.domains[0];
+      const svg = $('#map');
+      const W = 900;
+      const src = d.sources.slice(0, 9), srcMore = d.sources.length - src.length;
+      const dets = d.detectors.length ? d.detectors.slice(0, 9) : [];
+      const detMore = d.detectors.length - dets.length;
+      const left = src.length + (srcMore > 0 ? 1 : 0);
+      const right = (dets.length + (detMore > 0 ? 1 : 0)) || 1;
+      const rowsN = Math.max(left, right, 4);
+      const ROW = 46, TOP = 40, H = TOP * 2 + rowsN * ROW;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const cx = W / 2, cy = H / 2;
+      const yL = i => TOP + (rowsN - left) * ROW / 2 + i * ROW + ROW / 2;
+      const yR = i => TOP + (rowsN - right) * ROW / 2 + i * ROW + ROW / 2;
+      const tables = d.contract ? Object.keys(d.contract) : [];
+      let g = '';
+      const hub = { w: 220, h: Math.max(84, 56 + Math.min(tables.length, 9) * 15) };
+      // lines
+      const fan = (i, n) => n <= 1 ? cy : cy - hub.h * 0.34 + (hub.h * 0.68) * (i / (n - 1));
+      src.forEach((s, i) => {
+        const y = yL(i), x1 = 262, x2 = cx - hub.w / 2, hy = fan(i, src.length);
+        const col = s.status === 'catalogued' ? 'rgba(245,242,237,.28)' : '#7DB1AE';
+        g += `<path d="M${x1} ${y} C ${x1 + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="#22272A" stroke-width="3"/>`;
+        g += `<path class="flow" d="M${x1} ${y} C ${x1 + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="${col}" stroke-width="3" style="animation-delay:${-i * .17}s"/>`;
+        g += `<circle cx="${x1}" cy="${y}" r="5" fill="#0D0F10" stroke="${col}" stroke-width="2.5"/>`;
+        g += `<text x="${x1 - 14}" y="${y + 4}" text-anchor="end" font-family="Space Grotesk" font-size="14" fill="#F5F2ED">${esc(s.title.split(' — ')[0].slice(0, 30))}</text>`;
+      });
+      if (srcMore > 0) g += `<text x="248" y="${yL(src.length) + 4}" text-anchor="end" font-family="Space Mono" font-size="12" fill="rgba(245,242,237,.6)">+${srcMore} more</text>`;
+      if (dets.length) {
+        dets.forEach((x, i) => {
+          const y = yR(i), x1 = cx + hub.w / 2, x2 = W - 262, hy = fan(i, dets.length);
+          g += `<path d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${x2 - 90} ${y}, ${x2} ${y}" fill="none" stroke="#22272A" stroke-width="3"/>`;
+          g += `<path class="flow" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${x2 - 90} ${y}, ${x2} ${y}" fill="none" stroke="#D4A853" stroke-width="3" style="animation-delay:${-i * .21}s"/>`;
+          g += `<circle cx="${x2}" cy="${y}" r="5" fill="#0D0F10" stroke="#D4A853" stroke-width="2.5"/>`;
+          g += `<text x="${x2 + 14}" y="${y + 4}" font-family="Space Mono" font-size="12.5" fill="#F5F2ED">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</text>`;
+        });
+        if (detMore > 0) g += `<text x="${W - 248}" y="${yR(dets.length) + 4}" font-family="Space Mono" font-size="12" fill="rgba(245,242,237,.6)">+${detMore} more</text>`;
+      } else {
+        const x1 = cx + hub.w / 2, x2 = W - 262;
+        g += `<path class="flow" d="M${x1} ${cy} L ${x2} ${cy}" fill="none" stroke="#D4A853" stroke-width="3"/>`;
+        g += `<circle cx="${x2}" cy="${cy}" r="5" fill="#0D0F10" stroke="#D4A853" stroke-width="2.5"/>`;
+        g += `<text x="${x2 + 14}" y="${cy - 4}" font-family="Space Mono" font-size="12.5" fill="#F5F2ED">${DATA.any_table.length} core detectors</text>`;
+        g += `<text x="${x2 + 14}" y="${cy + 14}" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.6)">run on any table</text>`;
+      }
+      // hub
+      g += `<rect x="${cx - hub.w / 2}" y="${cy - hub.h / 2}" width="${hub.w}" height="${hub.h}" rx="12" fill="#16191B" stroke="#D4A853" stroke-width="2"/>`;
+      g += `<text x="${cx}" y="${cy - hub.h / 2 + 30}" text-anchor="middle" font-family="Doto" font-weight="700" font-size="22" fill="#D4A853">${esc(d.domain.toUpperCase())}</text>`;
+      if (tables.length) {
+        tables.slice(0, 9).forEach((t, i) => { g += `<text x="${cx}" y="${cy - hub.h / 2 + 54 + i * 15}" text-anchor="middle" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.66)">${esc(t)}</text>`; });
+      } else {
+        g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="Space Mono" font-size="11" fill="rgba(245,242,237,.6)">single-table domain</text>`;
+      }
+      g += `<text x="262" y="22" text-anchor="end" font-family="Space Mono" font-size="11" letter-spacing="2" fill="rgba(245,242,237,.6)">SOURCES</text>`;
+      g += `<text x="${W - 262}" y="22" font-family="Space Mono" font-size="11" letter-spacing="2" fill="rgba(245,242,237,.6)">DETECTORS</text>`;
+      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources and ${d.detectors.length || DATA.any_table.length + ' core'} detectors.</desc>` + g;
+      $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(s.title.split(' — ')[0])}</li>`).join('')}</ul>`
+        + `<div class="map-hub"><b>${esc(d.domain.toUpperCase())}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
+        + `<h4>Detectors</h4><ul>${d.detectors.length ? d.detectors.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('') : `<li class="d">${DATA.any_table.length} core detectors, any table</li>`}</ul>`;
+      const q = d.sources.filter(s => s.status !== 'catalogued').length;
+      $('#map-caption').innerHTML = d.contract
+        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them. Teal lines are queryable sources and grey lines are catalogued ones.`
+        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b>. Nothing reads several ${esc(d.domain)} tables at once yet, so these sources feed the ${DATA.any_table.length} core detectors, which take any single table and map its columns to roles such as amount or date.`;
+    }
+    function drawDomainList() {
+      const list = $('#domain-list');
+      const sorted = [...DATA.domains].sort((a, b) => (b.detectors.length - a.detectors.length) || (b.sources.length - a.sources.length) || a.domain.localeCompare(b.domain));
+      list.innerHTML = sorted.map(d => `<button class="line-btn" aria-pressed="${d.domain === state.domain}" data-d="${esc(d.domain)}">${esc(d.domain)}<small>${d.sources.length} src${d.detectors.length ? ' · ' + d.detectors.length + ' det' : ''}</small></button>`).join('');
+      list.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => {
+        state.domain = b.dataset.d;
+        list.querySelectorAll('[data-d]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        drawMap();
+      }));
+    }
+
+    function boot(data) {
+      DATA = data;
+      const S = allSources().length, D = allDetectors().length, M = DATA.domains.length;
+      $('#n-sources').textContent = S; $('#n-detectors').textContent = D; $('#n-domains').textContent = M;
+      $('#cat-intro').innerHTML = `${S} data sources across ${M} domains, and ${D} detectors. Everything here is generated from the repository, so it is exactly what an agent gets back from <code>anomaly.context</code>.`;
+      drawDomainList(); drawMap(); render();
+    }
+    fetch('docs/context.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(boot).catch(() => {
+      $('#cat-board').innerHTML = '<div class="empty"><b>BOARD OFFLINE</b>The catalogue snapshot did not load. The same data is one command away: <code>python -m anomaly.context</code>.</div>';
+      $('#map-caption').textContent = 'The domain diagram needs the catalogue snapshot, which did not load.';
+    });
+
+    /* ---------- copy buttons ---------- */
+    const COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+    const DONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+    document.querySelectorAll('.copy').forEach(b => {
+      b.innerHTML = COPY;
+      b.addEventListener('click', async () => {
+        const text = b.previousElementSibling.textContent;
+        try { await navigator.clipboard.writeText(text); b.innerHTML = DONE; b.classList.add('done'); }
+        catch { b.setAttribute('aria-label', 'Copy failed; select the command instead'); }
+        setTimeout(() => { b.innerHTML = COPY; b.classList.remove('done'); }, 1600);
+      });
+    });
+  })();
+  </script>
 </body>
 </html>

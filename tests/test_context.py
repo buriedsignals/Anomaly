@@ -10,6 +10,7 @@ def test_every_source_has_a_domain_a_skill_and_only_contract_tables() -> None:
     root = context.SOURCES_ROOT
     for source in context.sources():
         assert source["domain"], source["id"]
+        assert source["status"] in {"queryable", "catalogued"}, source["id"]
         assert (root.parent / source["skill"]).is_file(), source["id"]
         if source["provides"]:
             contract = domains.load_domain(source["domain"])
@@ -63,3 +64,10 @@ def test_source_metadata_reads_folded_text_inline_auth_and_provides(tmp_path: Pa
     assert source["provides"] == ["lobbying_filings"]
     assert source["cost"] == ["free"]
     assert source["skill"] == "data-skills/xx/example/SKILL.md"
+
+
+def test_site_catalogue_snapshot_is_current() -> None:
+    # The landing page reads docs/context.json; regenerate it with
+    # `python -m anomaly.context > docs/context.json` after catalogue changes.
+    snapshot = Path(__file__).parents[1] / "docs" / "context.json"
+    assert json.loads(snapshot.read_text(encoding="utf-8")) == context.build()
