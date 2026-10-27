@@ -724,7 +724,9 @@
       const svg = $('#map');
       const W = 960;
       const src = d.sources.slice(0, 9), srcMore = d.sources.length - src.length;
-      const dets = d.detectors.slice(0, 9), detMore = d.detectors.length - dets.length;
+      // Domains without their own detectors use the core detectors, which run on any table.
+      const detList = d.detectors.length ? d.detectors : DATA.any_table;
+      const dets = detList.slice(0, 9), detMore = detList.length - dets.length;
       const left = src.length + (srcMore > 0 ? 1 : 0);
       const right = (dets.length + (detMore > 0 ? 1 : 0)) || 1;
       const tables = d.contract ? Object.keys(d.contract) : [];
@@ -772,11 +774,11 @@
       if (tables.length) tables.slice(0, 9).forEach((t, i) => { g += `<text x="${cx}" y="${cy - hub.h / 2 + 54 + i * 16}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#434C55">${esc(t)}</text>`; });
       else g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#626B73">single-table domain</text>`;
       g += `<text x="${XL}" y="24" text-anchor="end" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">SOURCES</text>`;
-      g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">DETECTORS</text>`;
+      g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">${d.detectors.length ? 'DETECTORS' : 'CORE DETECTORS'}</text>`;
       svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources and ${d.detectors.length || DATA.any_table.length + ' core'} detectors.</desc>` + g + moving;
       $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(short(s))}</li>`).join('')}</ul>`
         + `<div class="map-hub"><b>${esc(d.domain)}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
-        + `<h4>Detectors</h4><ul>${d.detectors.length ? d.detectors.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('') : `<li class="d">${DATA.any_table.length} core detectors, any table</li>`}</ul>`;
+        + `<h4>${d.detectors.length ? 'Detectors' : 'Core detectors'}</h4><ul>${detList.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul>`;
       const q = d.sources.filter(s => s.status !== 'catalogued').length;
       $('#map-caption').innerHTML = d.contract
         ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them. Blue lines are queryable sources, dashed grey lines are catalogued ones, and green lines are detectors.`
