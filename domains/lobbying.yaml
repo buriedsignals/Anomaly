@@ -1,76 +1,95 @@
-# Lobbying domain contract: the tables lobbying detectors read and the columns
-# they need. Any source that can fill these tables works with every lobbying
-# detector. Columns are exactly the ones the detector SQL reads (checked by
-# tests/test_domains.py); extra columns in a supplied file are ignored.
+# Lobbying domain contract (v2): the tables lobbying detectors read and the
+# columns they need. The generic core (lobbying_registrations, lobbyists,
+# lobbying_contacts) fits any national lobbying register; each source's
+# SKILL.md says which register field fills which column. The remaining tables
+# are US extensions (LDA, FARA, Congress) that only the US detectors read.
+# Columns are exactly the ones the detector SQL reads (checked by
+# tests/test_domains.py); extra columns in a supplied file are ignored, and a
+# column marked optional may be left out of the file (it loads as NULL).
 domain: lobbying
-description: Lobbying disclosures, the people and money around them, and the legislators they target.
+description: Lobbying registers, the lobbyists and officials they name, the money they disclose, and (US) the legislators they target.
 tables:
-  lobbying_filings:
-    description: One row per lobbying disclosure filing.
+  lobbying_registrations:
+    description: One row per registration, return or periodic report, for one client when the register lists clients.
     columns:
-      filing_uuid: Unique filing identifier, the join key for the other lobbying tables.
-      filing_year: Filing year (integer).
-      filing_period: Reporting period within the year, such as a quarter.
-      filing_type: Filing type code, such as registration, report or amendment.
-      registrant_id: Identifier of the lobbying firm or in-house registrant.
+      registration_id: Register's identifier for the registration or report, the join key for lobbyists and the US tables.
+      register: Source id of the register the row comes from, such as us/lda/lobbying-disclosures.
+      period_start: First day of the period the row covers, or the day the registration took effect (date).
+      period_end: Last day of the period the row covers, or the day the registration ended (date, optional).
+      registrant_id: Register's identifier for the lobbying firm, organisation or person that registered.
       registrant_name: Name of the registrant.
-      client_id: Identifier of the client on whose behalf lobbying happened.
-      client_name: Name of the client.
-      client_country: Client's country.
-      client_ppb_country: Country of the client's principal place of business.
-      client_general_description: Free-text description of the client (optional).
-      income: Income reported for the filing (number).
-      url: Link to the filing.
-      posted_by_name: Name of the person who submitted the filing.
-  lobbying_foreign_entities:
-    description: Foreign entities listed on a filing.
+      client_id: Identifier of the client a consultant lobbies for; empty when the registrant lobbies for itself (optional).
+      client_name: Name of that client; empty when the registrant lobbies for itself (optional).
+      client_country: Country of the interest represented, the client or else the registrant, as the register spells it (optional).
+      spend_low: Lower bound of the money disclosed for the row (lobbying income from the client, or the registrant's own lobbying costs); equal to spend_high when the register gives an exact amount (number, optional).
+      spend_high: Upper bound of that money; equal to spend_low for an exact amount (number, optional).
+      issue_area: Issue areas in the register's own taxonomy, several separated by a vertical bar (optional).
+      filing_type: Register's code for the kind of row, such as registration, quarterly report or amendment (optional).
+      url: Link to the registration or report (optional).
+      client_description: Free-text description of the client, read by US text-pattern detectors (optional).
+      client_ppb_country: Country of the client's principal place of business, read by US detectors (optional).
+      posted_by_name: Name of the person who submitted the filing, read by US detectors (optional).
+  lobbyists:
+    description: One row per lobbyist named on a registration.
     columns:
-      filing_uuid: Filing the entity appears on.
+      registration_id: Registration the lobbyist is named on, as in lobbying_registrations.
+      lobbyist_id: Register's identifier for the lobbyist, or the name when the register has none.
+      name: Lobbyist's full name.
+      former_public_office: Former public office the lobbyist disclosed, as free text (optional).
+      former_office_institution: Institution where that office was held (optional).
+      former_office_end: Last day the lobbyist held that office (date, optional).
+  lobbying_contacts:
+    description: One row per official taking part in a reported meeting or communication with a registrant.
+    columns:
+      contact_id: Identifier of the meeting or communication report.
+      registrant_id: Registrant that reported or attended the contact, as in lobbying_registrations.
+      registrant_name: Name of that registrant (optional).
+      contact_date: Day the contact took place, or the first day of the reported month (date).
+      official_name: Name of the public official.
+      official_title: Official's title or position (optional).
+      institution: Institution, department or cabinet the official belongs to.
+      subject: Subject of the contact as reported (optional).
+  lobbying_foreign_entities:
+    description: US extension. Foreign entities listed on an LDA filing.
+    columns:
+      registration_id: Filing the entity appears on.
       foreign_entity_name: Name of the foreign entity.
       country: Foreign entity's country.
       ppb_country: Country of the foreign entity's principal place of business.
   lobbying_activities:
-    description: Lobbying activities (issues) reported on a filing.
+    description: US extension. Lobbying activities (LDA general issue codes) reported on a filing.
     columns:
-      filing_uuid: Filing the activity belongs to.
-      general_issue_code: Issue area code.
+      registration_id: Filing the activity belongs to.
+      general_issue_code: LDA general issue area code.
       description: Free-text description of the activity.
       activity_index: Position of the activity within the filing (integer).
-  lobbying_activity_lobbyists:
-    description: Lobbyists named on a filing's activities.
+  political_contributions:
+    description: US extension. Political contributions reported by registrants and lobbyists (LD-203).
     columns:
-      filing_uuid: Filing the lobbyist appears on.
-      lobbyist_id: Lobbyist identifier.
-      first_name: Lobbyist's first name.
-      last_name: Lobbyist's last name.
-      covered_position: Former government position the lobbyist disclosed.
-  lobbying_contributions:
-    description: Political contributions reported by registrants and lobbyists.
-    columns:
-      filing_uuid: Contribution report the item comes from.
+      registration_id: Contribution report the item comes from.
       payee_name: Recipient of the contribution.
       honoree_name: Person honoured by the contribution.
       amount: Contribution amount (number).
       contributor_name: Name of the contributor.
   foreign_agent_registrants:
-    description: Registrants under a foreign-agent registration regime.
+    description: US extension. Registrants under a foreign-agent registration regime (FARA).
     columns:
       registrant_name: Name of the registered foreign agent.
   legislators:
-    description: Members of the legislature.
+    description: US extension. Members of the legislature.
     columns:
       bioguide_id: Stable legislator identifier.
       name: Legislator's name.
       party: Party.
       state: State or constituency.
   committee_assignments:
-    description: Which legislator sits on which committee.
+    description: US extension. Which legislator sits on which committee.
     columns:
       bioguide_id: Legislator identifier, as in legislators.
       committee_name: Committee name.
       role: Role on the committee.
   press_releases:
-    description: Legislators' press releases.
+    description: US extension. Legislators' press releases.
     columns:
       bioguide_id: Legislator identifier, as in legislators.
       date: Publication date (date).

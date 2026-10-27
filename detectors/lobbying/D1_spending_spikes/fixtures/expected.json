@@ -1,0 +1,9 @@
+[
+  {
+    "registrant_id": "r1",
+    "period_start": "2025-01-01",
+    "total_spend": 1000000.0,
+    "prior_mean": 100000.0,
+    "prior_n": 4
+  }
+]

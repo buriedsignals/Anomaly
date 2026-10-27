@@ -31,22 +31,13 @@ not exercised live; its mapping was run on the Firecrawl-fetched page.
 (`first_quarter`..`fourth_quarter`, `mid_year`, `year_end`), `filing_type`,
 `filing_uuid`.
 
-| Contract column | API field |
-|---|---|
-| lobbying_filings.filing_period | `filing_period` mapped to Q1-Q4 / H1 / H2 |
-| lobbying_filings.registrant_id / registrant_name | `registrant.id` / `registrant.name` |
-| lobbying_filings.client_id / client_name | `client.id` / `client.name` |
-| lobbying_filings.client_country / client_ppb_country / client_general_description | `client.country` / `client.ppb_country` / `client.general_description` |
-| lobbying_filings.income | `income` (string to number) |
-| lobbying_filings.url | `filing_document_url` |
-| lobbying_foreign_entities.* | `foreign_entities[].name`, `.country`, `.ppb_country` |
-| lobbying_activities.* | `lobbying_activities[].general_issue_code`, `.description`, list position |
-| lobbying_activity_lobbyists.* | `lobbying_activities[].lobbyists[].lobbyist.id/first_name/last_name`, `.covered_position` (deduplicated per filing) |
+The field-to-column mapping onto the lobbying contract is in `SKILL.md`
+("Column mapping").
 
 `GET /contributions/` (LD-203) filters used: `registrant_name`,
 `registrant_id`, `filing_year`, `filing_period` (`mid_year`, `year_end`),
 `filing_uuid`, `lobbyist_name`, `contribution_payee`, `contribution_honoree`.
-Each `contribution_items[]` entry becomes one `lobbying_contributions` row
+Each `contribution_items[]` entry becomes one `political_contributions` row
 (`payee_name`, `honoree_name`, `amount`, `contributor_name`, plus `date` and
 `contribution_type`).
 

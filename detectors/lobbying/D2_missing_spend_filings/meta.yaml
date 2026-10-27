@@ -1,0 +1,39 @@
+id: lobbying.missing_spend_filings
+version: 2.0.0
+release: released
+title: Missing spend filings
+author: buried-signals
+license: internal
+group: domain
+family: lobbying
+data_type: lobbying
+menu_order: 2
+source_repository: https://github.com/buriedsignals/gain-2026
+source_detector_id: D2
+source_name: D2_missing_income_filings
+source_sql_hash: fb87b5e50dca9aa7
+source_provenance_hash: sha256:56cd7f6c686aebe6ebe2a8e6b4f69478ddc994aaa34c8786658d7bd29ce7e822
+source_csv_hash: sha256:ed1fea798ea180b4959585b197dc62cf874604e4eb847fa92de3cce3d2ff46b5
+source_row_count: 200
+source_columns: [registrant_id, registrant_name, quarterly_filings_with_null_income, distinct_clients, first_seen, last_seen]
+description: Registrants with repeated reports that disclose no spend, in a register and filing type that normally carry spend.
+required_tables: [lobbying_registrations]
+required_fields: [id]
+parameters:
+  min_filings: 4
+  limit: 200
+parameter_bounds:
+  min_filings: {type: integer, minimum: 1, maximum: 1000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: lobbying
+severity: medium
+expected_output: [register, registrant_id, registrant_name, reports_without_spend, distinct_clients, first_seen, last_seen]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - A filing type counts as money-bearing when any row of that type in the same register discloses spend.
+false_positives:
+  - Some registers allow no amount below a threshold (LDA reports under 5,000 dollars carry none).
+  - Registers that never publish money produce no rows.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

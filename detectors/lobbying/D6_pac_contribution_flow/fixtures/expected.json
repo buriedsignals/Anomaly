@@ -1,0 +1,14 @@
+[
+  {
+    "payee_name": "Friends of Smith",
+    "n_contributions": 2,
+    "total_amount": 3500.0,
+    "distinct_contributors": 2
+  },
+  {
+    "payee_name": "Jones for Senate",
+    "n_contributions": 1,
+    "total_amount": 500.0,
+    "distinct_contributors": 1
+  }
+]

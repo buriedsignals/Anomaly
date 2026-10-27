@@ -1,0 +1,33 @@
+id: lobbying.former_official_lobbies_former_institution
+version: 2.0.0
+release: released
+title: Former official lobbies former institution
+author: buried-signals
+license: internal
+group: domain
+family: lobbying
+data_type: lobbying
+menu_order: 14
+description: A registrant's contacts with an institution where one of its lobbyists held public office, within a window after they left.
+required_tables: [lobbyists, lobbying_registrations, lobbying_contacts]
+required_fields: [id]
+parameters:
+  max_days_after_leaving: 1825
+  limit: 200
+parameter_bounds:
+  max_days_after_leaving: {type: integer, minimum: 0, maximum: 36500}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: lobbying
+severity: medium
+expected_output: [lobbyist_id, name, former_public_office, former_office_institution, former_office_end, registrant_id, registrant_name, contacted_institution, contacts, first_contact, last_contact, days_from_leaving_to_first_contact, officials]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - Institutions match when the names are equal or one contains the other (six characters or more), case-insensitively; registers that spell institutions differently in the two tables miss matches.
+  - A lobbyist is linked to a contact through the registrant, so the contact may have been made by a colleague.
+  - Without a former_office_end date every matching contact counts.
+false_positives:
+  - Former officials may lawfully lobby after a cooling-off period, and colleagues may have made the contact.
+  - Broad institution names (a ministry) match many offices.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

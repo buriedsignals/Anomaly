@@ -1,0 +1,12 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type
+t1,x,2024-01-01,r1,R1,c1,Client c1,,100000,100000,TAX,Q
+t2,x,2024-04-01,r1,R1,c1,Client c1,,100000,100000,TAX,Q
+t3,x,2024-04-01,r2,R2,c2,Client c2,,100000,100000,TAX|,Q
+t4,x,2024-01-01,r3,R3,c3,Client c3,,100000,100000,HCR,Q
+t5,x,2024-04-01,r3,R3,c3,Client c3,,110000,110000,HCR,Q
+e0,y,2024-01-01,y0,Y0,,,,,,Energy,Q
+e1,y,2024-01-01,y1,Y1,,,,,,Energy,Q
+f0,y,2024-05-15,y0,Y0,,,,,,Energy | Trade,Q
+f1,y,2024-05-15,y1,Y1,,,,,,Energy | Trade,Q
+f2,y,2024-05-15,y2,Y2,,,,,,Energy | Trade,Q
+f3,y,2024-05-15,y3,Y3,,,,,,Energy | Trade,Q

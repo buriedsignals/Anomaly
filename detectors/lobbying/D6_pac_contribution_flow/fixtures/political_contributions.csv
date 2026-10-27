@@ -1,0 +1,4 @@
+registration_id,payee_name,honoree_name,amount,contributor_name
+c1,Friends of Smith,Rep. Smith,2500,Acme PAC
+c2,Friends of Smith,Rep. Smith,1000,Jo Doe
+c3,Jones for Senate,Sen. Jones,500,Jo Doe

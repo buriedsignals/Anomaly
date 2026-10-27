@@ -1,0 +1,6 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type
+u1,x,2024-01-01,r1,R1,c1,Client c1,,900000,900000,,Q
+u2,x,2025-10-01,r1,R1,c1,Client c1,,900000,900000,,Q
+v1,x,2025-07-01,r2,R2,c2,Client c2,,20000,20000,,Q
+v2,x,2025-10-01,r2,R2,c3,Client c3,,30000,30000,,Q
+w1,x,2025-10-01,r3,R3,c4,Client c4,,,,,Q

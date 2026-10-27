@@ -1,0 +1,9 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type
+j1,x,2024-01-01,r1,R1,c1,Client c1,,150000,150000,,Q
+j2,x,2024-04-01,r1,R1,c1,Client c1,,150000,150000,,Q
+k1,x,2024-01-01,r4,R4,c9,Client c9,,100000,199999,,Q
+k2,x,2024-04-01,r4,R4,c9,Client c9,,100000,199999,,Q
+h0,x,2024-01-01,r2,R2,c0,Client c0,,500000,500000,,Q
+h1,x,2024-01-01,r2,R2,c1,Client c1,,500000,500000,,Q
+h2,x,2024-01-01,r2,R2,c2,Client c2,,500000,500000,,Q
+s1,x,2024-01-01,r3,R3,,,,900000,900000,,Q

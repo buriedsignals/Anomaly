@@ -109,9 +109,9 @@ def test_default_execution_resolves_explicit_namespaced_gain_detector_without_un
     root = approved_case(
         tmp_path,
         source_payloads= {
-            "lobbying_filings": (
-                "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n" +
-                "1,1,Example,2025,Q1,100,Q1\n"
+            "lobbying_registrations": (
+                "id,registration_id,register,registrant_id,registrant_name,period_start,client_id,client_name,spend_low,spend_high\n" +
+                "1,1,test,1,Example,2025-01-01,c1,Client,100,100\n"
             )
         }
     )

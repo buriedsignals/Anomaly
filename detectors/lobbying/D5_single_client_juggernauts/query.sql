@@ -1,18 +1,26 @@
-
-            SELECT
-                registrant_id,
-                any_value(registrant_name) AS registrant_name,
-                count(DISTINCT client_id) AS distinct_clients,
-                count(DISTINCT filing_uuid) AS filings,
-                sum(coalesce(income, 0)) AS total_income,
-                min(filing_year) AS earliest_year,
-                max(filing_year) AS latest_year,
-                string_agg(DISTINCT client_name, ' | ') AS clients
-            FROM lobbying_filings
-            WHERE filing_type IN ('Q1','Q2','Q3','Q4')
-            GROUP BY 1
-            HAVING distinct_clients BETWEEN 1 AND 2
-               AND total_income >= ?
-            ORDER BY total_income DESC
-            LIMIT ?
-        
+WITH reports AS (
+    SELECT
+        register, registrant_id, any_value(registrant_name) AS registrant_name,
+        coalesce(client_id, client_name) AS client_key, any_value(client_name) AS client_name,
+        period_start, count(DISTINCT registration_id) AS rows_in_period,
+        max((coalesce(spend_low, spend_high) + coalesce(spend_high, spend_low)) / 2.0) AS spend
+    FROM lobbying_registrations
+    WHERE coalesce(client_id, client_name) IS NOT NULL
+    GROUP BY register, registrant_id, client_key, period_start
+)
+SELECT
+    register,
+    registrant_id,
+    any_value(registrant_name) AS registrant_name,
+    count(DISTINCT client_key) AS distinct_clients,
+    sum(rows_in_period) AS registrations,
+    sum(spend) AS total_spend,
+    min(period_start) AS earliest_period,
+    max(period_start) AS latest_period,
+    string_agg(DISTINCT client_name, ' | ') AS clients
+FROM reports
+GROUP BY register, registrant_id
+HAVING count(DISTINCT client_key) BETWEEN 1 AND 2
+   AND sum(spend) >= ?
+ORDER BY total_spend DESC, registrant_id
+LIMIT ?

@@ -9,7 +9,7 @@ Anomaly's case workflow and Gates A and B are not involved: every output is a
 lead, never a finding.
 
     python -m anomaly.oneshot --table records.csv --request request.json --approved
-    python -m anomaly.oneshot --tables lobbying_filings=filings.csv \
+    python -m anomaly.oneshot --tables lobbying_registrations=registrations.csv \
         --tables lobbying_foreign_entities=entities.csv --request request.json --approved
 
 ``request.json`` holds one request object or a list of at most ten:

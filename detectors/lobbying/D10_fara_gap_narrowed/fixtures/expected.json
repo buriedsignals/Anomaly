@@ -1,0 +1,10 @@
+[
+  {
+    "registration_id": "f1",
+    "filing_year": 2025,
+    "client_country": "CN",
+    "fe_countries": "CN",
+    "sig_non_us_client": 1,
+    "spend": 90000.0
+  }
+]

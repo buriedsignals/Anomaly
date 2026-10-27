@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:e9afbbaea43716a6207f9f5a91c3875c76eb43ca147a6fa72b3d19d92de29a56",
+  "catalogue_hash": "sha256:f1499523b2dc31652d5e43485a37c18d7c78414ad4999b103ba6dc3e6ce77707",
   "detectors": [
     {
       "assumptions": [
@@ -48,10 +48,11 @@
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+        "Press releases are matched to the client pattern and the phrase private equity."
       ],
       "data_type": "lobbying",
-      "description": "Multi-corpus committee, lobbying, and press-release comparison.",
+      "description": "Lobbying for a target client by former committee staff, compared with the committee's members and their press releases.",
       "expected_output": [
         "lobbying_firm",
         "lobbied_client",
@@ -60,15 +61,15 @@
         "current_committee_members",
         "attack_press_releases",
         "committee_members_attacking",
-        "income"
+        "spend"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Members criticise industries they also meet with; co-occurrence is not influence."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.committee_say_vs_pay",
-      "implementation_hash": "sha256:6dec2f6b41093daebd812c5eec1ea64b05be924cd5d4053fec6d31dc59d18cea",
+      "implementation_hash": "sha256:6b9e3fdd59661eaf1101291f6a1fac53d71e3492818318f0693fbc2ec5eeeeb0",
       "parameters": {
         "client_pattern": {
           "default": "%apollo%",
@@ -94,8 +95,8 @@
         }
       ],
       "required_tables": [
-        "lobbying_activity_lobbyists",
-        "lobbying_filings",
+        "lobbyists",
+        "lobbying_registrations",
         "committee_assignments",
         "legislators",
         "press_releases"
@@ -109,23 +110,91 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Committee say vs pay",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "The usual rate is total contacts over the months from the registrant's first to last contact with that institution, so quiet months count as zero."
       ],
       "data_type": "lobbying",
-      "description": "Named foreign-lobbying candidates absent from the FARA registrant set.",
+      "description": "Months in which one registrant's contacts with one institution jump far above its usual monthly rate.",
       "expected_output": [
-        "filing_uuid",
+        "registrant_id",
+        "registrant_name",
+        "institution",
+        "month",
+        "contacts",
+        "total_contacts",
+        "active_months",
+        "mean_per_month",
+        "burst_ratio",
+        "officials"
+      ],
+      "false_positives": [
+        "Consultations, legislative deadlines and crises legitimately concentrate meetings.",
+        "Registers that report one row per official count a meeting with several officials several times only when contact_id differs."
+      ],
+      "family": "lobbying",
+      "group": "domain",
+      "id": "lobbying.contact_bursts",
+      "implementation_hash": "sha256:b92d12684d73e65e8900139d484d40cd275a358f795ba3f53acbf51454a04493",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_contacts": {
+          "default": 5,
+          "maximum": 10000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_ratio": {
+          "default": 3.0,
+          "maximum": 1000.0,
+          "minimum": 1.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "lobbying_contacts"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "title": "Contact bursts",
+      "version": "2.0.0"
+    },
+    {
+      "assumptions": [
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+        "Reads filings from 2024 to 2026 only.",
+        "Registrant names are matched to FARA names after removing punctuation."
+      ],
+      "data_type": "lobbying",
+      "description": "LDA filings with foreign-interest signals whose registrant is absent from the FARA registrant list.",
+      "expected_output": [
+        "registration_id",
         "filing_year",
         "registrant_name",
         "client_name",
         "client_country",
         "client_ppb_country",
         "fe_countries",
-        "income",
+        "spend",
         "sig_non_us_client",
         "sig_non_us_ppb",
         "sig_foreign_gov_topic",
@@ -133,12 +202,13 @@
         "url"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "The LDA exemption lets foreign commercial clients register under LDA instead of FARA.",
+        "Name variants hide real FARA registrations."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.fara_gap_narrowed",
-      "implementation_hash": "sha256:6ebc7b7e4b8f0966273c09986156b2f3d0bea00ffd8539ca9ec2a0c4540c1bed",
+      "implementation_hash": "sha256:8265aabe4624b6db9cc8d927508689cd08c6fc51b4c5a23ac3d42c1a01a5df1b",
       "parameters": {
         "limit": {
           "default": 200,
@@ -154,7 +224,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings",
+        "lobbying_registrations",
         "lobbying_foreign_entities",
         "lobbying_activities",
         "foreign_agent_registrants"
@@ -168,18 +238,78 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "FARA gap narrowed",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "home_countries lists the register's home countries, spelled as the register spells client_country and separated by a vertical bar; left empty, the most common client_country in each register is the home country.",
+        "client_country is the country of the client, or of the registrant when it lobbies for itself."
       ],
       "data_type": "lobbying",
-      "description": "Senate filings carrying foreign entity records.",
+      "description": "Registrations whose represented interest is based outside the register's home country or countries.",
       "expected_output": [
-        "filing_uuid",
-        "filing_year",
-        "filing_period",
+        "register",
+        "registration_id",
+        "period_start",
+        "registrant_id",
+        "registrant_name",
+        "represented",
+        "client_country",
+        "home_countries",
+        "spend_low",
+        "spend_high",
+        "url"
+      ],
+      "false_positives": [
+        "Foreign subsidiaries, embassies and international bodies lobby openly and lawfully.",
+        "Country names spelled differently from home_countries count as foreign."
+      ],
+      "family": "lobbying",
+      "group": "domain",
+      "id": "lobbying.foreign_clients",
+      "implementation_hash": "sha256:7e0cae64c9fcb8725698387c8941354cc1248f4214dce83932319d6f30700509",
+      "parameters": {
+        "home_countries": {
+          "default": "",
+          "max_length": 1000,
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "lobbying_registrations"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "title": "Foreign clients",
+      "version": "2.0.0"
+    },
+    {
+      "assumptions": [
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish."
+      ],
+      "data_type": "lobbying",
+      "description": "LDA filings that list foreign entities with an interest in the lobbying.",
+      "expected_output": [
+        "registration_id",
+        "period_start",
         "registrant_name",
         "client_name",
         "client_country",
@@ -187,16 +317,16 @@
         "foreign_entity_name",
         "foreign_entity_country",
         "foreign_entity_ppb",
-        "income",
+        "spend",
         "url"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Foreign parents and affiliates of US clients are routinely listed."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.foreign_filings",
-      "implementation_hash": "sha256:8f4d60af18f46b5eb00df53121e73d623d3abacbc86ee1b8a5522fdfabb2aa29",
+      "implementation_hash": "sha256:74987241c495edf8d6af8cdd683a81e69f37629a483f92d3874f9cb921f06dee",
       "parameters": {
         "limit": {
           "default": 500,
@@ -212,7 +342,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings",
+        "lobbying_registrations",
         "lobbying_foreign_entities"
       ],
       "resource_limits": {
@@ -224,32 +354,102 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Foreign filings",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "Institutions match when the names are equal or one contains the other (six characters or more), case-insensitively; registers that spell institutions differently in the two tables miss matches.",
+        "A lobbyist is linked to a contact through the registrant, so the contact may have been made by a colleague.",
+        "Without a former_office_end date every matching contact counts."
       ],
       "data_type": "lobbying",
-      "description": "Quarter-over-quarter issue-code income and registrant shifts.",
+      "description": "A registrant's contacts with an institution where one of its lobbyists held public office, within a window after they left.",
       "expected_output": [
-        "general_issue_code",
-        "filing_year",
-        "filing_period",
-        "registrants",
-        "total_income",
-        "prior_income",
-        "prior_registrants",
-        "income_delta_pct",
-        "registrants_delta_pct"
+        "lobbyist_id",
+        "name",
+        "former_public_office",
+        "former_office_institution",
+        "former_office_end",
+        "registrant_id",
+        "registrant_name",
+        "contacted_institution",
+        "contacts",
+        "first_contact",
+        "last_contact",
+        "days_from_leaving_to_first_contact",
+        "officials"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Former officials may lawfully lobby after a cooling-off period, and colleagues may have made the contact.",
+        "Broad institution names (a ministry) match many offices."
+      ],
+      "family": "lobbying",
+      "group": "domain",
+      "id": "lobbying.former_official_lobbies_former_institution",
+      "implementation_hash": "sha256:bbdd434f66c642a6306589b9bc984a0fd04a2a9734a31409b1c62a1cda524754",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_days_after_leaving": {
+          "default": 1825,
+          "maximum": 36500,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "lobbyists",
+        "lobbying_registrations",
+        "lobbying_contacts"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "lobbying",
+      "title": "Former official lobbies former institution",
+      "version": "2.0.0"
+    },
+    {
+      "assumptions": [
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "issue_area holds the register's own codes separated by a vertical bar; areas are compared only within one register.",
+        "Each row's full spend counts toward every issue area it lists."
+      ],
+      "data_type": "lobbying",
+      "description": "Quarter-over-quarter shifts in spend (or, without money, registrant count) per issue area within one register's taxonomy.",
+      "expected_output": [
+        "register",
+        "issue_area",
+        "quarter",
+        "registrants",
+        "prior_registrants",
+        "registrants_delta_pct",
+        "total_spend",
+        "prior_spend",
+        "spend_delta_pct"
+      ],
+      "false_positives": [
+        "Legislative calendars move whole issue areas at once.",
+        "Registers whose rows start on registration dates measure new registrations, not activity."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.issue_concentration_shifts",
-      "implementation_hash": "sha256:459d4d7f637cf49d1c20434d40a3df50e472ccf2d2efbd4b4cf87d121a4e4fa9",
+      "implementation_hash": "sha256:a980f8fbb9e2d61725b00735a259c2df0e929abefd1397a2da695570db956800",
       "parameters": {
         "limit": {
           "default": 500,
@@ -257,7 +457,7 @@
           "minimum": 1,
           "type": "integer"
         },
-        "min_qoq_delta_pct": {
+        "min_delta_pct": {
           "default": 25,
           "maximum": 100000,
           "minimum": 0,
@@ -271,8 +471,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings",
-        "lobbying_activities"
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -283,29 +482,32 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Issue concentration shifts",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "A filing type counts as money-bearing when any row of that type in the same register discloses spend."
       ],
       "data_type": "lobbying",
-      "description": "Quarterly filings with null income clustered by registrant.",
+      "description": "Registrants with repeated reports that disclose no spend, in a register and filing type that normally carry spend.",
       "expected_output": [
+        "register",
         "registrant_id",
         "registrant_name",
-        "quarterly_filings_with_null_income",
+        "reports_without_spend",
         "distinct_clients",
         "first_seen",
         "last_seen"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Some registers allow no amount below a threshold (LDA reports under 5,000 dollars carry none).",
+        "Registers that never publish money produce no rows."
       ],
       "family": "lobbying",
       "group": "domain",
-      "id": "lobbying.missing_income_filings",
-      "implementation_hash": "sha256:91dc3cbf1439df0fa2beeffa30e89f04aec7ec57d811ebc590e1d85ddcf75388",
+      "id": "lobbying.missing_spend_filings",
+      "implementation_hash": "sha256:c2ffb5b6f1d307beb94cf231284d5f30226126b739fbe538e7fbf42441ee7624",
       "parameters": {
         "limit": {
           "default": 200,
@@ -327,7 +529,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings"
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -337,30 +539,34 @@
       "severity": "medium",
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
-      "title": "Missing income filings",
-      "version": "1.2.0"
+      "title": "Missing spend filings",
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "The window ends at the latest period_start in the supplied register data, so the data must span more than the window."
       ],
       "data_type": "lobbying",
-      "description": "New registrants ranked by recent filing income.",
+      "description": "Registrants first seen in a register's latest window, ranked by disclosed spend and clients.",
       "expected_output": [
+        "register",
         "registrant_id",
         "registrant_name",
-        "filings_in_window",
+        "first_period",
+        "registrations",
         "distinct_clients",
-        "total_income",
+        "total_spend",
         "clients"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "A partial extract makes every registrant look new.",
+        "Renamed or re-registered firms appear as new registrants."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.new_registrant_surge",
-      "implementation_hash": "sha256:14645decd5538ed0b1e3d8a609e3508f617fcbd3472378931c4aa1d175f4b280",
+      "implementation_hash": "sha256:694b0cd6ae280559ae31a60d40d7d843f02568f31f3540f95af7551034ce07be",
       "parameters": {
         "limit": {
           "default": 200,
@@ -368,9 +574,9 @@
           "minimum": 1,
           "type": "integer"
         },
-        "lookback_quarters": {
-          "default": 2,
-          "maximum": 40,
+        "lookback_days": {
+          "default": 183,
+          "maximum": 3660,
           "minimum": 1,
           "type": "integer"
         }
@@ -382,7 +588,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings"
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -393,29 +599,29 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "New registrant surge",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish."
       ],
       "data_type": "lobbying",
-      "description": "Contribution flows aggregated by payee and honoree.",
+      "description": "LD-203 contribution flows aggregated by payee and honoree.",
       "expected_output": [
         "payee_name",
         "honoree_name",
         "n_contributions",
         "total_amount",
-        "distinct_filings",
+        "distinct_reports",
         "distinct_contributors"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "LD-203 reports lawful contributions; large flows are expected for party committees."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.pac_contribution_flow",
-      "implementation_hash": "sha256:b3c8b282f3f277f549ea3c081643f3bc7b92136d7117260d9c5d8318949beccc",
+      "implementation_hash": "sha256:20daad5956e8a71872edc362910f5f02d10cec27bee6a3837e981497dc45cb4c",
       "parameters": {
         "limit": {
           "default": 500,
@@ -431,7 +637,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_contributions"
+        "political_contributions"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -442,30 +648,33 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "PAC contribution flow",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "former_public_office is self-disclosed text; values shorter than four characters or none and n/a are ignored."
       ],
       "data_type": "lobbying",
-      "description": "Lobbyists with populated covered-position text and current clients.",
+      "description": "Lobbyists who disclosed a former public office, with the registrations and clients they now work on.",
       "expected_output": [
         "lobbyist_id",
-        "first_name",
-        "last_name",
-        "sample_position",
-        "filings_with_lobbyist",
-        "distinct_positions",
-        "clients_lobbied_for"
+        "name",
+        "sample_office",
+        "sample_institution",
+        "latest_office_end",
+        "registrations_with_lobbyist",
+        "distinct_offices",
+        "lobbied_for"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Disclosure of a former office is a legal requirement, not misconduct.",
+        "Former junior or unrelated offices are listed alongside senior ones."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.revolving_door_candidates",
-      "implementation_hash": "sha256:141c888a43c81c5fd429ede26a012a5e6d5cba1857d08be4df7139bede5449d9",
+      "implementation_hash": "sha256:88a0124436488950b3012472d8344e8d65b860f61f6f96f57461a4b6914e3ffe",
       "parameters": {
         "limit": {
           "default": 500,
@@ -481,8 +690,8 @@
         }
       ],
       "required_tables": [
-        "lobbying_activity_lobbyists",
-        "lobbying_filings"
+        "lobbyists",
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -493,37 +702,36 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Revolving door candidates",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+        "Committee names are matched in English free text and mapped to LDA issue codes; reads quarterly reports from 2024 to 2026."
       ],
       "data_type": "lobbying",
-      "description": "Lobbyist former-committee text matched to current issue codes.",
+      "description": "LDA lobbyists whose former committee role matches the issue codes they now lobby on.",
       "expected_output": [
         "lobbyist_id",
-        "first_name",
-        "last_name",
+        "name",
         "former_committee",
-        "covered_position",
-        "filing_uuid",
-        "filing_year",
-        "filing_period",
+        "former_public_office",
+        "registration_id",
+        "period_start",
         "registrant_name",
         "client_name",
         "general_issue_code",
         "description",
-        "income",
+        "spend",
         "url"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Former staff legitimately work in their field of expertise; cooling-off rules may have expired."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.revolving_door_committee_match",
-      "implementation_hash": "sha256:fafb937d68f9f5714f2f56b09d02b97246a603781092b8c7ff8d53ec9ba0c4d4",
+      "implementation_hash": "sha256:971499b167dd7f464328afe5bd187baf853cffccc30e1086029a1ace62a7928b",
       "parameters": {
         "limit": {
           "default": 200,
@@ -539,8 +747,8 @@
         }
       ],
       "required_tables": [
-        "lobbying_activity_lobbyists",
-        "lobbying_filings",
+        "lobbyists",
+        "lobbying_registrations",
         "lobbying_activities"
       ],
       "resource_limits": {
@@ -552,23 +760,23 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Revolving door committee match",
-      "version": "1.2.1"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+        "Text patterns were tuned on English-language LDA filings."
       ],
       "data_type": "lobbying",
-      "description": "Filings with multiple deterministic text-pattern signals.",
+      "description": "LDA filings with several deterministic text-pattern signals of self-styled sovereign or shell clients.",
       "expected_output": [
-        "filing_uuid",
-        "filing_year",
-        "filing_period",
+        "registration_id",
+        "period_start",
         "filing_type",
         "registrant_name",
         "client_name",
         "client_desc",
-        "income",
+        "spend",
         "shell_score",
         "sig_sovereign_client",
         "sig_established_govt",
@@ -579,12 +787,12 @@
         "url"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Legitimate sovereign clients match the sovereign and government patterns."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.shell_pattern_filings",
-      "implementation_hash": "sha256:5b238361fcab3e1f3a54e43ec06c4fa611e6e8788013ce1c1ccd855ba52bded7",
+      "implementation_hash": "sha256:a1b84da71c0510f28ecb48103832d164ea2096f702b2ad7755c91cc2675f3769",
       "parameters": {
         "limit": {
           "default": 100,
@@ -606,8 +814,8 @@
         }
       ],
       "required_tables": [
-        "lobbying_activity_lobbyists",
-        "lobbying_filings",
+        "lobbyists",
+        "lobbying_registrations",
         "lobbying_activities"
       ],
       "resource_limits": {
@@ -619,31 +827,34 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Shell pattern filings",
-      "version": "1.2.1"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "Rows where the registrant lobbies for itself have no client and are ignored.",
+        "Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values."
       ],
       "data_type": "lobbying",
-      "description": "Registrants with one or two clients and high total income.",
+      "description": "Consultant registrants with one or two clients and high total disclosed spend.",
       "expected_output": [
+        "register",
         "registrant_id",
         "registrant_name",
         "distinct_clients",
-        "filings",
-        "total_income",
-        "earliest_year",
-        "latest_year",
+        "registrations",
+        "total_spend",
+        "earliest_period",
+        "latest_period",
         "clients"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "Boutique firms or a client's dedicated outside counsel legitimately serve one client."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.single_client_juggernauts",
-      "implementation_hash": "sha256:e0dbaf87bc9a40bf3747337f793bc3853b0df01df1ecc204c664ba970ffb5da5",
+      "implementation_hash": "sha256:8690ba502cf4258338980ab6572e2ff98b57ab68bb0da7d2baffb96e8b85fbe6",
       "parameters": {
         "limit": {
           "default": 200,
@@ -651,7 +862,7 @@
           "minimum": 1,
           "type": "integer"
         },
-        "min_total_income": {
+        "min_total_spend": {
           "default": 250000,
           "maximum": 10000000000,
           "minimum": 0,
@@ -665,7 +876,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings"
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -676,32 +887,35 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Single client juggernauts",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [
-        "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+        "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+        "One spend value is kept per registrant, client and period (the highest), so amendments do not double count.",
+        "Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values."
       ],
       "data_type": "lobbying",
-      "description": "Registrant-quarter income z-score against prior quarters.",
+      "description": "A registrant's disclosed spend in one period jumps against its previous four periods (z-score).",
       "expected_output": [
+        "register",
         "registrant_id",
         "registrant_name",
-        "filing_year",
-        "filing_period",
-        "total_income",
+        "period_start",
+        "total_spend",
         "prior_mean",
         "prior_sd",
         "prior_n",
         "z_score"
       ],
       "false_positives": [
-        "Legitimate activity can produce the observed pattern."
+        "A registrant that gains a large client or changes its reporting method spikes legitimately.",
+        "Registers without money columns produce no rows."
       ],
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.spending_spikes",
-      "implementation_hash": "sha256:5e577b5889b7ac0c640cfb8133dc62eb86e11c6d97069f4e84a8f25d49106134",
+      "implementation_hash": "sha256:6d983f251cce2e5aa30f59378d78909b46745fe9ad5765a3b679ec512f503e23",
       "parameters": {
         "limit": {
           "default": 200,
@@ -709,7 +923,7 @@
           "minimum": 1,
           "type": "integer"
         },
-        "min_income": {
+        "min_spend": {
           "default": 50000,
           "maximum": 1000000000,
           "minimum": 0,
@@ -729,7 +943,7 @@
         }
       ],
       "required_tables": [
-        "lobbying_filings"
+        "lobbying_registrations"
       ],
       "resource_limits": {
         "memory_mb": 256,
@@ -740,7 +954,7 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Spending spikes",
-      "version": "1.2.0"
+      "version": "2.0.0"
     },
     {
       "assumptions": [

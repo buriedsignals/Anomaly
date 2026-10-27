@@ -1,0 +1,22 @@
+[
+  {
+    "lobbyist_id": "l1",
+    "registrant_id": "R1",
+    "contacts": 2,
+    "first_contact": "2024-09-01",
+    "days_from_leaving_to_first_contact": 63
+  },
+  {
+    "lobbyist_id": "l3",
+    "registrant_id": "R3",
+    "contacted_institution": "Department of Finance Canada",
+    "contacts": 1,
+    "days_from_leaving_to_first_contact": 63
+  },
+  {
+    "lobbyist_id": "l2",
+    "registrant_id": "R2",
+    "contacts": 1,
+    "days_from_leaving_to_first_contact": null
+  }
+]

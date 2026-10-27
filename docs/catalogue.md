@@ -56,7 +56,7 @@ package with a missing, incomplete or violated bound.
 python -m anomaly.oneshot --table records.csv --request request.json --approved
 
 # Domain detectors: one file per contract table (domains/<data_type>.yaml).
-python -m anomaly.oneshot --tables lobbying_filings=filings.csv \
+python -m anomaly.oneshot --tables lobbying_registrations=registrations.csv \
   --tables lobbying_foreign_entities=entities.csv --request request.json --approved
 ```
 

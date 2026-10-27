@@ -1,5 +1,5 @@
 id: lobbying.single_client_juggernauts
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Single client juggernauts
 author: buried-signals
@@ -16,20 +16,24 @@ source_provenance_hash: sha256:56b6a589ecdd8fb5bd5e6b3d1f6f63e47c8018859f9dc62e5
 source_csv_hash: sha256:047a4f4834295a4ea59edf016d89a228463a0743037297a0000c6e4fef596e9e
 source_row_count: 200
 source_columns: [registrant_id, registrant_name, distinct_clients, filings, total_income, earliest_year, latest_year, clients]
-description: Registrants with one or two clients and high total income.
-required_tables: [lobbying_filings]
+description: Consultant registrants with one or two clients and high total disclosed spend.
+required_tables: [lobbying_registrations]
 required_fields: [id]
 parameters:
-  min_total_income: 250000
+  min_total_spend: 250000
   limit: 200
 parameter_bounds:
-  min_total_income: {type: number, minimum: 0, maximum: 10000000000}
+  min_total_spend: {type: number, minimum: 0, maximum: 10000000000}
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [registrant_id, registrant_name, distinct_clients, filings, total_income, earliest_year, latest_year, clients]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [register, registrant_id, registrant_name, distinct_clients, registrations, total_spend, earliest_period, latest_period, clients]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - Rows where the registrant lobbies for itself have no client and are ignored.
+  - Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values.
+false_positives:
+  - Boutique firms or a client's dedicated outside counsel legitimately serve one client.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

@@ -230,17 +230,18 @@ def _contract_columns(table: str) -> set[str]:
 
 
 @pytest.mark.parametrize(("operation", "table", "expected"), [
-    ("lobbying-filings", "lobbying_filings",
-     [{"filing_period": "Q4", "filing_type": "Q4", "income": 30000.0, "registrant_id": 682,
-       "client_id": 63876, "client_country": "XX", "url": LDA_FILING["filing_document_url"]}]),
+    ("lobbying-registrations", "lobbying_registrations",
+     [{"period_start": "2025-10-01", "period_end": "2025-12-31", "filing_type": "Q4", "spend_low": 30000.0,
+       "spend_high": 30000.0, "registrant_id": 682, "client_id": 63876, "client_country": "XX",
+       "issue_area": "TAX|FOR", "url": LDA_FILING["filing_document_url"]}]),
     ("lobbying-foreign-entities", "lobbying_foreign_entities",
      [{"foreign_entity_name": "Example Holdings", "country": "XX", "ppb_country": "YY"}]),
     ("lobbying-activities", "lobbying_activities",
      [{"general_issue_code": "TAX", "activity_index": 0}, {"general_issue_code": "FOR", "activity_index": 1}]),
     # The same lobbyist on two activities is one row; an empty position is null.
-    ("lobbying-activity-lobbyists", "lobbying_activity_lobbyists",
-     [{"lobbyist_id": 68995, "covered_position": LDA_LOBBYIST["covered_position"]},
-      {"lobbyist_id": 7, "covered_position": None}]),
+    ("lobbyists", "lobbyists",
+     [{"lobbyist_id": 68995, "name": "ZACHARY RUDISILL", "former_public_office": LDA_LOBBYIST["covered_position"]},
+      {"lobbyist_id": 7, "name": "ANA LEE", "former_public_office": None}]),
 ])
 def test_lda_filing_operations_emit_contract_rows(run_source, operation, table, expected) -> None:
     page = json.dumps({"count": 1, "next": None, "results": [LDA_FILING]})
@@ -250,10 +251,25 @@ def test_lda_filing_operations_emit_contract_rows(run_source, operation, table, 
 
     assert result["status"] == "ok"
     assert all(_contract_columns(table) <= set(row) for row in result["records"])
-    assert all(row["filing_uuid"] == LDA_FILING["filing_uuid"] for row in result["records"])
+    assert all(row["registration_id"] == LDA_FILING["filing_uuid"] for row in result["records"])
     assert [{key: row[key] for key in want} for row, want in zip(result["records"], expected)] == expected
     assert len(result["records"]) == len(expected)
     assert run_source.params[0] == {"registrant_id": 682, "filing_year": 2025, "page_size": 25}
+
+
+def test_lda_self_filer_has_no_client_and_reports_expenses_as_spend(run_source) -> None:
+    # Generic detectors treat an empty client as "lobbies for itself"; in-house
+    # LDA filers report expenses instead of income.
+    own = {**LDA_FILING, "income": None, "expenses": "120000.00",
+           "client": {**LDA_FILING["client"], "client_self_select": True}}
+    page = json.dumps({"count": 1, "next": None, "results": [own]})
+
+    (row,) = run_source("us/lda/lobbying-disclosures",
+                        {"operation": "lobbying-registrations", "registrant_id": 682},
+                        {f"{LDA}/filings/": page})["records"]
+
+    assert (row["client_id"], row["client_name"], row["client_country"]) == (None, None, "XX")
+    assert (row["spend_low"], row["spend_high"]) == (120000.0, 120000.0)
 
 
 def test_lda_contributions_read_ld203_items_and_follow_pages_up_to_the_limit(run_source) -> None:
@@ -262,17 +278,17 @@ def test_lda_contributions_read_ld203_items_and_follow_pages_up_to_the_limit(run
              second: json.dumps({"count": 3, "next": f"{LDA}/contributions/?page=3", "results": [LDA_REPORT]})}
 
     result = run_source("us/lda/lobbying-disclosures",
-                        {"operation": "lobbying-contributions", "registrant_id": 682, "pages": 2}, pages)
+                        {"operation": "political-contributions", "registrant_id": 682, "pages": 2}, pages)
 
     assert run_source.requested == [f"{LDA}/contributions/", second]
     assert len(result["records"]) == 2
     row = result["records"][0]
-    assert _contract_columns("lobbying_contributions") <= set(row)
+    assert _contract_columns("political_contributions") <= set(row)
     assert (row["payee_name"], row["honoree_name"], row["amount"]) == ("Friends of Smith", "Rep. Smith", 2500.0)
 
 
 def test_lda_refuses_an_unfiltered_query_before_any_request(run_source) -> None:
-    result = run_source("us/lda/lobbying-disclosures", {"operation": "lobbying-filings", "pages": 5})
+    result = run_source("us/lda/lobbying-disclosures", {"operation": "lobbying-registrations", "pages": 5})
 
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []

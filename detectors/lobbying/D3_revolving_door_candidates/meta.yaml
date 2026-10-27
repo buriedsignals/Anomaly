@@ -1,5 +1,5 @@
 id: lobbying.revolving_door_candidates
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Revolving door candidates
 author: buried-signals
@@ -16,8 +16,8 @@ source_provenance_hash: sha256:00e13c0f3680a1bee8e10b5bb7b8c509e2da9185dadc53f83
 source_csv_hash: sha256:4254e0be967611451f5c399f7e1fed6c33426012969b818e1dd7a614f098c255
 source_row_count: 500
 source_columns: [lobbyist_id, first_name, last_name, sample_position, filings_with_lobbyist, distinct_positions, clients_lobbied_for]
-description: Lobbyists with populated covered-position text and current clients.
-required_tables: [lobbying_activity_lobbyists, lobbying_filings]
+description: Lobbyists who disclosed a former public office, with the registrations and clients they now work on.
+required_tables: [lobbyists, lobbying_registrations]
 required_fields: [id]
 parameters:
   limit: 500
@@ -25,9 +25,13 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [lobbyist_id, first_name, last_name, sample_position, filings_with_lobbyist, distinct_positions, clients_lobbied_for]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [lobbyist_id, name, sample_office, sample_institution, latest_office_end, registrations_with_lobbyist, distinct_offices, lobbied_for]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - former_public_office is self-disclosed text; values shorter than four characters or none and n/a are ignored.
+false_positives:
+  - Disclosure of a former office is a legal requirement, not misconduct.
+  - Former junior or unrelated offices are listed alongside senior ones.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

@@ -62,6 +62,40 @@ def test_released_detector_fixture_runs_through_one_shot_path(detector_id: str) 
         }
 
 
+def _domain_ids() -> list[str]:
+    return [
+        detector_id for detector_id, entry in _entries().items()
+        if entry["required_tables"] != ["*"]
+    ]
+
+
+@pytest.mark.parametrize("detector_id", _domain_ids())
+def test_released_domain_detector_fixture_yields_its_expected_rows(detector_id: str) -> None:
+    # Each domain detector ships one hand-built CSV per contract table it reads
+    # plus the rows it must return, in order, with default parameters.
+    entry = _entries()[detector_id]
+    fixtures = _package(detector_id) / "fixtures"
+    expected = json.loads((fixtures / "expected.json").read_text(encoding="utf-8"))
+    tables = {name: fixtures / f"{name}.csv" for name in entry["required_tables"]}
+
+    signals = oneshot.run_detectors(tables, [_request(entry)], approved=True)
+
+    assert [{key: signal["values"][key] for key in row} for signal, row in zip(signals, expected)] == expected
+    assert len(signals) == len(expected)
+
+
+def test_foreign_clients_uses_declared_home_countries_over_the_inferred_one() -> None:
+    # A multi-country register (EU) declares its home countries; the fixture's
+    # inferred homes are US and BELGIUM, so declaring both leaves only CN foreign.
+    entry = _entries()["lobbying.foreign_clients"]
+    table = _package(entry["id"]) / "fixtures" / "lobbying_registrations.csv"
+    request = _request(entry, parameters={"home_countries": "us | Belgium|UNITED STATES"})
+
+    signals = oneshot.run_detectors({"lobbying_registrations": table}, [request], approved=True)
+
+    assert [signal["values"]["registration_id"] for signal in signals] == ["i9"]
+
+
 def test_one_shot_maps_columns_and_loads_only_mapped_ones(tmp_path: Path) -> None:
     table = tmp_path / "records.jsonl"
     rows = [
@@ -178,67 +212,67 @@ def _contract_csv(path: Path, table: str, rows: list[dict], rename: dict[str, st
     return path
 
 
-def _filing(uuid: str, registrant: str, income: int, **extra) -> dict:
-    return {"filing_uuid": uuid, "filing_year": 2025, "filing_period": "Q1", "filing_type": "Q1",
+def _filing(uuid: str, registrant: str, spend: int, **extra) -> dict:
+    return {"registration_id": uuid, "register": "test", "period_start": "2025-01-01", "filing_type": "Q1",
             "registrant_id": registrant, "registrant_name": registrant.upper(), "client_id": f"c-{uuid}",
-            "client_name": f"Client {uuid}", "income": income, **extra}
+            "client_name": f"Client {uuid}", "spend_low": spend, "spend_high": spend, **extra}
 
 
 def test_domain_detector_runs_on_contract_tables_with_a_column_map(tmp_path: Path) -> None:
     entry = _entries()["lobbying.foreign_filings"]
-    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings",
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_registrations",
                             [_filing("f1", "r1", 5000), _filing("f2", "r2", 9000)])
     entities = _contract_csv(tmp_path / "entities.csv", "lobbying_foreign_entities",
-                             [{"filing_uuid": "f2", "foreign_entity_name": "Acme SA", "country": "FR", "ppb_country": "FR"}],
+                             [{"registration_id": "f2", "foreign_entity_name": "Acme SA", "country": "FR", "ppb_country": "FR"}],
                              rename={"foreign_entity_name": "entity"})
     request = {"id": entry["id"], "version": entry["version"],
                "columns": {"lobbying_foreign_entities": {"foreign_entity_name": "entity"}}}
 
     signals = oneshot.run_detectors(
-        {"lobbying_filings": filings, "lobbying_foreign_entities": entities}, [request], approved=True
+        {"lobbying_registrations": filings, "lobbying_foreign_entities": entities}, [request], approved=True
     )
 
-    assert [signal["values"]["filing_uuid"] for signal in signals] == ["f2"]
-    assert set(signals[0]["provenance"]["input_hashes"]) == {"lobbying_filings", "lobbying_foreign_entities"}
+    assert [signal["values"]["registration_id"] for signal in signals] == ["f2"]
+    assert set(signals[0]["provenance"]["input_hashes"]) == {"lobbying_registrations", "lobbying_foreign_entities"}
 
 
 def test_domain_detector_binds_parameters_in_query_order(tmp_path: Path) -> None:
     # The catalogue lists parameters alphabetically (limit, min_total_income);
     # binding in that order would compare income against the limit (200).
     entry = _entries()["lobbying.single_client_juggernauts"]
-    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings", [_filing("f1", "small", 1000)])
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_registrations", [_filing("f1", "small", 1000)])
     request = {"id": entry["id"], "version": entry["version"]}
 
-    assert oneshot.run_detectors({"lobbying_filings": filings}, [request], approved=True) == []
+    assert oneshot.run_detectors({"lobbying_registrations": filings}, [request], approved=True) == []
 
 
 def test_domain_detector_loads_an_absent_optional_column_as_null(tmp_path: Path) -> None:
-    # client_general_description is optional in the lobbying contract, so a
+    # client_description is optional in the lobbying contract, so a
     # register that does not publish it can still run the detector.
     entry = _entries()["lobbying.single_client_juggernauts"]
-    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings", [_filing("f1", "solo", 900000)])
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_registrations", [_filing("f1", "solo", 900000)])
     lines = filings.read_text(encoding="utf-8").splitlines()
-    drop = lines[0].split(",").index("client_general_description")
+    drop = lines[0].split(",").index("client_description")
     filings.write_text("\n".join(",".join(v for i, v in enumerate(line.split(",")) if i != drop) for line in lines) + "\n", encoding="utf-8")
     request = {"id": entry["id"], "version": entry["version"]}
 
-    signals = oneshot.run_detectors({"lobbying_filings": filings}, [request], approved=True)
+    signals = oneshot.run_detectors({"lobbying_registrations": filings}, [request], approved=True)
 
     assert [signal["values"]["registrant_id"] for signal in signals] == ["solo"]
 
 
 @pytest.mark.parametrize(("tables", "columns", "match"), [
     ({}, None, "missing tables"),
-    ({"lobbying_filings": "short"}, None, "lacks contract columns"),
-    ({"lobbying_filings": "full"}, {"lobbying_filings": {"not_a_column": "x"}}, "must map contract columns"),
-    ({"lobbying_filings": "full"}, {"legislators": {"name": "x"}}, "only name the detector's tables"),
-    ({"lobbying_filings": "full"}, {"lobbying_filings": {"income": ""}}, "must map contract columns"),
+    ({"lobbying_registrations": "short"}, None, "lacks contract columns"),
+    ({"lobbying_registrations": "full"}, {"lobbying_registrations": {"not_a_column": "x"}}, "must map contract columns"),
+    ({"lobbying_registrations": "full"}, {"legislators": {"name": "x"}}, "only name the detector's tables"),
+    ({"lobbying_registrations": "full"}, {"lobbying_registrations": {"spend_low": ""}}, "must map contract columns"),
 ])
 def test_domain_detector_refuses_incomplete_or_invalid_tables(tmp_path: Path, tables: dict, columns, match: str) -> None:
     entry = _entries()["lobbying.single_client_juggernauts"]
-    full = _contract_csv(tmp_path / "full.csv", "lobbying_filings", [_filing("f1", "r1", 1)])
+    full = _contract_csv(tmp_path / "full.csv", "lobbying_registrations", [_filing("f1", "r1", 1)])
     short = tmp_path / "short.csv"
-    short.write_text("filing_uuid,income\nf1,1\n", encoding="utf-8")
+    short.write_text("registration_id,spend_low\nf1,1\n", encoding="utf-8")
     files = {name: {"full": full, "short": short}[kind] for name, kind in tables.items()}
     files = files or {"legislators": full}
     request = {"id": entry["id"], "version": entry["version"], **({"columns": columns} if columns else {})}

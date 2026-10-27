@@ -1,5 +1,5 @@
 id: lobbying.issue_concentration_shifts
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Issue concentration shifts
 author: buried-signals
@@ -16,20 +16,25 @@ source_provenance_hash: sha256:036ad1e4317214602f6e72d1bff4c623a7382bc580fa6687f
 source_csv_hash: sha256:945e47913e86c99ba06efd4dcfbac8fa0bc0b89866fd481b5edc8358945ccb7a
 source_row_count: 126
 source_columns: [general_issue_code, filing_year, filing_period, registrants, total_income, prior_income, prior_registrants, income_delta_pct, registrants_delta_pct]
-description: Quarter-over-quarter issue-code income and registrant shifts.
-required_tables: [lobbying_filings, lobbying_activities]
+description: Quarter-over-quarter shifts in spend (or, without money, registrant count) per issue area within one register's taxonomy.
+required_tables: [lobbying_registrations]
 required_fields: [id]
 parameters:
-  min_qoq_delta_pct: 25
+  min_delta_pct: 25
   limit: 500
 parameter_bounds:
-  min_qoq_delta_pct: {type: number, minimum: 0, maximum: 100000}
+  min_delta_pct: {type: number, minimum: 0, maximum: 100000}
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [general_issue_code, filing_year, filing_period, registrants, total_income, prior_income, prior_registrants, income_delta_pct, registrants_delta_pct]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [register, issue_area, quarter, registrants, prior_registrants, registrants_delta_pct, total_spend, prior_spend, spend_delta_pct]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - issue_area holds the register's own codes separated by a vertical bar; areas are compared only within one register.
+  - Each row's full spend counts toward every issue area it lists.
+false_positives:
+  - Legislative calendars move whole issue areas at once.
+  - Registers whose rows start on registration dates measure new registrations, not activity.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

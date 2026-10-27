@@ -1,0 +1,33 @@
+id: lobbying.contact_bursts
+version: 2.0.0
+release: released
+title: Contact bursts
+author: buried-signals
+license: internal
+group: domain
+family: lobbying
+data_type: lobbying
+menu_order: 15
+description: Months in which one registrant's contacts with one institution jump far above its usual monthly rate.
+required_tables: [lobbying_contacts]
+required_fields: [id]
+parameters:
+  min_contacts: 5
+  min_ratio: 3.0
+  limit: 200
+parameter_bounds:
+  min_contacts: {type: integer, minimum: 1, maximum: 10000}
+  min_ratio: {type: number, minimum: 1.0, maximum: 1000.0}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: lobbying
+severity: medium
+expected_output: [registrant_id, registrant_name, institution, month, contacts, total_contacts, active_months, mean_per_month, burst_ratio, officials]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - The usual rate is total contacts over the months from the registrant's first to last contact with that institution, so quiet months count as zero.
+false_positives:
+  - Consultations, legislative deadlines and crises legitimately concentrate meetings.
+  - Registers that report one row per official count a meeting with several officials several times only when contact_id differs.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

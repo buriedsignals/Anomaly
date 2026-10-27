@@ -30,11 +30,15 @@ CORE_DETECTOR_IDS = (
     "text.secret_patterns",
 )
 
-US_LOBBYING_DETECTOR_IDS = (
+LOBBYING_DETECTOR_IDS = (
     "lobbying.committee_say_vs_pay",
+    "lobbying.contact_bursts",
     "lobbying.fara_gap_narrowed",
+    "lobbying.foreign_clients",
     "lobbying.foreign_filings",
-    "lobbying.missing_income_filings",
+    "lobbying.former_official_lobbies_former_institution",
+    "lobbying.issue_concentration_shifts",
+    "lobbying.missing_spend_filings",
     "lobbying.new_registrant_surge",
     "lobbying.pac_contribution_flow",
     "lobbying.revolving_door_candidates",
@@ -42,7 +46,6 @@ US_LOBBYING_DETECTOR_IDS = (
     "lobbying.shell_pattern_filings",
     "lobbying.single_client_juggernauts",
     "lobbying.spending_spikes",
-    "lobbying.issue_concentration_shifts",
 )
 
 
@@ -89,7 +92,7 @@ def test_registry_discovers_core_and_lobbying_detectors_with_scalable_groups() -
     # Explicit limit is authoritative: the whole registry is listable.
     detectors = _registry_api().discover_detectors(limit=100)
     ids = tuple(item["id"] for item in detectors)
-    expected = set(CORE_DETECTOR_IDS) | set(US_LOBBYING_DETECTOR_IDS)
+    expected = set(CORE_DETECTOR_IDS) | set(LOBBYING_DETECTOR_IDS)
     assert set(ids) == expected
     assert all(isinstance(item["group"], str) and item["group"] for item in detectors)
     lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("lobbying.")}
