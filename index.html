@@ -423,7 +423,7 @@
           if (p.caught >= 0 && p.x >= L.gates[p.caught]) {
             p.state = 'pull'; p.t = 0; p.fx = p.x; p.fy = p.y; flash[p.caught] = 1;
             p.slot = leadNo++; p.gate = GATES[p.caught];
-            notes.push({ x: p.x, y: p.y, text: WHY[p.gate], age: 0 });
+            if (W >= 560) notes.push({ x: p.x, y: p.y, text: WHY[p.gate], age: 0 });  // no room for notes on phones
           }
           if (p.x > L.trayX - 30 * s) flow.splice(i, 1);
         } else {
