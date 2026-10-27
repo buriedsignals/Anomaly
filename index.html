@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anomaly · a plugin for Spotlight</title>
-  <meta name="description" content="Anomaly is a plugin for Spotlight. It tells an investigating agent which data could help a case and which detectors fit it, then runs those detectors on the tables the agent fetched and returns every unusual record as a lead.">
+  <title>Anomaly · a Spotlight plugin for data</title>
+  <meta name="description" content="Anomaly is a Spotlight plugin for data. It shows your agent which datasets cover your story and which checks fit them, runs those checks and flags every record that stands out as a lead you can trace.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F5F6F0'/%3E%3Cpath d='M4 21h5l3-4 3 3 3-13 3 14h7' fill='none' stroke='%23161B22' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3Ccircle cx='18' cy='8' r='4.6' fill='none' stroke='%23D42A3C' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,12 +66,13 @@
     .links .gh svg { width: 17px; height: 17px; }
 
     /* ---------- hero ---------- */
-    .hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem 3.5rem; align-items: end; padding: clamp(2rem, 5vh, 3.6rem) 0 clamp(2.8rem, 6vh, 4.2rem); }
-    h1 { margin: 0; font-weight: 560; font-stretch: 112.5%; font-size: clamp(2.2rem, 4.4vw, 3.7rem); line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.5rem 3rem; align-items: end; padding: clamp(2rem, 5vh, 3.6rem) 0 clamp(2.8rem, 6vh, 4.2rem); }
+    h1 { margin: 0; font-weight: 560; font-stretch: 112.5%; font-size: clamp(2.1rem, 4vw, 3.4rem); line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance; }
     h1 .odd { color: var(--red); position: relative; white-space: nowrap; }
-    h1 .odd svg { position: absolute; left: -3%; top: 16%; width: 106%; height: 92%; overflow: visible; pointer-events: none; }
+    h1 .odd svg { position: absolute; left: -12%; top: -4%; width: 124%; height: 116%; overflow: visible; pointer-events: none; }
     h1 .odd svg ellipse { fill: none; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 600; stroke-dashoffset: 600; animation: ink 1.1s var(--ease) .5s forwards; vector-effect: non-scaling-stroke; }
     @keyframes ink { to { stroke-dashoffset: 0; } }
+    .tagline { margin: 0 0 0.7rem; font-weight: 600; font-stretch: 112.5%; font-size: 1.3rem; letter-spacing: -0.02em; }
     .lede { margin: 0; color: var(--ink-2); max-width: 46ch; font-size: 0.98rem; }
     .lede a { color: var(--ink); font-weight: 560; }
     .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem 1.2rem; margin-top: 1.4rem; }
@@ -248,7 +249,8 @@
     <div class="wrap hero" id="top">
       <h1>Find the record that <span class="odd">doesn't fit<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="49" ry="19" pathLength="600"/></svg></span>.</h1>
       <div>
-        <p class="lede">Anomaly is a plugin for <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. It tells your investigating agent which data could help a case and which checks suit that data. Then it runs those checks on the records the agent collected and flags anything unusual as a lead, with a note of exactly how it was found.</p>
+        <p class="tagline">A <a href="https://spotlight.buriedsignals.com/">Spotlight</a> plugin for data.</p>
+        <p class="lede">Anomaly shows your agent which datasets cover your story and which checks fit them. It runs those checks and flags every record that stands out as a lead you can trace.</p>
         <div class="actions">
           <a class="btn" href="https://github.com/buriedsignals/Anomaly">Get it on GitHub
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
