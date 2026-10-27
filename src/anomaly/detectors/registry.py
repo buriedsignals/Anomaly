@@ -337,9 +337,8 @@ def recommend_detectors(
     elif family is not None:
         metadata = discover_detectors(family=family, limit=_MENU_SCAN_LIMIT)
     else:
-        metadata = discover_detectors(family="core", limit=_MENU_SCAN_LIMIT) + discover_detectors(
-            family="us_lobbying", limit=_MENU_SCAN_LIMIT
-        )
+        # Every family, so a new domain's detectors need no change here.
+        metadata = discover_detectors(limit=_MENU_SCAN_LIMIT)
     # Draft packages (placeholders, fresh template copies) are never offered.
     metadata = [item for item in metadata if item.get("release") != "draft"]
     filtered = _menu_selection(metadata, limit=len(metadata), group=group, family=family, signal_category=signal_category)

@@ -36,8 +36,8 @@ def _all_detectors() -> list[dict[str, object]]:
 
 def approved_case(
     tmp_path: Path,
-    source_ids: tuple[str, ...] = ("senate_filings",),
-    detector_ids: tuple[str, ...] = ("us_lobbying.spending_spikes",),
+    source_ids: tuple[str, ...] = ("lobbying_filings",),
+    detector_ids: tuple[str, ...] = ("lobbying.spending_spikes",),
     source_payloads: dict[str, str] | None = None,
 ) -> Path:
     from anomaly.prepare import prepare_sources

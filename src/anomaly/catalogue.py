@@ -25,7 +25,7 @@ _BOUND_KEYS = {
     "string": {"type", "max_length"},
 }
 _PUBLISHED_FIELDS = (
-    "title", "description", "group", "family", "signal_category", "severity",
+    "title", "description", "group", "family", "data_type", "signal_category", "severity",
     "required_tables", "expected_output", "assumptions", "false_positives",
     "sensitive_output", "resource_limits", "attribution", "source_repository",
 )
@@ -43,9 +43,11 @@ SIGNAL_SCHEMA: dict[str, Any] = {
     "summary": "string; the detector title",
     "values": "object; the detector row, redacted per sensitive_output",
     "provenance": {
-        "input_hash": "string; sha256:<hex> of the supplied table file",
-        "input_format": "csv | jsonl | parquet",
-        "field_map": "object; required field -> supplied column",
+        "input_hash": "string; sha256:<hex> of the supplied table file, or for domain detectors of the sorted JSON of input_hashes",
+        "input_format": "csv | jsonl | parquet, or 'tables' for domain detectors",
+        "field_map": "object; core detectors only: required field -> supplied column",
+        "column_map": "object; domain detectors only: contract table -> {contract column -> file column}",
+        "input_hashes": "object; domain detectors only: contract table -> sha256:<hex> of its file",
         "parameters": "object; effective parameter values",
         "limits": "object; effective execution limits",
         "run_id": "string",

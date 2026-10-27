@@ -109,7 +109,7 @@ def test_default_execution_resolves_explicit_namespaced_gain_detector_without_un
     root = approved_case(
         tmp_path,
         source_payloads= {
-            "senate_filings": (
+            "lobbying_filings": (
                 "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n" +
                 "1,1,Example,2025,Q1,100,Q1\n"
             )
@@ -120,7 +120,7 @@ def test_default_execution_resolves_explicit_namespaced_gain_detector_without_un
     assert len(discovered) <= 10
     results = execute_detectors(
         root,
-        ["us_lobbying.spending_spikes"],
+        ["lobbying.spending_spikes"],
         approved=True,
         limits={"timeout_seconds": 2, "threads": 1, "max_output_rows": 20},
     )

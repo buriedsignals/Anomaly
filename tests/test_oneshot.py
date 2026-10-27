@@ -103,7 +103,7 @@ def _refusal_cases() -> list[tuple[str, dict, dict]]:
         ("wrong-type", {"requests": [_request(zscore, parameters={"z_threshold": "3"})]}, {"match": "out of bounds"}),
         ("unknown-parameter", {"requests": [_request(zscore, parameters={"limit": 1})]}, {"match": "unknown parameters"}),
         ("draft-detector", {"requests": [{"id": "credential.secret_patterns", "version": "1.1.0", "fields": {"id": "id"}}]}, {"match": "not in the released catalogue"}),
-        ("named-tables", {"requests": [_request(lobbying)]}, {"match": "named case tables"}),
+        ("named-tables", {"requests": [_request(lobbying)]}, {"match": "needs named tables"}),
         ("too-many", {"requests": [_request(zscore)] * 11}, {"match": "between 1 and 10"}),
         ("duplicate", {"requests": [_request(zscore)] * 2}, {"match": "once per call"}),
         ("unapproved", {"requests": [_request(zscore)]}, {"approved": False, "match": "approval is required"}),
@@ -165,3 +165,76 @@ def test_sensitive_output_redact_policy_applies_to_one_shot_values(
     )
 
     assert signals[0]["values"]["access_token"] == "[redacted]"
+
+
+def _contract_csv(path: Path, table: str, rows: list[dict], rename: dict[str, str] | None = None) -> Path:
+    from anomaly import domains
+
+    columns = list(domains.load_domain("lobbying")["tables"][table]["columns"])
+    rename = rename or {}
+    header = [rename.get(column, column) for column in columns]
+    lines = [",".join(header)] + [",".join(str(row.get(column, "")) for column in columns) for row in rows]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _filing(uuid: str, registrant: str, income: int, **extra) -> dict:
+    return {"filing_uuid": uuid, "filing_year": 2025, "filing_period": "Q1", "filing_type": "Q1",
+            "registrant_id": registrant, "registrant_name": registrant.upper(), "client_id": f"c-{uuid}",
+            "client_name": f"Client {uuid}", "income": income, **extra}
+
+
+def test_domain_detector_runs_on_contract_tables_with_a_column_map(tmp_path: Path) -> None:
+    entry = _entries()["lobbying.foreign_filings"]
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings",
+                            [_filing("f1", "r1", 5000), _filing("f2", "r2", 9000)])
+    entities = _contract_csv(tmp_path / "entities.csv", "lobbying_foreign_entities",
+                             [{"filing_uuid": "f2", "foreign_entity_name": "Acme SA", "country": "FR", "ppb_country": "FR"}],
+                             rename={"foreign_entity_name": "entity"})
+    request = {"id": entry["id"], "version": entry["version"],
+               "columns": {"lobbying_foreign_entities": {"foreign_entity_name": "entity"}}}
+
+    signals = oneshot.run_detectors(
+        {"lobbying_filings": filings, "lobbying_foreign_entities": entities}, [request], approved=True
+    )
+
+    assert [signal["values"]["filing_uuid"] for signal in signals] == ["f2"]
+    assert set(signals[0]["provenance"]["input_hashes"]) == {"lobbying_filings", "lobbying_foreign_entities"}
+
+
+def test_domain_detector_binds_parameters_in_query_order(tmp_path: Path) -> None:
+    # The catalogue lists parameters alphabetically (limit, min_total_income);
+    # binding in that order would compare income against the limit (200).
+    entry = _entries()["lobbying.single_client_juggernauts"]
+    filings = _contract_csv(tmp_path / "filings.csv", "lobbying_filings", [_filing("f1", "small", 1000)])
+    request = {"id": entry["id"], "version": entry["version"]}
+
+    assert oneshot.run_detectors({"lobbying_filings": filings}, [request], approved=True) == []
+
+
+@pytest.mark.parametrize(("tables", "columns", "match"), [
+    ({}, None, "missing tables"),
+    ({"lobbying_filings": "short"}, None, "lacks contract columns"),
+    ({"lobbying_filings": "full"}, {"lobbying_filings": {"not_a_column": "x"}}, "must map contract columns"),
+    ({"lobbying_filings": "full"}, {"legislators": {"name": "x"}}, "only name the detector's tables"),
+    ({"lobbying_filings": "full"}, {"lobbying_filings": {"income": ""}}, "must map contract columns"),
+])
+def test_domain_detector_refuses_incomplete_or_invalid_tables(tmp_path: Path, tables: dict, columns, match: str) -> None:
+    entry = _entries()["lobbying.single_client_juggernauts"]
+    full = _contract_csv(tmp_path / "full.csv", "lobbying_filings", [_filing("f1", "r1", 1)])
+    short = tmp_path / "short.csv"
+    short.write_text("filing_uuid,income\nf1,1\n", encoding="utf-8")
+    files = {name: {"full": full, "short": short}[kind] for name, kind in tables.items()}
+    files = files or {"legislators": full}
+    request = {"id": entry["id"], "version": entry["version"], **({"columns": columns} if columns else {})}
+
+    with pytest.raises(oneshot.OneShotError, match=match):
+        oneshot.run_detectors(files, [request], approved=True)
+
+
+def test_core_detector_refuses_named_tables(tmp_path: Path) -> None:
+    entry = _entries()["numeric.zscore_outliers"]
+    table = _package(entry["id"]) / "fixtures" / "input.csv"
+
+    with pytest.raises(oneshot.OneShotError, match="one table, not named tables"):
+        oneshot.run_detectors({"anything": table}, [_request(entry)], approved=True)
