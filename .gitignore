@@ -7,5 +7,5 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-.jeff/tasks/*/.claim/
-.jeff/
+
+.impeccable/
