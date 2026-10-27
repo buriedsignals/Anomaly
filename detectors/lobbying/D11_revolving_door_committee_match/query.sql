@@ -1,9 +1,7 @@
 
             WITH lobbyist_positions AS (
-                -- Distinct lobbyist + covered_position pairs with relevant keywords
                 SELECT DISTINCT
                     lobbyist_id, first_name, last_name, covered_position,
-                    -- Extract committee acronym/name from covered_position text
                     CASE
                         WHEN lower(covered_position) LIKE '%armed services%' THEN 'armed_services'
                         WHEN lower(covered_position) LIKE '%ways and means%' THEN 'ways_means'
@@ -24,7 +22,6 @@
                 WHERE covered_position IS NOT NULL AND length(covered_position) >= 12
             ),
             current_activities AS (
-                -- Current activities of those lobbyists, checking matching committee topics
                 SELECT
                     al.lobbyist_id,
                     f.filing_uuid, f.filing_year, f.filing_period,

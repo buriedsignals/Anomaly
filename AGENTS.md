@@ -15,46 +15,28 @@ This policy is non-negotiable. Accuracy and the best achievable result take prio
 
 ## Product
 
-Anomaly is a reusable agent workflow for structured-data investigations.
+Anomaly is context plus one runner for investigating agents. It tells an agent
+which data sources could help an investigation, how to get each one, and which
+detectors fit that type of data, then runs those detectors deterministically on
+tables the agent fetched. Sources and detectors meet only through a domain
+(`category` on a source, `data_type` on a detector, `domains/<domain>.yaml` for
+multi-table contracts). A standalone case workflow (P0 to P7, two journalist
+gates, replay and independent review) remains for use without another agent.
 
 Keep the implementation lean:
 
-- One installed skill: `anomaly`.
-- One independent reviewer: `anomaly-data-reviewer`.
-- Deterministic Python and DuckDB for acquisition, profiling, detector execution, replay, and report assembly.
+- Read-only lookup: `anomaly.context`. Runner: `anomaly.oneshot`.
+- One installed skill for the standalone workflow: `anomaly`, with one
+  independent reviewer: `anomaly-data-reviewer`.
+- Deterministic Python and DuckDB for detection, replay and report assembly.
 - No more than 10 detectors per pass.
 - Detector outputs are leads; only replay, independent review, and journalist approval create findings.
 
-## Implementation workflow — full Jeff, jj integration
+## Implementation workflow
 
-Jeff full mode is active under `.jeff/`. When Tom starts new implementation
-work, implementation MUST begin through Jeff:
-
-1. Capture the approved milestone and decompose it into independently
-   shippable tasks with real dependency edges.
-2. Validate and present the task graph before production implementation.
-3. Run ready tasks through Jeff's plan, implementation, verification,
-   review/audit, and deterministic done gates.
-4. Use `cook <id>` serially in dependency order. `maxParallelTasks` is fixed at
-   1. Do not use `cook all`: its native Git worktree/ref integration is not
-   compatible with this repository's jj-only mutation policy.
-
-If `.jeff/config.json` has no `testCommand`, capture a first dependency as an
-operation task that scaffolds the project test harness, sets the real full-suite
-command, and proves a green baseline. Never use a trivial placeholder command
-to manufacture a green baseline.
-
-This repository uses colocated Jujutsu. All working-copy, checkpoint, history,
-bookmark, fetch, and push mutations use `jj`. Git is read-only compatibility
-for Jeff's hash/status observations. Jeff specialists MUST NOT run `git switch`,
-`checkout`, `worktree`, `commit`, `merge`, `rebase`, `branch`, `update-ref`,
-`pull`, or any other mutating Git command.
-
-After a Jeff task passes its required gate and judgments, the orchestrator
-creates the checkpoint with `jj`, then records the resulting Git-compatible
-commit hash in Jeff. If a Jeff transition requires a mutating Git operation
-that has no explicit jj binding, stop and surface the incompatibility rather
-than bypassing Jeff or violating the repository policy.
+Work directly; do not use Jeff or `cook`. This repository uses colocated
+Jujutsu: all working-copy, history, bookmark, fetch and push mutations use
+`jj`, and Git is read-only.
 
 Do not add Spotlight-specific personas, vaults, evidence cards, or
 ingest/report machinery. Do not automatically upload, publish, or write case

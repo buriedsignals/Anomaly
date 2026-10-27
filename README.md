@@ -4,11 +4,11 @@
 
 ### Data sources and anomaly detectors for investigating agents
 
-**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 34 data sources across 16 domains and 18 released detectors.**
+**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 38 data sources across 16 domains and 18 released detectors.**
 
 [How it works](#how-it-works) | [Domains](#domains) | [Using it](#using-it-from-an-agent) | [Adding to it](#adding-sources-and-detectors) | [Website](https://anomaly.buriedsignals.com/)
 
-[![34 Data Sources](https://img.shields.io/badge/data_sources-34-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
+[![38 Data Sources](https://img.shields.io/badge/data_sources-38-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
 
 Built by [**Buried Signals**](https://buriedsignals.com/) • [tom@buriedsignals.com](mailto:tom@buriedsignals.com)
 
@@ -96,7 +96,7 @@ nothing but its contract's columns.
 | filings | SEC EDGAR | — |
 | geography | Wikimapia | — |
 | legislation | Congress Corral · Congress.gov | — |
-| lobbying | LobbyData | 12, with a contract of 9 tables |
+| lobbying | Lobbying Disclosure Act filings · FARA · congress-legislators · Congress Press · LobbyData | 12, with a contract of 9 tables |
 | news | GDELT | — |
 | parliamentary | OpenParlData.ch · European Parliament · Party Facts | — |
 | procurement | TED · Find a Tender · USAspending | — |
@@ -113,9 +113,14 @@ ships only `meta.yaml` and `SKILL.md`. Catalogued sources still tell the agent
 that the data exists and how a person can get it, which matters for paid,
 login-only or reuse-restricted data.
 
-No source fills the lobbying contract yet, so the lobbying detectors run only
-on tables an agent assembles itself. The Senate Lobbying Disclosure Act
-filings, FARA and an official Congress roster are the next sources to add.
+Every lobbying contract table now has a free, queryable source. The Lobbying
+Disclosure Act API at lda.gov fills the five filing tables, FARA fills the
+foreign-agent registrants, unitedstates/congress-legislators fills legislators
+and committee seats, and Congress Press fills member press releases. Each
+adapter emits its table's contract columns, so an agent can write the records
+to CSV and pass them to the runner unchanged. One limit is known: lda.gov
+refused requests from a Swiss network during testing, so the LDA adapter has
+only been checked against a real API page fetched another way.
 
 ## Using it from an agent
 
@@ -140,11 +145,12 @@ before the query runs, and returns at most ten detectors' signals per call.
 [`docs/catalogue.md`](docs/catalogue.md) has the full request and catalogue
 schema.
 
-**Spotlight** pins `detectors/catalogue.json` by its `catalogue_hash`. During
-Methodology an opted-in investigation reads `anomaly.context` to judge which
-domains and sources are worth it. During the Investigation phase the
-investigator fetches the tables and calls the runner, and the signals reach
-the Investigation gate as leads to accept or dismiss.
+**Spotlight** pins `detectors/catalogue.json` by its `catalogue_hash`. Its
+integration with this version is in review: an opted-in investigation reads
+`anomaly.context` during Methodology to judge which domains and sources are
+worth it, the investigator fetches the tables and calls the runner during the
+Investigation phase, and the signals reach the Investigation gate as leads to
+accept or dismiss.
 
 ## Detectors
 
@@ -206,7 +212,7 @@ imply affiliation or endorsement.)*
 | Category | Projects we're grateful to |
 |----------|----------------------------|
 | **Computation** | [DuckDB](https://duckdb.org/) (MIT — the read-only investigation engine) · [Apache Arrow / PyArrow](https://arrow.apache.org/) (Apache-2.0) |
-| **Public data platforms** | [USAspending](https://www.usaspending.gov/) · [SEC EDGAR](https://www.sec.gov/edgar) · [OpenFEC](https://api.open.fec.gov/) · [CourtListener / Free Law Project](https://www.courtlistener.com/) · [Federal Register](https://www.federalregister.gov/) · [US EPA Envirofacts](https://www.epa.gov/envirofacts) · [Congress.gov](https://www.congress.gov/) |
+| **Public data platforms** | [USAspending](https://www.usaspending.gov/) · [SEC EDGAR](https://www.sec.gov/edgar) · [OpenFEC](https://api.open.fec.gov/) · [CourtListener / Free Law Project](https://www.courtlistener.com/) · [Federal Register](https://www.federalregister.gov/) · [US EPA Envirofacts](https://www.epa.gov/envirofacts) · [Congress.gov](https://www.congress.gov/) · [LDA.gov](https://lda.gov/) · [FARA](https://efile.fara.gov/) · [unitedstates/congress-legislators](https://github.com/unitedstates/congress-legislators) · [Congress Press](https://github.com/dwillis/congress-press) |
 | **Companies & entities** | [Companies House](https://find-and-update.company-information.service.gov.uk/) · [OpenCorporates](https://opencorporates.com/) · [GLEIF](https://www.gleif.org/) · [OCCRP Aleph](https://aleph.occrp.org/) · [OpenSanctions](https://www.opensanctions.org/) · [Wikidata](https://www.wikidata.org/) · CH Zefix · Pappers · Brreg |
 | **Procurement & parliament** | [EU TED](https://ted.europa.eu/) · [Eurostat](https://ec.europa.eu/eurostat) · [European Parliament open data](https://data.europarl.europa.eu/) · OpenParldata |
 | **Methodology** | [Data2Story](https://github.com/QinghongLin/data2story-skill) by Qinghong Lin et al. (context-before-interpretation, stable evidence IDs, artifact-based handoffs) · [Spotlight](https://github.com/buriedsignals/spotlight) (gates, durable state, and bounded-retry discipline Anomaly inherited) |

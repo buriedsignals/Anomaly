@@ -1,0 +1,1476 @@
+{
+  "any_table": [
+    {
+      "assumptions": [
+        "categories are comparable"
+      ],
+      "description": "Finds categorical values with unusually low frequency.",
+      "domain": null,
+      "false_positives": [
+        "legitimate rare categories"
+      ],
+      "id": "categorical.rare_levels",
+      "parameters": {
+        "maximum_fraction": {
+          "default": 0.05,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "group",
+          "types": [
+            "text"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Rare categorical levels",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "numeric values are comparable over time"
+      ],
+      "description": "Finds persistent changes in a numeric series level.",
+      "domain": null,
+      "false_positives": [
+        "legitimate distribution changes"
+      ],
+      "id": "numeric.level_shift",
+      "parameters": {
+        "window": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "observed_at",
+          "types": [
+            "datetime"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Numeric level shift",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "numeric values are approximately distributed"
+      ],
+      "description": "Identifies numeric observations far from their column mean.",
+      "domain": null,
+      "false_positives": [
+        "legitimate extreme values"
+      ],
+      "id": "numeric.zscore_outliers",
+      "parameters": {
+        "z_threshold": {
+          "default": 3.0,
+          "maximum": 100.0,
+          "minimum": 0.5,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Z-score outliers",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "duplicate rows indicate a review lead"
+      ],
+      "description": "Finds exact duplicate records in a prepared table.",
+      "domain": null,
+      "false_positives": [
+        "intentional repeated records"
+      ],
+      "id": "table.duplicate_rows",
+      "parameters": {
+        "minimum_count": {
+          "default": 2,
+          "maximum": 1000000,
+          "minimum": 2,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Duplicate rows",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "missingness is meaningful in the selected table"
+      ],
+      "description": "Finds fields that go missing together in prepared rows.",
+      "domain": null,
+      "false_positives": [
+        "optional fields"
+      ],
+      "id": "table.missingness_clusters",
+      "parameters": {
+        "min_missing_fraction": {
+          "default": 0.2,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "group",
+          "types": [
+            "text"
+          ]
+        },
+        {
+          "name": "amount",
+          "types": [
+            "integer",
+            "float"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Missingness clusters",
+      "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "observed_at is a comparable timestamp"
+      ],
+      "description": "Finds gaps in an ordered temporal observation series.",
+      "domain": null,
+      "false_positives": [
+        "planned collection gaps"
+      ],
+      "id": "temporal.coverage_gaps",
+      "parameters": {
+        "maximum_gap_days": {
+          "default": 1,
+          "maximum": 3650,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": [
+            "integer",
+            "text"
+          ]
+        },
+        {
+          "name": "observed_at",
+          "types": [
+            "datetime"
+          ]
+        }
+      ],
+      "required_tables": [
+        "*"
+      ],
+      "severity": "medium",
+      "title": "Temporal coverage gaps",
+      "version": "1.1.0"
+    }
+  ],
+  "domains": [
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "campaign-finance",
+      "sources": [
+        {
+          "auth": "api_key",
+          "cost": [
+            "free"
+          ],
+          "description": "Search federal candidate and committee entities by name with documented OpenFEC filters, stable FEC identifiers, filing dates, election cycles, and links to FEC profiles. These operations do not return transactions or totals.",
+          "domain": "campaign-finance",
+          "id": "us/fec/campaign-finance",
+          "jurisdiction": "us",
+          "license": "FEC public data subject to FEC Terms of Service and Acceptable Use Policy",
+          "provides": [],
+          "setup_url": "https://api.data.gov/signup/",
+          "skill": "data-skills/us/openfec-campaign-finance/SKILL.md",
+          "status": "queryable",
+          "title": "OpenFEC \u2014 Candidates and Committees"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "companies",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Name search over the live legacy public Zefix endpoint, returning Swiss commercial-register identifiers, legal seat, status, and register links.",
+          "domain": "companies",
+          "id": "ch/zefix/companies",
+          "jurisdiction": "ch",
+          "license": "Swiss Open Government Data terms of use; source attribution required",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/ch/zefix-companies/SKILL.md",
+          "status": "queryable",
+          "title": "Zefix \u2014 Swiss Company Register"
+        },
+        {
+          "auth": "api_key",
+          "cost": [
+            "credits"
+          ],
+          "description": "Search French company candidates by name and retrieve one company by exact nine-digit SIREN through Pappers API v2, using a member-provided API key.",
+          "domain": "companies",
+          "id": "fr/pappers/companies",
+          "jurisdiction": "fr",
+          "license": "Pappers API terms and underlying French source-data conditions",
+          "provides": [],
+          "setup_url": "https://www.pappers.fr/api",
+          "skill": "data-skills/fr/pappers-companies/SKILL.md",
+          "status": "queryable",
+          "title": "Pappers \u2014 French Companies"
+        },
+        {
+          "auth": "api_key",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search Companies House company summaries and retrieve one basic company profile by exact company number using a member-provided REST API key.",
+          "domain": "companies",
+          "id": "gb/companies-house/companies",
+          "jurisdiction": "gb",
+          "license": "Open Government Licence v3.0, subject to Companies House terms",
+          "provides": [],
+          "setup_url": "https://developer.company-information.service.gov.uk/get-started",
+          "skill": "data-skills/gb/companies-house-companies/SKILL.md",
+          "status": "queryable",
+          "title": "UK Companies House \u2014 Companies"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Search Global Legal Entity Identifier records by full text, legal name, or exact LEI, with an optional legal-jurisdiction filter and explicit pagination.",
+          "domain": "companies",
+          "id": "global/gleif/lei-records",
+          "jurisdiction": "global",
+          "license": "GLEIF LEI Data Terms of Use",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/gleif-lei-records/SKILL.md",
+          "status": "queryable",
+          "title": "GLEIF \u2014 LEI Records"
+        },
+        {
+          "auth": "api_key",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search company records across OpenCorporates jurisdictions or retrieve one exact company by jurisdiction and registry number, with source provenance, freshness timestamps, status, and attribution links.",
+          "domain": "companies",
+          "id": "global/opencorporates/companies",
+          "jurisdiction": "global",
+          "license": "Open Database Licence (ODbL) attribution and share-alike; underlying source terms can also apply",
+          "provides": [],
+          "setup_url": "https://api.opencorporates.com/documentation/API-Reference#api-accounts",
+          "skill": "data-skills/global/opencorporates-companies/SKILL.md",
+          "status": "queryable",
+          "title": "OpenCorporates \u2014 Companies"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Search Norway's Register of Business Enterprises and retrieve a main entity by its exact nine-digit organisation number through the open public API.",
+          "domain": "companies",
+          "id": "no/brreg/enheter",
+          "jurisdiction": "no",
+          "license": "Norwegian Licence for Open Government Data (NLOD) 2.0",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/no/brreg-enheter/SKILL.md",
+          "status": "queryable",
+          "title": "Br\u00f8nn\u00f8ysund Register Centre \u2014 Main Entities"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "court",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "The ICC's public case list (34 cases on 2026-10-27) with facets for warrant or summons, crimes charged, state of defendant, stage of proceedings, and situation. Catalogued only: no API was found and the site terms restrict reuse.",
+          "domain": "court",
+          "id": "global/icc/cases",
+          "jurisdiction": "global",
+          "license": "ICC website terms - personal non-commercial use only, no redistribution or derivative compilations without written permission",
+          "provides": [],
+          "setup_url": "https://www.icc-cpi.int/cases",
+          "skill": "data-skills/global/icc-cases/SKILL.md",
+          "status": "catalogued",
+          "title": "International Criminal Court \u2014 Cases"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search federal RECAP docket records or retrieve the exact search-index record for a CourtListener docket ID. A type=r result embeds at most three matching filing documents; it is not a complete docket sheet.",
+          "domain": "court",
+          "id": "us/courtlistener/docket",
+          "jurisdiction": "us",
+          "license": "Mixed court-record rights; judicial opinions and many filings are generally public domain, but embedded third-party works may remain copyrighted",
+          "provides": [],
+          "setup_url": "https://www.courtlistener.com/profile/api-token/",
+          "skill": "data-skills/us/courtlistener-docket/SKILL.md",
+          "status": "queryable",
+          "title": "CourtListener \u2014 RECAP Federal Dockets"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "List CourtListener financial-disclosure reports for one federal judicial person ID, including the source PDF and extracted investments, gifts, debts, reimbursements, agreements, positions, and income records.",
+          "domain": "court",
+          "id": "us/courtlistener/financial-disclosures",
+          "jurisdiction": "us",
+          "license": "Government disclosure records with CourtListener extraction; inspect source-document and embedded-content rights",
+          "provides": [],
+          "setup_url": "https://www.courtlistener.com/profile/api-token/",
+          "skill": "data-skills/us/courtlistener-financial-disclosures/SKILL.md",
+          "status": "queryable",
+          "title": "CourtListener \u2014 Judicial Financial Disclosures"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search CourtListener's judicial-person index by free text or exact first/last name, and retrieve one exact person record. Results expose biography, affiliations, education, ratings, and position links with provenance caveats.",
+          "domain": "court",
+          "id": "us/courtlistener/judge",
+          "jurisdiction": "us",
+          "license": "Free Law Project judicial-person compilation with linked public records; inspect source-specific rights",
+          "provides": [],
+          "setup_url": "https://www.courtlistener.com/profile/api-token/",
+          "skill": "data-skills/us/courtlistener-judge/SKILL.md",
+          "status": "queryable",
+          "title": "CourtListener \u2014 Judicial People"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search published US case-law opinion clusters by text, exact cluster ID, or docket ID. Return citations, indexed snippets, nested lead/concurrence/dissent summaries, status, court metadata, and provider relevance scores.",
+          "domain": "court",
+          "id": "us/courtlistener/opinion",
+          "jurisdiction": "us",
+          "license": "Mixed court-record rights; judicial opinions are generally public domain, while embedded third-party material may remain copyrighted",
+          "provides": [],
+          "setup_url": "https://www.courtlistener.com/profile/api-token/",
+          "skill": "data-skills/us/courtlistener-opinion/SKILL.md",
+          "status": "queryable",
+          "title": "CourtListener \u2014 Case-Law Opinions"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search one documented CourtListener v4 index at a time: case-law opinion clusters, RECAP dockets, individual federal filing documents, docket metadata, judicial people, or oral-argument audio. Output is normalized by selected type.",
+          "domain": "court",
+          "id": "us/courtlistener/search",
+          "jurisdiction": "us",
+          "license": "Mixed court-record and Free Law Project compilation rights; embedded third-party works may remain copyrighted",
+          "provides": [],
+          "setup_url": "https://www.courtlistener.com/profile/api-token/",
+          "skill": "data-skills/us/courtlistener-search/SKILL.md",
+          "status": "queryable",
+          "title": "CourtListener \u2014 Typed Legal Search"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "entities",
+      "sources": [
+        {
+          "auth": "api_key",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Search FollowTheMoney-shaped entities in OCCRP Aleph collections available to the supplied account, retrieve one known entity, or expand its adjacent graph relations. Access and reuse rights vary by collection.",
+          "domain": "entities",
+          "id": "global/occrp-aleph/entities",
+          "jurisdiction": "global",
+          "license": "Per collection; inspect the source collection and underlying record terms",
+          "provides": [],
+          "setup_url": "https://aleph.occrp.org/settings",
+          "skill": "data-skills/global/occrp-aleph-entities/SKILL.md",
+          "status": "queryable",
+          "title": "OCCRP Aleph \u2014 Entities and Documents"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Resolve labels, aliases, or entity IDs to Wikidata entities with stable IDs, descriptions, match metadata, HTTPS entity links, and continuation offsets. This operation is for candidate resolution, not statement retrieval.",
+          "domain": "entities",
+          "id": "global/wikidata/entities",
+          "jurisdiction": "global",
+          "license": "CC0 1.0 for structured data in Wikidata main, property, and lexeme namespaces",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/wikidata-entities/SKILL.md",
+          "status": "queryable",
+          "title": "Wikidata \u2014 Entity Search"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "environment",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Query the EPA's current Envirofacts DMAP service for Toxics Release Inventory facility identities and SDWIS public-water-system identities, locations, activity, ownership, population, and source metadata.",
+          "domain": "environment",
+          "id": "us/epa/envirofacts",
+          "jurisdiction": "us",
+          "license": "US federal government data; check incorporated state/program metadata and EPA reuse guidance",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/us/epa-envirofacts/SKILL.md",
+          "status": "queryable",
+          "title": "EPA Envirofacts \u2014 TRI Facilities and Water Systems"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "filings",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Run bounded full-text discovery across electronically submitted EDGAR filing documents since 2001, with exact/Boolean query semantics, form and date filters, normalized filer/document metadata, and direct archive links.",
+          "domain": "filings",
+          "id": "us/sec-edgar/filings",
+          "jurisdiction": "us",
+          "license": "SEC says Government-created sec.gov content and EDGAR public filing content are free to access and reuse",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/us/sec-edgar-filings/SKILL.md",
+          "status": "queryable",
+          "title": "SEC EDGAR \u2014 Full-Text Filing Search"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "geography",
+      "sources": [
+        {
+          "auth": "api_key",
+          "cost": [
+            "free"
+          ],
+          "description": "Wikimapia's beta API for crowd-sourced places: place.getbyid, place.getbyarea (bounding box), place.getnearest (point), and place.search (text). Needs a free API key. Catalogued only: no adapter.",
+          "domain": "geography",
+          "id": "global/wikimapia/places",
+          "jurisdiction": "global",
+          "license": "CC BY-SA 3.0 per Wikimapia terms, with attribution conditions; the API page says non-commercial use",
+          "provides": [],
+          "setup_url": "https://wikimapia.org/api/?action=create_key",
+          "skill": "data-skills/global/wikimapia-places/SKILL.md",
+          "status": "catalogued",
+          "title": "Wikimapia \u2014 Crowd-sourced Places"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "legislation",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Free, unofficial single-page browser of US members of Congress (538 listed on 2026-10-27) backed by a published Google Sheets CSV. Catalogued only: weak provenance and no adapter.",
+          "domain": "legislation",
+          "id": "us/congress-corral/members",
+          "jurisdiction": "us",
+          "license": "No licence stated",
+          "provides": [],
+          "setup_url": "https://localsearchamerica.com/cc/",
+          "skill": "data-skills/us/congress-corral-members/SKILL.md",
+          "status": "catalogued",
+          "title": "Congress Corral \u2014 US Congress Members Sheet"
+        },
+        {
+          "auth": "api_key",
+          "cost": [
+            "free"
+          ],
+          "description": "List recently acted-on US federal bills and resolutions, optionally applying a bounded client-side title filter, or retrieve congressional member records by Bioguide ID, state, name, or Congress through the official Library of Congress API.",
+          "domain": "legislation",
+          "id": "us/congress/legislation",
+          "jurisdiction": "us",
+          "license": "Public US legislative and member data; consult Congress.gov legal notices for linked material",
+          "provides": [],
+          "setup_url": "https://api.congress.gov/sign-up/",
+          "skill": "data-skills/us/congress-legislation/SKILL.md",
+          "status": "queryable",
+          "title": "Congress.gov \u2014 Bills and Members"
+        }
+      ]
+    },
+    {
+      "contract": {
+        "committee_assignments": [
+          "bioguide_id",
+          "committee_name",
+          "role"
+        ],
+        "foreign_agent_registrants": [
+          "registrant_name"
+        ],
+        "legislators": [
+          "bioguide_id",
+          "name",
+          "party",
+          "state"
+        ],
+        "lobbying_activities": [
+          "filing_uuid",
+          "general_issue_code",
+          "description",
+          "activity_index"
+        ],
+        "lobbying_activity_lobbyists": [
+          "filing_uuid",
+          "lobbyist_id",
+          "first_name",
+          "last_name",
+          "covered_position"
+        ],
+        "lobbying_contributions": [
+          "filing_uuid",
+          "payee_name",
+          "honoree_name",
+          "amount",
+          "contributor_name"
+        ],
+        "lobbying_filings": [
+          "filing_uuid",
+          "filing_year",
+          "filing_period",
+          "filing_type",
+          "registrant_id",
+          "registrant_name",
+          "client_id",
+          "client_name",
+          "client_country",
+          "client_ppb_country",
+          "client_general_description",
+          "income",
+          "url",
+          "posted_by_name"
+        ],
+        "lobbying_foreign_entities": [
+          "filing_uuid",
+          "foreign_entity_name",
+          "country",
+          "ppb_country"
+        ],
+        "press_releases": [
+          "bioguide_id",
+          "date",
+          "member_name",
+          "text",
+          "title",
+          "url"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Multi-corpus committee, lobbying, and press-release comparison.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.committee_say_vs_pay",
+          "parameters": {
+            "client_pattern": {
+              "default": "%apollo%",
+              "max_length": 200,
+              "type": "string"
+            },
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "target_committee": {
+              "default": "finance",
+              "max_length": 200,
+              "type": "string"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_activity_lobbyists",
+            "lobbying_filings",
+            "committee_assignments",
+            "legislators",
+            "press_releases"
+          ],
+          "severity": "medium",
+          "title": "Committee say vs pay",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Named foreign-lobbying candidates absent from the FARA registrant set.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.fara_gap_narrowed",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings",
+            "lobbying_foreign_entities",
+            "lobbying_activities",
+            "foreign_agent_registrants"
+          ],
+          "severity": "medium",
+          "title": "FARA gap narrowed",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Senate filings carrying foreign entity records.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.foreign_filings",
+          "parameters": {
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings",
+            "lobbying_foreign_entities"
+          ],
+          "severity": "medium",
+          "title": "Foreign filings",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Quarter-over-quarter issue-code income and registrant shifts.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.issue_concentration_shifts",
+          "parameters": {
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_qoq_delta_pct": {
+              "default": 25,
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings",
+            "lobbying_activities"
+          ],
+          "severity": "medium",
+          "title": "Issue concentration shifts",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Quarterly filings with null income clustered by registrant.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.missing_income_filings",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_filings": {
+              "default": 4,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings"
+          ],
+          "severity": "medium",
+          "title": "Missing income filings",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "New registrants ranked by recent filing income.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.new_registrant_surge",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "lookback_quarters": {
+              "default": 2,
+              "maximum": 40,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings"
+          ],
+          "severity": "medium",
+          "title": "New registrant surge",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Contribution flows aggregated by payee and honoree.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.pac_contribution_flow",
+          "parameters": {
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_contributions"
+          ],
+          "severity": "medium",
+          "title": "PAC contribution flow",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Lobbyists with populated covered-position text and current clients.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.revolving_door_candidates",
+          "parameters": {
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_activity_lobbyists",
+            "lobbying_filings"
+          ],
+          "severity": "medium",
+          "title": "Revolving door candidates",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Lobbyist former-committee text matched to current issue codes.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.revolving_door_committee_match",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_activity_lobbyists",
+            "lobbying_filings",
+            "lobbying_activities"
+          ],
+          "severity": "medium",
+          "title": "Revolving door committee match",
+          "version": "1.2.1"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Filings with multiple deterministic text-pattern signals.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.shell_pattern_filings",
+          "parameters": {
+            "limit": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_score": {
+              "default": 2,
+              "maximum": 6,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_activity_lobbyists",
+            "lobbying_filings",
+            "lobbying_activities"
+          ],
+          "severity": "medium",
+          "title": "Shell pattern filings",
+          "version": "1.2.1"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Registrants with one or two clients and high total income.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.single_client_juggernauts",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_total_income": {
+              "default": 250000,
+              "maximum": 10000000000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings"
+          ],
+          "severity": "medium",
+          "title": "Single client juggernauts",
+          "version": "1.2.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+          ],
+          "description": "Registrant-quarter income z-score against prior quarters.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legitimate activity can produce the observed pattern."
+          ],
+          "id": "lobbying.spending_spikes",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_income": {
+              "default": 50000,
+              "maximum": 1000000000,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_z_abs": {
+              "default": 2.0,
+              "maximum": 1000.0,
+              "minimum": 0.0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_filings"
+          ],
+          "severity": "medium",
+          "title": "Spending spikes",
+          "version": "1.2.0"
+        }
+      ],
+      "domain": "lobbying",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Currently serving members of the US Congress and their current committee and subcommittee assignments from the public-domain unitedstates congress-legislators project, returned as legislators and committee_assignments rows of the lobbying domain contract.",
+          "domain": "lobbying",
+          "id": "us/congress-legislators/roster",
+          "jurisdiction": "us",
+          "license": "CC0 1.0 (public domain dedication)",
+          "provides": [
+            "committee_assignments",
+            "legislators"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/us/congress-legislators-roster/SKILL.md",
+          "status": "queryable",
+          "title": "congress-legislators \u2014 Current US Congress and Committees"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Press releases by members of the US Congress, with full text and bioguide IDs, from Derek Willis's Congress Press collection (scraped daily from official House and Senate websites), returned as press_releases rows of the lobbying domain contract one month at a time.",
+          "domain": "lobbying",
+          "id": "us/congress-press/press-releases",
+          "jurisdiction": "us",
+          "license": "MIT licence on the dwillis/congress-press repository; release texts are published by members' official websites",
+          "provides": [
+            "press_releases"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/us/congress-press-releases/SKILL.md",
+          "status": "queryable",
+          "title": "Congress Press \u2014 US Congress Member Press Releases"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Active and terminated registrants under the US Foreign Agents Registration Act from the DOJ FARA.gov API, returned as foreign_agent_registrants rows of the lobbying domain contract with registration number and dates.",
+          "domain": "lobbying",
+          "id": "us/fara/registrants",
+          "jurisdiction": "us",
+          "license": "US Department of Justice public records; no licence or reuse terms stated on the API pages",
+          "provides": [
+            "foreign_agent_registrants"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/us/fara-registrants/SKILL.md",
+          "status": "queryable",
+          "title": "FARA.gov \u2014 Foreign Agents Registration Act Registrants"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Federal lobbying registrations and quarterly activity reports (LD-1/LD-2) and political contribution reports (LD-203) from the LDA.gov REST API, returned as rows of the lobbying domain contract: filings, foreign entities, activities, lobbyists, and contributions.",
+          "domain": "lobbying",
+          "id": "us/lda/lobbying-disclosures",
+          "jurisdiction": "us",
+          "license": "US Senate public records; cite the retrieval date and state that the Senate Office of Public Records cannot vouch for the data or analyses after retrieval",
+          "provides": [
+            "lobbying_activities",
+            "lobbying_activity_lobbyists",
+            "lobbying_contributions",
+            "lobbying_filings",
+            "lobbying_foreign_entities"
+          ],
+          "setup_url": "https://lda.gov/api/register/",
+          "skill": "data-skills/us/lda-lobbying-disclosures/SKILL.md",
+          "status": "queryable",
+          "title": "LDA.gov \u2014 US Lobbying Disclosure Act Filings"
+        },
+        {
+          "auth": "subscription",
+          "cost": [
+            "paid"
+          ],
+          "description": "Commercial directory and reporting service on US federal lobbying firms, lobbyists, agencies lobbied, and issues. Catalogued only: there is no adapter and no public API was found.",
+          "domain": "lobbying",
+          "id": "us/lobbydata/directory",
+          "jurisdiction": "us",
+          "license": "Commercial service; no data licence or reuse terms found",
+          "provides": [],
+          "setup_url": "http://lobbydata.com/Pricing",
+          "skill": "data-skills/us/lobbydata-directory/SKILL.md",
+          "status": "catalogued",
+          "title": "LobbyData \u2014 Federal Lobbying Directory"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "news",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Retrieve one bounded GDELT DOC 2.0 ArticleList page for a documented full-text query, time window, and sort order. Use it to discover and compare worldwide coverage, not to establish that an article's claims are true.",
+          "domain": "news",
+          "id": "global/gdelt/news",
+          "jurisdiction": "global",
+          "license": "GDELT datasets permit unrestricted reuse with GDELT citation; linked third-party articles and images retain their own rights",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/gdelt-news/SKILL.md",
+          "status": "queryable",
+          "title": "GDELT \u2014 Global News (DOC 2.0)"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "parliamentary",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Harmonized parliamentary data from Switzerland's federal, cantonal, and municipal bodies: people, memberships, interests, affairs, meetings, speeches, votes, documents, and their relations. Public API, no key.",
+          "domain": "parliamentary",
+          "id": "ch/openparldata/parliamentary-data",
+          "jurisdiction": "ch",
+          "license": "CC BY 4.0 (attribute \"Source: OpenParlData.ch\")",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/openparldata-parliamentary-data/SKILL.md",
+          "status": "queryable",
+          "title": "OpenParlData.ch \u2014 Swiss Parliamentary Data"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Official European Parliament API v2 for MEPs, declarations, bodies, procedures, meetings, speeches, votes, questions, and parliamentary documents. Public JSON-LD API, no key; 500 requests per endpoint per 5 min.",
+          "domain": "parliamentary",
+          "id": "eu/europarl/open-data",
+          "jurisdiction": "eu",
+          "license": "CC BY 4.0",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/eu/europarl-open-data/SKILL.md",
+          "status": "queryable",
+          "title": "European Parliament \u2014 Open Data API"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Search Party Facts core political parties by name or country, retrieve one party by partyfacts_id, and list the external political-science dataset records linked to it. Party Facts is an identifier crosswalk, not a source of party funding, membership, or vote records.",
+          "domain": "parliamentary",
+          "id": "global/partyfacts/parties",
+          "jurisdiction": "global",
+          "license": "CC0 1.0 for Party Facts stable versions on Harvard Dataverse; the live download page states no separate data licence",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/partyfacts-parties/SKILL.md",
+          "status": "queryable",
+          "title": "Party Facts \u2014 Political Party Crosswalk"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "procurement",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Tenders Electronic Daily \u2014 the EU's official procurement journal. Search tender and award notices across all member states by CPV category, buyer country, or expert query, with links to the official notice. The normalized records do not reliably expose award winners or award values.",
+          "domain": "procurement",
+          "id": "eu/ted/notices",
+          "jurisdiction": "eu",
+          "license": "EU open data (\u00a9 European Union, reuse permitted with attribution)",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/eu/ted-procurement/SKILL.md",
+          "status": "queryable",
+          "title": "TED \u2014 EU Public Procurement Notices"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Retrieve Find a Tender OCDS 1.1.5 release packages by update window and contracting stage, with optional transparent local term filtering.",
+          "domain": "procurement",
+          "id": "gb/find-a-tender/notices",
+          "jurisdiction": "gb",
+          "license": "Open Government Licence v3.0; TED-derived material attribution also applies where stated",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/gb/find-a-tender-notices/SKILL.md",
+          "status": "queryable",
+          "title": "UK Find a Tender \u2014 OCDS Notices"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Search prime federal contracts, grants, loans, IDVs, direct payments, and other assistance by a bounded time window plus keyword, recipient text, or exact award ID, returning award-level amounts, agencies, dates, and identifiers.",
+          "domain": "procurement",
+          "id": "us/usaspending/awards",
+          "jurisdiction": "us",
+          "license": "US federal spending data published under the DATA Act; public US government data",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/us/usaspending-awards/SKILL.md",
+          "status": "queryable",
+          "title": "USAspending.gov \u2014 Federal Awards"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "regulations",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Search FederalRegister.gov documents since 1994 by term, document type, and agency, with explicit ordering and pagination plus links to official PDFs.",
+          "domain": "regulations",
+          "id": "us/federal-register/documents",
+          "jurisdiction": "us",
+          "license": "United States government works; verify third-party material separately",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/us/federal-register-documents/SKILL.md",
+          "status": "queryable",
+          "title": "FederalRegister.gov \u2014 Documents"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "sanctions",
+      "sources": [
+        {
+          "auth": "api_key",
+          "cost": [
+            "upstream_quota"
+          ],
+          "description": "Screen a described person or organization with query-by-example matching, run investigative full-text discovery, or retrieve one complete nested OpenSanctions entity. Candidates and scores require human review.",
+          "domain": "sanctions",
+          "id": "global/opensanctions",
+          "jurisdiction": "global",
+          "license": "Creative Commons Attribution-NonCommercial 4.0 for non-commercial data use; commercial licence required",
+          "provides": [],
+          "setup_url": "https://www.opensanctions.org/account/",
+          "skill": "data-skills/global/opensanctions/SKILL.md",
+          "status": "queryable",
+          "title": "OpenSanctions \u2014 Sanctions, PEPs, and Watchlists"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "social",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Resolve a public Bluesky profile through the official AppView. The same adapter implements the documented post-search contract, but that operation is not released because the public AppView currently returns HTTP 403 to unauthenticated requests from catalogue's egress.",
+          "domain": "social",
+          "id": "global/bluesky/posts",
+          "jurisdiction": "global",
+          "license": "User-generated Bluesky content and profile data; no open-content licence is granted by the API contract",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/bluesky-posts/SKILL.md",
+          "status": "queryable",
+          "title": "Bluesky \u2014 Profiles and Post Search (experimental)"
+        },
+        {
+          "auth": "none",
+          "cost": [],
+          "description": "Search ThinkPol's documented Reddit submission and comment archive.",
+          "domain": "social",
+          "id": "global/thinkpol/reddit-evidence",
+          "jurisdiction": "global",
+          "license": "Proprietary ThinkPol terms; redistribution or resale requires authorization",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/thinkpol-reddit-evidence/SKILL.md",
+          "status": "queryable",
+          "title": "ThinkPol \u2014 Reddit Evidence"
+        }
+      ]
+    },
+    {
+      "contract": null,
+      "detectors": [],
+      "domain": "statistics",
+      "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Eurostat's official cross-domain statistics via the current SDMX 3.0 API: discover dataset codes, then retrieve filtered observations with dimension labels and quality flags. Public, no key; data are updated by domain.",
+          "domain": "statistics",
+          "id": "eu/eurostat/data",
+          "jurisdiction": "eu",
+          "license": "Eurostat free-reuse policy (source acknowledgement; dataset-specific exceptions apply)",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/eu/eurostat-data/SKILL.md",
+          "status": "queryable",
+          "title": "Eurostat \u2014 Official European Statistics"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Read a DataHub Core dataset's data package (title, per-dataset licence, resources, and field names) and fetch a bounded page of rows from one of its CSV resources. Licences differ between datasets and are carried on every record from the package's own licenses field.",
+          "domain": "statistics",
+          "id": "global/datahub/core-datasets",
+          "jurisdiction": "global",
+          "license": "Varies per dataset; each record carries the licence named in that dataset's datapackage.json",
+          "provides": [],
+          "setup_url": "",
+          "skill": "data-skills/global/datahub-core-datasets/SKILL.md",
+          "status": "queryable",
+          "title": "DataHub \u2014 Core Datasets"
+        }
+      ]
+    }
+  ]
+}

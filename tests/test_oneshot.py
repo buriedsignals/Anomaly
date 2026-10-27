@@ -238,3 +238,13 @@ def test_core_detector_refuses_named_tables(tmp_path: Path) -> None:
 
     with pytest.raises(oneshot.OneShotError, match="one table, not named tables"):
         oneshot.run_detectors({"anything": table}, [_request(entry)], approved=True)
+
+
+def test_every_released_detector_query_passes_the_runner_sql_check() -> None:
+    # The runner validates SQL more strictly than the registry (it rejects
+    # comments), so a released query must pass the runner's own check.
+    from anomaly import detect
+
+    for item in catalogue.released_detectors():
+        query = (Path(item["package"]) / "query.sql").read_text(encoding="utf-8")
+        detect.validate_read_only_sql(query.replace("{{table_id}}", detect._identifier("tbl_" + "0" * 64)))
