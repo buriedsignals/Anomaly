@@ -25,7 +25,7 @@ _BOUND_KEYS = {
     "string": {"type", "max_length"},
 }
 _PUBLISHED_FIELDS = (
-    "title", "description", "group", "family", "signal_category", "severity",
+    "title", "description", "group", "family", "data_type", "signal_category", "severity",
     "required_tables", "expected_output", "assumptions", "false_positives",
     "sensitive_output", "resource_limits", "attribution", "source_repository",
 )

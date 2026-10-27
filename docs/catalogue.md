@@ -34,6 +34,7 @@ Each detector entry:
 | `id`, `version` | Package identity. |
 | `implementation_hash` | `sha256:` over every file in the package; equals `detector_hash` on the signals it produces. |
 | `family`, `group`, `signal_category`, `severity`, `title`, `description` | Classification and labels. |
+| `data_type` | The domain a detector reads (e.g. `lobbying`); absent for core detectors that run on any table. Its tables are declared in `domains/<data_type>.yaml`. |
 | `required_tables` | `["*"]` means any one table; named tables need a prepared case. |
 | `required_fields` | `[{name, types}]`. `types` is the package's declared `required_types` for that field, or `null` when the package declares none. |
 | `parameters` | `{name: {default, type, ...bounds}}`. `integer`/`number` carry `minimum`/`maximum` (inclusive); `string` carries `max_length`. |

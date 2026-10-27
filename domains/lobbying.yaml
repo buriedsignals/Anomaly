@@ -1,0 +1,80 @@
+# Lobbying domain contract: the tables lobbying detectors read and the columns
+# they need. Any source that can fill these tables works with every lobbying
+# detector. Columns are exactly the ones the detector SQL reads (checked by
+# tests/test_domains.py); extra columns in a supplied file are ignored.
+domain: lobbying
+description: Lobbying disclosures, the people and money around them, and the legislators they target.
+tables:
+  lobbying_filings:
+    description: One row per lobbying disclosure filing.
+    columns:
+      filing_uuid: Unique filing identifier, the join key for the other lobbying tables.
+      filing_year: Filing year (integer).
+      filing_period: Reporting period within the year, such as a quarter.
+      filing_type: Filing type code, such as registration, report or amendment.
+      registrant_id: Identifier of the lobbying firm or in-house registrant.
+      registrant_name: Name of the registrant.
+      client_id: Identifier of the client on whose behalf lobbying happened.
+      client_name: Name of the client.
+      client_country: Client's country.
+      client_ppb_country: Country of the client's principal place of business.
+      client_general_description: Free-text description of the client.
+      income: Income reported for the filing (number).
+      url: Link to the filing.
+      posted_by_name: Name of the person who submitted the filing.
+  lobbying_foreign_entities:
+    description: Foreign entities listed on a filing.
+    columns:
+      filing_uuid: Filing the entity appears on.
+      foreign_entity_name: Name of the foreign entity.
+      country: Foreign entity's country.
+      ppb_country: Country of the foreign entity's principal place of business.
+  lobbying_activities:
+    description: Lobbying activities (issues) reported on a filing.
+    columns:
+      filing_uuid: Filing the activity belongs to.
+      general_issue_code: Issue area code.
+      description: Free-text description of the activity.
+      activity_index: Position of the activity within the filing (integer).
+  lobbying_activity_lobbyists:
+    description: Lobbyists named on a filing's activities.
+    columns:
+      filing_uuid: Filing the lobbyist appears on.
+      lobbyist_id: Lobbyist identifier.
+      first_name: Lobbyist's first name.
+      last_name: Lobbyist's last name.
+      covered_position: Former government position the lobbyist disclosed.
+  lobbying_contributions:
+    description: Political contributions reported by registrants and lobbyists.
+    columns:
+      filing_uuid: Contribution report the item comes from.
+      payee_name: Recipient of the contribution.
+      honoree_name: Person honoured by the contribution.
+      amount: Contribution amount (number).
+      contributor_name: Name of the contributor.
+  foreign_agent_registrants:
+    description: Registrants under a foreign-agent registration regime.
+    columns:
+      registrant_name: Name of the registered foreign agent.
+  legislators:
+    description: Members of the legislature.
+    columns:
+      bioguide_id: Stable legislator identifier.
+      name: Legislator's name.
+      party: Party.
+      state: State or constituency.
+  committee_assignments:
+    description: Which legislator sits on which committee.
+    columns:
+      bioguide_id: Legislator identifier, as in legislators.
+      committee_name: Committee name.
+      role: Role on the committee.
+  press_releases:
+    description: Legislators' press releases.
+    columns:
+      bioguide_id: Legislator identifier, as in legislators.
+      date: Publication date (date).
+      member_name: Name of the legislator.
+      text: Full text.
+      title: Title.
+      url: Link to the release.

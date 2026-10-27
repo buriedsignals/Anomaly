@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:489ca451cab6d93d420ed2ba52d8317c5e79bf6ee44217ce5ec53a8c400dfd4e",
+  "catalogue_hash": "sha256:46bce5cd147cac89691658e95687b4879c47e8284e1205fce3c609a5e6a68bd5",
   "detectors": [
     {
       "assumptions": [
@@ -50,6 +50,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Multi-corpus committee, lobbying, and press-release comparison.",
       "expected_output": [
         "lobbying_firm",
@@ -114,6 +115,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Named foreign-lobbying candidates absent from the FARA registrant set.",
       "expected_output": [
         "filing_uuid",
@@ -172,6 +174,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Senate filings carrying foreign entity records.",
       "expected_output": [
         "filing_uuid",
@@ -227,6 +230,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Quarter-over-quarter issue-code income and registrant shifts.",
       "expected_output": [
         "general_issue_code",
@@ -285,6 +289,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Quarterly filings with null income clustered by registrant.",
       "expected_output": [
         "registrant_id",
@@ -339,6 +344,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "New registrants ranked by recent filing income.",
       "expected_output": [
         "registrant_id",
@@ -393,6 +399,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Contribution flows aggregated by payee and honoree.",
       "expected_output": [
         "payee_name",
@@ -441,6 +448,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Lobbyists with populated covered-position text and current clients.",
       "expected_output": [
         "lobbyist_id",
@@ -491,6 +499,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Lobbyist former-committee text matched to current issue codes.",
       "expected_output": [
         "lobbyist_id",
@@ -549,6 +558,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Filings with multiple deterministic text-pattern signals.",
       "expected_output": [
         "filing_uuid",
@@ -615,6 +625,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Registrants with one or two clients and high total income.",
       "expected_output": [
         "registrant_id",
@@ -671,6 +682,7 @@
       "assumptions": [
         "Tables follow the lobbying domain contract in domains/lobbying.yaml."
       ],
+      "data_type": "lobbying",
       "description": "Registrant-quarter income z-score against prior quarters.",
       "expected_output": [
         "registrant_id",
