@@ -1,0 +1,7 @@
+interface:
+  display_name: "Congress Press Releases"
+  short_description: "Member press releases by month"
+  default_prompt: "Use $congress-press-releases to fetch one month of member press releases as lobbying contract rows, note the collection's gaps, and quote releases from their official url."
+
+policy:
+  allow_implicit_invocation: true

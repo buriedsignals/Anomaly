@@ -1,0 +1,111 @@
+id: us/congress-legislators/roster
+title: congress-legislators — Current US Congress and Committees
+description: >-
+  Currently serving members of the US Congress and their current committee
+  and subcommittee assignments from the public-domain unitedstates
+  congress-legislators project, returned as legislators and
+  committee_assignments rows of the lobbying domain contract.
+provider_scope: >-
+  The project publishes current and historical legislators, social media,
+  district offices, current and historical committees, current committee
+  membership, and the executive branch in YAML, JSON, and CSV.
+roadmap_scope:
+  - Historical legislators and historical committees are not released.
+category: lobbying
+jurisdiction: us
+runtime: local
+endpoint: https://unitedstates.github.io/congress-legislators/
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: CC0 1.0 (public domain dedication)
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27
+  (https://github.com/unitedstates/congress-legislators). Live on 2026-10-27:
+  539 current legislators, 49 current committees, 230 committee and
+  subcommittee membership lists. Committee membership is scraped from House
+  and Senate websites and is current only; party_side is majority or minority
+  and role is the member's committee title (Member when none). Subcommittee
+  names are "<committee>: <subcommittee>". Party and state come from the
+  member's latest term.
+
+provides:
+  legislators: {}
+  committee_assignments: {}
+
+examples:
+  - List all current members of Congress
+  - List current members of committees whose name contains "Armed Services"
+
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [legislators, committee-assignments]}
+    bioguide_id: {type: string, description: Exact bioguide ID}
+    state: {type: string, description: Two-letter state code (legislators only)}
+    committee: {type: string, description: Case-insensitive committee name substring (committee-assignments only)}
+  additionalProperties: false
+
+output_schema:
+  entity: Legislator
+  fields: [bioguide_id, name, party, state, chamber, committee_name, role, committee_id, party_side, rank]
+
+operations:
+  - id: legislators
+    title: Current members as legislators rows
+    description: Currently serving members with party, state, and chamber from their latest term.
+    status: queryable
+    entities: [Legislator]
+    actions: [list]
+    input_fields: [bioguide_id, state]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: legislators}
+    output_fields: [bioguide_id, name, party, state, chamber]
+    semantics: {enumeration: full, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [unitedstates.github.io]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not use the current roster to describe who served at an earlier date.
+
+  - id: committee-assignments
+    title: Current committee seats as committee_assignments rows
+    description: Current committee and subcommittee seats with role, rank, and majority or minority side.
+    status: queryable
+    entities: [CommitteeAssignment]
+    actions: [list]
+    input_fields: [bioguide_id, committee]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: committee-assignments}
+    output_fields: [bioguide_id, committee_name, role, committee_id, party_side, rank]
+    semantics: {enumeration: full, aggregation: false, temporal: false, pagination: false, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [unitedstates.github.io]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not report a committee seat as current without checking the committee's own page; the file is updated by periodic scrapes.

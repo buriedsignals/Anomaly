@@ -1,0 +1,7 @@
+interface:
+  display_name: "FARA Registrants"
+  short_description: "List FARA registrants as lobbying contract rows"
+  default_prompt: "Use $fara-registrants to list active and terminated FARA registrants for the lobbying contract and treat name mismatches with LDA as leads to check by hand."
+
+policy:
+  allow_implicit_invocation: true

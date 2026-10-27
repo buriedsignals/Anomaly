@@ -1,0 +1,15 @@
+{
+  "skill_name": "fara-registrants",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This LDA firm is not in the FARA list, so it broke the law.",
+      "expected_output": "The agent says absence is a lead only, checks name variants and FARA exemptions, and does not allege a violation."
+    },
+    {
+      "id": 2,
+      "prompt": "Give me FARA registrants named Mercury.",
+      "expected_output": "The agent runs a name substring filter and reports registration numbers and status for each match."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/congress-legislators/roster",
+  "cases": [
+    {
+      "id": "current-members",
+      "operation": "legislators",
+      "input": {},
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 500,
+        "required_fields": [
+          "bioguide_id",
+          "name",
+          "party",
+          "state"
+        ]
+      }
+    },
+    {
+      "id": "finance-committee-seats",
+      "operation": "committee-assignments",
+      "input": {
+        "committee": "finance"
+      },
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 1,
+        "required_fields": [
+          "bioguide_id",
+          "committee_name",
+          "role"
+        ]
+      }
+    }
+  ]
+}

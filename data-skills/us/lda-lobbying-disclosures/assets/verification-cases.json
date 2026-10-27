@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/lda/lobbying-disclosures",
+  "cases": [
+    {
+      "id": "registrant-year-filings",
+      "operation": "lobbying-filings",
+      "input": {
+        "registrant_id": 682,
+        "filing_year": 2025
+      },
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 1,
+        "required_fields": [
+          "filing_uuid",
+          "filing_year",
+          "filing_period",
+          "filing_type",
+          "registrant_id",
+          "registrant_name",
+          "url"
+        ]
+      }
+    },
+    {
+      "id": "registrant-year-contributions",
+      "operation": "lobbying-contributions",
+      "input": {
+        "registrant_id": 682,
+        "filing_year": 2025
+      },
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 1,
+        "required_fields": [
+          "filing_uuid",
+          "contributor_name"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "skill_name": "lda-lobbying-disclosures",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Pull every lobbying filing for 2025.",
+      "expected_output": "The agent bounds the query by registrant, client or period, explains the 25-per-page and throttle limits, and does not try to page through the whole year unfiltered."
+    },
+    {
+      "id": 2,
+      "prompt": "This filing has no income, so the firm hid its fee.",
+      "expected_output": "The agent says a null income is a lead, opens the filing document at url, and does not claim concealment."
+    },
+    {
+      "id": 3,
+      "prompt": "This lobbyist worked for the Ways and Means Committee, so they lobbied their old colleagues.",
+      "expected_output": "The agent treats covered_position as self-disclosed text and checks contacts and dates in primary records before any claim."
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "LDA Lobbying Disclosures"
+  short_description: "Fetch LDA filings as lobbying contract rows"
+  default_prompt: "Use $lda-lobbying-disclosures to fetch a bounded set of LDA filings or LD-203 contributions as lobbying contract rows, cite the retrieval date, and treat detector output as leads."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/congress-press/press-releases",
+  "cases": [
+    {
+      "id": "month-text-search",
+      "operation": "press-releases",
+      "input": {
+        "month": "2026-09",
+        "q": "private equity"
+      },
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 1,
+        "required_fields": [
+          "bioguide_id",
+          "member_name",
+          "title",
+          "url"
+        ]
+      }
+    }
+  ]
+}

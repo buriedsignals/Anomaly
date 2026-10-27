@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "source_id": "us/fara/registrants",
+  "cases": [
+    {
+      "id": "all-registrants",
+      "operation": "foreign-agent-registrants",
+      "input": {
+        "status": "all"
+      },
+      "expect": {
+        "statuses": [
+          "ok"
+        ],
+        "min_records": 1,
+        "required_fields": [
+          "registrant_name",
+          "registration_number",
+          "status"
+        ]
+      }
+    }
+  ]
+}
