@@ -1,17 +1,17 @@
 WITH processes AS (
     SELECT DISTINCT process_id, buyer_id, buyer_name, lower(procurement_method) AS method
     FROM procurement_processes
-    WHERE procurement_method IS NOT NULL
 ),
 buyers AS (
     SELECT
         buyer_id,
         min(buyer_name) AS buyer_name,
-        count(DISTINCT process_id) AS processes,
+        count(DISTINCT process_id) FILTER (WHERE method IS NOT NULL) AS processes,
+        count(DISTINCT process_id) FILTER (WHERE method IS NULL) AS unknown_method_processes,
         count(DISTINCT process_id) FILTER (WHERE method IN ('limited', 'direct')) AS non_open_processes
     FROM processes
     GROUP BY buyer_id
-    HAVING count(DISTINCT process_id) >= ?
+    HAVING count(DISTINCT process_id) FILTER (WHERE method IS NOT NULL) >= ?
 ),
 shares AS (
     SELECT *, non_open_processes / processes AS non_open_share FROM buyers
@@ -25,6 +25,7 @@ SELECT
     buyer_id,
     buyer_name,
     processes,
+    unknown_method_processes,
     non_open_processes,
     round(non_open_share, 4) AS non_open_share,
     round(upper_fence, 4) AS iqr_upper_fence,

@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:2b36ff3540e13b6ee06adb502d0871050ebc45a79891c8357b342e5296be445a",
+  "catalogue_hash": "sha256:df1c64d25292ac2c6e3be8df91f25436f44ddeb347fa4b45ee4b74e3a4d3b7f7",
   "detectors": [
     {
       "assumptions": [
@@ -1309,7 +1309,7 @@
     {
       "assumptions": [
         "Tables follow the procurement domain contract in domains/procurement.yaml.",
-        "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are skipped.",
+        "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are left out of the share and counted in unknown_method_processes.",
         "The default min_share of 0.3 is the example threshold in OCP R013; iqr_upper_fence is the OCP alternative (Q3 + 1.5 IQR across the buyers shown)."
       ],
       "data_type": "procurement",
@@ -1318,6 +1318,7 @@
         "buyer_id",
         "buyer_name",
         "processes",
+        "unknown_method_processes",
         "non_open_processes",
         "non_open_share",
         "iqr_upper_fence",
@@ -1330,7 +1331,7 @@
       "family": "procurement",
       "group": "domain",
       "id": "procurement.non_open_procedure_share",
-      "implementation_hash": "sha256:c37b07d2c8b0e84dda355f382e04cc7d6fac1799a0fe7a223424444cb3c65129",
+      "implementation_hash": "sha256:01e82778292112027ebde18507b3c4a741dfc645da9c375e7ff76b48bdaeeb4b",
       "parameters": {
         "limit": {
           "default": 200,

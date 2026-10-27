@@ -1740,7 +1740,7 @@
         {
           "assumptions": [
             "Tables follow the procurement domain contract in domains/procurement.yaml.",
-            "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are skipped.",
+            "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are left out of the share and counted in unknown_method_processes.",
             "The default min_share of 0.3 is the example threshold in OCP R013; iqr_upper_fence is the OCP alternative (Q3 + 1.5 IQR across the buyers shown)."
           ],
           "description": "Buyers that run a high share of their processes as limited or direct awards (OCP red flag R013).",
