@@ -80,8 +80,6 @@
     .btn svg { width: 17px; height: 17px; }
     .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-2); }
     .btn.ghost:hover { background: var(--paper-2); }
-    .status-note { font-size: 0.76rem; color: var(--ink-3); display: inline-flex; align-items: center; gap: 0.5rem; }
-    .status-note i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--blue); }
 
     /* ---------- the machine ---------- */
     .machine { margin: 0; border-block: 1px solid var(--rule-2); }
@@ -250,13 +248,12 @@
     <div class="wrap hero" id="top">
       <h1>Find the record that <span class="odd">doesn't fit<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="49" ry="19" pathLength="600"/></svg></span>.</h1>
       <div>
-        <p class="lede">Anomaly is a plugin for <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. It tells your investigating agent which data could help a case and which detectors fit that data, then runs those detectors on the tables the agent fetched. Every unusual record comes back as a lead you can trace.</p>
+        <p class="lede">Anomaly is a plugin for <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. It tells your investigating agent which data could help a case and which checks suit that data. Then it runs those checks on the records the agent collected and flags anything unusual as a lead, with a note of exactly how it was found.</p>
         <div class="actions">
           <a class="btn" href="https://github.com/buriedsignals/Anomaly">Get it on GitHub
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
           <a class="btn ghost" href="https://spotlight.buriedsignals.com/">Open Spotlight</a>
         </div>
-        <p class="status-note" style="margin:0.9rem 0 0"><i aria-hidden="true"></i>The Spotlight integration is in review. Anomaly also runs on its own.</p>
       </div>
     </div>
 
@@ -339,9 +336,9 @@
           <div class="cmd"><span>Install</span><code>git clone https://github.com/buriedsignals/Anomaly.git &amp;&amp; cd Anomaly &amp;&amp; uv sync</code><button class="copy" type="button" aria-label="Copy install command"></button></div>
           <div class="cmd"><span>Look up</span><code>uv run python -m anomaly.context --domain lobbying</code><button class="copy" type="button" aria-label="Copy lookup command"></button></div>
           <div class="cmd"><span>Source</span><code>uv run python -m anomaly.context --source global/opensanctions</code><button class="copy" type="button" aria-label="Copy source command"></button></div>
-          <div class="cmd"><span>Run</span><code>uv run python -m anomaly.oneshot --table donations.csv --request request.json --approved</code><button class="copy" type="button" aria-label="Copy run command"></button></div>
+          <div class="cmd"><span>Run</span><code>uv run python -m anomaly.oneshot --table examples/donations.csv --request examples/zscore_request.json --approved</code><button class="copy" type="button" aria-label="Copy run command"></button></div>
         </div>
-        <p class="note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. Without Spotlight, Anomaly runs a full standalone case with two journalist gates, replay and an independent reviewer: see the <a href="docs/flow.html">case workflow</a>.</p>
+        <p class="note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. The run command uses a small example in the repository and flags one donation. Without Spotlight, Anomaly can also run a full standalone case: see the <a href="https://github.com/buriedsignals/Anomaly#standalone-case-workflow">README</a>.</p>
       </div>
     </section>
   </main>
@@ -351,9 +348,7 @@
       <p>Anomaly is made by <a href="https://buriedsignals.com/">Buried Signals</a> as a plugin for <a href="https://spotlight.buriedsignals.com/">Spotlight</a>. The source is on GitHub; a licence has not been published yet.</p>
       <nav aria-label="Footer">
         <a href="https://github.com/buriedsignals/Anomaly">GitHub</a>
-        <a href="docs/flow.html">Case workflow</a>
         <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">Catalogue schema</a>
-        <a href="mailto:tom@buriedsignals.com">Contact</a>
       </nav>
     </div>
   </footer>

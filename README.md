@@ -179,8 +179,7 @@ Anomaly also runs a full case on its own: register data, profile it, approve a
 detector plan, run detectors, replay every calculation, have an independent
 reviewer challenge each claim, and accept findings, with a portable case folder
 and evidence viewer. Spotlight does not use this path. See
-[`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md) and the
-[workflow reference](https://anomaly.buriedsignals.com/docs/flow.html).
+[`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md).
 
 ## Install
 
@@ -191,6 +190,13 @@ git clone https://github.com/buriedsignals/Anomaly.git
 cd Anomaly
 uv sync --extra test
 uv run pytest tests/
+```
+
+Try the runner on the bundled example, which flags one donation:
+
+```bash
+uv run python -m anomaly.oneshot --table examples/donations.csv \
+  --request examples/zscore_request.json --approved
 ```
 
 ## Documentation
