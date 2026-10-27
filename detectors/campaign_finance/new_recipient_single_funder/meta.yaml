@@ -1,0 +1,39 @@
+id: campaign_finance.new_recipient_single_funder
+version: 1.0.0
+release: released
+title: New recipient, single funder
+author: buried-signals
+license: internal
+group: domain
+family: campaign_finance
+data_type: campaign_finance
+menu_order: 3
+description: A recipient that registered recently and received nearly all of its early money from one donor.
+required_tables: [donations, recipients]
+required_fields: [id]
+parameters:
+  max_age_days: 90
+  min_top_share: 0.9
+  min_total: 10000
+  limit: 200
+parameter_bounds:
+  max_age_days: {type: integer, minimum: 1, maximum: 3650}
+  min_top_share: {type: number, minimum: 0.5, maximum: 1}
+  min_total: {type: number, minimum: 0, maximum: 10000000000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: campaign_finance
+severity: high
+expected_output: [candidate_id, recipient_id, recipient_name, registered_date, first_donation_date, last_donation_date, donors, donations, total_amount, top_donor, top_donor_amount, top_share]
+assumptions:
+  - "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; recipients.registered_date is the date the recipient registered with the regulator."
+  - "Only donations dated up to max_age_days after registration count, including any dated before it."
+  - "The pattern follows Campaign Legal Center complaints about pop-up committees: two super PACs formed within weeks of an LLC reported no contributions from any other source (https://campaignlegal.org/update/what-are-straw-donor-schemes-and-why-are-they-problem)."
+  - "Donors are matched by upper-cased name."
+false_positives:
+  - "Many legitimate committees start with seed money from their founder, a sponsoring organisation or an affiliated committee."
+  - "A single-candidate committee funded by the candidate's own money, or a party branch funded by its central party, has one funder by design."
+  - "The source may list only donations above a reporting threshold, so many small donors can be invisible and the top donor's share overstated."
+  - "A single funder is not proof of a straw donor; the lead is whether the funder had its own money, which needs company records and bank or filing evidence."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

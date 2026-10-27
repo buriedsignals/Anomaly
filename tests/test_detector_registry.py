@@ -12,8 +12,6 @@ CORE_DETECTOR_IDS = (
     "cross_dataset.location_conflicts",
     "credential.private_key_patterns",
     "credential.secret_patterns",
-    "domain.contractor_concentration",
-    "domain.procurement_bid_clusters",
     "network.cross_commit_overlap",
     "network.shared_infrastructure",
     "numeric.level_shift",
@@ -46,6 +44,20 @@ LOBBYING_DETECTOR_IDS = (
     "lobbying.shell_pattern_filings",
     "lobbying.single_client_juggernauts",
     "lobbying.spending_spikes",
+)
+
+PROCUREMENT_DETECTOR_IDS = (
+    "procurement.non_open_procedure_share",
+    "procurement.short_submission_period",
+    "procurement.single_bid_competitive",
+    "procurement.supplier_share_outlier",
+    "procurement.value_growth_after_award",
+)
+
+CAMPAIGN_FINANCE_DETECTOR_IDS = (
+    "campaign_finance.maxed_donor_clusters",
+    "campaign_finance.new_recipient_single_funder",
+    "campaign_finance.structured_gifts",
 )
 
 
@@ -92,7 +104,8 @@ def test_registry_discovers_core_and_lobbying_detectors_with_scalable_groups() -
     # Explicit limit is authoritative: the whole registry is listable.
     detectors = _registry_api().discover_detectors(limit=100)
     ids = tuple(item["id"] for item in detectors)
-    expected = set(CORE_DETECTOR_IDS) | set(LOBBYING_DETECTOR_IDS)
+    expected = (set(CORE_DETECTOR_IDS) | set(LOBBYING_DETECTOR_IDS)
+                | set(PROCUREMENT_DETECTOR_IDS) | set(CAMPAIGN_FINANCE_DETECTOR_IDS))
     assert set(ids) == expected
     assert all(isinstance(item["group"], str) and item["group"] for item in detectors)
     lobbying_families = {item.get("family") for item in detectors if item["id"].startswith("lobbying.")}

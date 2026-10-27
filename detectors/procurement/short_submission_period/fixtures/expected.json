@@ -1,0 +1,4 @@
+[
+  {"process_id": "P1", "buyer_id": "B1", "buyer_name": "City Council", "procurement_method": "open", "tender_published_date": "2026-01-01", "tender_deadline": "2026-01-06", "submission_days": 5, "tender_value": 250000.0, "currency": "GBP"},
+  {"process_id": "P4", "buyer_id": "B2", "buyer_name": "Health Board", "procurement_method": null, "tender_published_date": "2026-03-01", "tender_deadline": "2026-03-10", "submission_days": 9, "tender_value": null, "currency": "GBP"}
+]

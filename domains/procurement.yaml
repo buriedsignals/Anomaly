@@ -1,0 +1,32 @@
+# Procurement domain contract: the tables procurement detectors read. Columns
+# follow the Open Contracting Data Standard (OCDS 1.1) so any OCDS publisher
+# maps directly; other sources map their own fields (see each source's
+# SKILL.md). Optional columns may be left out of a file and load as NULL.
+domain: procurement
+description: Public procurement processes (tenders or lots) and the awards made under them.
+tables:
+  procurement_processes:
+    description: One row per contracting process, or per lot when a process is split into lots.
+    columns:
+      process_id: Identifier of the process or lot (OCDS ocid, or ocid/lot id); the join key for awards.
+      buyer_id: Identifier of the buyer or procuring entity (OCDS buyer/id).
+      buyer_name: Name of the buyer or procuring entity.
+      country: Country of the buyer or publisher (ISO code).
+      category_code: Item classification such as CPV, NAICS or PSC that defines the market (optional).
+      procurement_method: OCDS procurementMethod code, one of open, selective, limited or direct (optional).
+      tender_value: Estimated value at tender (number, optional).
+      currency: Currency of tender_value (optional).
+      tender_published_date: Start of the submission period, or the date the call was published (date, optional).
+      tender_deadline: End of the submission period, the bid deadline (date, optional).
+      number_of_tenderers: Number of bids or tenderers received (integer, optional).
+  procurement_awards:
+    description: One row per supplier on an award.
+    columns:
+      award_id: Identifier of the award.
+      process_id: Process or lot the award belongs to (procurement_processes.process_id).
+      supplier_id: Identifier of the supplier, such as a company number or UEI.
+      supplier_name: Name of the supplier.
+      award_value: Value at award (number).
+      currency: Currency of award_value and final_value (optional).
+      award_date: Date of the award or contract signature (date).
+      final_value: Current or final contract value after amendments (number, optional).

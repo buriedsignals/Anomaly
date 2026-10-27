@@ -1,0 +1,6 @@
+[
+  {"candidate_id": "P2|ACME LTD", "recipient_id": "P2", "recipient_name": "Other Party", "donor_name": "ACME LTD",
+   "window_start": "2026-02-01", "window_end": "2026-02-04", "gifts": 4, "total_amount": 12000, "largest_gift": 3000},
+  {"candidate_id": "P1|JANE DOE", "recipient_id": "P1", "recipient_name": "Example Party", "donor_name": "JANE DOE",
+   "window_start": "2026-01-05", "window_end": "2026-01-30", "gifts": 3, "total_amount": 11500, "largest_gift": 4000}
+]

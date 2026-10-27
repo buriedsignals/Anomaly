@@ -1,0 +1,34 @@
+id: procurement.non_open_procedure_share
+version: 1.0.0
+release: released
+title: High share of non-open procedures
+author: buried-signals
+license: internal
+group: domain
+family: procurement
+data_type: procurement
+menu_order: 2
+description: Buyers that run a high share of their processes as limited or direct awards (OCP red flag R013).
+required_tables: [procurement_processes]
+required_fields: [id]
+parameters:
+  min_processes: 5
+  min_share: 0.3
+  limit: 200
+parameter_bounds:
+  min_processes: {type: integer, minimum: 1, maximum: 100000}
+  min_share: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: procurement
+severity: medium
+expected_output: [buyer_id, buyer_name, processes, non_open_processes, non_open_share, iqr_upper_fence, above_iqr_fence]
+assumptions:
+  - Tables follow the procurement domain contract in domains/procurement.yaml.
+  - procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are skipped.
+  - The default min_share of 0.3 is the example threshold in OCP R013; iqr_upper_fence is the OCP alternative (Q3 + 1.5 IQR across the buyers shown).
+false_positives:
+  - "OCP R013: limited and direct methods have valid legal grounds such as urgency, sole sources, low values and framework call-offs."
+  - Buyers that publish many framework call-offs as direct awards look non-open by construction.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

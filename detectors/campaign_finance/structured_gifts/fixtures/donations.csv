@@ -1,0 +1,14 @@
+donation_id,recipient_id,recipient_name,donor_name,amount,donation_date
+s1,P1,Example Party,JANE DOE,4000,2026-01-05
+s2,P1,Example Party,JANE DOE,4000,2026-01-15
+s3,P1,Example Party,Jane Doe,3500,2026-01-30
+s4,P1,Example Party,JANE DOE,11180,2026-01-20
+s5,P1,Example Party,JOHN ROE,5000,2026-01-01
+s6,P1,Example Party,JOHN ROE,5000,2026-03-01
+s7,P1,Example Party,JOHN ROE,5000,2026-03-10
+s8,P2,Other Party,JANE DOE,4000,2026-01-06
+s9,P2,Other Party,JANE DOE,4000,2026-01-07
+s10,P2,Other Party,ACME LTD,3000,2026-02-01
+s11,P2,Other Party,ACME LTD,3000,2026-02-02
+s12,P2,Other Party,ACME LTD,3000,2026-02-03
+s13,P2,Other Party,ACME LTD,3000,2026-02-04

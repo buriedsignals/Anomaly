@@ -1,0 +1,4 @@
+[
+  {"award_id": "A4", "process_id": "P4", "buyer_id": "B2", "buyer_name": "Health Board", "suppliers": "Delta Ltd | Epsilon Ltd", "award_value": 200000.0, "final_value": 300000.0, "value_increase": 100000.0, "growth_ratio": 1.5, "currency": "GBP", "award_date": "2025-04-10"},
+  {"award_id": "A1", "process_id": "P1", "buyer_id": "B1", "buyer_name": "City Council", "suppliers": "Alpha Ltd", "award_value": 100000.0, "final_value": 150000.0, "value_increase": 50000.0, "growth_ratio": 1.5, "currency": "GBP", "award_date": "2025-01-10"}
+]

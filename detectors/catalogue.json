@@ -1,6 +1,244 @@
 {
-  "catalogue_hash": "sha256:f1499523b2dc31652d5e43485a37c18d7c78414ad4999b103ba6dc3e6ce77707",
+  "catalogue_hash": "sha256:2b36ff3540e13b6ee06adb502d0871050ebc45a79891c8357b342e5296be445a",
   "detectors": [
+    {
+      "assumptions": [
+        "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; donor_employer and donor_postcode are optional, and a source without either column yields no clusters.",
+        "limit_amount defaults to the 2025-2026 FEC limit for an individual giving to a federal candidate, $3,500 per election (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/). Set it to the limit of the recipient type and jurisdiction under review; the UK has no donation limit (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans).",
+        "The pattern matches what the FEC describes in conduit cases: someone at the limit gives money to others to contribute to the same candidate, or a corporation reimburses employees' contributions (https://www.fec.gov/updates/contributions-in-the-name-of-another-are-strictly-prohibited/).",
+        "Donors are matched by upper-cased name; postcodes are compared without spaces, so a 9-digit ZIP+4 matches only the same ZIP+4."
+      ],
+      "data_type": "campaign_finance",
+      "description": "Donors who share an employer or postcode and each give one recipient an amount at or near the contribution limit within a few days.",
+      "expected_output": [
+        "candidate_id",
+        "recipient_id",
+        "recipient_name",
+        "shared_by",
+        "shared_value",
+        "window_start",
+        "window_end",
+        "donors",
+        "donations",
+        "total_amount",
+        "donor_names"
+      ],
+      "false_positives": [
+        "Colleagues often give together at a fundraiser their employer or a senior colleague hosts; that is lawful when each gives their own money.",
+        "Spouses and relatives at one address each have their own limit (https://www.fec.gov/help-candidates-and-committees/taking-receipts-ssf/limits-contributions-received-ssf/), so a household giving the maximum on one day is common.",
+        "Placeholder employers (for example INFORMATION REQUESTED or SELF-EMPLOYED) are excluded only when spelled as listed in the query; other spellings can form spurious clusters.",
+        "Large employers and dense postcodes produce clusters by chance; compare against the recipient's other donors before treating a cluster as a lead."
+      ],
+      "family": "campaign_finance",
+      "group": "domain",
+      "id": "campaign_finance.maxed_donor_clusters",
+      "implementation_hash": "sha256:363dea544ee0b029e60e043b4473525c0d8ce972391dfd24dd6e535307e2c58e",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "limit_amount": {
+          "default": 3500,
+          "maximum": 100000000,
+          "minimum": 1,
+          "type": "number"
+        },
+        "min_donors": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "near_limit_ratio": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0.1,
+          "type": "number"
+        },
+        "window_days": {
+          "default": 7,
+          "maximum": 366,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "donations"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "campaign_finance",
+      "title": "Maxed donor clusters",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; recipients.registered_date is the date the recipient registered with the regulator.",
+        "Only donations dated up to max_age_days after registration count, including any dated before it.",
+        "The pattern follows Campaign Legal Center complaints about pop-up committees: two super PACs formed within weeks of an LLC reported no contributions from any other source (https://campaignlegal.org/update/what-are-straw-donor-schemes-and-why-are-they-problem).",
+        "Donors are matched by upper-cased name."
+      ],
+      "data_type": "campaign_finance",
+      "description": "A recipient that registered recently and received nearly all of its early money from one donor.",
+      "expected_output": [
+        "candidate_id",
+        "recipient_id",
+        "recipient_name",
+        "registered_date",
+        "first_donation_date",
+        "last_donation_date",
+        "donors",
+        "donations",
+        "total_amount",
+        "top_donor",
+        "top_donor_amount",
+        "top_share"
+      ],
+      "false_positives": [
+        "Many legitimate committees start with seed money from their founder, a sponsoring organisation or an affiliated committee.",
+        "A single-candidate committee funded by the candidate's own money, or a party branch funded by its central party, has one funder by design.",
+        "The source may list only donations above a reporting threshold, so many small donors can be invisible and the top donor's share overstated.",
+        "A single funder is not proof of a straw donor; the lead is whether the funder had its own money, which needs company records and bank or filing evidence."
+      ],
+      "family": "campaign_finance",
+      "group": "domain",
+      "id": "campaign_finance.new_recipient_single_funder",
+      "implementation_hash": "sha256:5e81a9936b2d0691d9da23c8ee11f1d302fedf8324483f077fca6a63cdba0ceb",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_age_days": {
+          "default": 90,
+          "maximum": 3650,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_top_share": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0.5,
+          "type": "number"
+        },
+        "min_total": {
+          "default": 10000,
+          "maximum": 10000000000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "donations",
+        "recipients"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "campaign_finance",
+      "title": "New recipient, single funder",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml.",
+        "threshold defaults to the UK reporting threshold for donations to a party's central organisation, 11,180 GBP (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans). For US federal candidates use the per-election limit, 3,500 USD in 2025-2026 (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/).",
+        "A donor is one upper-cased name plus postcode when the source publishes one; the same person spelled two ways counts as two donors.",
+        "Amounts are compared as published; the detector does not convert currencies."
+      ],
+      "data_type": "campaign_finance",
+      "description": "One donor gives one recipient several gifts, each below a threshold, that together reach the threshold within a short window.",
+      "expected_output": [
+        "candidate_id",
+        "recipient_id",
+        "recipient_name",
+        "donor_name",
+        "window_start",
+        "window_end",
+        "gifts",
+        "total_amount",
+        "largest_gift"
+      ],
+      "false_positives": [
+        "Regular monthly or recurring gifts reach any threshold eventually; a long window_days or low min_gifts flags ordinary supporters.",
+        "Published registers only list gifts above their own reporting thresholds or aggregated past them (UK parties report gifts over 2,230 GBP once a donor has passed the central threshold in a calendar year), so small split gifts may be missing or already disclosed as aggregations.",
+        "US committees can lawfully accept separate per-election contributions for a primary and a general election, and refunds or redesignations may follow; check the election designation and memo text of each gift.",
+        "Common names merge different people when the source publishes no postcode.",
+        "UK registers list a party's gifts per accounting unit (local branch) under one regulated entity, so one donor funding several branches on one day looks like split gifts to one recipient."
+      ],
+      "family": "campaign_finance",
+      "group": "domain",
+      "id": "campaign_finance.structured_gifts",
+      "implementation_hash": "sha256:d6cf9b410af920b52b622b316d998cf835c4548331de41ed139e02af7a48058a",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_gifts": {
+          "default": 3,
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "threshold": {
+          "default": 11180,
+          "maximum": 100000000,
+          "minimum": 1,
+          "type": "number"
+        },
+        "window_days": {
+          "default": 30,
+          "maximum": 366,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "donations"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "campaign_finance",
+      "title": "Structured gifts",
+      "version": "1.0.0"
+    },
     {
       "assumptions": [
         "categories are comparable"
@@ -1067,6 +1305,324 @@
       "signal_category": "anomaly",
       "title": "Z-score outliers",
       "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the procurement domain contract in domains/procurement.yaml.",
+        "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are skipped.",
+        "The default min_share of 0.3 is the example threshold in OCP R013; iqr_upper_fence is the OCP alternative (Q3 + 1.5 IQR across the buyers shown)."
+      ],
+      "data_type": "procurement",
+      "description": "Buyers that run a high share of their processes as limited or direct awards (OCP red flag R013).",
+      "expected_output": [
+        "buyer_id",
+        "buyer_name",
+        "processes",
+        "non_open_processes",
+        "non_open_share",
+        "iqr_upper_fence",
+        "above_iqr_fence"
+      ],
+      "false_positives": [
+        "OCP R013: limited and direct methods have valid legal grounds such as urgency, sole sources, low values and framework call-offs.",
+        "Buyers that publish many framework call-offs as direct awards look non-open by construction."
+      ],
+      "family": "procurement",
+      "group": "domain",
+      "id": "procurement.non_open_procedure_share",
+      "implementation_hash": "sha256:c37b07d2c8b0e84dda355f382e04cc7d6fac1799a0fe7a223424444cb3c65129",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_processes": {
+          "default": 5,
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.3,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "procurement_processes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "procurement",
+      "title": "High share of non-open procedures",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the procurement domain contract in domains/procurement.yaml.",
+        "tender_published_date is the start of the submission period (OCDS tender/tenderPeriod/startDate, else the notice publication date) and tender_deadline its end.",
+        "Set min_days to the legal minimum for the buyer's jurisdiction and method; the default of 10 is a screen, not a legal threshold."
+      ],
+      "data_type": "procurement",
+      "description": "Open or selective processes whose submission period is shorter than a minimum number of days (OCP red flag R003).",
+      "expected_output": [
+        "process_id",
+        "buyer_id",
+        "buyer_name",
+        "procurement_method",
+        "tender_published_date",
+        "tender_deadline",
+        "submission_days",
+        "tender_value",
+        "currency"
+      ],
+      "false_positives": [
+        "OCP R003: accelerated procedures for urgency, prior information notices and dynamic purchasing systems allow shorter periods legally.",
+        "A notice republished or corrected late shortens the apparent period."
+      ],
+      "family": "procurement",
+      "group": "domain",
+      "id": "procurement.short_submission_period",
+      "implementation_hash": "sha256:48bc259e6a74166f8cca3874d3c62744666c2dd1f5e73dc290d40e4ea4dd55e7",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_days": {
+          "default": 10,
+          "maximum": 365,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "procurement_processes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "procurement",
+      "title": "Short submission period",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the procurement domain contract in domains/procurement.yaml.",
+        "procurement_method uses the OCDS codes open, selective, limited and direct; rows without a method or a bid count are skipped.",
+        "number_of_tenderers counts bids for the process or lot the row describes (OCDS tender/numberOfTenderers or bids/statistics with measure bids)."
+      ],
+      "data_type": "procurement",
+      "description": "Open or selective processes (or lots) that received exactly one bid (OCP red flag R018).",
+      "expected_output": [
+        "process_id",
+        "buyer_id",
+        "buyer_name",
+        "category_code",
+        "procurement_method",
+        "number_of_tenderers",
+        "tender_value",
+        "currency"
+      ],
+      "false_positives": [
+        "OCP R018: niche markets, specialised goods or tight specifications can legitimately draw a single bidder.",
+        "Framework call-offs and lots reported with the parent notice's bid count can misstate competition per lot."
+      ],
+      "family": "procurement",
+      "group": "domain",
+      "id": "procurement.single_bid_competitive",
+      "implementation_hash": "sha256:bfa9bed9983822815b7a6445d23282a320fd1b213b2ebbf0fcff56740e7536ec",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "procurement_processes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "procurement",
+      "title": "Single bid in a competitive procedure",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the procurement domain contract in domains/procurement.yaml.",
+        "Supplier and buyer identifiers are stable within one source; names are not matched across sources.",
+        "Shares are by award value per buyer, award year, currency and category_code (R050 when filled, R040 when empty); an award with several suppliers is split equally between them.",
+        "The default min_share of 0.4 is the example threshold in OCP R040 and R050; min_awards keeps small markets out."
+      ],
+      "data_type": "procurement",
+      "description": "Suppliers that win a high share of one buyer's award value in a year, within one market when categories are known (OCP red flags R040 and R050).",
+      "expected_output": [
+        "supplier_id",
+        "supplier_name",
+        "buyer_id",
+        "buyer_name",
+        "category_code",
+        "award_year",
+        "currency",
+        "supplier_value",
+        "market_value",
+        "supplier_share",
+        "supplier_awards",
+        "market_awards",
+        "market_suppliers"
+      ],
+      "false_positives": [
+        "OCP R040/R050: small or specialised markets, incumbents on long programmes and buyers with few purchases concentrate legitimately.",
+        "Only the awards in the fetched sample count; a partial fetch inflates shares."
+      ],
+      "family": "procurement",
+      "group": "domain",
+      "id": "procurement.supplier_share_outlier",
+      "implementation_hash": "sha256:e5240330ca6a284239e45174f65cb31281b483a74c2d37dfa3c1364184dc59ec",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_awards": {
+          "default": 5,
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.4,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "procurement_processes",
+        "procurement_awards"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "procurement",
+      "title": "Supplier share outlier",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the procurement domain contract in domains/procurement.yaml.",
+        "award_value is the value at award and final_value the current or final value after amendments, in the same currency; rows without final_value are skipped.",
+        "OCP R069 flags any increase; the default min_growth of 0.2 (20 percent) keeps small adjustments out."
+      ],
+      "data_type": "procurement",
+      "description": "Awards whose current or final contract value exceeds the value at award by a minimum ratio and amount (OCP red flag R069).",
+      "expected_output": [
+        "award_id",
+        "process_id",
+        "buyer_id",
+        "buyer_name",
+        "suppliers",
+        "award_value",
+        "final_value",
+        "value_increase",
+        "growth_ratio",
+        "currency",
+        "award_date"
+      ],
+      "false_positives": [
+        "OCP R069: amendments can be legitimate, such as exercised options, indexation and scope added through a documented change.",
+        "Where final_value is cumulative obligations (USAspending), incremental funding of an unchanged contract looks like growth."
+      ],
+      "family": "procurement",
+      "group": "domain",
+      "id": "procurement.value_growth_after_award",
+      "implementation_hash": "sha256:086b802a28aed86bdb7fd326e676f053e9456b12c99d56aa67bef2634c06fa0d",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_growth": {
+          "default": 0.2,
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_increase": {
+          "default": 0,
+          "maximum": 1000000000000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "procurement_processes",
+        "procurement_awards"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "procurement",
+      "title": "Value growth after award",
+      "version": "1.0.0"
     },
     {
       "assumptions": [

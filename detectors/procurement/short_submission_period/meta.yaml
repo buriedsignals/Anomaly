@@ -1,0 +1,32 @@
+id: procurement.short_submission_period
+version: 1.0.0
+release: released
+title: Short submission period
+author: buried-signals
+license: internal
+group: domain
+family: procurement
+data_type: procurement
+menu_order: 4
+description: Open or selective processes whose submission period is shorter than a minimum number of days (OCP red flag R003).
+required_tables: [procurement_processes]
+required_fields: [id]
+parameters:
+  min_days: 10
+  limit: 200
+parameter_bounds:
+  min_days: {type: integer, minimum: 1, maximum: 365}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: procurement
+severity: medium
+expected_output: [process_id, buyer_id, buyer_name, procurement_method, tender_published_date, tender_deadline, submission_days, tender_value, currency]
+assumptions:
+  - Tables follow the procurement domain contract in domains/procurement.yaml.
+  - tender_published_date is the start of the submission period (OCDS tender/tenderPeriod/startDate, else the notice publication date) and tender_deadline its end.
+  - Set min_days to the legal minimum for the buyer's jurisdiction and method; the default of 10 is a screen, not a legal threshold.
+false_positives:
+  - "OCP R003: accelerated procedures for urgency, prior information notices and dynamic purchasing systems allow shorter periods legally."
+  - A notice republished or corrected late shortens the apparent period.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

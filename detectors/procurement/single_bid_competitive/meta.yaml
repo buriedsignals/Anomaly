@@ -1,0 +1,30 @@
+id: procurement.single_bid_competitive
+version: 1.0.0
+release: released
+title: Single bid in a competitive procedure
+author: buried-signals
+license: internal
+group: domain
+family: procurement
+data_type: procurement
+menu_order: 1
+description: Open or selective processes (or lots) that received exactly one bid (OCP red flag R018).
+required_tables: [procurement_processes]
+required_fields: [id]
+parameters:
+  limit: 200
+parameter_bounds:
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: procurement
+severity: medium
+expected_output: [process_id, buyer_id, buyer_name, category_code, procurement_method, number_of_tenderers, tender_value, currency]
+assumptions:
+  - Tables follow the procurement domain contract in domains/procurement.yaml.
+  - procurement_method uses the OCDS codes open, selective, limited and direct; rows without a method or a bid count are skipped.
+  - number_of_tenderers counts bids for the process or lot the row describes (OCDS tender/numberOfTenderers or bids/statistics with measure bids).
+false_positives:
+  - "OCP R018: niche markets, specialised goods or tight specifications can legitimately draw a single bidder."
+  - Framework call-offs and lots reported with the parent notice's bid count can misstate competition per lot.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

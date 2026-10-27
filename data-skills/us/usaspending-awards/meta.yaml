@@ -3,7 +3,8 @@ title: USAspending.gov — Federal Awards
 description: >-
   Search prime federal contracts, grants, loans, IDVs, direct payments, and
   other assistance by a bounded time window plus keyword, recipient text, or
-  exact award ID, returning award-level amounts, agencies, dates, and identifiers.
+  exact award ID, returning award-level amounts, agencies, dates, and identifiers,
+  or contracts as procurement_processes and procurement_awards contract rows.
 provider_scope: >-
   USAspending exposes awards, transactions, subawards, recipients, accounts,
   categories, geography, downloads, and reference data. This skill releases
@@ -21,12 +22,19 @@ license:
   data_license: US federal spending data published under the DATA Act; public US government data
   cache_permitted: true
   redistribution_permitted: true
-last_tested: "2026-08-12"
+last_tested: "2026-10-27"
 status: queryable
 notes: >-
   Fiscal year is October 1 through September 30. Award Amount is not the same
   as a single transaction obligation, payment, or outlay. Recipient text searches
-  name, UEI, and DUNS; an award_id is quoted for exact matching.
+  name, UEI, and DUNS; an award_id is quoted for exact matching. The
+  procurement operations read each contract's award detail
+  (/api/v2/awards/{generated_unique_award_id}/) for offers received, extent
+  competed, NAICS/PSC and current values; SKILL.md lists the mapping.
+
+provides:
+  procurement_processes: {}
+  procurement_awards: {}
 examples:
   - Federal contracts for Boeing in fiscal year 2025
   - Grants to a recipient containing Harvard during a fixed date range
@@ -34,6 +42,7 @@ examples:
 input_schema:
   type: object
   properties:
+    operation: {type: string, enum: [search-awards, procurement-processes, procurement-awards], default: search-awards}
     keyword: {type: string, minLength: 1, maxLength: 500}
     recipient: {type: string, minLength: 1, maxLength: 500}
     award_id: {type: string, minLength: 1, maxLength: 500}
@@ -91,3 +100,49 @@ operations:
     prohibited_uses:
       - Do not conflate award amount, obligation, outlay, payment, and transaction values.
       - Do not treat a recipient-name match as entity resolution without checking UEI and award identifiers.
+
+  - id: procurement-processes
+    title: Contracts as procurement_processes rows
+    description: Search contracts, then read each award's detail for buyer subtier agency, NAICS, PSC, extent competed (mapped to OCDS procurementMethod) and number of offers received.
+    status: queryable
+    entities: [ProcurementProcess]
+    actions: [search]
+    input_fields: [keyword, recipient, award_id, fiscal_year, start_date, end_date, limit, page, sort, order]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: procurement-processes}
+    output_fields: [process_id, buyer_id, buyer_name, country, category_code, procurement_method, tender_value, currency, tender_published_date, tender_deadline, number_of_tenderers, extent_competed, psc, solicitation_procedures, piid]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.usaspending.gov]
+      data_classes: [award, recipient, keyword, and time filters]
+      sensitive_inputs: [keyword, recipient]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read a missing number_of_offers_received as a single bid.
+
+  - id: procurement-awards
+    title: Contracts as procurement_awards rows
+    description: Search contracts, then read each award's detail for recipient UEI, signature date, total obligation and current and potential values.
+    status: queryable
+    entities: [ProcurementAward]
+    actions: [search]
+    input_fields: [keyword, recipient, award_id, fiscal_year, start_date, end_date, limit, page, sort, order]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: procurement-awards}
+    output_fields: [award_id, process_id, supplier_id, supplier_name, award_value, currency, award_date, final_value, base_exercised_options, base_and_all_options, piid]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.usaspending.gov]
+      data_classes: [award, recipient, keyword, and time filters]
+      sensitive_inputs: [keyword, recipient]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat total obligation as the value at award or as payments.

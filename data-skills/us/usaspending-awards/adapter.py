@@ -1,4 +1,11 @@
-"""USAspending Advanced Award Search adapter."""
+"""USAspending Advanced Award Search adapter.
+
+``search-awards`` returns award-level search records. ``procurement-processes``
+and ``procurement-awards`` run the same contract search, then read each award's
+detail to emit rows of the procurement
+domain contract (domains/procurement.yaml), ready to write to CSV for
+anomaly.oneshot. Each record costs one extra API request.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +14,25 @@ from typing import Any
 
 import httpx
 
-ENDPOINT = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
+API_URL = "https://api.usaspending.gov/api/v2"
+ENDPOINT = f"{API_URL}/search/spending_by_award/"
+HEADERS = {"Accept": "application/json", "User-Agent": "BuriedSignals-catalogue/1.0"}
+OPERATIONS = ("search-awards", "procurement-processes", "procurement-awards")
+# FPDS extent_competed codes (USAspending data dictionary) mapped to the OCDS
+# procurementMethod codelist: open = any supplier may bid, selective = only
+# qualified or eligible suppliers, limited = buyer picks whom to ask,
+# direct = no competition.
+METHODS = {
+    "A": "open",        # full and open competition
+    "D": "selective",   # full and open after exclusion of sources (set-asides)
+    "CDO": "selective", # competitive delivery order among IDV holders
+    "F": "limited",     # competed under simplified acquisition procedures
+    "B": "direct",      # not available for competition
+    "C": "direct",      # not competed
+    "E": "direct",      # follow-on to a competed action
+    "G": "direct",      # not competed under simplified acquisition procedures
+    "NDO": "direct",    # non-competitive delivery order
+}
 SOURCE_ID = "us/usaspending/awards"
 TYPE_CODES = {
     "contracts": ["A", "B", "C", "D"],
@@ -119,8 +144,83 @@ def _normalize(item: dict[str, Any], award_group: str) -> dict[str, Any]:
     }
 
 
+def _integer(value: Any) -> int | None:
+    try:
+        return int(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _detail(client: httpx.Client, generated_id: str) -> dict[str, Any]:
+    response = client.get(f"{API_URL}/awards/{generated_id}/")
+    response.raise_for_status()
+    return response.json()
+
+
+def _process_row(item: dict[str, Any], detail: dict[str, Any]) -> dict[str, Any]:
+    contract = detail.get("latest_transaction_contract_data") or {}
+    subtier = (detail.get("awarding_agency") or {}).get("subtier_agency") or {}
+    extent = contract.get("extent_competed")
+    return {
+        "process_id": item.get("generated_internal_id"),
+        "buyer_id": subtier.get("code"),
+        "buyer_name": subtier.get("name") or item.get("Awarding Sub Agency"),
+        "country": "US",
+        "category_code": contract.get("naics"),
+        "procurement_method": METHODS.get(extent),
+        "tender_value": None,
+        "currency": "USD",
+        "tender_published_date": None,
+        "tender_deadline": None,
+        "number_of_tenderers": _integer(contract.get("number_of_offers_received")),
+        "extent_competed": extent,
+        "psc": contract.get("product_or_service_code"),
+        "solicitation_procedures": contract.get("solicitation_procedures"),
+        "piid": detail.get("piid"),
+    }
+
+
+def _award_row(item: dict[str, Any], detail: dict[str, Any]) -> dict[str, Any]:
+    # The API exposes only current award values, not the value at award, so
+    # final_value stays empty; see SKILL.md for the bulk-download mapping.
+    recipient = detail.get("recipient") or {}
+    return {
+        "award_id": item.get("generated_internal_id"),
+        "process_id": item.get("generated_internal_id"),
+        "supplier_id": recipient.get("recipient_uei") or item.get("Recipient UEI"),
+        "supplier_name": recipient.get("recipient_name") or item.get("Recipient Name"),
+        "award_value": detail.get("total_obligation"),
+        "currency": "USD",
+        "award_date": detail.get("date_signed") or item.get("Base Obligation Date"),
+        "final_value": None,
+        "base_exercised_options": detail.get("base_exercised_options"),
+        "base_and_all_options": detail.get("base_and_all_options"),
+        "piid": detail.get("piid"),
+    }
+
+
+def _contract_rows(operation: str, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    with httpx.Client(headers=HEADERS, timeout=30) as client:
+        for item in results:
+            generated_id = item.get("generated_internal_id")
+            if not generated_id:
+                continue
+            detail = _detail(client, generated_id)
+            if operation == "procurement-processes":
+                rows.append(_process_row(item, detail))
+            else:
+                rows.append(_award_row(item, detail))
+    return rows
+
+
 def run(input: dict, ctx) -> dict:
+    operation = input.get("operation", "search-awards")
+    if operation not in OPERATIONS:
+        raise ValueError(f"operation must be one of: {', '.join(OPERATIONS)}.")
     award_type = str(input.get("award_type") or "contracts").lower()
+    if operation != "search-awards" and award_type != "contracts":
+        raise ValueError("procurement operations read contracts only.")
     if award_type not in TYPE_CODES:
         raise ValueError(f"award_type must be one of: {', '.join(TYPE_CODES)}.")
     start, end, fiscal_year = _window(input)
@@ -160,19 +260,18 @@ def run(input: dict, ctx) -> dict:
         "order": order,
         "subawards": False,
     }
-    response = httpx.post(
-        ENDPOINT,
-        json=payload,
-        headers={"Accept": "application/json", "User-Agent": "BuriedSignals-catalogue/1.0"},
-        timeout=30,
-    )
+    response = httpx.post(ENDPOINT, json=payload, headers=HEADERS, timeout=30)
     response.raise_for_status()
     data = response.json()
     metadata = data.get("page_metadata") or {}
     results = data.get("results") or []
+    records = (
+        [_normalize(item, award_type) for item in results] if operation == "search-awards"
+        else _contract_rows(operation, results)
+    )
     return {
         "source_id": SOURCE_ID,
-        "records": [_normalize(item, award_type) for item in results],
+        "records": records,
         "page": {
             "limit": limit,
             "page": metadata.get("page", page),

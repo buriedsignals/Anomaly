@@ -1,0 +1,40 @@
+id: campaign_finance.structured_gifts
+version: 1.0.0
+release: released
+title: Structured gifts
+author: buried-signals
+license: internal
+group: domain
+family: campaign_finance
+data_type: campaign_finance
+menu_order: 2
+description: One donor gives one recipient several gifts, each below a threshold, that together reach the threshold within a short window.
+required_tables: [donations]
+required_fields: [id]
+parameters:
+  threshold: 11180
+  window_days: 30
+  min_gifts: 3
+  limit: 200
+parameter_bounds:
+  threshold: {type: number, minimum: 1, maximum: 100000000}
+  window_days: {type: integer, minimum: 1, maximum: 366}
+  min_gifts: {type: integer, minimum: 2, maximum: 100}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: campaign_finance
+severity: medium
+expected_output: [candidate_id, recipient_id, recipient_name, donor_name, window_start, window_end, gifts, total_amount, largest_gift]
+assumptions:
+  - "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml."
+  - "threshold defaults to the UK reporting threshold for donations to a party's central organisation, 11,180 GBP (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans). For US federal candidates use the per-election limit, 3,500 USD in 2025-2026 (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/)."
+  - "A donor is one upper-cased name plus postcode when the source publishes one; the same person spelled two ways counts as two donors."
+  - "Amounts are compared as published; the detector does not convert currencies."
+false_positives:
+  - "Regular monthly or recurring gifts reach any threshold eventually; a long window_days or low min_gifts flags ordinary supporters."
+  - "Published registers only list gifts above their own reporting thresholds or aggregated past them (UK parties report gifts over 2,230 GBP once a donor has passed the central threshold in a calendar year), so small split gifts may be missing or already disclosed as aggregations."
+  - "US committees can lawfully accept separate per-election contributions for a primary and a general election, and refunds or redesignations may follow; check the election designation and memo text of each gift."
+  - "Common names merge different people when the source publishes no postcode."
+  - "UK registers list a party's gifts per accounting unit (local branch) under one regulated entity, so one donor funding several branches on one day looks like split gifts to one recipient."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

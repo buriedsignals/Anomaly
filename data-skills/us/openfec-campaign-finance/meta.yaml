@@ -1,18 +1,21 @@
 id: us/fec/campaign-finance
-title: OpenFEC — Candidates and Committees
+title: OpenFEC — Candidates, Committees and Itemized Receipts
 description: >-
   Search federal candidate and committee entities by name with documented
-  OpenFEC filters, stable FEC identifiers, filing dates, election cycles, and
-  links to FEC profiles. These operations do not return transactions or totals.
+  OpenFEC filters, and fetch Schedule A itemized receipts and committee
+  registration dates as rows of the campaign_finance domain contract
+  (donations, recipients).
 provider_scope: >-
   OpenFEC publishes candidate, committee, report, receipt, disbursement,
   independent-expenditure, electioneering, communication-cost, audit, legal,
   and reference endpoints. This skill releases candidate and committee entity
-  search only.
+  search, Schedule A itemized receipts as donations rows, and committee
+  registrations as recipients rows.
 roadmap_scope:
-  - Receipts, individual contributors, disbursements, independent expenditures, reports, totals, and filings are not released.
+  - Disbursements, independent expenditures, reports, totals, and filings are not released.
+  - Schedule A aggregates (by employer, size, state, zip) and the efile endpoint are not released.
   - Candidate-to-committee and committee-to-candidate joins are not performed by these operations.
-category: campaign-finance
+category: campaign_finance
 jurisdiction: us
 runtime: local
 endpoint: https://api.open.fec.gov/v1
@@ -30,26 +33,36 @@ auth:
   test_request:
     input: {q: Warren, per_page: 1}
 verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+provides:
+  donations: {}
+  recipients: {}
 license:
   data_license: FEC public data subject to FEC Terms of Service and Acceptable Use Policy
   cache_permitted: true
   redistribution_permitted: true
-last_tested: "2026-08-12"
+last_tested: "2026-10-27"
 status: queryable
 notes: >-
   Candidate IDs are office-specific and committee names are not unique.
   OpenFEC says data are updated nightly. Current FEC terms and acceptable-use
   restrictions apply, including restrictions on commercial use and individual
-  contributor information; this release does not return contributor records.
+  contributor information; the donations operation returns contributor names,
+  employers and ZIP codes, which federal law bars from use for soliciting
+  contributions or commercial purposes. Schedule A pages by keyset
+  (last_indexes), not page number, and refuses more than 10 committee_id
+  values per request (HTTP 422, checked 2026-10-27). The shared DEMO_KEY
+  allows only a few requests per hour.
 examples:
   - Find Senate candidates named Warren in Massachusetts
   - Find committees named ActBlue and retain the committee ID
   - Search active House candidates in one state and election cycle
+  - Fetch one campaign committee's 2026 itemized receipts of 3,000 USD or more as donations rows
+  - List super PACs registered since May 2026 as recipients rows
 input_schema:
   type: object
   properties:
     q: {type: string, minLength: 1, maxLength: 200}
-    mode: {type: string, enum: [candidate, committee]}
+    mode: {type: string, enum: [candidate, committee, donations, recipients]}
     page: {type: integer, minimum: 1, default: 1}
     per_page: {type: integer, minimum: 1, maximum: 100, default: 10}
     state: {type: string, pattern: "^[A-Za-z]{2}$"}
@@ -66,7 +79,19 @@ input_schema:
     designation: {type: string, enum: [A, J, P, U, B, D]}
     filing_frequency: {type: string, enum: [A, M, N, Q, T, W, -A, -T]}
     treasurer: {type: string, minLength: 1, maxLength: 200}
-  required: [q]
+    committee_id: {description: One committee id or a list (at most 10 for donations, 100 for recipients)}
+    contributor_name: {type: string}
+    contributor_employer: {type: string}
+    contributor_zip: {type: string}
+    contributor_state: {type: string, pattern: "^[A-Za-z]{2}$"}
+    two_year_transaction_period: {type: integer, minimum: 1976, maximum: 2200}
+    min_date: {type: string, description: Earliest receipt date (YYYY-MM-DD)}
+    max_date: {type: string, description: Latest receipt date (YYYY-MM-DD)}
+    min_amount: {type: number, minimum: 0}
+    is_individual: {type: boolean, default: true, description: Restrict to non-earmarked individual contributions}
+    pages: {type: integer, minimum: 1, maximum: 20, default: 1, description: Schedule A pages to read by keyset}
+    min_first_f1_date: {type: string, description: Committees whose first Form 1 is on or after this date}
+    max_first_f1_date: {type: string, description: Committees whose first Form 1 is on or before this date}
   additionalProperties: false
 output_schema:
   entity: Candidate
@@ -150,3 +175,48 @@ operations:
     prohibited_uses:
       - Do not claim financial totals or transaction activity from an entity-registration row.
       - Follow current FEC terms and acceptable-use restrictions.
+  - id: donations
+    title: Schedule A receipts as donations rows
+    description: One row per itemized receipt for the named committees or contributors, in receipt-date order, read by keyset pagination.
+    status: queryable
+    entities: [Donation]
+    actions: [search]
+    input_fields: [committee_id, contributor_name, contributor_employer, contributor_zip, contributor_state, two_year_transaction_period, min_date, max_date, min_amount, is_individual, per_page, pages]
+    required: []
+    any_of_required: [committee_id, contributor_name, contributor_employer, contributor_zip]
+    adapter_input: {mode: donations}
+    output_fields: [donation_id, recipient_id, recipient_name, recipient_type, donor_name, donor_type, donor_company_number, donor_employer, donor_postcode, amount, currency, donation_date, election_type, memo_text, url]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.open.fec.gov]
+      data_classes: [committee id, contributor name, employer, ZIP, state, date, and amount filters]
+      sensitive_inputs: [contributor_name, contributor_employer, contributor_zip]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not use contributor names or addresses to solicit contributions or for commercial purposes.
+      - Do not present a receipt as illegal; check election designation, memo text, refunds, and redesignations in the filing at url.
+  - id: recipients
+    title: Committee registrations as recipients rows
+    description: One row per committee with its first Statement of Organization date, by committee id or first-filing date range.
+    status: queryable
+    entities: [Committee]
+    actions: [search]
+    input_fields: [committee_id, min_first_f1_date, max_first_f1_date, committee_type, page]
+    required: []
+    any_of_required: [committee_id, min_first_f1_date, max_first_f1_date]
+    adapter_input: {mode: recipients}
+    output_fields: [recipient_id, name, registered_date, committee_type]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: source, cost: free, side_effects: none}
+    disclosure:
+      destinations: [api.open.fec.gov]
+      data_classes: [committee id, committee type, and registration date filters]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a new committee as a sham; registration date alone is not evidence of wrongdoing.

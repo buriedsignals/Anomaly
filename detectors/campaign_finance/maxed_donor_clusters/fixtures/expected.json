@@ -1,0 +1,8 @@
+[
+  {"candidate_id": "C1|employer|ACME CORP", "recipient_id": "C1", "recipient_name": "Friends of Ada",
+   "shared_by": "employer", "shared_value": "ACME CORP", "window_start": "2026-03-01", "window_end": "2026-03-07",
+   "donors": 3, "donations": 4, "total_amount": 13800, "donor_names": "ALICE ONE | BOB TWO | CAROL THREE"},
+  {"candidate_id": "C2|postcode|30301", "recipient_id": "C2", "recipient_name": "Pat for Senate",
+   "shared_by": "postcode", "shared_value": "30301", "window_start": "2026-04-10", "window_end": "2026-04-17",
+   "donors": 3, "donations": 3, "total_amount": 10400, "donor_names": "IVY NINE | JAY TEN | KIM ELEVEN"}
+]
