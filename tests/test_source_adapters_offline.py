@@ -365,3 +365,167 @@ def test_press_releases_require_a_month_before_any_request(run_source) -> None:
 
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []
+
+
+EU_REGISTER = """<?xml version='1.1' encoding='UTF-8'?>
+<ListOfIRPublicDetail xmlns="http://intragate.ec.europa.eu/transparencyregister/odp">
+  <resultList xmlns="">
+    <interestRepresentative>
+      <identificationCode>111-01</identificationCode>
+      <registrationDate>2019-08-28T09:51:42.605+00:00</registrationDate>
+      <name><originalName>Kreab &amp; Co</originalName></name>
+      <registrationCategory>Professional consultancies</registrationCategory>
+      <headOffice><country>BELGIUM</country></headOffice>
+      <interests><interest><name>Energy</name></interest><interest><name>Trade</name></interest></interests>
+      <financialData><closedYear>
+        <startDate>2024-01-01</startDate><endDate>2024-12-01</endDate>
+        <clients>
+          <client><name>Acme Oil</name><revenue><range><min>100000</min><max>199999</max></range></revenue></client>
+          <client><name>Beta Gas</name><revenue><range><max>10000</max></range></revenue></client>
+        </clients>
+      </closedYear></financialData>
+    </interestRepresentative>
+    <interestRepresentative>
+      <identificationCode>222-02</identificationCode>
+      <name><originalName>Gamma Corp guide&#x2;v3</originalName></name>
+      <registrationCategory>Companies &amp; groups</registrationCategory>
+      <headOffice><country>UNITED STATES</country></headOffice>
+      <financialData><closedYear>
+        <startDate>2025-01-01</startDate><endDate>2025-12-01</endDate>
+        <costs><range><min>300000</min><max>399999</max></range></costs>
+      </closedYear></financialData>
+    </interestRepresentative>
+  </resultList>
+</ListOfIRPublicDetail>
+"""
+EU_MEETINGS = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<meetings>
+<meeting><dgname>Maritime Affairs and Fisheries</dgname><dgacronym>MARE</dgacronym><date>2026-10-23</date>
+<location>Brussels</location><subject>Fish farming</subject>
+<entities><entity><name>Seas At Risk</name><id>333-03</id></entity><entity><name>Seas At Risk</name><id>333-03</id></entity>
+<entity><name>Aktaia</name><id>444-04</id></entity></entities>
+<representatives><representative><name>Delilah Al Khudhairy</name><title>Director</title></representative>
+<representative><name>Dan J&amp;#248;rgensen</name><title>Director-General</title></representative></representatives></meeting>
+<meeting><dgname>Maritime Affairs and Fisheries</dgname><dgacronym>MARE</dgacronym><date>2024-01-05</date>
+<location>Brussels</location><subject>Old meeting</subject>
+<entities><entity><name>Seas At Risk</name><id>333-03</id></entity></entities>
+<representatives><representative><name>Ana Old</name><title>Director</title></representative></representatives></meeting>
+</meetings>
+"""
+EU_REGISTER_URL = "https://transparency-register.europa.eu/odplastorganisationxml_en"
+EU_DG_URL = "https://ec.europa.eu/transparency-initiative/meetings/data/meetings/dataxml?name=meetingsdirectorgenerals"
+
+
+def test_eu_register_emits_one_row_per_client_or_one_own_row_with_money_bands(run_source) -> None:
+    # The export declares XML 1.1 and carries control-character references
+    # (here &#x2;) that a plain XML 1.0 parser rejects.
+    result = run_source("eu/transparency-register/lobbying", {"operation": "lobbying-registrations"},
+                        {EU_REGISTER_URL: EU_REGISTER})
+
+    rows = result["records"]
+    columns = domains.load_domain("lobbying")["tables"]["lobbying_registrations"]["columns"]
+    assert all({c for c, meaning in columns.items() if not domains.is_optional(meaning)} <= set(row) for row in rows)
+    assert [(r["registrant_id"], r["client_name"], r["client_country"], r["spend_low"], r["spend_high"]) for r in rows] == [
+        ("111-01", "Acme Oil", None, 100000.0, 199999.0),
+        ("111-01", "Beta Gas", None, 0.0, 10000.0),
+        ("222-02", None, "UNITED STATES", 300000.0, 399999.0),
+    ]
+    assert (rows[0]["period_start"], rows[0]["issue_area"], rows[0]["registrant_name"]) == ("2024-01-01", "Energy|Trade", "Kreab & Co")
+
+
+def test_eu_meetings_emit_one_contact_row_per_organisation_and_official(run_source) -> None:
+    result = run_source("eu/transparency-register/lobbying",
+                        {"operation": "lobbying-contacts", "meetings": ["directors-general"], "since": "2025-01-01"},
+                        {EU_DG_URL: EU_MEETINGS})
+
+    # The repeated entity collapses, the 2024 meeting is before `since`, and the
+    # double-escaped name is unescaped.
+    rows = result["records"]
+    assert [(r["registrant_id"], r["official_name"], r["institution"]) for r in rows] == [
+        ("333-03", "Delilah Al Khudhairy", "Maritime Affairs and Fisheries (MARE)"),
+        ("333-03", "Dan J\u00f8rgensen", "Maritime Affairs and Fisheries (MARE)"),
+        ("444-04", "Delilah Al Khudhairy", "Maritime Affairs and Fisheries (MARE)"),
+        ("444-04", "Dan J\u00f8rgensen", "Maritime Affairs and Fisheries (MARE)"),
+    ]
+    # Every row comes from the same meeting, so they share its id.
+    assert len({r["contact_id"] for r in rows}) == 1
+    assert all(_contract_columns("lobbying_contacts") <= set(row) for row in rows)
+
+
+def _ca_zip(path: Path, files: dict[str, str]) -> str:
+    import zipfile
+
+    with zipfile.ZipFile(path, "w") as archive:
+        for name, text in files.items():
+            archive.writestr(f"export/{name}", "﻿" + text)
+    return str(path)
+
+
+CA_CODES = "SUBJECT_CODE_OBJET,SMT_EN_DESC,SMT_FR_DESC\nSMT-1,Health,Santé\nSMT-2,Agriculture,Agriculture\n"
+
+
+def test_canada_registrations_and_lobbyists_follow_the_registry_dictionary(run_source, tmp_path: Path) -> None:
+    # Columns as published in the registrations data dictionary (2026-10-27).
+    archive = _ca_zip(tmp_path / "registrations.zip", {
+        "Registration_PrimaryExport.csv":
+            "REG_ID_ENR,REG_TYPE_ENR,EN_FIRM_NM_FIRME_AN,RGSTRNT_NUM_DECLARANT,RGSTRNT_LAST_NM_DCLRNT,"
+            "RGSTRNT_1ST_NM_PRENOM_DCLRNT,CLIENT_PROFILE_ID_PROFIL_CLIENT,CLIENT_NUM,EN_CLIENT_NM_AN,"
+            "EFFECTIVE_DATE_VIGUEUR,END_DATE_FIN\n"
+            "969844,1,Bjornson Ltd,895656,Bjornson,Tyler,77,346306,JBS Food Canada Inc.,2025-06-11,2026-03-16\n"
+            "500,2,,111,Boss,Ann,88,999,Acme Corp,2024-01-10,\n",
+        "Registration_SubjectMattersExport.csv": "REG_ID_ENR,SUBJECT_CODE_OBJET,CUSTOM_SUBJ_OBJET_PERSO\n500,SMT-1,\n",
+        "Registration_SubjectMatterDetails Export.csv":
+            "REG_ID_ENR,DESCRIPTION,ASSOC_CAT_CODES,ASSOC_SUBJECT_CODES_OBJET\n969844,Meat exports,,\"SMT-2, SMT-1\"\n",
+        "Codes_SubjectMatterTypesExport.csv": CA_CODES,
+        "Registration_ConsultantLobbyistsExport.csv":
+            "RGSTRNT_NUM_DECLARANT,CLIENT_PROFILE_ID_PROFIL_CLIENT,LBBYST_ID_LBBYST,LBBYST_LAST_NM_LBBYST,LBBYST_1ST_NM_PRENOM_LBBYST\n"
+            "895656,77,5,Bjornson,Tyler\n",
+        "Registration_InHouseLobbyistsExport.csv":
+            "CLIENT_PROFILE_ID_PROFIL_CLIENT,LBBYST_ID_LBBYST,LBBYST_POSITION_POSTE_LBBYST,LBBYST_LAST_NM_LBBYST,LBBYST_FIRST_NM_PRENOM_LBBYST\n"
+            "88,6,VP,Lee,Ana\n",
+        "Registration_PublicOfficeExport.csv":
+            "LOBBYIST_ID_LOBBYISTE,DPOH_IND_TCPD,TITLE_TITRE,BRANCH_DIRECTION,INSTITUTION,POS_START_DATE_DEBUT_POSTE,POS_END_DATE_FIN_POSTE\n"
+            "6,1,Policy Advisor,,Health Canada (HC),2019-01-01,2023-06-30\n",
+    })
+
+    regs = run_source("ca/ocl/registry-of-lobbyists", {"operation": "lobbying-registrations", "registrations_zip": archive})
+    people = run_source("ca/ocl/registry-of-lobbyists", {"operation": "lobbyists", "registrations_zip": archive})
+
+    assert [(r["registration_id"], r["registrant_id"], r["registrant_name"], r["client_name"], r["issue_area"], r["period_start"])
+            for r in regs["records"]] == [
+        ("969844", "895656", "Tyler Bjornson", "JBS Food Canada Inc.", "Agriculture|Health", "2025-06-11"),
+        ("500", "org-999", "Acme Corp", None, "Health", "2024-01-10"),
+    ]
+    assert [(r["registration_id"], r["name"], r["former_office_institution"], r["former_office_end"])
+            for r in people["records"]] == [
+        ("969844", "Tyler Bjornson", None, None),
+        ("500", "Ana Lee", "Health Canada (HC)", "2023-06-30"),
+    ]
+    assert run_source.requested == []
+
+
+def test_canada_contacts_drop_superseded_reports_and_use_the_registrant_ids(run_source, tmp_path: Path) -> None:
+    archive = _ca_zip(tmp_path / "communications.zip", {
+        "Communication_PrimaryExport.csv":
+            "COMLOG_ID,CLIENT_ORG_CORP_NUM,EN_CLIENT_ORG_CORP_NM_AN,REGISTRANT_NUM_DECLARANT,RGSTRNT_LAST_NM_DCLRNT,"
+            "RGSTRNT_1ST_NM_PRENOM_DCLRNT,COMM_DATE,REG_TYPE_ENR,PREV_COMLOG_ID_PRECEDNT\n"
+            "657934,346306,JBS Food Canada Inc.,895656,Bjornson,Tyler,2025-10-23,1,\n"
+            "657935,346306,JBS Food Canada Inc.,895656,Bjornson,Tyler,2025-10-24,1,657934\n"
+            "700,999,Acme Corp,111,Boss,Ann,2025-11-02,2,\n",
+        "Communication_DPOHExport.csv":
+            "COMLOG_ID,DPOH_LAST_NM_TCPD,DPOH_FIRST_NM_PRENOM_TCPD,DPOH_TITLE_TITRE_TCPD,BRANCH_UNIT_DIRECTION_SERVICE,OTHER_INSTITUTION_AUTRE,INSTITUTION\n"
+            "657934,Moran,Chris,Vice President,,,Canadian Food Inspection Agency (CFIA)\n"
+            "657935,Moran,Chris,Vice President,,,Canadian Food Inspection Agency (CFIA)\n"
+            "700,Doe,Jo,Senator,,Senate Finance Office,Other\n",
+        "Communication_SubjectMattersExport.csv": "COMLOG_ID,SUBJECT_CODE_OBJET,CUSTOM_SUBJ_OBJET_PERSO\n657935,SMT-2,\n",
+        "Codes_SubjectMatterTypesExport.csv": CA_CODES,
+    })
+
+    result = run_source("ca/ocl/registry-of-lobbyists", {"operation": "lobbying-contacts", "communications_zip": archive})
+
+    assert [(r["contact_id"], r["registrant_id"], r["contact_date"], r["official_name"], r["institution"], r["subject"])
+            for r in result["records"]] == [
+        ("657935", "895656", "2025-10-24", "Chris Moran", "Canadian Food Inspection Agency (CFIA)", "Agriculture"),
+        ("700", "org-999", "2025-11-02", "Jo Doe", "Senate Finance Office", None),
+    ]
+    assert all(_contract_columns("lobbying_contacts") <= set(row) for row in result["records"])
