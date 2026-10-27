@@ -1,0 +1,48 @@
+id: global/icc/cases
+title: International Criminal Court — Cases
+description: >-
+  The ICC's public case list (34 cases on 2026-10-27) with facets for
+  warrant or summons, crimes charged, state of defendant, stage of
+  proceedings, and situation. Catalogued only: no API was found and the
+  site terms restrict reuse.
+category: court
+jurisdiction: global
+runtime: none
+endpoint: https://www.icc-cpi.int/cases
+
+auth:
+  type: none
+  setup_url: https://www.icc-cpi.int/cases
+
+access: {auth: none, cost: free, side_effects: none}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: false
+  fixture_tested: false
+
+license:
+  data_license: ICC website terms - personal non-commercial use only, no redistribution or derivative compilations without written permission
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-10-27"
+status: catalogued
+notes: >-
+  Checked with Firecrawl on 2026-10-27. https://www.icc-cpi.int/cases showed
+  "34 Cases" with facet links using `f[0]=<facet>:<id>` query parameters, e.g.
+  initial_order_cases:672 (warrant of arrest), accused_crime_case:325
+  (genocide), accused_states_cases:329 (at large), state_of_:131 (trial),
+  situation_name_colloquial_cases:677 (Darfur, Sudan); each case links to a
+  page under its situation (e.g. https://www.icc-cpi.int/darfur/abd-al-rahman).
+  A Firecrawl search found no ICC case API. The site also publishes RSS feeds
+  for news (https://www.icc-cpi.int/rss/news/all) and court records
+  (https://www.icc-cpi.int/rss/records/all), not checked further. The terms
+  (https://www.icc-cpi.int/disclaimer) permit download and copying "for the
+  User's personal, non-commercial use, without any right to resell or
+  redistribute them or to compile or create derivative works therefrom"; the
+  copyright notice reserves all rights and names PublicAffairs.Unit@icc-cpi.int
+  for permission.
+
+operations: []

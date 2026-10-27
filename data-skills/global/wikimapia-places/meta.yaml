@@ -1,0 +1,51 @@
+id: global/wikimapia/places
+title: Wikimapia — Crowd-sourced Places
+description: >-
+  Wikimapia's beta API for crowd-sourced places: place.getbyid,
+  place.getbyarea (bounding box), place.getnearest (point), and
+  place.search (text). Needs a free API key. Catalogued only: no adapter.
+category: geography
+jurisdiction: global
+runtime: none
+endpoint: http://api.wikimapia.org/
+
+auth:
+  type: api_key
+  key_name: wikimapia
+  setup_url: https://wikimapia.org/api/?action=create_key
+  setup_help: |
+    Log in or register at wikimapia.org, then create a key at
+    https://wikimapia.org/api/?action=create_key. Pass it as `key=<key>`.
+
+access: {auth: source, cost: free, side_effects: none}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: false
+  fixture_tested: false
+
+license:
+  data_license: CC BY-SA 3.0 per Wikimapia terms, with attribution conditions; the API page says non-commercial use
+  cache_permitted: true
+  redistribution_permitted: false
+
+last_tested: "2026-10-27"
+status: catalogued
+notes: >-
+  Checked with Firecrawl on 2026-10-27. https://wikimapia.org/api/ documents
+  the beta API at http://api.wikimapia.org/ with functions place.getbyid (id),
+  place.getbyarea (bbox, or lon_min/lat_min/lon_max/lat_max, or x/y/z tile),
+  place.getnearest (lat, lon), and place.search (q, optional lat/lon/distance),
+  plus street and category functions and a guest-privilege place.update;
+  formats xml (default), kml, json, jsonp; paging via page and count. The key
+  page requires login. The licence is contradictory: the API page says data
+  is open "free for non-commercial use (as you mention the original data
+  source, according to Wikimapia TOS)", while the terms
+  (https://wikimapia.org/terms_reference.html, section 1.F) make all
+  Wikimapia Data available "for commercial and non-commercial use under
+  Creative Commons license Attribution-ShareAlike" (linked to CC BY-SA 3.0),
+  and section 1.G requires a link to the original URL and a "Wikimapia.org"
+  mention for public use. Rate limits were not found.
+
+operations: []

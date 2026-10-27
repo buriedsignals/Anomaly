@@ -1,0 +1,46 @@
+id: us/congress-corral/members
+title: Congress Corral — US Congress Members Sheet
+description: >-
+  Free, unofficial single-page browser of US members of Congress (538 listed
+  on 2026-10-27) backed by a published Google Sheets CSV. Catalogued only:
+  weak provenance and no adapter.
+category: legislation
+jurisdiction: "us"
+runtime: none
+endpoint: https://docs.google.com/spreadsheets/d/e/2PACX-1vRH6TXNTVxFc6qyYn4NNdPwrkuYCe5r9-mXn_sCSJJZH9qC1GUDfspkxNgzFrBOFIv62NGKpVSWnsok/pub?output=csv
+
+auth:
+  type: none
+  setup_url: https://localsearchamerica.com/cc/
+
+access: {auth: none, cost: free, side_effects: none}
+
+verification:
+  endpoint_live: false
+  query_tested: false
+  adapter_tested: false
+  fixture_tested: false
+
+license:
+  data_license: No licence stated
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-10-27"
+status: catalogued
+notes: >-
+  Checked with Firecrawl on 2026-10-27. The raw HTML of
+  https://localsearchamerica.com/cc/ fetches the published Google Sheets CSV
+  in `endpoint` and parses it with a naive comma splitter.
+  https://congresscorral.com showed the same app with "Showing 538 of 538
+  legislators" and filters for chamber, party, state, religion, and
+  occupation. Column names are inferred from the page script, not from the
+  CSV: full_name, type, state, district, party, gender, birthday, religion,
+  occupation, short_description, url, address, phone, contact_form,
+  bioguide_id, govtrack_id, opensecrets_id, votesmart_id, fec_ids, cspan_id,
+  wikipedia_id, ballotpedia_id, twitter, facebook, youtube, youtube_rss,
+  mastodon, reddit_topic_id, image. The CSV itself could not be fetched
+  through Firecrawl (anti-bot refusal). No maintainer, source, update date,
+  or licence is stated on either page.
+
+operations: []

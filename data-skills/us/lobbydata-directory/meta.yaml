@@ -1,0 +1,46 @@
+id: us/lobbydata/directory
+title: LobbyData — Federal Lobbying Directory
+description: >-
+  Commercial directory and reporting service on US federal lobbying firms,
+  lobbyists, agencies lobbied, and issues. Catalogued only: there is no
+  adapter and no public API was found.
+category: lobbying
+jurisdiction: "us"
+runtime: none
+endpoint: http://lobbydata.com/Directory
+
+auth:
+  type: subscription
+  setup_url: http://lobbydata.com/Pricing
+  setup_help: |
+    Buy a one-time report or a subscription at http://lobbydata.com/Pricing,
+    then log in at http://lobbydata.com/Tool. Access is through the website.
+
+access: {auth: subscription, cost: paid, side_effects: none}
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: false
+  fixture_tested: false
+
+license:
+  data_license: Commercial service; no data licence or reuse terms found
+  cache_permitted: false
+  redistribution_permitted: false
+
+last_tested: "2026-10-27"
+status: catalogued
+notes: >-
+  Checked with Firecrawl on 2026-10-27. http://lobbydata.com/Directory lists
+  federal lobbying firms by name and links agency and issue directories
+  ("over 250 federal agencies"). http://lobbydata.com/Pricing lists a $29.95
+  one-time single report and subscriptions at $100/$250/$400 per month
+  (1/3/5 users) and $3,000/$4,800 per year (3/5 users). No API was found on the
+  directory, pricing, or features pages; the features page offers export and
+  email alerts to subscribers. The site footer reads "©2010", so currency of
+  the data is unverified. The site does not name its upstream source beyond
+  "the entire disclosure database"; the federal source it draws on was not
+  checked.
+
+operations: []

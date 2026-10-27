@@ -1,0 +1,7 @@
+interface:
+  display_name: "DataHub Core datasets"
+  short_description: "Read Core data packages and bounded CSV rows"
+  default_prompt: "Use $datahub-core-datasets to read the package licence and resources first, fetch bounded CSV pages with next_offset, carry each dataset's licence, and trace figures to the upstream publisher."
+
+policy:
+  allow_implicit_invocation: true

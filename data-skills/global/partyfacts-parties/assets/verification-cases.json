@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/partyfacts/parties",
+  "cases": [
+    {
+      "id": "search-by-name-and-country",
+      "operation": "search-parties",
+      "input": {"q": "labour", "country": "GBR", "limit": 5},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["partyfacts_id", "name", "country", "source_url"]
+      }
+    },
+    {
+      "id": "external-links-for-known-id",
+      "operation": "list-external-links",
+      "input": {"partyfacts_id": 1},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["partyfacts_id", "dataset_key", "dataset_party_id"]
+      }
+    }
+  ]
+}
