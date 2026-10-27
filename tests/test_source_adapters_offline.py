@@ -7,6 +7,7 @@ result contract without network.
 
 from __future__ import annotations
 
+import gzip
 import json
 import sys
 import types
@@ -54,11 +55,17 @@ GDP_CSV = "Country Name,Year,Value\nAruba,1986,405586592\nAruba,1987,487709497\n
 
 
 class _FakeResponse:
-    def __init__(self, status: int, body: str) -> None:
+    def __init__(self, status: int, body: str | bytes) -> None:
         self.status_code = status
         self._body = body
         self.text = body
         self.headers: dict[str, str] = {}
+
+    def iter_bytes(self):
+        # Gzipped exports arrive in small chunks, so line splitting across
+        # chunk boundaries is exercised.
+        body = self._body if isinstance(self._body, bytes) else self._body.encode()
+        yield from (body[i:i + 64] for i in range(0, len(body), 64))
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
@@ -98,6 +105,7 @@ def _fake_httpx(routes: dict[str, str], requested: list[str], params: list[dict]
 
     Client.post = lambda self, url, **kwargs: request(url, **kwargs)
     module = types.ModuleType("httpx")
+    module.HTTPError = type("HTTPError", (Exception,), {})
     module.Client = Client
     module.get = module.post = request
     return module
@@ -752,4 +760,148 @@ def test_electoral_commission_refuses_an_unfiltered_donations_export(run_source)
 
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []
+
+
+
+# --- Parliamentary contract sources --------------------------------------------
+# Each parliamentary operation emits rows carrying the contract columns of its
+# table (domains/parliamentary.yaml), so they run through anomaly.oneshot unmapped.
+
+def _parl_columns(table: str) -> set[str]:
+    return set(domains.load_domain("parliamentary")["tables"][table]["columns"])
+
+
+OPD_EXPORTS = "https://files.openparldata.ch/exports"
+
+
+def _ndjson_gz(rows: list[dict]) -> bytes:
+    return gzip.compress("\n".join(json.dumps(row) for row in rows).encode())
+
+
+def _opd_vote(vote_id: int, voting_id: int, person_id: int, vote: str, group: str, body: str = "CHE") -> dict:
+    return {"id": vote_id, "body_key": body, "voting_id": voting_id, "person_id": person_id, "vote": vote,
+            "person_fullname": f"Person {person_id}", "person_parliamentary_group_name_de": group,
+            "person_parliamentary_group_name_fr": None}
+
+
+OPD_ROUTES = {
+    f"{OPD_EXPORTS}/groups.ndjson.gz": _ndjson_gz([{"id": 1663, "body_key": "CHE", "name_de": "Nationalrat"}]),
+    f"{OPD_EXPORTS}/votings.ndjson.gz": _ndjson_gz([
+        {"id": 10, "body_key": "CHE", "date": "2025-09-10T00:00:00", "group_id": 1663, "affair_id": 7,
+         "title_de": "Gesamtabstimmung", "url_external_de": "https://www.parlament.ch/x"},
+        {"id": 11, "body_key": "CHE", "date": "2025-09-24T00:00:00", "group_id": 1663, "affair_id": 8,
+         "title_de": "Schlussabstimmung", "url_external_de": None},
+        # Outside the date window, and another parliament's voting.
+        {"id": 12, "body_key": "CHE", "date": "2024-03-01T00:00:00", "group_id": 1663},
+        {"id": 13, "body_key": "261", "date": "2025-09-10T00:00:00", "group_id": 465},
+    ]),
+    f"{OPD_EXPORTS}/votes.ndjson.gz": _ndjson_gz([
+        _opd_vote(1, 10, 501, "yes", "Fraktion V"),
+        _opd_vote(2, 10, 502, "absent_excused", "Fraktion S"),
+        _opd_vote(3, 10, 503, "abstention_president", "Fraktion G"),
+        _opd_vote(4, 11, 501, "no", "Fraktionslos"),
+        _opd_vote(5, 11, 502, "abstention", "Fraktion S"),
+        _opd_vote(6, 12, 501, "yes", "Fraktion V"),
+        _opd_vote(7, 13, 501, "yes", "FDP", body="261"),
+    ]),
+    f"{OPD_EXPORTS}/interests.ndjson.gz": _ndjson_gz([
+        {"id": 90, "body_key": "CHE", "person_id": 501, "name_de": " Beispiel AG", "role_name_de": "Verwaltungsrat",
+         "type_payment_harmonized": "paid", "end_date": None},
+        {"id": 91, "body_key": "CHE", "person_id": 501, "name_de": "Verein", "type_payment_harmonized": "honorary",
+         "end_date": None},
+    ]),
+}
+
+
+def test_openparldata_member_votes_come_from_the_export_dated_by_their_votings(run_source) -> None:
+    window = {"from": "2025-09-01", "to": "2025-09-30"}
+    votes = run_source("ch/openparldata/parliamentary-data", {"operation": "parl-member-votes", **window}, OPD_ROUTES)
+    votings = run_source("ch/openparldata/parliamentary-data", {"operation": "parl-votings", **window})
+
+    assert all(_parl_columns("parl_member_votes") <= set(row) for row in votes["records"])
+    # Only CHE votes of votings inside the window, each dated by its voting.
+    assert [(r["voting_id"], r["member_id"], r["position"], r["group_at_vote"], r["vote_date"])
+            for r in votes["records"]] == [
+        (10, 501, "for", "Fraktion V", "2025-09-10"),
+        (10, 502, "absent", "Fraktion S", "2025-09-10"),
+        (10, 503, "abstention_president", "Fraktion G", "2025-09-10"),
+        (11, 501, "against", "Fraktionslos", "2025-09-24"),
+        (11, 502, "abstain", "Fraktion S", "2025-09-24"),
+    ]
+    assert [(r["voting_id"], r["chamber"], r["vote_date"], r["dossier_id"]) for r in votings["records"]] == [
+        (10, "Nationalrat", "2025-09-10", 7), (11, "Nationalrat", "2025-09-24", 8)]
+    assert all(_parl_columns("parl_votings") <= set(row) for row in votings["records"])
+
+
+def test_openparldata_group_spans_and_interests_fill_their_tables(run_source) -> None:
+    spans = run_source("ch/openparldata/parliamentary-data",
+                       {"operation": "parl-affiliations", "from": "2025-09-01", "to": "2025-09-30"}, OPD_ROUTES)
+    interests = run_source("ch/openparldata/parliamentary-data", {"operation": "parl-interests"})
+
+    # Member 501 voted under Fraktion V, then as Fraktionslos: two spans, the last open.
+    assert sorted((r["member_id"], r["org_name"], r["start_date"], r["end_date"])
+                  for r in spans["records"] if r["member_id"] == 501) == [
+        (501, "Fraktion V", "2025-09-10", "2025-09-10"), (501, "Fraktionslos", "2025-09-24", None)]
+    assert all(_parl_columns("parl_affiliations") <= set(row) for row in spans["records"])
+    assert [(r["organisation"], r["paid"]) for r in interests["records"]] == [("Beispiel AG", "paid"), ("Verein", "unpaid")]
+    assert all(_parl_columns("parl_interests") <= set(row) for row in interests["records"])
+
+
+EP_API = "https://data.europarl.europa.eu/api/v2"
+
+
+def _mep(mep_id: str, mandate: tuple[str, str | None], groups: list[tuple[str, str, str | None]]) -> dict:
+    memberships = [{"organization": "org/ep-10", "role": "def/ep-roles/MEMBER_PARLIAMENT",
+                    "memberDuring": {"startDate": mandate[0], "endDate": mandate[1]},
+                    "represents": ["http://publications.europa.eu/resource/authority/country/DEU"]}]
+    memberships += [{"organization": f"org/{org}", "role": "def/ep-roles/MEMBER",
+                     "membershipClassification": "def/ep-entities/EU_POLITICAL_GROUP",
+                     "memberDuring": {"startDate": start, "endDate": end}} for org, start, end in groups]
+    return {"id": f"person/{mep_id}", "identifier": mep_id, "label": f"MEP {mep_id}", "hasMembership": memberships}
+
+
+EP_ROUTES = {
+    f"{EP_API}/meetings/MTG-PL-2025-10-22/decisions": json.dumps({"data": [
+        {"id": "eli/dl/event/MTG-PL-2025-10-22-DEC-1", "activity_id": "MTG-PL-2025-10-22-DEC-1",
+         "notation_votingId": "180001", "activity_date": "2025-10-22", "activity_label": {"en": "Budget - Am 1"},
+         "decision_method": "def/ep-decision-methods/VOTE_ELECTRONIC_ROLLCALL",
+         "had_voter_favor": ["person/1"], "had_voter_against": "person/2"},
+        {"id": "eli/dl/event/MTG-PL-2025-10-22-DEC-2", "activity_id": "MTG-PL-2025-10-22-DEC-2",
+         "activity_date": "2025-10-22", "decision_method": "def/ep-decision-methods/VOTE_HAND"},
+    ]}),
+    f"{EP_API}/meps": json.dumps({"data": [{"identifier": i} for i in ("1", "2", "3", "4")]}),
+    f"{EP_API}/meps/1,2,3,4": json.dumps({"data": [
+        _mep("1", ("2024-07-16", None), [("7037", "2024-07-16", None)]),
+        # Member 2 left Renew for NI before the vote; both memberships are kept.
+        _mep("2", ("2024-07-16", None), [("7035", "2024-07-16", "2025-03-01"), ("7040", "2025-03-02", None)]),
+        # Member 3 sat that day and is in no voter list; member 4's mandate had ended.
+        _mep("3", ("2024-07-16", None), [("7037", "2024-07-16", None)]),
+        _mep("4", ("2024-07-16", "2025-01-31"), [("7037", "2024-07-16", "2025-01-31")]),
+    ]}),
+    f"{EP_API}/corporate-bodies/7035,7037,7040": json.dumps({"data": [
+        {"identifier": "7035", "label": "Renew"}, {"identifier": "7037", "label": "ECR"},
+        {"identifier": "7040", "label": "NI"}]}),
+}
+
+
+def test_europarl_member_votes_record_absent_mandate_holders_from_rollcall_decisions(run_source) -> None:
+    result = run_source("eu/europarl/open-data",
+                        {"operation": "parl-member-votes", "sitting_dates": ["2025-10-22"]}, EP_ROUTES)
+    votings = run_source("eu/europarl/open-data", {"operation": "parl-votings", "sitting_dates": "2025-10-22"})
+
+    assert all(_parl_columns("parl_member_votes") <= set(row) for row in result["records"])
+    # The hand vote is skipped; member 4 is no longer on the roll.
+    assert [(r["voting_id"], r["member_id"], r["position"], r["group_at_vote"]) for r in result["records"]] == [
+        ("180001", "1", "for", "ECR"), ("180001", "2", "against", "NI"), ("180001", "3", "absent", "ECR")]
+    assert [(r["voting_id"], r["vote_date"], r["title"]) for r in votings["records"]] == [
+        ("180001", "2025-10-22", "Budget - Am 1")]
+
+
+def test_europarl_affiliations_keep_ended_memberships_with_their_term(run_source) -> None:
+    result = run_source("eu/europarl/open-data", {"operation": "parl-affiliations"}, EP_ROUTES)
+
+    assert all(_parl_columns("parl_affiliations") <= set(row) for row in result["records"])
+    assert [(r["org_name"], r["start_date"], r["end_date"], r["term"])
+            for r in result["records"] if r["member_id"] == "2"] == [
+        ("Renew", "2024-07-16", "2025-03-01", "10"), ("NI", "2025-03-02", None, "10")]
 
