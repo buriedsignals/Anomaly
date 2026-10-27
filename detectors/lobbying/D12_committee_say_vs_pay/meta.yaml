@@ -1,5 +1,5 @@
 id: lobbying.committee_say_vs_pay
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Committee say vs pay
 author: buried-signals
@@ -16,11 +16,11 @@ source_provenance_hash: sha256:368583f31f72c0afcf9b83fe98d997ebbaa16e3859e1f3dc7
 source_csv_hash: sha256:508ee7a65bb3f1f535f8f190cdf4cbd88259b28e289ae8f44eade65c5df19352
 source_row_count: 161
 source_columns: [lobbying_firm, lobbied_client, lobbyist, former_role, current_committee_members, attack_press_releases, committee_members_attacking, income]
-description: Multi-corpus committee, lobbying, and press-release comparison.
-required_tables: [lobbying_activity_lobbyists, lobbying_filings, committee_assignments, legislators, press_releases]
+description: Lobbying for a target client by former committee staff, compared with the committee's members and their press releases.
+required_tables: [lobbyists, lobbying_registrations, committee_assignments, legislators, press_releases]
 required_fields: [id]
 parameters:
-  target_committee: finance
+  target_committee: 'finance'
   client_pattern: '%apollo%'
   limit: 200
 parameter_bounds:
@@ -29,9 +29,12 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [lobbying_firm, lobbied_client, lobbyist, former_role, current_committee_members, attack_press_releases, committee_members_attacking, income]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [lobbying_firm, lobbied_client, lobbyist, former_role, current_committee_members, attack_press_releases, committee_members_attacking, spend]
+assumptions:
+  - US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.
+  - Press releases are matched to the client pattern and the phrase private equity.
+false_positives:
+  - Members criticise industries they also meet with; co-occurrence is not influence.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

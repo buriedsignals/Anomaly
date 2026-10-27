@@ -36,7 +36,7 @@ def _all_detectors() -> list[dict[str, object]]:
 
 def approved_case(
     tmp_path: Path,
-    source_ids: tuple[str, ...] = ("lobbying_filings",),
+    source_ids: tuple[str, ...] = ("lobbying_registrations",),
     detector_ids: tuple[str, ...] = ("lobbying.spending_spikes",),
     source_payloads: dict[str, str] | None = None,
 ) -> Path:
@@ -49,8 +49,8 @@ def approved_case(
     for index, source_id in enumerate(source_ids):
         payload = (source_payloads or {}).get(
             source_id,
-            "id,registrant_id,registrant_name,filing_year,filing_period,income,filing_type\n"
-            "1,1,Example,2025,Q1,100,Q1\n",
+            "id,registration_id,register,registrant_id,registrant_name,period_start,client_id,client_name,spend_low,spend_high\n"
+            "1,1,test,1,Example,2025-01-01,c1,Client,100,100\n",
         )
         source = write_source(
             tmp_path / f"{source_id}-{index}.csv",

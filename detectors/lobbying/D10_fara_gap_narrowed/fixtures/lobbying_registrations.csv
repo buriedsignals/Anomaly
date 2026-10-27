@@ -1,0 +1,4 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type,client_ppb_country
+f1,x,2025-01-01,acme,ACME LLC,c1,Client c1,CN,90000,90000,,Q,
+f2,x,2025-01-01,hk,"HILL & KNOWLTON, INC.",c2,Client c2,CN,80000,80000,,Q,
+f3,x,2025-01-01,zz,ZED CORP,c3,Client c3,CN,70000,70000,,Q,

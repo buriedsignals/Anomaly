@@ -2,8 +2,10 @@
 
 Reads the LDA.gov REST API (LD-1/LD-2 filings and LD-203 contribution reports)
 and emits rows shaped like the lobbying domain contract (domains/lobbying.yaml):
-each operation fills one contract table and every record carries exactly that
-table's columns, so rows can be written straight to a CSV for anomaly.oneshot.
+each operation fills one contract table (the generic lobbying_registrations and
+lobbyists, or a US extension table) and every record carries that table's
+columns, so rows can be written straight to a CSV for anomaly.oneshot. The
+LDA-to-contract column mapping is documented in SKILL.md.
 An API key is optional; anonymous requests are throttled to 15 per minute.
 """
 
@@ -18,11 +20,12 @@ UA = "BuriedSignals-catalogue/1.0 (https://buriedsignals.com; catalogue@buriedsi
 MAX_PAGES = 40
 MAX_RETRY_AFTER = 60
 
-# Quarter codes sort in calendar order, which the detectors' window functions
-# rely on; the API's own values ("first_quarter", "fourth_quarter", ...) do not.
+SOURCE_ID = "us/lda/lobbying-disclosures"
+# Reporting periods as (first day, last day) within the filing year.
 PERIODS = {
-    "first_quarter": "Q1", "second_quarter": "Q2", "third_quarter": "Q3", "fourth_quarter": "Q4",
-    "mid_year": "H1", "year_end": "H2",
+    "first_quarter": ("01-01", "03-31"), "second_quarter": ("04-01", "06-30"),
+    "third_quarter": ("07-01", "09-30"), "fourth_quarter": ("10-01", "12-31"),
+    "mid_year": ("01-01", "06-30"), "year_end": ("07-01", "12-31"),
 }
 FILING_FILTERS = ("registrant_name", "registrant_id", "client_name", "client_id",
                   "filing_year", "filing_period", "filing_type", "filing_uuid")
@@ -41,29 +44,47 @@ def _text(value):
     return (value.strip() or None) if isinstance(value, str) else value
 
 
-def _filing(f: dict) -> dict:
+def _period(f: dict) -> tuple[str | None, str | None]:
+    year = f.get("filing_year")
+    if not year:
+        return None, None
+    start, end = PERIODS.get(f.get("filing_period"), ("01-01", "12-31"))
+    return f"{year}-{start}", f"{year}-{end}"
+
+
+def _registration(f: dict) -> dict:
     registrant, client = f.get("registrant") or {}, f.get("client") or {}
+    # A registrant filing for itself has no separate client (contract rule).
+    own = bool(client.get("client_self_select"))
+    # Outside firms report income from the client; self-filers report expenses.
+    spend = _number(f.get("income"))
+    spend = _number(f.get("expenses")) if spend is None else spend
+    codes = dict.fromkeys(a.get("general_issue_code") for a in f.get("lobbying_activities") or [])
+    period_start, period_end = _period(f)
     return {
-        "filing_uuid": f.get("filing_uuid"),
-        "filing_year": f.get("filing_year"),
-        "filing_period": PERIODS.get(f.get("filing_period"), f.get("filing_period")),
-        "filing_type": f.get("filing_type"),
+        "registration_id": f.get("filing_uuid"),
+        "register": SOURCE_ID,
+        "period_start": period_start,
+        "period_end": period_end,
         "registrant_id": registrant.get("id"),
         "registrant_name": registrant.get("name"),
-        "client_id": client.get("id"),
-        "client_name": client.get("name"),
+        "client_id": None if own else client.get("id"),
+        "client_name": None if own else client.get("name"),
         "client_country": _text(client.get("country")),
-        "client_ppb_country": _text(client.get("ppb_country")),
-        "client_general_description": _text(client.get("general_description")),
-        "income": _number(f.get("income")),
+        "spend_low": spend,
+        "spend_high": spend,
+        "issue_area": "|".join(code for code in codes if code) or None,
+        "filing_type": f.get("filing_type"),
         "url": f.get("filing_document_url"),
+        "client_description": _text(client.get("general_description")),
+        "client_ppb_country": _text(client.get("ppb_country")),
         "posted_by_name": f.get("posted_by_name"),
     }
 
 
 def _foreign_entities(f: dict) -> list[dict]:
     return [{
-        "filing_uuid": f.get("filing_uuid"),
+        "registration_id": f.get("filing_uuid"),
         "foreign_entity_name": entity.get("name"),
         "country": _text(entity.get("country")),
         "ppb_country": _text(entity.get("ppb_country")),
@@ -72,7 +93,7 @@ def _foreign_entities(f: dict) -> list[dict]:
 
 def _activities(f: dict) -> list[dict]:
     return [{
-        "filing_uuid": f.get("filing_uuid"),
+        "registration_id": f.get("filing_uuid"),
         "general_issue_code": activity.get("general_issue_code"),
         "description": _text(activity.get("description")),
         "activity_index": index,
@@ -80,7 +101,7 @@ def _activities(f: dict) -> list[dict]:
 
 
 def _lobbyists(f: dict) -> list[dict]:
-    """One row per lobbyist and disclosed position on a filing, across its activities."""
+    """One row per lobbyist and disclosed covered position on a filing, across its activities."""
     rows, seen = [], set()
     for activity in f.get("lobbying_activities") or []:
         for entry in activity.get("lobbyists") or []:
@@ -90,19 +111,22 @@ def _lobbyists(f: dict) -> list[dict]:
             if key in seen:
                 continue
             seen.add(key)
+            name = " ".join(part for part in (person.get("first_name"), person.get("last_name")) if part)
             rows.append({
-                "filing_uuid": f.get("filing_uuid"),
+                "registration_id": f.get("filing_uuid"),
                 "lobbyist_id": person.get("id"),
-                "first_name": person.get("first_name"),
-                "last_name": person.get("last_name"),
-                "covered_position": position,
+                "name": name or None,
+                "former_public_office": position,
+                # LDA covered positions are free text with no institution or end date.
+                "former_office_institution": None,
+                "former_office_end": None,
             })
     return rows
 
 
 def _contributions(report: dict) -> list[dict]:
     return [{
-        "filing_uuid": report.get("filing_uuid"),
+        "registration_id": report.get("filing_uuid"),
         "payee_name": _text(item.get("payee_name")),
         "honoree_name": _text(item.get("honoree_name")),
         "amount": _number(item.get("amount")),
@@ -113,11 +137,11 @@ def _contributions(report: dict) -> list[dict]:
 
 
 OPERATIONS = {
-    "lobbying-filings": ("filings", FILING_FILTERS, lambda f: [_filing(f)]),
+    "lobbying-registrations": ("filings", FILING_FILTERS, lambda f: [_registration(f)]),
+    "lobbyists": ("filings", FILING_FILTERS, _lobbyists),
     "lobbying-foreign-entities": ("filings", FILING_FILTERS, _foreign_entities),
     "lobbying-activities": ("filings", FILING_FILTERS, _activities),
-    "lobbying-activity-lobbyists": ("filings", FILING_FILTERS, _lobbyists),
-    "lobbying-contributions": ("contributions", CONTRIBUTION_FILTERS, _contributions),
+    "political-contributions": ("contributions", CONTRIBUTION_FILTERS, _contributions),
 }
 
 
@@ -161,7 +185,7 @@ def _headers(ctx) -> dict:
 
 
 def run(input: dict, ctx) -> dict:
-    operation = input.get("operation", "lobbying-filings")
+    operation = input.get("operation", "lobbying-registrations")
     if operation not in OPERATIONS:
         raise ValueError(f"operation must be one of: {', '.join(OPERATIONS)}.")
     endpoint, allowed, rows = OPERATIONS[operation]

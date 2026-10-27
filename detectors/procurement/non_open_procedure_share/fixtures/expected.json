@@ -1,0 +1,4 @@
+[
+  {"buyer_id": "B1", "buyer_name": "Port Authority", "processes": 5, "non_open_processes": 4, "non_open_share": 0.8, "iqr_upper_fence": 1.025, "above_iqr_fence": false},
+  {"buyer_id": "B4", "buyer_name": "Water Board", "processes": 5, "non_open_processes": 2, "non_open_share": 0.4, "iqr_upper_fence": 1.025, "above_iqr_fence": false}
+]

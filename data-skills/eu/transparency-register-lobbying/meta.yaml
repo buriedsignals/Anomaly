@@ -1,0 +1,122 @@
+id: eu/transparency-register/lobbying
+title: EU Transparency Register and Commission meetings
+description: >-
+  Organisations registered in the EU Transparency Register (daily export) and
+  their meetings with Commissioners, cabinet members and Directors-General,
+  returned as lobbying_registrations and lobbying_contacts rows of the
+  lobbying domain contract.
+provider_scope: >-
+  data.europa.eu lists the register export (XML, XLS), accredited persons for
+  the European Parliament, half-yearly register snapshots since 2015, and the
+  Commission meeting exports (XML, XLSX) per mandate and for
+  Directors-General. This skill releases the daily register export and the
+  meeting exports.
+roadmap_scope:
+  - Half-yearly register snapshots (needed for multi-year spend history) are not read.
+  - European Parliament accredited persons are not mapped to the lobbyists table.
+category: lobbying
+jurisdiction: "eu"
+runtime: local
+endpoint: https://transparency-register.europa.eu/odplastorganisationxml_en
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: true
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Public EU data; no dataset licence is shown on data.europa.eu, so the Commission reuse policy (Decision 2011/833/EU) applies; cite the Transparency Register and the retrieval date
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked on 2026-10-27: dataset pages
+  https://data.europa.eu/data/datasets/transparency-register and
+  https://data.europa.eu/data/datasets/european-commission-meetings-with-interest-representatives
+  read with Firecrawl; the export files were downloaded directly (register
+  XML 118 MB, 18,035 organisations; Commission 2024-2029 meetings 12,009;
+  Directors-General meetings 20,534). The register export declares XML 1.1
+  and carries control-character references XML 1.0 parsers reject; the
+  adapter blanks them. Money is published as ranges for the closed financial
+  year only, so one export gives one period per organisation. Meeting
+  exports carry no meeting id; contact_id hashes file, institution, date,
+  location and subject. Names in the meeting exports are double-escaped
+  HTML entities and are unescaped.
+
+provides:
+  lobbying_registrations: {}
+  lobbying_contacts: {}
+
+examples:
+  - Fetch every registered organisation as lobbying_registrations rows
+  - Fetch the registrations of organisations headquartered in the United States
+  - Fetch Commission meetings since 2025-01-01 as lobbying_contacts rows
+
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [lobbying-registrations, lobbying-contacts], description: The contract table to fill.}
+    ids: {type: array, items: {type: string}, description: Transparency Register identification codes}
+    q: {type: string, description: Case-insensitive substring of the organisation name}
+    country: {type: string, description: Head-office country as the register spells it, for example BELGIUM (registrations only)}
+    category: {type: string, description: Substring of the registration category (registrations only)}
+    meetings: {type: array, items: {type: string, enum: [commission-2024, commission-2019, commission-2014, directors-general]}, description: Meeting exports to read (contacts only; default commission-2024 and directors-general)}
+    since: {type: string, description: First meeting date YYYY-MM-DD (contacts only)}
+    until: {type: string, description: Last meeting date YYYY-MM-DD (contacts only)}
+    limit: {type: integer, minimum: 1, maximum: 100000, default: 20000}
+  additionalProperties: false
+
+output_schema:
+  entity: LobbyingContractRow
+  fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, spend_low, spend_high, issue_area, filing_type, head_office_country, contact_id, contact_date, official_name, official_title, institution, subject]
+
+operations:
+  - id: lobbying-registrations
+    title: Register entries as lobbying_registrations rows
+    description: One row per declared client of a consultancy, or one row per organisation lobbying for itself.
+    status: queryable
+    entities: [LobbyingRegistration]
+    actions: [search]
+    input_fields: [ids, q, country, category, limit]
+    required: []
+    adapter_input: {operation: lobbying-registrations}
+    output_fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, spend_low, spend_high, issue_area, filing_type, head_office_country]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [transparency-register.europa.eu]
+      data_classes: [none; the whole export is downloaded and filtered locally]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read a money range as an exact amount; the register publishes bands.
+
+  - id: lobbying-contacts
+    title: Commission meetings as lobbying_contacts rows
+    description: One row per registered organisation and Commission participant in a published meeting.
+    status: queryable
+    entities: [LobbyingContact]
+    actions: [search]
+    input_fields: [ids, q, meetings, since, until, limit]
+    required: []
+    adapter_input: {operation: lobbying-contacts}
+    output_fields: [contact_id, registrant_id, registrant_name, contact_date, official_name, official_title, institution, subject]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [ec.europa.eu]
+      data_classes: [the name of the meeting export to download]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a published meeting as evidence of influence on a decision.

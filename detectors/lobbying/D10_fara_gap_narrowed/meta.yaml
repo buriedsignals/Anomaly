@@ -1,5 +1,5 @@
 id: lobbying.fara_gap_narrowed
-version: 1.2.0
+version: 2.0.0
 release: released
 title: FARA gap narrowed
 author: buried-signals
@@ -16,8 +16,8 @@ source_provenance_hash: sha256:f27c74c245d7c7eaa3a90d4fcce26f86a7543760d2b56a1e2
 source_csv_hash: sha256:66087f341d23d9de815f3c6b9b191758cdb7f44f12a59b4c6b62f0f8c846ff3b
 source_row_count: 200
 source_columns: [filing_uuid, filing_year, registrant_name, client_name, client_country, client_ppb_country, fe_countries, income, sig_non_us_client, sig_non_us_ppb, sig_foreign_gov_topic, sig_soe_pattern, url]
-description: Named foreign-lobbying candidates absent from the FARA registrant set.
-required_tables: [lobbying_filings, lobbying_foreign_entities, lobbying_activities, foreign_agent_registrants]
+description: LDA filings with foreign-interest signals whose registrant is absent from the FARA registrant list.
+required_tables: [lobbying_registrations, lobbying_foreign_entities, lobbying_activities, foreign_agent_registrants]
 required_fields: [id]
 parameters:
   limit: 200
@@ -25,9 +25,14 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [filing_uuid, filing_year, registrant_name, client_name, client_country, client_ppb_country, fe_countries, income, sig_non_us_client, sig_non_us_ppb, sig_foreign_gov_topic, sig_soe_pattern, url]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [registration_id, filing_year, registrant_name, client_name, client_country, client_ppb_country, fe_countries, spend, sig_non_us_client, sig_non_us_ppb, sig_foreign_gov_topic, sig_soe_pattern, url]
+assumptions:
+  - US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.
+  - Reads filings from 2024 to 2026 only.
+  - Registrant names are matched to FARA names after removing punctuation.
+false_positives:
+  - The LDA exemption lets foreign commercial clients register under LDA instead of FARA.
+  - Name variants hide real FARA registrations.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

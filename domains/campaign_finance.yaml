@@ -1,0 +1,29 @@
+# Campaign finance domain contract: the tables campaign finance detectors read
+# and the columns they need. Any source that can fill these tables (FEC
+# Schedule A receipts, UK Electoral Commission donations, a state register)
+# works with every campaign finance detector. Columns marked optional may be
+# absent from a supplied file; the runner loads them as NULL.
+domain: campaign_finance
+description: Political donations to candidates, committees, parties and campaigners, and when each recipient registered.
+tables:
+  donations:
+    description: One row per reported donation or contribution received.
+    columns:
+      donation_id: Unique identifier of the donation in its source register.
+      recipient_id: Identifier of the committee, party or campaigner that received the donation.
+      recipient_name: Name of the recipient.
+      recipient_type: Kind of recipient, such as candidate committee, PAC, political party or third party (optional).
+      donor_name: Name of the donor as reported.
+      donor_type: Kind of donor, such as individual, company, trade union or committee (optional).
+      donor_company_number: Company registration number of a corporate donor (optional).
+      donor_employer: Employer reported for an individual donor (optional).
+      donor_postcode: Donor's postcode or ZIP code (optional).
+      amount: Amount donated in the source currency (number).
+      currency: ISO currency code of the amount, such as USD or GBP (optional).
+      donation_date: Date the donation was received or accepted (date).
+  recipients:
+    description: Registration record of each recipient, to tell new recipients from established ones.
+    columns:
+      recipient_id: Identifier of the recipient, matching donations.recipient_id.
+      name: Name of the recipient.
+      registered_date: Date the recipient registered with the regulator (date).

@@ -1,0 +1,14 @@
+[
+  {
+    "registrant_id": "r1",
+    "distinct_clients": 1,
+    "registrations": 2,
+    "total_spend": 300000.0
+  },
+  {
+    "registrant_id": "r4",
+    "distinct_clients": 1,
+    "registrations": 2,
+    "total_spend": 299999.0
+  }
+]

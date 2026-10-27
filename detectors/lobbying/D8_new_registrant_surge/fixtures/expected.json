@@ -1,0 +1,16 @@
+[
+  {
+    "registrant_id": "r2",
+    "first_period": "2025-07-01",
+    "registrations": 2,
+    "distinct_clients": 2,
+    "total_spend": 50000.0
+  },
+  {
+    "registrant_id": "r3",
+    "first_period": "2025-10-01",
+    "registrations": 1,
+    "distinct_clients": 1,
+    "total_spend": null
+  }
+]

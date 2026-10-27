@@ -1,0 +1,7 @@
+award_id,process_id,supplier_id,supplier_name,award_value,currency,award_date,final_value
+A1,P1,S1,Alpha Ltd,100000,GBP,2025-01-10,150000
+A2,P2,S2,Beta Ltd,100000,GBP,2025-02-10,110000
+A3,P3,S3,Gamma Ltd,0,GBP,2025-03-10,50000
+A4,P4,S5,Epsilon Ltd,200000,GBP,2025-04-10,300000
+A4,P4,S4,Delta Ltd,200000,GBP,2025-04-10,300000
+A5,P5,S6,Zeta Ltd,100000,GBP,2025-05-10,

@@ -1,0 +1,32 @@
+id: lobbying.foreign_clients
+version: 2.0.0
+release: released
+title: Foreign clients
+author: buried-signals
+license: internal
+group: domain
+family: lobbying
+data_type: lobbying
+menu_order: 13
+description: Registrations whose represented interest is based outside the register's home country or countries.
+required_tables: [lobbying_registrations]
+required_fields: [id]
+parameters:
+  home_countries: ''
+  limit: 500
+parameter_bounds:
+  home_countries: {type: string, max_length: 1000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: lobbying
+severity: medium
+expected_output: [register, registration_id, period_start, registrant_id, registrant_name, represented, client_country, home_countries, spend_low, spend_high, url]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - home_countries lists the register's home countries, spelled as the register spells client_country and separated by a vertical bar; left empty, the most common client_country in each register is the home country.
+  - client_country is the country of the client, or of the registrant when it lobbies for itself.
+false_positives:
+  - Foreign subsidiaries, embassies and international bodies lobby openly and lawfully.
+  - Country names spelled differently from home_countries count as foreign.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

@@ -1,0 +1,8 @@
+process_id,buyer_id,buyer_name,country,category_code,procurement_method,tender_value,currency,number_of_tenderers
+P1,B1,City Council,GB,72000000,open,500000,GBP,1
+P2,B1,City Council,GB,72000000,open,300000,GBP,3
+P3,B2,Health Board,GB,33100000,selective,,GBP,1
+P4,B2,Health Board,GB,33100000,direct,90000,GBP,1
+P5,B3,Roads Agency,GB,45000000,limited,80000,GBP,1
+P6,B3,Roads Agency,GB,45000000,OPEN,200000,GBP,1
+P7,B3,Roads Agency,GB,45000000,open,100000,GBP,

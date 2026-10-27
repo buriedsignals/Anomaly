@@ -1,5 +1,5 @@
 id: lobbying.revolving_door_committee_match
-version: 1.2.1
+version: 2.0.0
 release: released
 title: Revolving door committee match
 author: buried-signals
@@ -16,8 +16,8 @@ source_provenance_hash: sha256:b06e56f4546c87014a8458b6fcd36f67265f6663222816e97
 source_csv_hash: sha256:f09884d2874097a74ea31eb9fc072f6830273623ec28a7d7847c3ab55a155ed7
 source_row_count: 200
 source_columns: [lobbyist_id, first_name, last_name, former_committee, covered_position, filing_uuid, filing_year, filing_period, registrant_name, client_name, general_issue_code, description, income, url]
-description: Lobbyist former-committee text matched to current issue codes.
-required_tables: [lobbying_activity_lobbyists, lobbying_filings, lobbying_activities]
+description: LDA lobbyists whose former committee role matches the issue codes they now lobby on.
+required_tables: [lobbyists, lobbying_registrations, lobbying_activities]
 required_fields: [id]
 parameters:
   limit: 200
@@ -25,9 +25,12 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [lobbyist_id, first_name, last_name, former_committee, covered_position, filing_uuid, filing_year, filing_period, registrant_name, client_name, general_issue_code, description, income, url]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [lobbyist_id, name, former_committee, former_public_office, registration_id, period_start, registrant_name, client_name, general_issue_code, description, spend, url]
+assumptions:
+  - US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.
+  - Committee names are matched in English free text and mapped to LDA issue codes; reads quarterly reports from 2024 to 2026.
+false_positives:
+  - Former staff legitimately work in their field of expertise; cooling-off rules may have expired.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

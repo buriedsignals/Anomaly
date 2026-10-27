@@ -1,0 +1,8 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type
+i0,x,2024-01-01,r0,R0,c0,Client c0,US,1000,1000,,Q
+i1,x,2024-01-01,r1,R1,c1,Client c1,US,1000,1000,,Q
+i2,x,2024-01-01,r2,R2,c2,Client c2,US,1000,1000,,Q
+i9,x,2024-01-01,r9,R9,c9,Client c9,CN,5000,5000,,Q
+y0,y,2024-01-01,b0,B0,,,BELGIUM,10000,24999,,Q
+y1,y,2024-01-01,b1,B1,,,BELGIUM,10000,24999,,Q
+y9,y,2024-01-01,b9,B9,,,UNITED STATES,100000,199999,,Q

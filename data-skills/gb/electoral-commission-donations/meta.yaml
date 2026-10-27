@@ -1,0 +1,112 @@
+id: gb/electoral-commission/donations
+title: Electoral Commission — UK Political Donations and Registrations
+description: >-
+  Donations reported to the UK Electoral Commission by political parties,
+  non-party campaigners, referendum participants and regulated donees, and
+  the registers of parties and campaigners with their registration dates,
+  returned as rows of the campaign_finance domain contract (donations,
+  recipients).
+provider_scope: >-
+  The Electoral Commission's register search publishes donations, loans,
+  spending, registrations, accounts and assets and liabilities, each with a
+  CSV export. This skill releases the donations and registrations exports.
+roadmap_scope:
+  - Loans, campaign spending, annual accounts, and assets and liabilities are not released.
+  - Donations before 1 July 2017 to Northern Ireland recipients are not published by the Commission.
+category: campaign_finance
+jurisdiction: gb
+runtime: local
+endpoint: https://search.electoralcommission.org.uk/api/csv/
+auth: {type: none}
+verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+license:
+  data_license: Electoral Commission public register data; the Commission licenses information under the Open Government Licence wherever possible, but the search export states no licence
+  cache_permitted: true
+  redistribution_permitted: false
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  The Electoral Commission page on donations and loans (checked with
+  Firecrawl on 2026-10-27) says there is no limit on the value of donations,
+  that only permissible sources may give, and that parties report donations
+  over 11,180 GBP to the central party (over 2,230 GBP once a donor has given
+  in the calendar year) and over 2,230 GBP to accounting units. The CSV export
+  ignores its start/rows paging parameters and returns every matching row (an
+  unfiltered export returned 80,161 rows on 2026-10-27), so donations need a
+  search term or an accepted-date range and max_rows bounds the result.
+  Firecrawl could not fetch the export (anti-bot); the adapter reads it
+  directly. Individual donors' postcodes are not published; company donors
+  carry a company number and postcode. A registration's ECRef (PP7931,
+  TP10257) without its prefix equals the donation export's RegulatedEntityId.
+  The licence statement is from https://api.electoralcommission.org.uk/terms/
+  (Firecrawl search, 2026-10-27); redistribution is marked false until a
+  licence for the register export is confirmed.
+provides:
+  donations: {}
+  recipients: {}
+examples:
+  - Fetch donations accepted by political parties in the first half of 2026
+  - Fetch donations to non-party campaigners around the 2024 general election
+  - List registered and lapsed non-party campaigners with their registration dates
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [donations, registrations], description: The contract table to fill}
+    query: {type: string, description: Search text matched against recipient and donor names}
+    entity_types:
+      type: array
+      items: {type: string, enum: [pp, ppm, tp, perpar, rd]}
+      default: [pp]
+      description: Regulated entity types (party, minor party, third party, referendum participant, regulated donee)
+    from: {type: string, description: Earliest accepted date (YYYY-MM-DD); donations only}
+    to: {type: string, description: Latest accepted date (YYYY-MM-DD); donations only}
+    max_rows: {type: integer, minimum: 1, maximum: 50000, default: 10000}
+  additionalProperties: false
+output_schema:
+  entity: CampaignFinanceContractRow
+  fields: [donation_id, recipient_id, recipient_name, recipient_type, donor_name, donor_type, donor_company_number, donor_employer, donor_postcode, amount, currency, donation_date, accepted_date, donor_id, accounting_unit, donation_type, is_aggregation, reporting_period, name, registered_date, entity_type, registration_status, company_number]
+operations:
+  - id: donations
+    title: Donations as donations rows
+    description: One row per reported donation matching the search term or accepted-date range.
+    status: queryable
+    entities: [Donation]
+    actions: [search]
+    input_fields: [query, entity_types, from, to, max_rows]
+    required: []
+    any_of_required: [query, from]
+    adapter_input: {operation: donations}
+    output_fields: [donation_id, recipient_id, recipient_name, recipient_type, donor_name, donor_type, donor_company_number, donor_employer, donor_postcode, amount, currency, donation_date, accepted_date, donor_id, accounting_unit, donation_type, is_aggregation, reporting_period]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [search.electoralcommission.org.uk]
+      data_classes: [search text, entity types, and date range]
+      sensitive_inputs: [query]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present a reported donation as impermissible; the register lists donations the recipient accepted or returned.
+  - id: registrations
+    title: Registrations as recipients rows
+    description: One row per registered, lapsed or deregistered party or campaigner with its approval date.
+    status: queryable
+    entities: [RegulatedEntity]
+    actions: [search]
+    input_fields: [query, entity_types, max_rows]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: registrations}
+    output_fields: [recipient_id, name, registered_date, entity_type, registration_status, company_number]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [search.electoralcommission.org.uk]
+      data_classes: [search text and entity types]
+      sensitive_inputs: [query]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - A recent registration is not evidence of wrongdoing.

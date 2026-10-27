@@ -1,0 +1,8 @@
+process_id,buyer_id,buyer_name,country,procurement_method,tender_value,currency,tender_published_date,tender_deadline
+P1,B1,City Council,GB,open,250000,GBP,2026-01-01,2026-01-06
+P2,B1,City Council,GB,open,250000,GBP,2026-01-01,2026-02-05
+P3,B2,Health Board,GB,direct,50000,GBP,2026-01-01,2026-01-03
+P4,B2,Health Board,GB,,,GBP,2026-03-01,2026-03-10
+P5,B3,Roads Agency,GB,selective,90000,GBP,2026-03-01,
+P6,B3,Roads Agency,GB,open,90000,GBP,2026-04-10,2026-04-01
+P7,B3,Roads Agency,GB,open,90000,GBP,2026-05-01,2026-05-11

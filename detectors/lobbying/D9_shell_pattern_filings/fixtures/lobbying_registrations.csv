@@ -1,0 +1,3 @@
+registration_id,register,period_start,registrant_id,registrant_name,client_id,client_name,client_country,spend_low,spend_high,issue_area,filing_type,client_description,posted_by_name,url
+s1,x,2025-01-01,r1,R1,c1,Client c1,,10000,10000,,Q,A sovereign nation,Jane Filer,
+s2,x,2025-01-01,r2,R2,c2,Client c2,,20000,20000,,Q,Software company,,

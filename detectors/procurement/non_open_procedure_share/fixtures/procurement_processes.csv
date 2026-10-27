@@ -1,0 +1,27 @@
+process_id,buyer_id,buyer_name,country,procurement_method
+B1-1,B1,Port Authority,GB,direct
+B1-2,B1,Port Authority,GB,direct
+B1-3,B1,Port Authority,GB,limited
+B1-4,B1,Port Authority,GB,limited
+B1-5,B1,Port Authority,GB,open
+B1-6,B1,Port Authority,GB,
+B2-1,B2,School Trust,GB,direct
+B2-2,B2,School Trust,GB,open
+B2-3,B2,School Trust,GB,open
+B2-4,B2,School Trust,GB,open
+B2-5,B2,School Trust,GB,open
+B3-1,B3,Small Parish,GB,direct
+B3-2,B3,Small Parish,GB,direct
+B3-3,B3,Small Parish,GB,direct
+B3-4,B3,Small Parish,GB,direct
+B4-1,B4,Water Board,GB,direct
+B4-2,B4,Water Board,GB,limited
+B4-3,B4,Water Board,GB,open
+B4-4,B4,Water Board,GB,open
+B4-5,B4,Water Board,GB,open
+B4-5,B4,Water Board,GB,open
+B5-1,B5,Fire Service,GB,selective
+B5-2,B5,Fire Service,GB,selective
+B5-3,B5,Fire Service,GB,selective
+B5-4,B5,Fire Service,GB,selective
+B5-5,B5,Fire Service,GB,selective

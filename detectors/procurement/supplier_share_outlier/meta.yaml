@@ -1,0 +1,35 @@
+id: procurement.supplier_share_outlier
+version: 1.0.0
+release: released
+title: Supplier share outlier
+author: buried-signals
+license: internal
+group: domain
+family: procurement
+data_type: procurement
+menu_order: 3
+description: Suppliers that win a high share of one buyer's award value in a year, within one market when categories are known (OCP red flags R040 and R050).
+required_tables: [procurement_processes, procurement_awards]
+required_fields: [id]
+parameters:
+  min_awards: 5
+  min_share: 0.4
+  limit: 200
+parameter_bounds:
+  min_awards: {type: integer, minimum: 1, maximum: 100000}
+  min_share: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: procurement
+severity: medium
+expected_output: [supplier_id, supplier_name, buyer_id, buyer_name, category_code, award_year, currency, supplier_value, market_value, supplier_share, supplier_awards, market_awards, market_suppliers]
+assumptions:
+  - Tables follow the procurement domain contract in domains/procurement.yaml.
+  - Supplier and buyer identifiers are stable within one source; names are not matched across sources.
+  - Shares are by award value per buyer, award year, currency and category_code (R050 when filled, R040 when empty); an award with several suppliers is split equally between them.
+  - The default min_share of 0.4 is the example threshold in OCP R040 and R050; min_awards keeps small markets out.
+false_positives:
+  - "OCP R040/R050: small or specialised markets, incumbents on long programmes and buyers with few purchases concentrate legitimately."
+  - Only the awards in the fetched sample count; a partial fetch inflates shares.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

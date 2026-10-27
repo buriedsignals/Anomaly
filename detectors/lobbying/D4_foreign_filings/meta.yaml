@@ -1,5 +1,5 @@
 id: lobbying.foreign_filings
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Foreign filings
 author: buried-signals
@@ -16,8 +16,8 @@ source_provenance_hash: sha256:fc19ac379a874b2cf95d03344b4b0cfbe3903b4e717932950
 source_csv_hash: sha256:8dd54b56a623504230c2fed212a03ad3ee285fb96e5d5774199331b142e4a157
 source_row_count: 500
 source_columns: [filing_uuid, filing_year, filing_period, registrant_name, client_name, client_country, client_ppb_country, foreign_entity_name, foreign_entity_country, foreign_entity_ppb, income, url]
-description: Senate filings carrying foreign entity records.
-required_tables: [lobbying_filings, lobbying_foreign_entities]
+description: LDA filings that list foreign entities with an interest in the lobbying.
+required_tables: [lobbying_registrations, lobbying_foreign_entities]
 required_fields: [id]
 parameters:
   limit: 500
@@ -25,9 +25,11 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [filing_uuid, filing_year, filing_period, registrant_name, client_name, client_country, client_ppb_country, foreign_entity_name, foreign_entity_country, foreign_entity_ppb, income, url]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [registration_id, period_start, registrant_name, client_name, client_country, client_ppb_country, foreign_entity_name, foreign_entity_country, foreign_entity_ppb, spend, url]
+assumptions:
+  - US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.
+false_positives:
+  - Foreign parents and affiliates of US clients are routinely listed.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

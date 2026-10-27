@@ -1,0 +1,11 @@
+[
+  {
+    "registrant_id": "R1",
+    "institution": "Cabinet A",
+    "month": "2025-07-01",
+    "contacts": 6,
+    "total_contacts": 12,
+    "active_months": 7,
+    "burst_ratio": 3.5
+  }
+]

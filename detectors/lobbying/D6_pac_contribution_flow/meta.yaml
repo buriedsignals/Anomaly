@@ -1,5 +1,5 @@
 id: lobbying.pac_contribution_flow
-version: 1.2.0
+version: 2.0.0
 release: released
 title: PAC contribution flow
 author: buried-signals
@@ -16,8 +16,8 @@ source_provenance_hash: sha256:f444d258ae26489e77c9421dc877b5443ac62b61e838c3c18
 source_csv_hash: sha256:a4bce45c0a8d1c4bd273e4004159330183b622203cb898be7ff872af7ce2ab01
 source_row_count: 500
 source_columns: [payee_name, honoree_name, n_contributions, total_amount, distinct_filings, distinct_contributors]
-description: Contribution flows aggregated by payee and honoree.
-required_tables: [lobbying_contributions]
+description: LD-203 contribution flows aggregated by payee and honoree.
+required_tables: [political_contributions]
 required_fields: [id]
 parameters:
   limit: 500
@@ -25,9 +25,11 @@ parameter_bounds:
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [payee_name, honoree_name, n_contributions, total_amount, distinct_filings, distinct_contributors]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [payee_name, honoree_name, n_contributions, total_amount, distinct_reports, distinct_contributors]
+assumptions:
+  - US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.
+false_positives:
+  - LD-203 reports lawful contributions; large flows are expected for party committees.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

@@ -1,5 +1,5 @@
 id: lobbying.new_registrant_surge
-version: 1.2.0
+version: 2.0.0
 release: released
 title: New registrant surge
 author: buried-signals
@@ -16,20 +16,24 @@ source_provenance_hash: sha256:688fc27c714156aaa91ff7c701e222f34b2e613eba0988ad7
 source_csv_hash: sha256:dd80158ef5fe28e2e2da5f18fe5b9dd65b0b1878a60fae11927a3da6757e8550
 source_row_count: 45
 source_columns: [registrant_id, registrant_name, filings_in_window, distinct_clients, total_income, clients]
-description: New registrants ranked by recent filing income.
-required_tables: [lobbying_filings]
+description: Registrants first seen in a register's latest window, ranked by disclosed spend and clients.
+required_tables: [lobbying_registrations]
 required_fields: [id]
 parameters:
-  lookback_quarters: 2
+  lookback_days: 183
   limit: 200
 parameter_bounds:
-  lookback_quarters: {type: integer, minimum: 1, maximum: 40}
+  lookback_days: {type: integer, minimum: 1, maximum: 3660}
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [registrant_id, registrant_name, filings_in_window, distinct_clients, total_income, clients]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [register, registrant_id, registrant_name, first_period, registrations, distinct_clients, total_spend, clients]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - The window ends at the latest period_start in the supplied register data, so the data must span more than the window.
+false_positives:
+  - A partial extract makes every registrant look new.
+  - Renamed or re-registered firms appear as new registrants.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

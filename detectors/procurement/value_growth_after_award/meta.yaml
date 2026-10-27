@@ -1,0 +1,34 @@
+id: procurement.value_growth_after_award
+version: 1.0.0
+release: released
+title: Value growth after award
+author: buried-signals
+license: internal
+group: domain
+family: procurement
+data_type: procurement
+menu_order: 5
+description: Awards whose current or final contract value exceeds the value at award by a minimum ratio and amount (OCP red flag R069).
+required_tables: [procurement_processes, procurement_awards]
+required_fields: [id]
+parameters:
+  min_growth: 0.2
+  min_increase: 0
+  limit: 200
+parameter_bounds:
+  min_growth: {type: number, minimum: 0, maximum: 1000}
+  min_increase: {type: number, minimum: 0, maximum: 1000000000000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: procurement
+severity: medium
+expected_output: [award_id, process_id, buyer_id, buyer_name, suppliers, award_value, final_value, value_increase, growth_ratio, currency, award_date]
+assumptions:
+  - Tables follow the procurement domain contract in domains/procurement.yaml.
+  - award_value is the value at award and final_value the current or final value after amendments, in the same currency; rows without final_value are skipped.
+  - OCP R069 flags any increase; the default min_growth of 0.2 (20 percent) keeps small adjustments out.
+false_positives:
+  - "OCP R069: amendments can be legitimate, such as exercised options, indexation and scope added through a documented change."
+  - Where final_value is cumulative obligations (USAspending), incremental funding of an unchanged contract looks like growth.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

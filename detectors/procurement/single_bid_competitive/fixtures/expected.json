@@ -1,0 +1,5 @@
+[
+  {"process_id": "P1", "buyer_id": "B1", "buyer_name": "City Council", "category_code": "72000000", "procurement_method": "open", "number_of_tenderers": 1, "tender_value": 500000.0, "currency": "GBP"},
+  {"process_id": "P6", "buyer_id": "B3", "buyer_name": "Roads Agency", "category_code": "45000000", "procurement_method": "OPEN", "number_of_tenderers": 1, "tender_value": 200000.0, "currency": "GBP"},
+  {"process_id": "P3", "buyer_id": "B2", "buyer_name": "Health Board", "category_code": "33100000", "procurement_method": "selective", "number_of_tenderers": 1, "tender_value": null, "currency": "GBP"}
+]

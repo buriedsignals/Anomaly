@@ -58,4 +58,17 @@ sale or use of individual-contributor information for solicitation or
 commercial purposes; the FEC describes limited exceptions such as bona fide
 news/publication uses whose principal purpose is not solicitation or commercial
 activity. This is a source summary, not legal advice: check the linked current
-policies for the intended use. Contributor data are outside this skill's release.
+policies for the intended use. The `donations` operation returns contributor
+names, employers and ZIP codes from Schedule A; the same restrictions apply.
+
+## Schedule A receipts and committee registrations
+
+`GET https://api.open.fec.gov/v1/schedules/schedule_a/` (OpenAPI read from
+https://api.open.fec.gov/swagger/ with Firecrawl on 2026-10-27) pages by keyset
+only: append `pagination.last_indexes` (`last_index` and, when sorting by date,
+`last_contribution_receipt_date`) to the next request. `is_individual` restricts
+to non-earmarked individual contributions. A request with more than 10
+`committee_id` values returns HTTP 422 (checked live on 2026-10-27).
+`GET /v1/committees/` accepts `committee_id`, `min_first_f1_date` and
+`max_first_f1_date`; the adapter takes `first_f1_date` as the registration date.
+The SKILL.md maps both responses to the campaign_finance contract.

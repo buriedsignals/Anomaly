@@ -1,0 +1,141 @@
+id: ca/ocl/registry-of-lobbyists
+title: Canada Registry of Lobbyists — registrations and communication reports
+description: >-
+  Federal lobbying registrations, the lobbyists and former public offices
+  they declare, and monthly communication reports with designated public
+  office holders, from the Office of the Commissioner of Lobbying open-data
+  exports, returned as lobbying_registrations, lobbyists and
+  lobbying_contacts rows of the lobbying domain contract.
+provider_scope: >-
+  open.canada.ca lists two ZIP exports from lobbycanada.gc.ca (registrations
+  since 1996 and monthly communication reports since 2008), each a set of
+  CSV files described by a data dictionary. This skill releases both.
+roadmap_scope:
+  - Beneficiaries, government funding and communication techniques are not mapped.
+category: lobbying
+jurisdiction: "ca"
+runtime: local
+endpoint: https://lobbycanada.gc.ca/media/zwcjycef/registrations_enregistrements_ocl_cal.zip
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: false
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Open Data Licence Agreement of the Office of the Commissioner of Lobbying (https://lobbycanada.gc.ca/en/open-data/open-data-licence-agreement/)
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27: dataset pages
+  https://open.canada.ca/data/en/dataset/70ef2117-1095-4d77-80eb-b87f2bada2a4
+  and https://open.canada.ca/data/en/dataset/a34eb330-7136-4f5e-9f5f-3ba41df58b06
+  (both updated 2026-10-26), the two data dictionaries (XLSX), and one
+  registration and one communication report page. lobbycanada.gc.ca answered
+  direct scripted downloads with a Cloudflare challenge (HTTP 403) from a
+  Swiss network, and Firecrawl returned the ZIPs without content, so the
+  adapter was tested only on dictionary-shaped fixtures: the real files'
+  encoding and date format are not verified. Download the ZIPs in a browser
+  and pass their paths as registrations_zip and communications_zip when the
+  direct download is refused. Each registration update is a new version
+  (REG_ID_ENR) with its own effective and end dates. The registry publishes
+  no money.
+
+provides:
+  lobbying_registrations: {}
+  lobbyists: {}
+  lobbying_contacts: {}
+
+examples:
+  - Fetch registrations effective since 2024-01-01 as lobbying_registrations rows
+  - Fetch the lobbyists and former public offices on a client's registrations
+  - Fetch communication reports since 2025-01-01 as lobbying_contacts rows
+
+input_schema:
+  type: object
+  properties:
+    operation: {type: string, enum: [lobbying-registrations, lobbyists, lobbying-contacts], description: The contract table to fill.}
+    q: {type: string, description: Case-insensitive substring of the client, organisation, registrant or firm name}
+    since: {type: string, description: First effective date (registrations, lobbyists) or communication date (contacts), YYYY-MM-DD}
+    registrations_zip: {type: string, description: Path of a downloaded registrations ZIP (registrations, lobbyists)}
+    communications_zip: {type: string, description: Path of a downloaded communications ZIP (contacts)}
+    limit: {type: integer, minimum: 1, maximum: 200000, default: 50000}
+  additionalProperties: false
+
+output_schema:
+  entity: LobbyingContractRow
+  fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, issue_area, filing_type, url, firm_name, client_profile_id, lobbyist_id, name, former_public_office, former_office_institution, former_office_end, contact_id, contact_date, official_name, official_title, institution, subject]
+
+operations:
+  - id: lobbying-registrations
+    title: Registrations as lobbying_registrations rows
+    description: One row per registration version.
+    status: queryable
+    entities: [LobbyingRegistration]
+    actions: [search]
+    input_fields: [q, since, registrations_zip, limit]
+    required: []
+    adapter_input: {operation: lobbying-registrations}
+    output_fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, issue_area, filing_type, url, firm_name, client_profile_id]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lobbycanada.gc.ca]
+      data_classes: [none; the whole export is downloaded and filtered locally]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: lobbycanada.gc.ca may refuse scripted downloads; pass a browser-downloaded registrations_zip.
+    prohibited_uses:
+      - Do not count registration versions as separate lobbying campaigns.
+
+  - id: lobbyists
+    title: Lobbyists and former public offices as lobbyists rows
+    description: One row per lobbyist and declared public office on each selected registration.
+    status: queryable
+    entities: [Lobbyist]
+    actions: [search]
+    input_fields: [q, since, registrations_zip, limit]
+    required: []
+    adapter_input: {operation: lobbyists}
+    output_fields: [registration_id, lobbyist_id, name, former_public_office, former_office_institution, former_office_end]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lobbycanada.gc.ca]
+      data_classes: [none; the whole export is downloaded and filtered locally]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: lobbycanada.gc.ca may refuse scripted downloads; pass a browser-downloaded registrations_zip.
+    prohibited_uses:
+      - A declared former public office is a disclosure, not a breach of the Lobbying Act's five-year prohibition; check the Commissioner's rulings before claiming one.
+
+  - id: lobbying-contacts
+    title: Monthly communication reports as lobbying_contacts rows
+    description: One row per designated public office holder in a current (not superseded) monthly communication report.
+    status: queryable
+    entities: [LobbyingContact]
+    actions: [search]
+    input_fields: [q, since, communications_zip, limit]
+    required: []
+    adapter_input: {operation: lobbying-contacts}
+    output_fields: [contact_id, registrant_id, registrant_name, contact_date, client_name, official_name, official_title, institution, subject]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lobbycanada.gc.ca]
+      data_classes: [none; the whole export is downloaded and filtered locally]
+      sensitive_inputs: []
+      consent_required: false
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: lobbycanada.gc.ca may refuse scripted downloads; pass a browser-downloaded communications_zip.
+    prohibited_uses:
+      - Monthly reports cover only oral and arranged communications with designated public office holders; their absence does not show that no lobbying happened.

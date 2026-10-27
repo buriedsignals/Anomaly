@@ -1,0 +1,18 @@
+[
+  {
+    "register": "x",
+    "issue_area": "TAX",
+    "quarter": "2024-04-01",
+    "registrants": 2,
+    "total_spend": 200000.0,
+    "spend_delta_pct": 100.0
+  },
+  {
+    "register": "y",
+    "issue_area": "Energy",
+    "quarter": "2024-04-01",
+    "registrants": 4,
+    "total_spend": null,
+    "registrants_delta_pct": 100.0
+  }
+]

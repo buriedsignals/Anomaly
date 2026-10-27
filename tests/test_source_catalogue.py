@@ -126,7 +126,7 @@ def _is_catalogued(meta_path: Path) -> bool:
     return re.search(r"^status:\s*catalogued\s*$", text, re.MULTILINE) is not None
 
 
-def test_catalogue_has_exactly_38_packages_and_no_arbiter() -> None:
+def test_catalogue_has_exactly_41_packages_and_no_arbiter() -> None:
     # The Data Navigator source tree this catalogue was migrated from was
     # retired on 2026-08-23; parity with it was verified before deletion
     # (task 0020 evidence) and the checked-in expectations below are now
@@ -134,7 +134,7 @@ def test_catalogue_has_exactly_38_packages_and_no_arbiter() -> None:
     anomaly_meta = sorted(SOURCE_ROOT.rglob("meta.yaml"))
     anomaly_ids = [_source_id(path) for path in anomaly_meta]
 
-    assert len(anomaly_ids) == 38
+    assert len(anomaly_ids) == 41
     assert len(anomaly_ids) == len(set(anomaly_ids))
     assert ARBITER_ID not in anomaly_ids
     assert anomaly_ids.count("global/opensanctions") == 1
@@ -150,7 +150,7 @@ def test_shared_result_contract_validates_each_real_adapter_output_without_netwo
 ) -> None:
     monkeypatch.setitem(sys.modules, "httpx", _offline_httpx())
     entries = discover_sources(SOURCE_ROOT)
-    assert len(entries) == 38
+    assert len(entries) == 41
     for entry in entries:
         adapter = load_source_adapter(entries, entry.source_id)
         assert callable(getattr(adapter, "run", None))

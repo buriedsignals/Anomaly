@@ -1,0 +1,14 @@
+award_id,process_id,supplier_id,supplier_name,award_value,currency,award_date
+A1,P1,S1,Alpha Ltd,100,GBP,2025-01-10
+A2,P2,S1,Alpha Ltd,100,GBP,2025-03-01
+A3,P3,S2,Beta Ltd,100,GBP,2025-04-01
+A4,P4,S3,Gamma Ltd,100,GBP,2025-05-01
+A5,P5,S1,Alpha Ltd,200,GBP,2025-06-01
+A5,P5,S4,Delta Ltd,200,GBP,2025-06-01
+A6,P6,S9,Iota Ltd,50,GBP,2024-06-01
+A7,P7,S5,Epsilon Ltd,100,GBP,2025-02-01
+A8,P8,S5,Epsilon Ltd,100,GBP,2025-02-02
+A9,P9,S5,Epsilon Ltd,100,GBP,2025-02-03
+A10,P10,S6,Zeta Ltd,100,GBP,2025-02-04
+A11,P11,S7,Eta Ltd,100,GBP,2025-02-05
+A12,P12,S8,Theta Ltd,,GBP,2025-02-06

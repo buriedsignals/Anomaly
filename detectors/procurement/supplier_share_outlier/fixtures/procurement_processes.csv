@@ -1,0 +1,13 @@
+process_id,buyer_id,buyer_name,country,category_code,currency
+P1,B1,City Council,GB,72000000,GBP
+P2,B1,City Council,GB,72000000,GBP
+P3,B1,City Council,GB,72000000,GBP
+P4,B1,City Council,GB,72000000,GBP
+P5,B1,City Council,GB,72000000,GBP
+P6,B1,City Council,GB,72000000,GBP
+P7,B2,Health Board,GB,,GBP
+P8,B2,Health Board,GB,,GBP
+P9,B2,Health Board,GB,,GBP
+P10,B2,Health Board,GB,,GBP
+P11,B2,Health Board,GB,,GBP
+P12,B2,Health Board,GB,,GBP

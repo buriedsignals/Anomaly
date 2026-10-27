@@ -4,7 +4,7 @@
   "cases": [
     {
       "id": "registrant-year-filings",
-      "operation": "lobbying-filings",
+      "operation": "lobbying-registrations",
       "input": {
         "registrant_id": 682,
         "filing_year": 2025
@@ -15,9 +15,10 @@
         ],
         "min_records": 1,
         "required_fields": [
-          "filing_uuid",
-          "filing_year",
-          "filing_period",
+          "registration_id",
+          "register",
+          "period_start",
+          "period_end",
           "filing_type",
           "registrant_id",
           "registrant_name",
@@ -27,7 +28,7 @@
     },
     {
       "id": "registrant-year-contributions",
-      "operation": "lobbying-contributions",
+      "operation": "political-contributions",
       "input": {
         "registrant_id": 682,
         "filing_year": 2025
@@ -38,7 +39,7 @@
         ],
         "min_records": 1,
         "required_fields": [
-          "filing_uuid",
+          "registration_id",
           "contributor_name"
         ]
       }

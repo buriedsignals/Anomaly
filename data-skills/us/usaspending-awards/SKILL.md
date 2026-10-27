@@ -51,6 +51,45 @@ broader award keyword filter. `award_id` is quoted upstream for exact matching.
   ID, agency, dates, and the linked award profile.
 - Corrections and modifications can change award-level values over time.
 
+## Fill the procurement contract
+
+`procurement-processes` and `procurement-awards` run the contract search, then
+read each award's detail (`/api/v2/awards/{generated_unique_award_id}/`, one
+extra request per record) and return rows of the procurement domain contract
+(`domains/procurement.yaml`). Write each to CSV and run the procurement
+detectors with `python -m anomaly.oneshot --tables procurement_processes=... --tables procurement_awards=...`.
+
+```bash
+catalogue query us/usaspending/awards --operation procurement-processes \
+  --input '{"keyword":"software","fiscal_year":2025,"limit":50}'
+```
+
+| If the source publishes | map it to column |
+|---|---|
+| `generated_unique_award_id` | `process_id` and `award_id` (one award per contract action) |
+| `awarding_agency.subtier_agency.code` / `.name` | `buyer_id`, `buyer_name` (`office_agency_name` is finer if needed) |
+| (federal data) | `country` = `US`, `currency` = `USD` |
+| `latest_transaction_contract_data.naics` (PSC in `product_or_service_code`, kept as `psc`) | `category_code` |
+| `latest_transaction_contract_data.extent_competed`: A → open; D, CDO → selective; F → limited; B, C, E, G, NDO → direct | `procurement_method` (raw code kept as `extent_competed`) |
+| `latest_transaction_contract_data.number_of_offers_received` | `number_of_tenderers` |
+| `recipient.recipient_uei`, `recipient.recipient_name` | `supplier_id`, `supplier_name` |
+| `total_obligation` | `award_value` |
+| `date_signed` | `award_date` |
+| `base_exercised_options` (current value), `base_and_all_options` (potential value) | extra columns, not mapped |
+| solicitation dates (SAM.gov, not USAspending) | `tender_published_date`, `tender_deadline` stay empty |
+
+The extent-competed mapping follows the FPDS code definitions in the
+USAspending data dictionary and the OCDS method codelist; F (simplified
+acquisition, competed) is `limited` because the buyer chooses whom to ask.
+
+`final_value` stays empty: the API reports only current values, not the value
+at award, and cumulative obligations grow with incremental funding of an
+unchanged contract (a live sample on 2026-10-27 flagged 47 of 50 contracts that
+way). For `value_growth_after_award`, take the bulk award download
+(`Contracts_PrimeTransactions`) and map the first action's
+`base_and_exercised_options_value` to `award_value` and the latest
+`base_and_exercised_options_value` to `final_value`.
+
 Read [the API reference](references/api-reference.md) for filters, type codes,
 type-specific fields, pagination, and amount semantics. Read
 [the query guide](references/query-guide.md) for reproducible award research.

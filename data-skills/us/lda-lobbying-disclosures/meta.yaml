@@ -3,8 +3,9 @@ title: LDA.gov — US Lobbying Disclosure Act Filings
 description: >-
   Federal lobbying registrations and quarterly activity reports (LD-1/LD-2)
   and political contribution reports (LD-203) from the LDA.gov REST API,
-  returned as rows of the lobbying domain contract: filings, foreign
-  entities, activities, lobbyists, and contributions.
+  returned as rows of the lobbying domain contract: the generic
+  lobbying_registrations and lobbyists tables, plus the US extension tables
+  lobbying_foreign_entities, lobbying_activities and political_contributions.
 provider_scope: >-
   LDA.gov publishes filings, contribution reports, registrants, clients,
   lobbyists, and constants. This skill releases bounded filing and
@@ -50,21 +51,22 @@ notes: >-
   (and to senate.gov and congress.gov) got HTTP 403 "Access Denied" from the
   CDN on 2026-10-27 while Firecrawl fetched the same API URLs, so the API may
   refuse non-US networks; the live check used Firecrawl-fetched API pages fed
-  through this adapter. filing_period is rewritten to Q1-Q4 (quarters) and
-  H1/H2 (LD-203 mid-year and year-end) so periods sort in calendar order.
-  client_id is the API's client record id. Amendments keep their own
-  filing_type codes (for example 1A), so detectors that read Q1-Q4 see
-  original reports only.
+  through this adapter. filing_year and filing_period become period_start
+  and period_end dates. spend_low = spend_high = income, or expenses when a
+  registrant files for itself (client fields are then empty). client_id is
+  the API's client record id. Amendments keep their own filing_type codes
+  (for example 1A); generic detectors keep one value per registrant, client
+  and period, and US detectors that read Q1-Q4 see original reports only.
 
 provides:
-  lobbying_filings: {}
+  lobbying_registrations: {}
+  lobbyists: {}
   lobbying_foreign_entities: {}
   lobbying_activities: {}
-  lobbying_activity_lobbyists: {}
-  lobbying_contributions: {}
+  political_contributions: {}
 
 examples:
-  - Fetch one registrant's 2025 filings as lobbying_filings rows
+  - Fetch one registrant's 2025 filings as lobbying_registrations rows
   - Fetch the lobbyists and covered positions on a client's 2024 reports
   - Fetch a registrant's 2025 LD-203 contribution items
 
@@ -73,7 +75,7 @@ input_schema:
   properties:
     operation:
       type: string
-      enum: [lobbying-filings, lobbying-foreign-entities, lobbying-activities, lobbying-activity-lobbyists, lobbying-contributions]
+      enum: [lobbying-registrations, lobbyists, lobbying-foreign-entities, lobbying-activities, political-contributions]
       description: The contract table to fill.
     registrant_name: {type: string, description: Registrant name text match}
     registrant_id: {type: integer, minimum: 1}
@@ -92,20 +94,20 @@ input_schema:
 
 output_schema:
   entity: LobbyingContractRow
-  fields: [filing_uuid, filing_year, filing_period, filing_type, registrant_id, registrant_name, client_id, client_name, client_country, client_ppb_country, client_general_description, income, url, posted_by_name, foreign_entity_name, country, ppb_country, general_issue_code, description, activity_index, lobbyist_id, first_name, last_name, covered_position, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
+  fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, spend_low, spend_high, issue_area, filing_type, url, client_description, client_ppb_country, posted_by_name, lobbyist_id, name, former_public_office, former_office_institution, former_office_end, foreign_entity_name, country, ppb_country, general_issue_code, description, activity_index, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
 
 operations:
-  - id: lobbying-filings
-    title: Filings as lobbying_filings rows
+  - id: lobbying-registrations
+    title: Filings as lobbying_registrations rows
     description: One row per LD-1/LD-2 filing matching the filters.
     status: queryable
-    entities: [LobbyingFiling]
+    entities: [LobbyingRegistration]
     actions: [search]
     input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
-    adapter_input: {operation: lobbying-filings}
-    output_fields: [filing_uuid, filing_year, filing_period, filing_type, registrant_id, registrant_name, client_id, client_name, client_country, client_ppb_country, client_general_description, income, url, posted_by_name]
+    adapter_input: {operation: lobbying-registrations}
+    output_fields: [registration_id, register, period_start, period_end, registrant_id, registrant_name, client_id, client_name, client_country, spend_low, spend_high, issue_area, filing_type, url, client_description, client_ppb_country, posted_by_name]
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
@@ -116,7 +118,30 @@ operations:
     verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
     availability_reason: null
     prohibited_uses:
-      - Do not treat a missing income value as concealment without opening the filing document at url.
+      - Do not treat a missing spend value as concealment without opening the filing document at url.
+
+  - id: lobbyists
+    title: Lobbyists as lobbyists rows
+    description: One row per lobbyist and disclosed covered position on the matching filings.
+    status: queryable
+    entities: [Lobbyist]
+    actions: [search]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    required: []
+    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
+    adapter_input: {operation: lobbyists}
+    output_fields: [registration_id, lobbyist_id, name, former_public_office, former_office_institution, former_office_end]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [lda.gov]
+      data_classes: [registrant, client, year, period, and filing-type filters]
+      sensitive_inputs: [registrant_name, client_name]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Covered positions are self-disclosed free text; confirm a former role from primary records before reporting it.
 
   - id: lobbying-foreign-entities
     title: Foreign entities as lobbying_foreign_entities rows
@@ -128,7 +153,7 @@ operations:
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbying-foreign-entities}
-    output_fields: [filing_uuid, foreign_entity_name, country, ppb_country]
+    output_fields: [registration_id, foreign_entity_name, country, ppb_country]
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
@@ -151,7 +176,7 @@ operations:
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbying-activities}
-    output_fields: [filing_uuid, general_issue_code, description, activity_index]
+    output_fields: [registration_id, general_issue_code, description, activity_index]
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
@@ -164,31 +189,8 @@ operations:
     prohibited_uses:
       - Do not infer which bill or office was lobbied from the issue code alone.
 
-  - id: lobbying-activity-lobbyists
-    title: Lobbyists as lobbying_activity_lobbyists rows
-    description: One row per lobbyist and disclosed covered position on the matching filings.
-    status: queryable
-    entities: [Lobbyist]
-    actions: [search]
-    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
-    required: []
-    any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
-    adapter_input: {operation: lobbying-activity-lobbyists}
-    output_fields: [filing_uuid, lobbyist_id, first_name, last_name, covered_position]
-    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
-    access: {auth: none, cost: free, side_effects: none}
-    disclosure:
-      destinations: [lda.gov]
-      data_classes: [registrant, client, year, period, and filing-type filters]
-      sensitive_inputs: [registrant_name, client_name]
-      consent_required: false
-    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
-    availability_reason: null
-    prohibited_uses:
-      - Covered positions are self-disclosed free text; confirm a former role from primary records before reporting it.
-
-  - id: lobbying-contributions
-    title: LD-203 items as lobbying_contributions rows
+  - id: political-contributions
+    title: LD-203 items as political_contributions rows
     description: One row per contribution item on the matching LD-203 reports.
     status: queryable
     entities: [Contribution]
@@ -196,8 +198,8 @@ operations:
     input_fields: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree, page, pages]
     required: []
     any_of_required: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree]
-    adapter_input: {operation: lobbying-contributions}
-    output_fields: [filing_uuid, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
+    adapter_input: {operation: political-contributions}
+    output_fields: [registration_id, payee_name, honoree_name, amount, contributor_name, date, contribution_type]
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:

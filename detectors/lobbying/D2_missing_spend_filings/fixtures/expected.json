@@ -1,0 +1,9 @@
+[
+  {
+    "registrant_id": "r2",
+    "reports_without_spend": 4,
+    "distinct_clients": 2,
+    "first_seen": "2024-01-01",
+    "last_seen": "2024-10-01"
+  }
+]

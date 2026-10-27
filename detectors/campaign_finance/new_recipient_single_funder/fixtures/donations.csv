@@ -1,0 +1,9 @@
+donation_id,recipient_id,recipient_name,donor_name,amount,donation_date
+n1,R1,New Values PAC,BUILDING OUR FUTURE LLC,1500000,2026-08-20
+n2,R1,New Values PAC,Building Our Future LLC,1000000,2026-09-15
+n3,R1,New Values PAC,SMALL DONOR,1000,2026-09-20
+n4,R1,New Values PAC,LATE DONOR,5000000,2027-01-15
+n5,R2,Old Party,BIG DONOR,1000000,2026-08-20
+n6,R3,Fresh Campaign,A DONOR,6000,2026-07-10
+n7,R3,Fresh Campaign,B DONOR,6000,2026-07-11
+n8,R4,Tiny Group,ONE FUNDER,5000,2026-08-02

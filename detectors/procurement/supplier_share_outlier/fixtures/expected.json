@@ -1,0 +1,4 @@
+[
+  {"supplier_id": "S5", "supplier_name": "Epsilon Ltd", "buyer_id": "B2", "buyer_name": "Health Board", "category_code": null, "award_year": 2025, "currency": "GBP", "supplier_value": 300.0, "market_value": 500.0, "supplier_share": 0.6, "supplier_awards": 3, "market_awards": 5, "market_suppliers": 3},
+  {"supplier_id": "S1", "supplier_name": "Alpha Ltd", "buyer_id": "B1", "buyer_name": "City Council", "category_code": "72000000", "award_year": 2025, "currency": "GBP", "supplier_value": 300.0, "market_value": 600.0, "supplier_share": 0.5, "supplier_awards": 3, "market_awards": 5, "market_suppliers": 4}
+]

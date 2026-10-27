@@ -67,6 +67,25 @@ only. That mode retrieves at most 15,000 notices; the adapter caps each page at
   winner, lot structure, currency, or award value. Open `source_url` and inspect
   the full notice.
 
+## Procurement contract mapping (not implemented)
+
+This adapter does not fill `domains/procurement.yaml`; its search fields do not
+carry winners or values. An agent reading full eForms notices (XML) can map
+them as the OCDS for eForms profile does
+(https://standard.open-contracting.org/profiles/eforms/latest/en/mapping/,
+read 2026-10-27):
+
+| If the notice publishes | map it to column |
+|---|---|
+| BT-105 Procedure Type (via the profile's procedure-type table; not set for oth-mult, oth-single) | `procurement_method` |
+| BT-262 Main Classification Code (CPV) | `category_code` |
+| BT-27 Estimated Value | `tender_value` |
+| BT-131 Deadline Receipt Tenders | `tender_deadline` |
+| BT-759 Received Submissions Count, per lot result | `number_of_tenderers` |
+| BT-720 Tender Value of the winning tender | `award_value` |
+| BT-145 Contract Conclusion Date | `award_date` |
+| Winning tenderer organisation (OPT-300 / OPT-310 references) | `supplier_id`, `supplier_name` |
+
 Read [the API reference](references/api-reference.md) for the official OpenAPI
 constraints and [the query guide](references/query-guide.md) for procurement
 evidence chains.

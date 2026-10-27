@@ -1,5 +1,5 @@
 id: lobbying.spending_spikes
-version: 1.2.0
+version: 2.0.0
 release: released
 title: Spending spikes
 author: buried-signals
@@ -16,22 +16,27 @@ source_provenance_hash: sha256:2932a008b02616d8fbe5e39b4e5b21549148473e528fc9a68
 source_csv_hash: sha256:897b9fc3719896351e2e4de3dca04a1fc852fbf358c6ba026ce8c7598c737037
 source_row_count: 200
 source_columns: [registrant_id, registrant_name, filing_year, filing_period, total_income, prior_mean, prior_sd, prior_n, z_score]
-description: Registrant-quarter income z-score against prior quarters.
-required_tables: [lobbying_filings]
+description: A registrant's disclosed spend in one period jumps against its previous four periods (z-score).
+required_tables: [lobbying_registrations]
 required_fields: [id]
 parameters:
-  min_income: 50000
+  min_spend: 50000
   min_z_abs: 2.0
   limit: 200
 parameter_bounds:
-  min_income: {type: number, minimum: 0, maximum: 1000000000}
+  min_spend: {type: number, minimum: 0, maximum: 1000000000}
   min_z_abs: {type: number, minimum: 0.0, maximum: 1000.0}
   limit: {type: integer, minimum: 1, maximum: 1000}
 signal_category: lobbying
 severity: medium
-expected_output: [registrant_id, registrant_name, filing_year, filing_period, total_income, prior_mean, prior_sd, prior_n, z_score]
-assumptions: [Tables follow the lobbying domain contract in domains/lobbying.yaml.]
-false_positives: [Legitimate activity can produce the observed pattern.]
+expected_output: [register, registrant_id, registrant_name, period_start, total_spend, prior_mean, prior_sd, prior_n, z_score]
+assumptions:
+  - Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).
+  - One spend value is kept per registrant, client and period (the highest), so amendments do not double count.
+  - Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values.
+false_positives:
+  - A registrant that gains a large client or changes its reporting method spikes legitimately.
+  - Registers without money columns produce no rows.
 sensitive_output: redact
 resource_limits: {timeout_seconds: 5, memory_mb: 256}
 query: query.sql

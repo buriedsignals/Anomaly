@@ -1,33 +1,39 @@
-
-            WITH per_q AS (
-                SELECT
-                    a.general_issue_code,
-                    f.filing_year,
-                    f.filing_period,
-                    count(DISTINCT f.registrant_id) AS registrants,
-                    sum(coalesce(f.income, 0)) AS total_income
-                FROM lobbying_activities a
-                JOIN lobbying_filings f USING (filing_uuid)
-                WHERE f.filing_type IN ('Q1','Q2','Q3','Q4')
-                  AND a.general_issue_code IS NOT NULL
-                GROUP BY 1,2,3
-            ),
-            ordered AS (
-                SELECT
-                    general_issue_code, filing_year, filing_period, registrants, total_income,
-                    lag(total_income) OVER (PARTITION BY general_issue_code
-                                            ORDER BY filing_year, filing_period) AS prior_income,
-                    lag(registrants) OVER (PARTITION BY general_issue_code
-                                           ORDER BY filing_year, filing_period) AS prior_registrants
-                FROM per_q
-            )
-            SELECT *,
-                   CASE WHEN prior_income > 0 THEN round(100.0 * (total_income - prior_income) / prior_income, 1) END AS income_delta_pct,
-                   CASE WHEN prior_registrants > 0 THEN round(100.0 * (registrants - prior_registrants) / prior_registrants, 1) END AS registrants_delta_pct
-            FROM ordered
-            WHERE prior_income IS NOT NULL
-              AND prior_income > 0
-              AND abs((total_income - prior_income) / prior_income) * 100 >= ?
-            ORDER BY abs(total_income - prior_income) DESC
-            LIMIT ?
-        
+WITH parameters AS (SELECT ? AS min_delta_pct),
+issues AS (
+    SELECT
+        register, registrant_id, registration_id,
+        CAST(date_trunc('quarter', period_start) AS DATE) AS quarter,
+        trim(unnest(string_split(issue_area, '|'))) AS issue_area,
+        (coalesce(spend_low, spend_high) + coalesce(spend_high, spend_low)) / 2.0 AS spend
+    FROM lobbying_registrations
+    WHERE issue_area IS NOT NULL
+),
+per_quarter AS (
+    SELECT register, issue_area, quarter,
+           count(DISTINCT registrant_id) AS registrants,
+           sum(spend) AS total_spend
+    FROM issues
+    WHERE issue_area <> ''
+    GROUP BY register, issue_area, quarter
+),
+ordered AS (
+    SELECT *,
+           lag(total_spend) OVER issue_order AS prior_spend,
+           lag(registrants) OVER issue_order AS prior_registrants
+    FROM per_quarter
+    WINDOW issue_order AS (PARTITION BY register, issue_area ORDER BY quarter)
+),
+deltas AS (
+    SELECT *,
+           CASE WHEN prior_spend > 0 THEN round(100.0 * (total_spend - prior_spend) / prior_spend, 1) END AS spend_delta_pct,
+           CASE WHEN prior_registrants > 0 THEN round(100.0 * (registrants - prior_registrants) / prior_registrants, 1) END AS registrants_delta_pct
+    FROM ordered
+)
+SELECT register, issue_area, quarter, registrants, prior_registrants, registrants_delta_pct,
+       total_spend, prior_spend, spend_delta_pct
+FROM deltas
+WHERE (prior_spend > 0 AND abs(spend_delta_pct) >= (SELECT min_delta_pct FROM parameters))
+   OR (prior_spend IS NULL AND prior_registrants > 0
+       AND abs(registrants_delta_pct) >= (SELECT min_delta_pct FROM parameters))
+ORDER BY abs(coalesce(total_spend - prior_spend, registrants - prior_registrants)) DESC, issue_area, quarter
+LIMIT ?

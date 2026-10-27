@@ -2,7 +2,8 @@ id: gb/find-a-tender/notices
 title: UK Find a Tender — OCDS Notices
 description: >-
   Retrieve Find a Tender OCDS 1.1.5 release packages by update window and
-  contracting stage, with optional transparent local term filtering.
+  contracting stage, with optional transparent local term filtering, as notice
+  records or as procurement_processes and procurement_awards contract rows.
 provider_scope: >-
   Find a Tender publishes OCDS release and record packages, daily XML downloads,
   and notice-submission interfaces. The release API supports notice/OCID detail,
@@ -10,7 +11,7 @@ provider_scope: >-
 roadmap_scope:
   - Exact notice-ID and OCID retrieval
   - OCDS record packages for complete procurement-process histories
-  - Supplier and award normalization from stage-specific release structures
+  - OCDS record packages to join tender, award and change releases of one process across pages
 category: procurement
 jurisdiction: "gb"
 runtime: local
@@ -30,14 +31,21 @@ license:
   cache_permitted: true
   redistribution_permitted: true
 
-last_tested: "2026-08-12"
+last_tested: "2026-10-27"
 status: queryable
 notes: >-
   The provider offers update-window and stage filtering, not keyword search.
   `q` is an explicitly local filter over at most 100 releases from one page and
   can miss matches elsewhere. Follow `next_cursor` to continue the same
   provider scope. Normalized tender value is a tender-section value, not
-  necessarily an award or paid amount.
+  necessarily an award or paid amount. The procurement operations map OCDS
+  fields onto domains/procurement.yaml; SKILL.md lists the mapping. Checked
+  live on 2026-10-27: Procurement Act 2023 notices publish some values only as
+  amountGross and tenderPeriod without startDate.
+
+provides:
+  procurement_processes: {}
+  procurement_awards: {}
 
 examples:
   - Retrieve recent UK tender-stage releases
@@ -46,6 +54,11 @@ examples:
 input_schema:
   type: object
   properties:
+    operation:
+      type: string
+      enum: [search-notices, procurement-processes, procurement-awards]
+      default: search-notices
+      description: Notice records, or the procurement contract table to fill.
     q:
       type: string
       description: Optional local term filter over one retrieved release page.
@@ -114,3 +127,51 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not call a release an award without inspecting tags, stage-specific fields, and the full notice.
+
+  - id: procurement-processes
+    title: Releases as procurement_processes rows
+    description: One row per lot (ocid/lot, or ocid without lots) on each release of one bounded page, with buyer, CPV, OCDS procurementMethod, value, submission period and bids received.
+    status: queryable
+    entities: [ProcurementProcess]
+    actions: [search, list]
+    input_fields: [q, limit, updatedFrom, updatedTo, stage, cursor]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: procurement-processes}
+    output_fields: [process_id, buyer_id, buyer_name, country, category_code, procurement_method, tender_value, currency, tender_published_date, tender_deadline, number_of_tenderers, procurement_method_details, release_id, tags]
+    filters: [q, updatedFrom, updatedTo, stage, cursor, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.find-tender.service.gov.uk]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat one page as a buyer's complete procurement history.
+
+  - id: procurement-awards
+    title: Releases as procurement_awards rows
+    description: One row per supplier on each award (ocid/award id) of one bounded page; contract change notices add a row carrying the changed value as final_value.
+    status: queryable
+    entities: [ProcurementAward]
+    actions: [search, list]
+    input_fields: [q, limit, updatedFrom, updatedTo, stage, cursor]
+    required: []
+    any_of_required: []
+    adapter_input: {operation: procurement-awards}
+    output_fields: [award_id, process_id, supplier_id, supplier_name, award_value, currency, award_date, final_value, release_id]
+    filters: [q, updatedFrom, updatedTo, stage, cursor, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [www.find-tender.service.gov.uk]
+      data_classes: [query parameters]
+      sensitive_inputs: [q]
+      consent_required: false
+    verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not read award_value on a multi-supplier award as each supplier's earnings.

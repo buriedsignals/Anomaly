@@ -1,4 +1,11 @@
-"""OpenFEC candidate and committee entity search (BYO api.data.gov key)."""
+"""OpenFEC entity search and campaign finance contract rows (BYO api.data.gov key).
+
+Modes ``candidate`` and ``committee`` search registrations. Modes ``donations``
+(Schedule A itemized receipts) and ``recipients`` (committee registrations)
+emit rows shaped like the campaign_finance domain contract
+(domains/campaign_finance.yaml), so they can be written to a file for
+anomaly.oneshot without a column map.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +15,9 @@ import httpx
 
 API_URL = "https://api.open.fec.gov/v1"
 SOURCE_ID = "us/fec/campaign-finance"
+MAX_PAGES = 20
+DONATION_FILTERS = ("committee_id", "contributor_name", "contributor_employer", "contributor_zip",
+                    "contributor_state", "two_year_transaction_period", "min_date", "max_date", "min_amount")
 
 _CANDIDATE_ENUMS = {
     "office": {"H", "S", "P"},
@@ -162,10 +172,132 @@ def _committee_params(input: dict[str, Any], ctx) -> dict[str, Any]:
     return params
 
 
+def _date(value: Any) -> str | None:
+    return value[:10] if isinstance(value, str) and value else None
+
+
+def _donation(item: dict[str, Any]) -> dict[str, Any]:
+    committee = item.get("committee") or {}
+    return {
+        "donation_id": item.get("sub_id"),
+        "recipient_id": item.get("committee_id"),
+        "recipient_name": item.get("committee_name") or committee.get("name"),
+        "recipient_type": committee.get("committee_type_full") or item.get("recipient_committee_type"),
+        "donor_name": item.get("contributor_name"),
+        "donor_type": item.get("entity_type_desc") or item.get("entity_type"),
+        "donor_company_number": None,
+        "donor_employer": item.get("contributor_employer"),
+        "donor_postcode": item.get("contributor_zip"),
+        "amount": item.get("contribution_receipt_amount"),
+        "currency": "USD",
+        "donation_date": _date(item.get("contribution_receipt_date")),
+        "election_type": item.get("election_type"),
+        "memo_text": item.get("memo_text"),
+        "url": item.get("pdf_url"),
+    }
+
+
+def _recipient(committee: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "recipient_id": committee.get("committee_id"),
+        "name": committee.get("name"),
+        # first_f1_date is the first Statement of Organization (Form 1).
+        "registered_date": _date(committee.get("first_f1_date") or committee.get("first_file_date")),
+        "committee_type": committee.get("committee_type_full"),
+    }
+
+
+def _committee_ids(input: dict[str, Any], most: int) -> list[str]:
+    ids = input.get("committee_id")
+    if ids in (None, "", []):
+        return []
+    ids = [ids] if isinstance(ids, str) else ids
+    if not isinstance(ids, list) or not all(isinstance(item, str) and item for item in ids) or len(ids) > most:
+        raise ValueError(f"committee_id must be one id or a list of at most {most}.")
+    return ids
+
+
+def _pages(input: dict[str, Any]) -> int:
+    return _integer(input.get("pages", 1), "pages", minimum=1, maximum=MAX_PAGES)
+
+
+def _donations(input: dict[str, Any], ctx) -> dict:
+    """Read Schedule A with keyset pagination, as the OpenFEC docs require."""
+    params: dict[str, Any] = {}
+    for field in DONATION_FILTERS:
+        value = input.get(field)
+        if value in (None, ""):
+            continue
+        if field == "committee_id":
+            # Schedule A refuses more than 10 committee ids (HTTP 422).
+            value = _committee_ids(input, 10)
+        elif field == "two_year_transaction_period":
+            value = _integer(value, field, minimum=1976, maximum=2200)
+        elif field == "min_amount":
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                raise ValueError("min_amount must be a non-negative number.")
+        elif not isinstance(value, str):
+            raise ValueError(f"{field} must be a string.")
+        params[field] = value
+    if not {"committee_id", "contributor_name", "contributor_employer", "contributor_zip"} & set(params):
+        raise ValueError("name a committee_id, contributor_name, contributor_employer or contributor_zip.")
+    is_individual = input.get("is_individual", True)
+    if not isinstance(is_individual, bool):
+        raise ValueError("is_individual must be true or false.")
+    params |= {
+        "api_key": ctx.get_key("openfec"),
+        "per_page": _integer(input.get("per_page", 100), "per_page", minimum=1, maximum=100),
+        "sort": "contribution_receipt_date",
+        "is_individual": is_individual,
+    }
+    pages, records, fetched, last = _pages(input), [], 0, {}
+    with httpx.Client(timeout=60) as client:
+        while fetched < pages:
+            response = client.get(f"{API_URL}/schedules/schedule_a/", params=params | last)
+            response.raise_for_status()
+            data = response.json()
+            fetched += 1
+            results = data.get("results") or []
+            records.extend(_donation(item) for item in results)
+            last = (data.get("pagination") or {}).get("last_indexes") or {}
+            if not results or not last:
+                break
+    return {"source_id": SOURCE_ID, "mode": "donations", "records": records,
+            "page": {"pages_fetched": fetched, "next": last or None, "returned": len(records)}}
+
+
+def _recipients(input: dict[str, Any], ctx) -> dict:
+    params: dict[str, Any] = {}
+    ids = _committee_ids(input, 100)
+    if ids:
+        params["committee_id"] = ids
+    for field in ("min_first_f1_date", "max_first_f1_date"):
+        if input.get(field) not in (None, ""):
+            params[field] = str(input[field])
+    if not params:
+        raise ValueError("name committee_id or a min_first_f1_date/max_first_f1_date range.")
+    value = _code(input, "committee_type", _COMMITTEE_ENUMS["committee_type"])
+    if value:
+        params["committee_type"] = value
+    params |= {"api_key": ctx.get_key("openfec"), "per_page": 100,
+               "page": _integer(input.get("page", 1), "page", minimum=1)}
+    with httpx.Client(timeout=30) as client:
+        response = client.get(f"{API_URL}/committees/", params=params)
+        response.raise_for_status()
+        data = response.json()
+    return {"source_id": SOURCE_ID, "mode": "recipients",
+            "records": [_recipient(record) for record in data.get("results", [])],
+            "page": {"count": (data.get("pagination") or {}).get("count"), "page": params["page"]}}
+
+
 def run(input: dict, ctx) -> dict:
     mode = input.get("mode", "candidate")
+    if mode == "donations":
+        return _donations(input, ctx)
+    if mode == "recipients":
+        return _recipients(input, ctx)
     if mode not in ("candidate", "committee"):
-        raise ValueError(f"Unknown mode `{mode}` — use candidate or committee.")
+        raise ValueError(f"Unknown mode `{mode}` — use candidate, committee, donations or recipients.")
     if mode == "candidate":
         params = _candidate_params(input, ctx)
         path = "/candidates/search/"

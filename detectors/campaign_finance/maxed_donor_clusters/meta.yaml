@@ -1,0 +1,41 @@
+id: campaign_finance.maxed_donor_clusters
+version: 1.0.0
+release: released
+title: Maxed donor clusters
+author: buried-signals
+license: internal
+group: domain
+family: campaign_finance
+data_type: campaign_finance
+menu_order: 1
+description: Donors who share an employer or postcode and each give one recipient an amount at or near the contribution limit within a few days.
+required_tables: [donations]
+required_fields: [id]
+parameters:
+  limit_amount: 3500
+  near_limit_ratio: 0.9
+  window_days: 7
+  min_donors: 3
+  limit: 200
+parameter_bounds:
+  limit_amount: {type: number, minimum: 1, maximum: 100000000}
+  near_limit_ratio: {type: number, minimum: 0.1, maximum: 1}
+  window_days: {type: integer, minimum: 0, maximum: 366}
+  min_donors: {type: integer, minimum: 2, maximum: 1000}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: campaign_finance
+severity: medium
+expected_output: [candidate_id, recipient_id, recipient_name, shared_by, shared_value, window_start, window_end, donors, donations, total_amount, donor_names]
+assumptions:
+  - "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; donor_employer and donor_postcode are optional, and a source without either column yields no clusters."
+  - "limit_amount defaults to the 2025-2026 FEC limit for an individual giving to a federal candidate, $3,500 per election (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/). Set it to the limit of the recipient type and jurisdiction under review; the UK has no donation limit (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans)."
+  - "The pattern matches what the FEC describes in conduit cases: someone at the limit gives money to others to contribute to the same candidate, or a corporation reimburses employees' contributions (https://www.fec.gov/updates/contributions-in-the-name-of-another-are-strictly-prohibited/)."
+  - "Donors are matched by upper-cased name; postcodes are compared without spaces, so a 9-digit ZIP+4 matches only the same ZIP+4."
+false_positives:
+  - "Colleagues often give together at a fundraiser their employer or a senior colleague hosts; that is lawful when each gives their own money."
+  - "Spouses and relatives at one address each have their own limit (https://www.fec.gov/help-candidates-and-committees/taking-receipts-ssf/limits-contributions-received-ssf/), so a household giving the maximum on one day is common."
+  - "Placeholder employers (for example INFORMATION REQUESTED or SELF-EMPLOYED) are excluded only when spelled as listed in the query; other spellings can form spurious clusters."
+  - "Large employers and dense postcodes produce clusters by chance; compare against the recipient's other donors before treating a cluster as a lead."
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql
