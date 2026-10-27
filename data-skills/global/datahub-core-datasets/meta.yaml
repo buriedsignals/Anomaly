@@ -1,0 +1,159 @@
+id: global/datahub/core-datasets
+title: DataHub — Core Datasets
+description: >-
+  Read a DataHub Core dataset's data package (title, per-dataset licence,
+  resources, and field names) and fetch a bounded page of rows from one of its
+  CSV resources. Licences differ between datasets and are carried on every
+  record from the package's own licenses field.
+provider_scope: >-
+  DataHub Core publishes curated reference datasets (economic indicators,
+  country and region codes, market listings, and others) as versioned data
+  packages with a datapackage.json or datapackage.yml descriptor and CSV files.
+roadmap_scope:
+  - Packages that publish only datapackage.yml are not supported (no YAML parser in the runtime).
+  - Listing or searching the Core collection is not released; the dataset name must be known.
+  - Non-CSV resources are not released.
+category: statistics
+jurisdiction: global
+runtime: local
+endpoint: https://datahub.io/core
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: true
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: Varies per dataset; each record carries the licence named in that dataset's datapackage.json
+  cache_permitted: true
+  redistribution_permitted: false
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27. https://datahub.io/core/gdp lists
+  data/gdp.csv and datapackage.json under https://datahub.io/core/gdp/_r/-/,
+  and https://datahub.io/core/gdp/_r/-/datapackage.json returned a package
+  with licenses CC-BY-4.0, last_updated 2026-04-08, and resources gdp
+  (data/gdp.csv) and top-economies (data/top-economies.csv) with field
+  schemas. Licences vary: https://datahub.io/core/country-list shows
+  ODC-PDDL-1.0, and that package publishes datapackage.yml, not
+  datapackage.json (the .json URL returned a 404), so it is outside this
+  adapter. The CSV download (https://datahub.io/core/gdp/_r/-/data/gdp.csv)
+  could not be fetched through Firecrawl (anti-bot refusal), so row fetching
+  is verified offline only. No DataHub terms of use or rate limits were found
+  or checked; redistribution depends on each dataset's licence, hence
+  redistribution_permitted false at catalogue level.
+
+examples:
+  - Read the gdp package's licence and resources
+  - Fetch the first 50 rows of the gdp resource of the gdp dataset
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [get-package, fetch-resource]
+      description: Internal operation discriminator supplied by the registry.
+    dataset:
+      type: string
+      pattern: '^[a-z0-9][a-z0-9-]*$'
+      description: DataHub Core dataset name, as in https://datahub.io/core/<dataset>.
+    resource:
+      type: string
+      description: Resource name from datapackage.json; optional when the package has exactly one CSV resource.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 1000
+      default: 100
+    offset:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Data rows to skip; use next_offset from the prior page.
+  required: [dataset]
+  additionalProperties: false
+
+output_schema:
+  entity: DataPackage
+  fields: [entity, dataset, name, title, description, last_updated, license, licenses, resources, datapackage_url, source_url]
+
+operations:
+  - id: get-package
+    title: Get a Core dataset's data package
+    description: Return the package title, description, per-dataset licences, last_updated, and each resource's path, format, URL, and field names.
+    status: queryable
+    entities: [DataPackage]
+    actions: [get]
+    input_fields: [dataset]
+    required: [dataset]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: get-package}
+    output_fields: [entity, dataset, name, title, description, last_updated, license, licenses, resources, datapackage_url, source_url]
+    filters: [dataset]
+    semantics: {enumeration: none, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [datahub.io]
+      data_classes: [dataset name]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Read the gdp package's licence and resources
+    counterexamples:
+      - query: Search DataHub for any dataset about inflation
+        reason_code: operation_unavailable
+      - query: Read the country-list package
+        reason_code: descriptor_yaml_only
+    no_result_guidance:
+      - Check the dataset name on https://datahub.io/core; some packages publish datapackage.yml only.
+    retry_guidance:
+      - Do not retry a 404 unchanged; retry transient 5xx or network failures once.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not assume one licence for all Core datasets; cite the licence on the record.
+
+  - id: fetch-resource
+    title: Fetch rows from a Core CSV resource
+    description: Stream one CSV resource listed in datapackage.json and return at most 1000 rows from an offset, each carrying the dataset licence.
+    status: queryable
+    entities: [DataRow]
+    actions: [get, list]
+    input_fields: [dataset, resource, limit, offset]
+    required: [dataset]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: fetch-resource}
+    output_fields: [entity, dataset, resource, row_number, values, license, source_url]
+    filters: [dataset, resource, limit, offset]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: true, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [datahub.io]
+      data_classes: [dataset and resource names]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Fetch the first 50 rows of the gdp resource of the gdp dataset
+    counterexamples:
+      - query: Fetch a resource path outside the dataset or from another host
+        reason_code: unsafe_resource_path
+      - query: Return all rows of a large resource in one call
+        reason_code: row_cap
+    no_result_guidance:
+      - Read get-package first to find resource names; resource is required when a package lists several CSVs.
+      - An offset past the end returns no rows.
+    retry_guidance:
+      - Retry transient upstream failures once; do not retry validation errors unchanged.
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat DataHub as the primary source; trace figures to the upstream publisher named in the package (e.g. the World Bank for gdp).

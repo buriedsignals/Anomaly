@@ -13,6 +13,9 @@ from types import ModuleType
 from typing import Any
 
 _SOURCE_ID = re.compile(r"^[a-z0-9]+(?:/[a-z0-9][a-z0-9-]*)+$")
+# A catalogued package documents how to access a source (meta.yaml + SKILL.md)
+# but ships no adapter; loading it yields a typed unavailable result.
+CATALOGUED = "catalogued"
 
 
 @dataclass(frozen=True)
@@ -25,7 +28,7 @@ class SourceEntry:
 def _metadata(meta_path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for line in meta_path.read_text(encoding="utf-8").splitlines():
-        match = re.match(r"^(id|title|endpoint|operation|license):\s*(.*)$", line)
+        match = re.match(r"^(id|title|endpoint|operation|license|status):\s*(.*)$", line)
         if match:
             values[match.group(1)] = match.group(2).strip(" '\"")
         if "data_license:" in line and not values.get("license"):
@@ -57,7 +60,11 @@ def _safe_package(root: Path, meta_path: Path) -> SourceEntry:
     source_id = metadata["id"]
     if not _SOURCE_ID.fullmatch(source_id):
         raise ValueError(f"unsafe source id: {source_id}")
-    if not (package / "SKILL.md").is_file() or not (package / "adapter.py").is_file():
+    if not (package / "SKILL.md").is_file():
+        raise ValueError(f"incomplete source package: {package}")
+    if metadata.get("status") == CATALOGUED:
+        return SourceEntry(source_id, package, metadata)
+    if not (package / "adapter.py").is_file():
         raise ValueError(f"incomplete source package: {package}")
     try:
         tree = ast.parse((package / "adapter.py").read_text(encoding="utf-8"))
@@ -105,6 +112,15 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     if entry is None:
         raise KeyError(f"unknown source id: {source_id}")
     module_name = "anomaly_source_" + hashlib.sha256(source_id.encode()).hexdigest()
+    if entry.metadata.get("status") == CATALOGUED:
+        module = ModuleType(module_name)
+        module.run = _unavailable_run(  # type: ignore[attr-defined]
+            entry,
+            entry.package / "meta.yaml",
+            "source-not-queryable",
+            "source is catalogued without an adapter; see its SKILL.md for access",
+        )
+        return module
     spec = importlib.util.spec_from_file_location(module_name, entry.package / "adapter.py")
     if spec is None or spec.loader is None:
         raise ValueError(f"cannot load adapter: {source_id}")
@@ -116,7 +132,12 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     except ModuleNotFoundError as exc:
         if exc.name != "httpx":
             raise
-        module.run = _unavailable_run(entry)  # type: ignore[attr-defined]
+        module.run = _unavailable_run(  # type: ignore[attr-defined]
+            entry,
+            entry.package / "adapter.py",
+            "adapter-dependency-unavailable",
+            "adapter dependency is unavailable",
+        )
     finally:
         sys.dont_write_bytecode = previous
     implementation = module.run
@@ -124,28 +145,23 @@ def load_source_adapter(entries: list[SourceEntry], source_id: str) -> ModuleTyp
     return module
 
 
-def _unavailable_run(entry: SourceEntry):
-    """Return a typed local-unavailable result when an optional client is absent."""
+def _unavailable_run(entry: SourceEntry, artifact: Path, code: str, message: str):
+    """Return a typed unavailable result hashed over the package's own artifact."""
     def run(input: dict[str, Any], ctx: Any) -> dict[str, Any]:
         return {
             "source_id": entry.source_id,
             "operation": entry.metadata["operation"],
             "license": entry.metadata["license"],
             "endpoint": entry.metadata["endpoint"],
-            "source_hash": "sha256:" + hashlib.sha256(
-                (entry.package / "adapter.py").read_bytes()
-            ).hexdigest(),
+            "source_hash": "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
             "provenance": {
-                "source": str(entry.package / "adapter.py"),
+                "source": str(artifact),
                 "adapter": entry.source_id,
             },
             "status": "unavailable",
             "records": [],
             "normalized": True,
-            "error": {
-                "code": "adapter-dependency-unavailable",
-                "message": "adapter dependency is unavailable",
-            },
+            "error": {"code": code, "message": message},
         }
     return run
 

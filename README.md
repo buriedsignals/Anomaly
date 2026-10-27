@@ -4,11 +4,11 @@
 
 ### Evidence-led data investigations for AI agents
 
-**Turns a dataset into reviewed, traceable findings — deterministic detectors, replayed calculations, independent review, and two journalist gates. 28 public-data skills, 18 released detectors, one portable case format.**
+**Turns a dataset into reviewed, traceable findings — deterministic detectors, replayed calculations, independent review, and two journalist gates. 34 public-data skills, 18 released detectors, one portable case format.**
 
 [Workflow](#investigation-workflow) | [Detectors](#detectors) | [Data Skills](#public-data-skills) | [Evidence Viewer](#evidence-viewer) | [Website](https://anomaly.buriedsignals.com/)
 
-[![28 Data Skills](https://img.shields.io/badge/data_skills-28-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#public-data-skills)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#investigation-workflow)[![Website](https://img.shields.io/badge/site-anomaly.buriedsignals.com-00c853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://anomaly.buriedsignals.com/)
+[![34 Data Skills](https://img.shields.io/badge/data_skills-34-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#public-data-skills)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)[![2 Gates](https://img.shields.io/badge/journalist_gates-2-00bfa5?style=for-the-badge&logo=verified&logoColor=white)](#investigation-workflow)[![Website](https://img.shields.io/badge/site-anomaly.buriedsignals.com-00c853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://anomaly.buriedsignals.com/)
 
 [![Stars](https://img.shields.io/github/stars/buriedsignals/Anomaly?style=flat-square&logo=github&label=Stars)](https://github.com/buriedsignals/Anomaly/stargazers)[![Issues](https://img.shields.io/github/issues/buriedsignals/Anomaly?style=flat-square&logo=github&label=Issues)](https://github.com/buriedsignals/Anomaly/issues)[![Last Commit](https://img.shields.io/github/last-commit/buriedsignals/Anomaly?style=flat-square&logo=github&label=Last%20Commit)](https://github.com/buriedsignals/Anomaly/commits)[![Contributors](https://img.shields.io/github/contributors/buriedsignals/Anomaly?style=flat-square&logo=github&label=Contributors)](https://github.com/buriedsignals/Anomaly/graphs/contributors)
 
@@ -135,15 +135,20 @@ without a case: see [`docs/catalogue.md`](docs/catalogue.md).
 The `data-skills/` catalogue teaches Anomaly how to acquire public records:
 each skill defines the source query, response validation, normalization, and
 provenance/licensing capture. An adapter loads only when its source is
-requested.
+requested. Catalogued sources ship a `meta.yaml` and `SKILL.md` describing
+access, cost, licence, and limits, but no adapter: Anomaly cannot query them
+and returns `unavailable` (`source-not-queryable`) if asked to.
+
+Unmarked sources need no key. *(key)*: free or member-provided API key.
+*(paid)*: paid key or credits. *(catalogued)*: documented, not queryable.
 
 | Region | Sources |
 |---|---|
-| **United States** | USAspending awards · SEC EDGAR filings · OpenFEC campaign finance · Federal Register · EPA Envirofacts · CourtListener (search, dockets, opinions, judges, financial disclosures) · Congress legislation |
+| **United States** | USAspending awards · SEC EDGAR filings · OpenFEC campaign finance *(key)* · Federal Register · EPA Envirofacts · CourtListener (search, dockets, opinions, judges, financial disclosures) · Congress legislation *(key)* · LobbyData directory *(paid, catalogued)* · Congress Corral members *(catalogued)* |
 | **Europe** | EU TED procurement · Eurostat · European Parliament open data · Find-a-Tender |
-| **United Kingdom** | Companies House companies · Find-a-Tender notices |
-| **Global** | OpenSanctions · OpenCorporates · GLEIF LEI records · OCCRP Aleph · Wikidata · GDELT news · Bluesky posts |
-| **National registries** | CH Zefix companies · FR Pappers companies · NO Brreg enheter · OpenParldata parliamentary data |
+| **United Kingdom** | Companies House companies *(key)* · Find-a-Tender notices |
+| **Global** | OpenSanctions *(key)* · OpenCorporates *(key)* · GLEIF LEI records · OCCRP Aleph *(key)* · Wikidata · GDELT news · Bluesky posts · Party Facts party crosswalk · DataHub Core datasets · ICC cases *(catalogued)* · Wikimapia places *(key, catalogued)* |
+| **National registries** | CH Zefix companies · FR Pappers companies *(paid)* · NO Brreg enheter · OpenParldata parliamentary data |
 
 Journalist-supplied files enter the same workflow and receive the same
 provenance, profiling, and replay treatment as acquired data.
@@ -167,7 +172,7 @@ agent. Requirements: Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 git clone https://github.com/buriedsignals/Anomaly.git
 cd Anomaly
 uv sync --extra test
-uv run pytest tests/          # 811 tests, fully local
+uv run pytest tests/          # 853 tests, fully local
 ```
 
 Point your agent runtime at [`skills/anomaly/SKILL.md`](skills/anomaly/SKILL.md)

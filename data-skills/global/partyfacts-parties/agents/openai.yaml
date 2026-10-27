@@ -1,0 +1,7 @@
+interface:
+  display_name: "Party Facts"
+  short_description: "Resolve parties and link them across datasets"
+  default_prompt: "Use $partyfacts-parties to resolve a party to a partyfacts_id with country and years, list its external dataset links, and treat links as a crosswalk rather than evidence about the party."
+
+policy:
+  allow_implicit_invocation: true

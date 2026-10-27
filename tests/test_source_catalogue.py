@@ -81,6 +81,7 @@ class _OfflineClient:
 
     get = _request
     post = _request
+    stream = _request
 
 
 def _offline_request(*_args, **_kwargs):
@@ -113,9 +114,19 @@ def _offline_input(source_id: str) -> dict:
         return {"mode": "datasets", "q": "test"}
     if source_id == "us/congress/legislation":
         return {"q": "test"}
+    if source_id == "global/partyfacts/parties":
+        return {"operation": "search-parties", "q": "test"}
+    if source_id == "global/datahub/core-datasets":
+        return {"operation": "get-package", "dataset": "gdp"}
     return {"q": "test"}
 
-def test_catalogue_has_exactly_28_packages_and_no_arbiter() -> None:
+
+def _is_catalogued(meta_path: Path) -> bool:
+    text = meta_path.read_text(encoding="utf-8")
+    return re.search(r"^status:\s*catalogued\s*$", text, re.MULTILINE) is not None
+
+
+def test_catalogue_has_exactly_34_packages_and_no_arbiter() -> None:
     # The Data Navigator source tree this catalogue was migrated from was
     # retired on 2026-08-23; parity with it was verified before deletion
     # (task 0020 evidence) and the checked-in expectations below are now
@@ -123,14 +134,15 @@ def test_catalogue_has_exactly_28_packages_and_no_arbiter() -> None:
     anomaly_meta = sorted(SOURCE_ROOT.rglob("meta.yaml"))
     anomaly_ids = [_source_id(path) for path in anomaly_meta]
 
-    assert len(anomaly_ids) == 28
+    assert len(anomaly_ids) == 34
     assert len(anomaly_ids) == len(set(anomaly_ids))
     assert ARBITER_ID not in anomaly_ids
     assert anomaly_ids.count("global/opensanctions") == 1
     assert anomaly_ids.count("global/thinkpol/reddit-evidence") == 1
     for meta_path in anomaly_meta:
         assert meta_path.with_name("SKILL.md").is_file()
-        assert meta_path.with_name("adapter.py").is_file()
+        assert meta_path.with_name("adapter.py").is_file() != _is_catalogued(meta_path)
+    assert sum(_is_catalogued(path) for path in anomaly_meta) == 4
 
 
 def test_shared_result_contract_validates_each_real_adapter_output_without_network(
@@ -138,7 +150,7 @@ def test_shared_result_contract_validates_each_real_adapter_output_without_netwo
 ) -> None:
     monkeypatch.setitem(sys.modules, "httpx", _offline_httpx())
     entries = discover_sources(SOURCE_ROOT)
-    assert len(entries) == 28
+    assert len(entries) == 34
     for entry in entries:
         adapter = load_source_adapter(entries, entry.source_id)
         assert callable(getattr(adapter, "run", None))
@@ -148,11 +160,12 @@ def test_shared_result_contract_validates_each_real_adapter_output_without_netwo
         assert result["operation"] == entry.metadata["operation"]
         assert result["license"] == entry.metadata["license"]
         assert result["endpoint"] == entry.metadata["endpoint"]
-        expected_hash = "sha256:" + hashlib.sha256(
-            (entry.package / "adapter.py").read_bytes()
-        ).hexdigest()
+        artifact = entry.package / (
+            "meta.yaml" if entry.metadata.get("status") == "catalogued" else "adapter.py"
+        )
+        expected_hash = "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
         assert result["source_hash"] == expected_hash
-        assert result["provenance"]["source"] == str(entry.package / "adapter.py")
+        assert result["provenance"]["source"] == str(artifact)
         assert result["provenance"]["adapter"] == entry.source_id
         assert result["status"] in {"ok", "unavailable", "error"}
         if result["status"] != "ok":
@@ -312,3 +325,36 @@ def test_adapter_error_envelope_does_not_expose_raw_exception_text(tmp_path: Pat
     assert "super-secret-token" not in result["error"]["message"]
 
 
+def _write_adapterless_package(root: Path, name: str, status: str) -> None:
+    package = root / "global" / name
+    package.mkdir(parents=True)
+    (package / "meta.yaml").write_text(
+        f"id: global/{name}/source\ntitle: {name}\nlicense: CC0\n"
+        f"endpoint: https://example.test\nstatus: {status}\n"
+        "operations:\n  - id: lookup\n    status: queryable\n",
+        encoding="utf-8",
+    )
+    (package / "SKILL.md").write_text("# Source\n", encoding="utf-8")
+
+
+def test_catalogued_package_without_adapter_is_discovered_and_refuses_to_run(
+    tmp_path: Path,
+) -> None:
+    _write_adapterless_package(tmp_path, "listed", "catalogued")
+
+    entries = discover_sources(tmp_path)
+    adapter = load_source_adapter(entries, "global/listed/source")
+    result = validate_source_result(adapter.run({"q": "test"}, _OfflineContext()))
+
+    assert [entry.source_id for entry in entries] == ["global/listed/source"]
+    assert result["status"] == "unavailable"
+    assert result["records"] == []
+    assert result["error"]["code"] == "source-not-queryable"
+    assert result["provenance"]["source"] == str(tmp_path / "global" / "listed" / "meta.yaml")
+
+
+def test_queryable_package_without_adapter_is_still_rejected(tmp_path: Path) -> None:
+    _write_adapterless_package(tmp_path, "missing", "queryable")
+
+    with pytest.raises(ValueError, match="incomplete source package"):
+        discover_sources(tmp_path)

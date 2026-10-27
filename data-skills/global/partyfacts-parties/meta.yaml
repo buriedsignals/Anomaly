@@ -1,0 +1,190 @@
+id: global/partyfacts/parties
+title: Party Facts — Political Party Crosswalk
+description: >-
+  Search Party Facts core political parties by name or country, retrieve one
+  party by partyfacts_id, and list the external political-science dataset
+  records linked to it. Party Facts is an identifier crosswalk, not a source
+  of party funding, membership, or vote records.
+provider_scope: >-
+  Party Facts publishes core parties, external parties from linked datasets,
+  countries, and datasets tables as CSV downloads, with annual stable versions
+  archived on Harvard Dataverse.
+roadmap_scope:
+  - Countries and datasets tables (countries-csv, datasets-csv) are not released operations.
+  - Pinned Dataverse stable versions are not released; the adapter reads the live download tables.
+category: parliamentary
+jurisdiction: global
+runtime: local
+endpoint: https://partyfacts.herokuapp.com/download/
+
+auth:
+  type: none
+
+verification:
+  endpoint_live: false
+  query_tested: false
+  adapter_tested: true
+  fixture_tested: true
+
+license:
+  data_license: CC0 1.0 for Party Facts stable versions on Harvard Dataverse; the live download page states no separate data licence
+  cache_permitted: true
+  redistribution_permitted: true
+
+last_tested: "2026-10-27"
+status: queryable
+notes: >-
+  Checked with Firecrawl on 2026-10-27. The download page
+  (https://partyfacts.herokuapp.com/download/) links the core-parties-csv,
+  external-parties-csv, countries-csv and datasets-csv tables (UTF-8) and points
+  to stable versions on Harvard Dataverse. Column names follow the codebook
+  "Available downloads" section
+  (https://partyfacts.herokuapp.com/documentation/codebook/). The CSV downloads
+  themselves could not be fetched through Firecrawl (anti-bot refusal), so the
+  live header row and endpoint availability are unverified; the adapter is
+  verified offline against codebook-shaped fixtures only. Licence: the
+  "Party Facts – Version 2023" Dataverse record
+  (https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/TJINLQ)
+  is CC0 1.0 (core-parties 7199 rows, datasets 65 rows); the MIT licence in
+  https://github.com/hdigital/partyfactsdata covers that repository's
+  software, and the live download page states no data licence of its own.
+  Each request downloads a full table (Dataverse lists external-parties.csv at
+  8.7 MB) and filters locally.
+
+examples:
+  - Search Party Facts for parties named "Labour" in GBR
+  - List the external dataset records linked to partyfacts_id 1
+
+input_schema:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [search-parties, get-party, list-external-links]
+      description: Internal operation discriminator supplied by the registry.
+    q:
+      type: string
+      description: Case-insensitive substring matched against name, name_short, name_english, and name_other.
+    country:
+      type: string
+      description: ISO 3166-1 alpha-3 country code as used by Party Facts (e.g. GBR, DEU).
+    partyfacts_id:
+      type: integer
+      minimum: 1
+      description: Party Facts identification number.
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 500
+      description: Maximum records returned (search 1-100, default 20; external links 1-500, default 100).
+  additionalProperties: false
+
+output_schema:
+  entity: PoliticalParty
+  fields: [entity, partyfacts_id, name, name_short, name_english, name_other, country, year_first, year_last, share, share_year, technical, wikipedia, source_url]
+
+operations:
+  - id: search-parties
+    title: Search Party Facts core parties
+    description: Filter core parties by case-insensitive name substring and/or ISO alpha-3 country.
+    status: queryable
+    entities: [PoliticalParty]
+    actions: [search]
+    input_fields: [q, country, limit]
+    required: []
+    any_of_required: [q, country]
+    aliases: {query: q}
+    adapter_input: {operation: search-parties}
+    output_fields: [entity, partyfacts_id, name, name_short, name_english, name_other, country, year_first, year_last, share, share_year, technical, wikipedia, source_url]
+    filters: [q, country, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [partyfacts.herokuapp.com]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Search Party Facts for parties named "Labour" in GBR
+    counterexamples:
+      - query: Return donors or funding for this party
+        reason_code: operation_unavailable
+      - query: Treat a name substring match as the same party across countries
+        reason_code: disambiguation_required
+    no_result_guidance:
+      - Try the original-language name, the abbreviation, or the English name; check the alpha-3 country code.
+      - Party Facts includes parties above its inclusion thresholds (around 5% national vote, with exceptions); absence does not mean a party never existed.
+    retry_guidance:
+      - Retry transient 5xx or network failures once with backoff; do not retry validation errors unchanged.
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present Party Facts links as evidence about a party's conduct, finances, or membership.
+
+  - id: get-party
+    title: Get one core party by partyfacts_id
+    description: Return the core-party row for one exact partyfacts_id.
+    status: queryable
+    entities: [PoliticalParty]
+    actions: [get]
+    input_fields: [partyfacts_id]
+    required: [partyfacts_id]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: get-party}
+    output_fields: [entity, partyfacts_id, name, name_short, name_english, name_other, country, year_first, year_last, share, share_year, technical, wikipedia, source_url]
+    filters: [partyfacts_id]
+    semantics: {enumeration: none, aggregation: false, temporal: false, pagination: false, joins: none}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [partyfacts.herokuapp.com]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Retrieve partyfacts_id 1
+    counterexamples:
+      - query: Return the party's election results by year
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Re-resolve the ID with search-parties; deleted or merged parties may no longer appear in the live table.
+    retry_guidance:
+      - Retry only transient upstream failures.
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not infer present-day existence from a blank year_last without checking primary electoral sources.
+
+  - id: list-external-links
+    title: List external dataset records linked to a party
+    description: Return external-party rows (dataset_key, dataset_party_id) mapped to one partyfacts_id, for joining ParlGov, Manifesto, and other linked datasets.
+    status: queryable
+    entities: [ExternalPartyLink]
+    actions: [list]
+    input_fields: [partyfacts_id, limit]
+    required: [partyfacts_id]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: list-external-links}
+    output_fields: [entity, partyfacts_id, dataset_key, dataset_party_id, external_id, name, name_short, name_english, country, year_first, year_last, source_url]
+    filters: [partyfacts_id, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: relation}
+    access: {auth: none, cost: free, side_effects: none}
+    disclosure:
+      destinations: [partyfacts.herokuapp.com]
+      data_classes: [none sent; filtering is local]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - List the external dataset records linked to partyfacts_id 1
+    counterexamples:
+      - query: Return the linked datasets' own variables for this party
+        reason_code: operation_unavailable
+    no_result_guidance:
+      - Links can be missing or incomplete (see the codebook "Incomplete links" section); check the linked dataset directly.
+    retry_guidance:
+      - Retry only transient upstream failures.
+    verification: {endpoint_live: false, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not treat a crosswalk link as proof that two datasets describe the same organisation in every period; check party changes and alliances.

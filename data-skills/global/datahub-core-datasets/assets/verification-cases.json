@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "source_id": "global/datahub/core-datasets",
+  "cases": [
+    {
+      "id": "gdp-package",
+      "operation": "get-package",
+      "input": {"dataset": "gdp"},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["dataset", "license", "resources", "source_url"]
+      }
+    },
+    {
+      "id": "gdp-rows",
+      "operation": "fetch-resource",
+      "input": {"dataset": "gdp", "resource": "gdp", "limit": 5},
+      "expect": {
+        "statuses": ["ok"],
+        "min_records": 1,
+        "required_fields": ["values", "license", "row_number"]
+      }
+    }
+  ]
+}

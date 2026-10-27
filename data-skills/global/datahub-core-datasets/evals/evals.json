@@ -1,0 +1,20 @@
+{
+  "skill_name": "datahub-core-datasets",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "All DataHub Core data is public domain, so republish it.",
+      "expected_output": "The agent reads the package licence, notes that licences differ per dataset, and cites the one on the record."
+    },
+    {
+      "id": 2,
+      "prompt": "Download the whole GDP table in one call.",
+      "expected_output": "The agent fetches bounded pages with limit and next_offset rather than claiming a single unbounded download."
+    },
+    {
+      "id": 3,
+      "prompt": "DataHub says country X's GDP was Y, so report it.",
+      "expected_output": "The agent traces the figure to the World Bank source named in the package before reporting it."
+    }
+  ]
+}

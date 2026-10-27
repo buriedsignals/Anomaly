@@ -1,0 +1,20 @@
+{
+  "skill_name": "partyfacts-parties",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Who funds the Labour Party? Use Party Facts.",
+      "expected_output": "The agent explains that Party Facts is a party-identifier crosswalk with no funding data and offers to resolve the party ID instead."
+    },
+    {
+      "id": 2,
+      "prompt": "Find the Party Facts ID for Labour.",
+      "expected_output": "The agent asks for or adds the country, returns several candidates with country and years, and does not pick the first substring match."
+    },
+    {
+      "id": 3,
+      "prompt": "Join ParlGov and Manifesto records for this party.",
+      "expected_output": "The agent lists external links for one partyfacts_id and joins on dataset_key plus dataset_party_id, flagging missing or multiple links."
+    }
+  ]
+}
