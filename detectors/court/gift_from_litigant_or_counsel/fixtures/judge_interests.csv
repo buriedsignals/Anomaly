@@ -1,0 +1,6 @@
+judge_id,judge_name,report_year,interest_type,counterparty,description,value_low,value_high,url
+201,Judge D,2019,gift,Acme Holdings,Season pass,1199,1199,https://example.org/fd/201-2019.pdf
+201,Judge D,2021,reimbursement,Big Law LLP,"Speaking trip, Aspen",1200,1200,https://example.org/fd/201-2021.pdf
+201,Judge D,2020,gift,Harlan Crow,Yacht trip,20000,20000,https://example.org/fd/201-2020.pdf
+201,Judge D,2020,gift,Jane Smithers,Book,450,450,https://example.org/fd/201-2020.pdf
+201,Judge D,2020,investment,Big Law Partners Fund,,1,15000,https://example.org/fd/201-2020.pdf

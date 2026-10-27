@@ -1,0 +1,17 @@
+case_id,court_id,case_name,date_filed,assigned_judge_id,assigned_judge_name
+R1,txnd,Alliance for Hippocratic Medicine case 1,2023-01-01,401,Judge 401
+R2,txnd,Alliance for Hippocratic Medicine case 2,2023-01-02,401,Judge 401
+R3,txnd,Alliance for Hippocratic Medicine case 3,2023-01-03,401,Judge 401
+R4,txnd,Alliance for Hippocratic Medicine case 4,2023-01-04,402,Judge 402
+R5,txnd,United States of America case 5,2023-01-05,401,Judge 401
+R6,txnd,United States of America case 6,2023-01-06,401,Judge 401
+R7,txnd,United States of America case 7,2023-01-07,401,Judge 401
+R8,txnd,United States of America case 8,2023-01-08,401,Judge 401
+R9,txnd,Widget Corp case 9,2023-01-09,402,Judge 402
+R10,txnd,Widget Corp case 10,2023-01-10,402,Judge 402
+R11,txnd,Widget Corp case 11,2023-01-11,402,Judge 402
+R12,txnd,Gadget LLC case 12,2023-01-12,403,Judge 403
+R13,txnd,Gadget LLC case 13,2023-01-13,403,Judge 403
+R14,txnd,Gadget LLC case 14,2023-01-14,403,Judge 403
+R15,txnd,Small Co case 15,2023-01-15,401,Judge 401
+R16,txnd,Small Co case 16,2023-01-16,402,Judge 402

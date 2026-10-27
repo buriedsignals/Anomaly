@@ -1,0 +1,62 @@
+# Court domain contract: the tables court detectors read. The core of
+# court_cases (case_id, court_id, case_name, date_filed) fits any court
+# register; judge assignment, nature of suit, parties, counsel and judges'
+# financial disclosures are published in structured form by CourtListener
+# (US federal courts) and are optional or separate tables elsewhere. Each
+# source's SKILL.md maps its fields to these columns. Columns are the ones the
+# detector SQL reads plus identifying columns; a column marked optional may be
+# left out of a file (it loads as NULL).
+#
+# Non-US mapping notes (no adapter yet):
+# - UK Find Case Law (https://nationalarchives.github.io/ds-find-caselaw-docs/public):
+#   judgment URI -> case_id, court code -> court_id, title -> case_name,
+#   judgment date -> date_filed. It publishes judgments, not dockets, so
+#   assignment, termination, parties and counsel stay empty. The Open Justice
+#   Licence excludes computational analysis; bulk programmatic use needs a
+#   (free) licence application first.
+# - entscheidsuche.ch (https://entscheidsuche.ch/pdf/EntscheidsucheAPI.pdf):
+#   per-decision JSON with a signature (canton, court, chamber) -> court_id,
+#   file name -> case_id, decision date -> date_filed, title or abstract ->
+#   case_name. Swiss decisions are published without structured party or
+#   judge fields, so only the core columns fill.
+domain: court
+description: Court cases (dockets or decisions), their parties and counsel, and judges' disclosed financial interests.
+tables:
+  court_cases:
+    description: One row per case, docket or published decision.
+    columns:
+      case_id: Source's identifier for the case, the join key for parties and counsel (CourtListener docket id).
+      court_id: Identifier of the court, such as txnd or nysb.
+      case_name: Case name or title.
+      docket_number: Court's own docket or case number (optional).
+      date_filed: Day the case was filed, or the decision date when only decisions are published (date).
+      date_terminated: Day the case was closed; empty while it is pending (date, optional).
+      nature_of_suit: Nature-of-suit or subject category; empty for criminal dockets in PACER (optional).
+      division: Court division or office the case was filed in (optional).
+      assigned_judge_id: Identifier of the assigned judge, the join key for judge_interests (CourtListener person id) (optional).
+      assigned_judge_name: Name of the assigned judge (optional).
+      url: Link to the case record (optional).
+  case_parties:
+    description: One row per party named in a case.
+    columns:
+      case_id: Case the party appears in, as in court_cases.
+      party_name: Name of the party.
+      party_role: Role in the case, such as Plaintiff, Defendant or Debtor (optional).
+  case_counsel:
+    description: One row per attorney or law firm appearing in a case.
+    columns:
+      case_id: Case the counsel appears in, as in court_cases.
+      counsel_name: Name of the attorney.
+      firm_name: Name of the attorney's law firm (optional).
+  judge_interests:
+    description: One row per line of a judge's financial disclosure (investment, gift, reimbursement, position, agreement, income, debt).
+    columns:
+      judge_id: Identifier of the judge, as in court_cases.assigned_judge_id.
+      judge_name: Name of the judge (optional).
+      report_year: Year the disclosure report covers (integer).
+      interest_type: One of investment, gift, reimbursement, position, agreement, income, spouse_income or debt.
+      counterparty: Holding description, gift or reimbursement source, or organisation of a position or agreement.
+      description: Free text the line carries, such as the gift or the trip (optional).
+      value_low: Lower bound of the value, from the disclosure's value code or the stated amount (number, optional).
+      value_high: Upper bound of the value; empty for the open-ended top band (number, optional).
+      url: Link to the disclosure report (optional).

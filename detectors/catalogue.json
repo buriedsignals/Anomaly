@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:df1c64d25292ac2c6e3be8df91f25436f44ddeb347fa4b45ee4b74e3a4d3b7f7",
+  "catalogue_hash": "sha256:e58ef66320724abf74f3f846142cf0bfe883b6487981e9cf035cef48529cd890",
   "detectors": [
     {
       "assumptions": [
@@ -283,6 +283,394 @@
       "signal_category": "anomaly",
       "title": "Rare categorical levels",
       "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier.",
+        "Indicator: ProPublica reported luxury travel and gifts from Harlan Crow that did not appear on Justice Clarence Thomas's disclosures (https://www.propublica.org/article/clarence-thomas-scotus-undisclosed-luxury-travel-gifts-crow). Federal judges disclose gifts and travel reimbursements over 415 USD from one source (https://wiki.free.law/c/courtlistener/help/api/rest/v4/financial-disclosures).",
+        "Names are normalised and matched as in court.judge_holds_party_stock (exact or prefix after removing punctuation and legal-form words).",
+        "case_counsel may be an empty file with only a header when the source publishes no counsel."
+      ],
+      "data_type": "court",
+      "description": "Gifts or travel reimbursements on a judge's disclosure whose source matches a party, attorney or law firm in a case assigned to that judge, within year_slack years of the case.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "date_filed",
+        "date_terminated",
+        "judge_id",
+        "judge_name",
+        "matched_name",
+        "matched_as",
+        "interest_type",
+        "benefit_source",
+        "benefit_description",
+        "report_year",
+        "value_low",
+        "value_high",
+        "match_type",
+        "report_url",
+        "url"
+      ],
+      "false_positives": [
+        "Name matching is the main false-positive risk: gift sources are often individuals, and common personal names match unrelated parties or attorneys. Confirm identity in the disclosure PDF and the docket.",
+        "Bar associations, universities and law firms reimburse judges for teaching and speaking; a match with a firm that appears in a case is a lead to check, not a conflict in itself.",
+        "Undisclosed gifts, the subject of the ProPublica reporting, cannot be found this way; only disclosed lines are compared."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.gift_from_litigant_or_counsel",
+      "implementation_hash": "sha256:8bc1070a65a6f54ba7645a9aed5970cabf83e4a1771ac8678418697a77b484f2",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_name_length": {
+          "default": 4,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "year_slack": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties",
+        "case_counsel",
+        "judge_interests"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "court",
+      "title": "Gift or paid trip from a litigant or counsel",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier (CourtListener person id).",
+        "Indicator: the Wall Street Journal found 131 federal judges failed to recuse from 685 cases (2010-2018) involving companies they or their family held shares in (https://www.wsj.com/us-news/law/131-federal-judges-broke-the-law-by-hearing-cases-where-they-had-a-financial-interest-11632834421); see also Fix the Court (https://fixthecourt.com/2021/09/100-federal-judges-failed-recuse-owned-stock-litigant-whats-excuses/).",
+        "Names are matched after upper-casing, dropping bracketed text such as tickers, punctuation and legal-form words (Inc, Corp, LLC, Common Stock, Class): equal keys are an exact match, and one key starting with the other followed by a space is a prefix match. Both keys must have at least min_name_length characters.",
+        "A holding counts when its report year falls between year_slack years before the filing year and year_slack years after the termination year; a pending case has no upper bound.",
+        "Value bounds come from the disclosure value codes; the top band has no upper bound, so max_value_high can be empty."
+      ],
+      "data_type": "court",
+      "description": "Cases assigned to a judge whose financial disclosure lists an investment whose name matches a party, in a report year overlapping the case.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "docket_number",
+        "date_filed",
+        "date_terminated",
+        "judge_id",
+        "judge_name",
+        "party_name",
+        "party_role",
+        "holding",
+        "match_type",
+        "first_report_year",
+        "last_report_year",
+        "max_value_low",
+        "max_value_high",
+        "report_url",
+        "url"
+      ],
+      "false_positives": [
+        "Name matching is the main false-positive risk: a prefix match links Apple Inc to Apple Hospitality REIT, and different companies share words. Check every lead against the disclosure PDF and the party's corporate identity.",
+        "Ownership in a mutual or common investment fund is not a financial interest in the securities it holds unless the judge helps manage the fund (28 U.S.C. 455(d)(4)(i), https://www.law.cornell.edu/uscode/text/28/455); a fund whose name contains an issuer's name can still match.",
+        "assigned_judge_id is the judge assigned when the record was captured; the judge may have recused, been reassigned, or divested before acting in the case. Read the docket before treating a lead as a failure to recuse.",
+        "Parents, subsidiaries and renamed companies are missed (false negatives), not flagged."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.judge_holds_party_stock",
+      "implementation_hash": "sha256:10149ec89757b0d6ed100b579348bec4d37a34be839663fd8b5c47d61eeb4a9b",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_name_length": {
+          "default": 4,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "year_slack": {
+          "default": 1,
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties",
+        "judge_interests"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "court",
+      "title": "Judge holds stock in a party",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Civil Justice Reform Act report lists, per US district judge, civil cases pending more than three years (28 U.S.C. 476) (https://www.uscourts.gov/data-news/reports/statistical-reports/civil-justice-reform-act-report); min_years defaults to that three years.",
+        "as_of_date is YYYY-MM-DD; when empty the latest filing or termination date in the data is used, so results do not depend on the day the detector runs.",
+        "civil_only = 1 keeps cases with a nature of suit, which PACER records for civil cases only."
+      ],
+      "data_type": "court",
+      "description": "Cases still open more than min_years after filing at the as-of date, with each judge's count of such cases.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "docket_number",
+        "nature_of_suit",
+        "judge_id",
+        "judge_name",
+        "date_filed",
+        "as_of_date",
+        "years_pending",
+        "judge_long_pending",
+        "url"
+      ],
+      "false_positives": [
+        "Records captured before a case closed keep an empty date_terminated: stale RECAP dockets look pending. Check the live docket.",
+        "Stayed cases, bankruptcy-related stays, complex litigation and multidistrict proceedings run long legitimately."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.long_pending_cases",
+      "implementation_hash": "sha256:daae36187e28cd490a1f0e13eda932c49d6f5ea7d44272584ad5a1bcfbff47c0",
+      "parameters": {
+        "as_of_date": {
+          "default": "",
+          "max_length": 10,
+          "type": "string"
+        },
+        "civil_only": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_years": {
+          "default": 3,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "none",
+      "severity": "low",
+      "signal_category": "court",
+      "title": "Long-pending cases",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Brennan Center documents litigants repeatedly filing where one judge hears all cases, including an organisation that incorporated in Amarillo before suing there (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+        "party_role keeps parties with that role (case-insensitive) or no role; an empty party_role keeps every party. Parties are grouped by the same normalised name as the other court detectors.",
+        "exclude_pattern is a regular expression on the normalised party name; the default drops US federal and state government parties, which appear in so many cases that they dominate the output. An empty pattern keeps them.",
+        "judges_in_court counts the judges seen in the supplied data for that court; 1 means the data cannot show a choice between judges.",
+        "The defaults (3 cases, 75 percent) are uncalibrated thresholds."
+      ],
+      "data_type": "court",
+      "description": "Parties with at least min_cases cases in one court of which at least min_share were assigned to the same judge.",
+      "expected_output": [
+        "party_name",
+        "court_id",
+        "judge_id",
+        "judge_name",
+        "cases_before_judge",
+        "party_cases",
+        "judge_share",
+        "judges_in_court",
+        "first_filed",
+        "last_filed"
+      ],
+      "false_positives": [
+        "Name matching risk: different parties with the same normalised name merge, and one party spelled two ways splits.",
+        "Related cases are assigned to the judge who has the first case; serial filers in one-judge divisions or with related cases concentrate legitimately.",
+        "A sample fetched by judge or by search term over-represents that judge."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.repeat_party_before_judge",
+      "implementation_hash": "sha256:517c6078dbbee62e26467350e9899ffe4eef8bc8a0c84acf55566ff84ed9e94b",
+      "parameters": {
+        "exclude_pattern": {
+          "default": "^(UNITED STATES|USA|U S A|STATE OF|COMMISSIONER OF SOCIAL SECURITY|SOCIAL SECURITY ADMINISTRATION)( |$)",
+          "max_length": 500,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_cases": {
+          "default": 3,
+          "maximum": 100000,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "party_role": {
+          "default": "plaintiff",
+          "max_length": 50,
+          "type": "string"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "court",
+      "title": "Repeat party before the same judge",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Brennan Center describes litigants filing in single-judge divisions (Amarillo, Waco) to choose their judge instead of being randomly assigned (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+        "A market is one court, division (empty when unknown) and nature of suit (empty when unknown); cases without an assigned judge are left out.",
+        "The defaults (10 cases, 90 percent) are uncalibrated thresholds, not taken from a published standard."
+      ],
+      "data_type": "court",
+      "description": "Courts or divisions where one judge receives at least min_share of the cases of one nature of suit, the pattern single-judge divisions create for judge shopping.",
+      "expected_output": [
+        "court_id",
+        "division",
+        "nature_of_suit",
+        "judge_id",
+        "judge_name",
+        "judge_cases",
+        "total_cases",
+        "judge_share",
+        "judges_in_market",
+        "first_filed",
+        "last_filed"
+      ],
+      "false_positives": [
+        "Small divisions with one sitting judge concentrate every case by design; the lead is the filing pattern into that division, which needs the parties' connection to the place.",
+        "Specialised dockets, related-case and multidistrict assignments legitimately send cases to one judge.",
+        "Without division, a district-level market hides single-judge divisions (false negatives)."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.single_judge_concentration",
+      "implementation_hash": "sha256:7133d4685e938699046dc382b5c5fe2c68a3fe2299624006b2baa846018870ea",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_cases": {
+          "default": 10,
+          "maximum": 1000000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "none",
+      "severity": "medium",
+      "signal_category": "court",
+      "title": "Cases concentrated on one judge",
+      "version": "1.0.0"
     },
     {
       "assumptions": [

@@ -1,0 +1,4 @@
+[
+  {"case_id": "G1", "judge_id": "201", "matched_name": "Acme Holdings LLC", "matched_as": "party", "interest_type": "gift", "benefit_source": "Acme Holdings", "report_year": 2019, "value_low": 1199.0, "match_type": "exact"},
+  {"case_id": "G1", "judge_id": "201", "matched_name": "Big Law LLP", "matched_as": "firm", "interest_type": "reimbursement", "benefit_source": "Big Law LLP", "report_year": 2021, "value_low": 1200.0, "match_type": "exact"}
+]

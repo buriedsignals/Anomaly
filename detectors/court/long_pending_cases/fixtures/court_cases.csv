@@ -1,0 +1,8 @@
+case_id,court_id,case_name,docket_number,date_filed,date_terminated,nature_of_suit,assigned_judge_id,assigned_judge_name
+L1,nysd,Alpha v. Beta,1:19-cv-00001,2019-01-10,,Contract,501,Judge F
+L2,nysd,Gamma v. Delta,1:20-cv-00002,2020-06-01,2024-01-01,Contract,501,Judge F
+L3,nysd,Epsilon v. Zeta,1:21-cv-00003,2021-01-01,,Securities,502,Judge G
+L4,nysd,United States v. Eta,1:18-cr-00004,2018-01-01,,,501,Judge F
+L5,nysd,Theta v. Iota,1:25-cv-00005,2025-06-30,,Contract,502,Judge G
+L6,nysd,Kappa v. Lambda,1:22-cv-00006,2022-07-01,,Contract,502,Judge G
+L8,nysd,Mu v. Nu,1:17-cv-00008,2017-03-01,,Patent,501,Judge F
