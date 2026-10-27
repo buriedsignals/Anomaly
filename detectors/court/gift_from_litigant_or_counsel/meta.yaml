@@ -1,0 +1,36 @@
+id: court.gift_from_litigant_or_counsel
+version: 1.0.0
+release: released
+title: Gift or paid trip from a litigant or counsel
+author: buried-signals
+license: internal
+group: domain
+family: court
+data_type: court
+menu_order: 2
+description: Gifts or travel reimbursements on a judge's disclosure whose source matches a party, attorney or law firm in a case assigned to that judge, within year_slack years of the case.
+required_tables: [court_cases, case_parties, case_counsel, judge_interests]
+required_fields: [id]
+parameters:
+  min_name_length: 4
+  year_slack: 2
+  limit: 200
+parameter_bounds:
+  min_name_length: {type: integer, minimum: 1, maximum: 50}
+  year_slack: {type: integer, minimum: 0, maximum: 10}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: court
+severity: high
+expected_output: [case_id, court_id, case_name, date_filed, date_terminated, judge_id, judge_name, matched_name, matched_as, interest_type, benefit_source, benefit_description, report_year, value_low, value_high, match_type, report_url, url]
+assumptions:
+  - Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier.
+  - "Indicator: ProPublica reported luxury travel and gifts from Harlan Crow that did not appear on Justice Clarence Thomas's disclosures (https://www.propublica.org/article/clarence-thomas-scotus-undisclosed-luxury-travel-gifts-crow). Federal judges disclose gifts and travel reimbursements over 415 USD from one source (https://wiki.free.law/c/courtlistener/help/api/rest/v4/financial-disclosures)."
+  - Names are normalised and matched as in court.judge_holds_party_stock (exact or prefix after removing punctuation and legal-form words).
+  - case_counsel may be an empty file with only a header when the source publishes no counsel.
+false_positives:
+  - "Name matching is the main false-positive risk: gift sources are often individuals, and common personal names match unrelated parties or attorneys. Confirm identity in the disclosure PDF and the docket."
+  - Bar associations, universities and law firms reimburse judges for teaching and speaking; a match with a firm that appears in a case is a lead to check, not a conflict in itself.
+  - Undisclosed gifts, the subject of the ProPublica reporting, cannot be found this way; only disclosed lines are compared.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

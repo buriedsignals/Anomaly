@@ -34,6 +34,12 @@ notes: >
   controlled resource router and maps common aliases to endpoint-specific
   hyphenated filters. The API has no MEP-name filter, so name lookup fetches
   the current filtered roster once (limit 1000) and filters it locally.
+provides:
+  parl_members: {}
+  parl_affiliations: {}
+  parl_votings: {}
+  parl_member_votes: {}
+
 examples:
   - 'Find current French MEPs named Keller'
   - 'Search European Parliament speeches about artificial intelligence'
@@ -41,6 +47,16 @@ examples:
 input_schema:
   type: object
   properties:
+    operation:
+      type: string
+      enum: [parl-members, parl-affiliations, parl-votings, parl-member-votes]
+      description: Parliamentary contract table to fill (domains/parliamentary.yaml); other inputs then follow that operation.
+    sitting_dates:
+      type: array
+      items: {type: string}
+      minItems: 1
+      maxItems: 10
+      description: Plenary sitting dates (YYYY-MM-DD) whose roll-call votes to fetch; parl-votings and parl-member-votes only.
     resource:
       type: string
       enum: [meps, meps_current, meps_incoming, meps_outgoing, meps_declarations, corporate_bodies, meetings, events, speeches, procedures, documents, plenary_documents, parliamentary_questions, plenary_session_documents, plenary_session_items, adopted_texts, committee_documents, external_documents, vote_results]
@@ -405,3 +421,95 @@ operations:
   availability_reason: null
   prohibited_uses:
   - Do not treat returned records as independently verified facts.
+
+- id: parl-members
+  title: MEPs of a term as parl_members rows
+  description: One row per MEP with a mandate in the parliamentary term (default 10), with the country they represent.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [parliamentary_term]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-members}
+  output_fields: [member_id, parliament, name, country]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes: [parliamentary term]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - A mandate in the term is not proof the member sat on a given day.
+
+- id: parl-affiliations
+  title: Group and party memberships as parl_affiliations rows
+  description: Every political-group and national-party membership of the term's MEPs, ended ones included, with dates, short labels and the term each began in.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [parliamentary_term]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-affiliations}
+  output_fields: [member_id, parliament, affiliation_type, org_id, org_name, start_date, end_date, term, role]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes: [parliamentary term]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - A change of group label between terms is not by itself a change of group.
+
+- id: parl-votings
+  title: Roll-call votes of plenary sittings as parl_votings rows
+  description: One row per electronic roll-call decision in the given plenary sittings (show-of-hands and secret votes are skipped).
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [sitting_dates]
+  required: [sitting_dates]
+  any_of_required: []
+  adapter_input: {operation: parl-votings}
+  output_fields: [voting_id, parliament, chamber, vote_date, title, dossier_id, url]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes: [plenary sitting dates]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Roll-call votes are a selection of all votes; do not present them as the full voting record.
+
+- id: parl-member-votes
+  title: MEP votes of plenary sittings as parl_member_votes rows
+  description: One row per MEP on the roll of each roll-call vote: for, against or abstain from the decision's voter lists, and absent for MEPs with a mandate that day in no list.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [sitting_dates, parliamentary_term]
+  required: [sitting_dates]
+  any_of_required: []
+  adapter_input: {operation: parl-member-votes}
+  output_fields: [voting_id, parliament, member_id, position, group_at_vote]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [data.europarl.europa.eu]
+    data_classes: [plenary sitting dates and parliamentary term]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - absent means the MEP cast no recorded vote, not that the MEP was away from Parliament; vote corrections (had_voter_intended_*) are not applied.

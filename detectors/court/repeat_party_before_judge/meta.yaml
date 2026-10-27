@@ -1,0 +1,42 @@
+id: court.repeat_party_before_judge
+version: 1.0.0
+release: released
+title: Repeat party before the same judge
+author: buried-signals
+license: internal
+group: domain
+family: court
+data_type: court
+menu_order: 4
+description: Parties with at least min_cases cases in one court of which at least min_share were assigned to the same judge.
+required_tables: [court_cases, case_parties]
+required_fields: [id]
+parameters:
+  min_cases: 3
+  min_share: 0.75
+  party_role: plaintiff
+  exclude_pattern: "^(UNITED STATES|USA|U S A|STATE OF|COMMISSIONER OF SOCIAL SECURITY|SOCIAL SECURITY ADMINISTRATION)( |$)"
+  limit: 200
+parameter_bounds:
+  min_cases: {type: integer, minimum: 2, maximum: 100000}
+  min_share: {type: number, minimum: 0, maximum: 1}
+  party_role: {type: string, max_length: 50}
+  exclude_pattern: {type: string, max_length: 500}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: court
+severity: medium
+expected_output: [party_name, court_id, judge_id, judge_name, cases_before_judge, party_cases, judge_share, judges_in_court, first_filed, last_filed]
+assumptions:
+  - Tables follow the court domain contract in domains/court.yaml.
+  - "Indicator: the Brennan Center documents litigants repeatedly filing where one judge hears all cases, including an organisation that incorporated in Amarillo before suing there (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained)."
+  - "party_role keeps parties with that role (case-insensitive) or no role; an empty party_role keeps every party. Parties are grouped by the same normalised name as the other court detectors."
+  - "exclude_pattern is a regular expression on the normalised party name; the default drops US federal and state government parties, which appear in so many cases that they dominate the output. An empty pattern keeps them."
+  - judges_in_court counts the judges seen in the supplied data for that court; 1 means the data cannot show a choice between judges.
+  - The defaults (3 cases, 75 percent) are uncalibrated thresholds.
+false_positives:
+  - "Name matching risk: different parties with the same normalised name merge, and one party spelled two ways splits."
+  - Related cases are assigned to the judge who has the first case; serial filers in one-judge divisions or with related cases concentrate legitimately.
+  - A sample fetched by judge or by search term over-represents that judge.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

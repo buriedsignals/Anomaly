@@ -1,0 +1,36 @@
+id: court.single_judge_concentration
+version: 1.0.0
+release: released
+title: Cases concentrated on one judge
+author: buried-signals
+license: internal
+group: domain
+family: court
+data_type: court
+menu_order: 3
+description: Courts or divisions where one judge receives at least min_share of the cases of one nature of suit, the pattern single-judge divisions create for judge shopping.
+required_tables: [court_cases]
+required_fields: [id]
+parameters:
+  min_cases: 10
+  min_share: 0.9
+  limit: 200
+parameter_bounds:
+  min_cases: {type: integer, minimum: 1, maximum: 1000000}
+  min_share: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: court
+severity: medium
+expected_output: [court_id, division, nature_of_suit, judge_id, judge_name, judge_cases, total_cases, judge_share, judges_in_market, first_filed, last_filed]
+assumptions:
+  - Tables follow the court domain contract in domains/court.yaml.
+  - "Indicator: the Brennan Center describes litigants filing in single-judge divisions (Amarillo, Waco) to choose their judge instead of being randomly assigned (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained)."
+  - A market is one court, division (empty when unknown) and nature of suit (empty when unknown); cases without an assigned judge are left out.
+  - The defaults (10 cases, 90 percent) are uncalibrated thresholds, not taken from a published standard.
+false_positives:
+  - Small divisions with one sitting judge concentrate every case by design; the lead is the filing pattern into that division, which needs the parties' connection to the place.
+  - Specialised dockets, related-case and multidistrict assignments legitimately send cases to one judge.
+  - Without division, a district-level market hides single-judge divisions (false negatives).
+sensitive_output: none
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

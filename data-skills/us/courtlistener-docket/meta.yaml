@@ -16,14 +16,13 @@ jurisdiction: us
 runtime: local
 endpoint: https://www.courtlistener.com/api/rest/v4/search/
 auth:
-  type: none
-  optional: true
+  type: api_key
   key_name: courtlistener
   setup_url: https://www.courtlistener.com/profile/api-token/
   setup_help: >-
-    Public experimentation can work without a token. CourtListener asks deployed
-    API clients to authenticate. Create an account, copy the profile API token,
-    through the execution context; access limits depend on account tier.
+    Every v4 endpoint returned 401 without a token when tested on 2026-10-27.
+    Create a free account and pass the profile API token through the execution
+    context; access limits depend on account tier.
 verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
 license:
   data_license: Mixed court-record rights; judicial opinions and many filings are generally public domain, but embedded third-party works may remain copyrighted
@@ -35,9 +34,15 @@ notes: >-
   Search counts for type=r are approximate within about ±6% above 2,000 results.
   The embedded documents are only the first three matches; more_documents marks
   when additional matching filings exist. Verify legal claims in the underlying record.
+provides:
+  court_cases: {}
+  case_parties: {}
+  case_counsel: {}
+
 examples:
   - Federal RECAP dockets mentioning Purdue Pharma in nysb
   - Retrieve CourtListener docket 16199029 by its exact ID
+  - List txnd dockets filed in 2024 as court_cases rows
 input_schema:
   type: object
   properties:
@@ -48,11 +53,21 @@ input_schema:
     order_by: {type: string, minLength: 1, maxLength: 100, description: Search ordering copied from a CourtListener search URL.}
     highlight: {type: boolean, default: false, description: Request highlighted snippets.}
     limit: {type: integer, minimum: 1, maximum: 20, default: 10, description: Records retained from the current search page.}
+    operation: {type: string, enum: [court-cases, case-parties, case-counsel], description: Court-domain contract table to fill from the PACER database endpoints (token required).}
+    filed_after: {type: string, format: date, description: court-cases only; first filing date (YYYY-MM-DD) sent as date_filed__gte.}
+    filed_before: {type: string, format: date, description: court-cases only; last filing date (YYYY-MM-DD) sent as date_filed__lte.}
+    pages: {type: integer, minimum: 1, maximum: 5, default: 1, description: court-cases only; database pages to read.}
+    docket_ids:
+      type: array
+      items: {type: integer, minimum: 1}
+      minItems: 1
+      maxItems: 10
+      description: case-parties and case-counsel only; CourtListener docket ids, one request each.
   required: []
   additionalProperties: false
 output_schema:
   entity: Docket
-  fields: [entity, name, name_full, court, court_id, date_filed, date_terminated, docket_number, docket_id, pacer_case_id, judge, judge_id, referred_to, referred_to_id, cause, chapter, jury_demand, suit_nature, parties, attorneys, firms, documents, more_documents, relevance_score, source_url]
+  fields: [entity, name, name_full, court, court_id, date_filed, date_terminated, docket_number, docket_id, pacer_case_id, judge, judge_id, referred_to, referred_to_id, cause, chapter, jury_demand, suit_nature, parties, attorneys, firms, documents, more_documents, relevance_score, source_url, case_id, case_name, nature_of_suit, division, assigned_judge_id, assigned_judge_name, url, party_name, party_role, counsel_name, firm_name]
 operations:
   - id: search-dockets
     title: Search RECAP dockets
@@ -125,3 +140,106 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not represent embedded matching documents as the complete docket.
+
+  - id: court-cases
+    title: Dockets of one court as court_cases rows
+    description: List one court's dockets, optionally by filing-date range, from the /dockets/ database endpoint as court domain rows.
+    status: queryable
+    entities: [Docket]
+    actions: [list]
+    input_fields: [court, filed_after, filed_before, pages]
+    required: [court]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: court-cases}
+    output_fields: [case_id, court_id, case_name, docket_number, date_filed, date_terminated, nature_of_suit, division, assigned_judge_id, assigned_judge_name, url]
+    filters: [court, filed_after, filed_before, pages]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [court identifier, filing-date range]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - List txnd dockets filed from 2024-01-01 to 2024-12-31 as court_cases rows
+    counterexamples:
+      - query: Treat an empty date_terminated as proof that a case is still open
+        reason_code: stale_recap_record
+    no_result_guidance:
+      - Check the court id and date range; RECAP holds only dockets someone has bought or uploaded.
+    retry_guidance:
+      - The endpoint needs a token; an account starts at 5 requests a minute and 125 a day, so keep pages low.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not present a page of dockets as the court's full caseload.
+      - Do not use CourtListener data for a prohibited FCRA purpose.
+
+  - id: case-parties
+    title: Parties of known dockets as case_parties rows
+    description: One request per docket id to /parties/ with nested results filtered to that docket; one row per party and role.
+    status: queryable
+    entities: [Party]
+    actions: [list]
+    input_fields: [docket_ids]
+    required: [docket_ids]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: case-parties}
+    output_fields: [case_id, party_name, party_role]
+    filters: [docket_ids]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [docket identifiers]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Parties of dockets 4214664 and 16199029
+    counterexamples:
+      - query: Fetch the parties of every docket in a court
+        reason_code: one_request_per_docket
+    no_result_guidance:
+      - RECAP lists parties only for dockets whose party sheet was captured.
+    retry_guidance:
+      - Each docket id costs one request against the daily limit; truncated_dockets lists dockets with more than one page.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not use CourtListener data for a prohibited FCRA purpose.
+
+  - id: case-counsel
+    title: Attorneys of known dockets as case_counsel rows
+    description: One request per docket id to /attorneys/ with nested results filtered to that docket; the endpoint publishes no firm, so firm_name is empty.
+    status: queryable
+    entities: [Attorney]
+    actions: [list]
+    input_fields: [docket_ids]
+    required: [docket_ids]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: case-counsel}
+    output_fields: [case_id, counsel_name, firm_name]
+    filters: [docket_ids]
+    semantics: {enumeration: bounded, aggregation: false, temporal: false, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [docket identifiers]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - Attorneys of docket 4214664
+    counterexamples:
+      - query: Return each attorney's law firm
+        reason_code: firm_not_published
+    no_result_guidance:
+      - RECAP lists attorneys only for dockets whose party sheet was captured.
+    retry_guidance:
+      - Each docket id costs one request against the daily limit.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not use CourtListener data for a prohibited FCRA purpose.

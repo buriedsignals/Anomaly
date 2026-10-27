@@ -4,11 +4,11 @@
 
 ### Data sources and anomaly detectors for investigating agents
 
-**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 41 data sources across 16 domains and 29 released detectors.**
+**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 41 data sources across 16 domains and 45 released detectors.**
 
 [How it works](#how-it-works) | [Domains](#domains) | [Using it](#using-it-from-an-agent) | [Adding to it](#adding-sources-and-detectors) | [Website](https://anomaly.buriedsignals.com/)
 
-[![41 Data Sources](https://img.shields.io/badge/data_sources-41-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![29 Detectors](https://img.shields.io/badge/detectors-29-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
+[![41 Data Sources](https://img.shields.io/badge/data_sources-41-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![45 Detectors](https://img.shields.io/badge/detectors-45-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
 
 Built by [**Buried Signals**](https://buriedsignals.com/) • [tom@buriedsignals.com](mailto:tom@buriedsignals.com)
 
@@ -92,8 +92,8 @@ nothing but its contract's columns.
 | Domain | Sources | Detectors |
 |---|---|---|
 | campaign_finance | OpenFEC · UK Electoral Commission | 3, with a contract of 2 tables |
-| companies | Zefix · Pappers · Companies House · GLEIF · OpenCorporates · Brønnøysund | — |
-| court | ICC cases · CourtListener (5 skills) | — |
+| companies | Zefix · Pappers · Companies House · GLEIF · OpenCorporates · Brønnøysund | 6, with a contract of 3 tables |
+| court | ICC cases · CourtListener (5 skills) | 5, with a contract of 4 tables |
 | entities | OCCRP Aleph · Wikidata | — |
 | environment | EPA Envirofacts | — |
 | filings | SEC EDGAR | — |
@@ -101,7 +101,7 @@ nothing but its contract's columns.
 | legislation | Congress Corral · Congress.gov | — |
 | lobbying | EU Transparency Register · Canada Registry of Lobbyists · Lobbying Disclosure Act filings · FARA · congress-legislators · Congress Press · LobbyData | 15, with a contract of 10 tables |
 | news | GDELT | — |
-| parliamentary | OpenParlData.ch · European Parliament · Party Facts | — |
+| parliamentary | OpenParlData.ch · European Parliament · Party Facts | 5, with a contract of 5 tables |
 | procurement | TED · Find a Tender · USAspending | 5, with a contract of 2 tables |
 | regulations | Federal Register | — |
 | sanctions | OpenSanctions | — |
@@ -116,7 +116,7 @@ ships only `meta.yaml` and `SKILL.md`. Catalogued sources still tell the agent
 that the data exists and how a person can get it, which matters for paid,
 login-only or reuse-restricted data.
 
-Three domains have their own detectors.
+Six domains have their own detectors.
 
 - **Lobbying** works across national registers. Its core tables
   (registrations, lobbyists, contacts with officials) hold what most registers
@@ -132,10 +132,27 @@ Three domains have their own detectors.
 - **Campaign finance** has three detectors for donor clusters at the limit,
   gifts split under a reporting threshold, and new recipients funded by one
   donor. OpenFEC and the UK Electoral Commission fill its tables.
+- **Companies** has six detectors from shell-company research by Global
+  Witness, Open Ownership and the Tax Justice Network: many companies at one
+  address, one person across many companies, dissolution within a year,
+  control from a secrecy jurisdiction, circular ownership and frequent name
+  changes. Companies House, GLEIF and Brønnøysund fill its tables.
+- **Parliamentary** has five detectors for voting against one's own group, a
+  sudden rise in it, absence well above the chamber's norm, many paid side
+  mandates and group switches within a term. The European Parliament and
+  OpenParlData.ch fill its tables.
+- **Court** has five detectors for a judge holding stock in a party, gifts or
+  paid trips from a litigant or their counsel, cases concentrated on one
+  judge, a party repeatedly before the same judge, and civil cases pending
+  more than three years. CourtListener fills its tables with an API token.
 
 Known gaps: lda.gov and the Canada registry block scripted downloads from the
 network used for testing, so both adapters were checked on real pages fetched
-another way or on files from the official data dictionaries.
+another way or on files from the official data dictionaries. CourtListener now
+requires a token for every endpoint, and Companies House needs a key, so their
+new operations are tested offline only. Matching people across tables (judges
+and parties, officers across companies) uses names and can merge or split
+people.
 
 ## Using it from an agent
 
@@ -169,7 +186,7 @@ accept or dismiss.
 
 ## Detectors
 
-The 29 released detectors are listed in `detectors/catalogue.json` with their
+The 45 released detectors are listed in `detectors/catalogue.json` with their
 id, version, implementation hash, `data_type` and bounds. Another 12 packages
 are drafts with placeholder SQL; they are left out of the catalogue and never
 offered. Detector SQL runs read-only, and DDL, DML, `ATTACH`, `COPY` and

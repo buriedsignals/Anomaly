@@ -1,0 +1,4 @@
+[
+  {"court_id": "txnd", "division": "Amarillo", "nature_of_suit": "Civil Rights", "judge_id": "301", "judge_cases": 10, "total_cases": 10, "judge_share": 1.0, "judges_in_market": 1},
+  {"court_id": "txnd", "division": "Fort Worth", "nature_of_suit": "Patent", "judge_id": "304", "judge_cases": 9, "total_cases": 10, "judge_share": 0.9, "judges_in_market": 2}
+]

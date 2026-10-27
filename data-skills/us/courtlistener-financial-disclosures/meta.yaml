@@ -16,14 +16,13 @@ jurisdiction: us
 runtime: local
 endpoint: https://www.courtlistener.com/api/rest/v4/financial-disclosures/
 auth:
-  type: none
-  optional: true
+  type: api_key
   key_name: courtlistener
   setup_url: https://www.courtlistener.com/profile/api-token/
   setup_help: >-
-    Public experimentation can work without a token. CourtListener asks deployed
-    API clients to authenticate. Create an account, copy the profile API token,
-    through the execution context; access limits depend on account tier.
+    Every v4 endpoint returned 401 without a token when tested on 2026-10-27.
+    Create a free account and pass the profile API token through the execution
+    context; access limits depend on account tier.
 verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
 license:
   data_license: Government disclosure records with CourtListener extraction; inspect source-document and embedded-content rights
@@ -35,6 +34,9 @@ notes: >-
   The endpoint accepts person but rejects year as an unknown filter. Value codes
   are ranges, some values are inferred from form layout, and redacted rows require
   special care. Returned extraction is not a substitute for the linked PDF.
+provides:
+  judge_interests: {}
+
 examples:
   - Financial disclosures for CourtListener person 2738
   - Review inferred and redacted investment rows for a known judge ID
@@ -43,11 +45,12 @@ input_schema:
   properties:
     person_id: {type: integer, minimum: 1, description: CourtListener person ID, obtainable from the judge skill.}
     limit: {type: integer, minimum: 1, maximum: 20, default: 10}
+    operation: {type: string, enum: [list-financial-disclosures, judge-interests], default: list-financial-disclosures, description: judge-interests flattens the reports into court-domain judge_interests rows.}
   required: [person_id]
   additionalProperties: false
 output_schema:
   entity: FinancialDisclosure
-  fields: [entity, id, person_id, year, report_type, is_amended, page_count, has_been_extracted, investments, agreements, positions, debts, gifts, non_investment_incomes, reimbursements, spouse_incomes, pdf_url, thumbnail_url, sha1, source_url]
+  fields: [entity, id, person_id, year, report_type, is_amended, page_count, has_been_extracted, investments, agreements, positions, debts, gifts, non_investment_incomes, reimbursements, spouse_incomes, pdf_url, thumbnail_url, sha1, source_url, judge_id, judge_name, report_year, interest_type, counterparty, description, value_low, value_high, url, redacted]
 operations:
   - id: list-financial-disclosures
     title: List one person's disclosures
@@ -87,4 +90,39 @@ operations:
     availability_reason: null
     prohibited_uses:
       - Do not publish an extracted row without checking redactions, inferred flags, value-code range, and source PDF.
+      - Do not use CourtListener data for a prohibited FCRA purpose.
+
+  - id: judge-interests
+    title: One judge's disclosures as judge_interests rows
+    description: Flatten one person's reports into one row per investment, gift, reimbursement, position, agreement, income, spouse income or debt line.
+    status: queryable
+    entities: [FinancialDisclosure]
+    actions: [list]
+    input_fields: [person_id, limit]
+    required: [person_id]
+    any_of_required: []
+    aliases: {}
+    adapter_input: {operation: judge-interests}
+    output_fields: [judge_id, judge_name, report_year, interest_type, counterparty, description, value_low, value_high, url, redacted]
+    filters: [person_id, limit]
+    semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: relation}
+    access: {auth: source, cost: upstream_quota, side_effects: none}
+    disclosure:
+      destinations: [www.courtlistener.com]
+      data_classes: [judicial person identifier]
+      sensitive_inputs: []
+      consent_required: false
+    examples:
+      - judge_interests rows for person 2738
+    counterexamples:
+      - query: Treat value_low and value_high as the exact value of a holding
+        reason_code: range_or_inferred_value
+    no_result_guidance:
+      - A report that has not been extracted yields no rows; open its PDF.
+    retry_guidance:
+      - One request per call; respect the account's daily limit.
+    verification: {endpoint_live: true, query_tested: false, adapter_tested: true, fixture_tested: true}
+    availability_reason: null
+    prohibited_uses:
+      - Do not publish an extracted row without checking redactions, value-code range and the source PDF.
       - Do not use CourtListener data for a prohibited FCRA purpose.

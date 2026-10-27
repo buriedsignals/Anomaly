@@ -1,0 +1,42 @@
+id: parliamentary.group_rebellion_rate
+version: 1.0.0
+release: released
+title: Group rebellion rate
+author: buried-signals
+license: internal
+group: domain
+family: parliamentary
+data_type: parliamentary
+menu_order: 1
+description: Members who vote against the majority line of their own parliamentary group in a high share of roll-call votes.
+required_tables: [parl_members, parl_votings, parl_member_votes]
+required_fields: [id]
+parameters:
+  unattached_groups: NI|Fraktionslos
+  min_group_size: 3
+  min_votes: 50
+  min_rate: 0.1
+  limit: 200
+parameter_bounds:
+  unattached_groups: {type: string, max_length: 200}
+  min_group_size: {type: integer, minimum: 2, maximum: 1000}
+  min_votes: {type: integer, minimum: 1, maximum: 100000}
+  min_rate: {type: number, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: parliamentary
+severity: low
+expected_output: [member_id, name, parliament, latest_group, votes_compared, rebellions, rebellion_rate]
+assumptions:
+  - Tables follow the parliamentary domain contract in domains/parliamentary.yaml.
+  - Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.
+  - "A group's line on a vote is the position (for, against or abstain) most of its voting members took, as in FicheDéputé's group loyalty measure, which 'compares each vote to the European political group's majority line' (https://fichedepute.eu/methode). The member's own vote counts towards the line."
+  - Votes where the group is smaller than min_group_size or the top positions tie have no line and are skipped; absent members are not compared.
+  - The group is the one the member belonged to on the day of the vote (group_at_vote); latest_group is the most recent one in the sample.
+  - The defaults min_votes 50 and min_rate 0.1 are uncalibrated starting points, not published thresholds.
+false_positives:
+  - "Defection is normal and varies by policy area and national party (https://journals.sagepub.com/doi/10.1177/1354068813487114); national delegations often vote against their group on purpose, and free votes have no whip."
+  - "Only roll-call votes are recorded member by member (https://howtheyvote.eu/about); a sample of amendment votes overweights contested details."
+  - A group with an even split has no line, so members of small or divided groups show few comparisons.
+sensitive_output: redact
+resource_limits: {timeout_seconds: 10, memory_mb: 256}
+query: query.sql

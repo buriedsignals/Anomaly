@@ -477,8 +477,293 @@
       ]
     },
     {
-      "contract": null,
-      "detectors": [],
+      "contract": {
+        "companies": [
+          "company_id",
+          "jurisdiction",
+          "name",
+          "status",
+          "incorporation_date",
+          "dissolution_date",
+          "registered_address",
+          "previous_name_count",
+          "source_url"
+        ],
+        "company_controllers": [
+          "company_id",
+          "controller_id",
+          "controller_name",
+          "controller_kind",
+          "controller_country",
+          "controller_company_id",
+          "control_type",
+          "notified_on",
+          "ceased_on"
+        ],
+        "company_officers": [
+          "company_id",
+          "officer_id",
+          "name",
+          "company_name",
+          "role",
+          "appointed_on",
+          "resigned_on"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml.",
+            "Indicator: Global Witness identified 328 UK companies in circular control structures, where a group of companies each name another as PSC and the last names the first, and notes that UK company law prohibits circular shareholding (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/).",
+            "The walk follows controller_company_id, so it only sees a chain whose links the adapters resolved to company_ids; a corporate controller without a register number breaks the chain.",
+            "Every company on a cycle is reported once, with its shortest cycle; cycle_length 1 is a company naming itself.",
+            "Cycles longer than max_depth (default 6) are not found."
+          ],
+          "description": "Companies that control themselves, directly or through a chain of companies that leads back to them.",
+          "domain": "companies",
+          "false_positives": [
+            "Data-entry errors, such as a company filing its own number as the PSC's registration number, look like a one-company cycle."
+          ],
+          "id": "companies.circular_control",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_depth": {
+              "default": 6,
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "company_controllers"
+          ],
+          "severity": "high",
+          "title": "Circular control",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml.",
+            "Indicator: Global Witness flags active companies that changed their name more than 5 times as an attempt to obscure their real activities, citing FATF (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); the default of 6 previous names is that threshold.",
+            "previous_name_count is the number of earlier names the register lists: Companies House previous_company_names on the company profile, Brreg historiskeNavn, OpenCorporates previous_names. A register that does not list earlier names leaves it empty and the company is not tested."
+          ],
+          "description": "Companies that have changed their registered name many times.",
+          "domain": "companies",
+          "false_positives": [
+            "Rebrands, mergers and group restructurings rename companies legitimately; a register can also list a punctuation or legal-form change as a new name."
+          ],
+          "id": "companies.frequent_name_changes",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_previous_names": {
+              "default": 6,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "companies"
+          ],
+          "severity": "low",
+          "title": "Frequent name changes",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml. A register without controllers (Brreg) is run with a company_controllers file holding only the header row.",
+            "Indicator: Global Witness counted 9,199 UK companies controlled by a PSC that controls more than 100 companies and treats such PSCs as likely nominees (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/); FATF and Egmont describe nominee directors anchoring shell companies (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63). The default of 100 follows Global Witness.",
+            "Only current appointments and control count: an empty resigned_on or ceased_on.",
+            "An officer is one officer_id. Companies House officer ids are per officer across appointments; controllers carry no register-wide id, so adapters key them by name plus birth month, which merges namesakes and splits spelling variants.",
+            "exclude_roles drops roles that are not control, compared in upper case: the default drops Brreg auditors (REVI) and accountants (REGN).",
+            "Counts cover only the rows loaded. Load an officer's full appointment list (Companies House /officers/{id}/appointments) before reading a count as complete."
+          ],
+          "description": "One officer or one controller holding current appointments or control in many companies, the pattern of nominee directors and nominee owners.",
+          "domain": "companies",
+          "false_positives": [
+            "Group parent companies control their own subsidiaries; a parent with many subsidiaries is not a nominee.",
+            "Company secretarial firms, insolvency practitioners and corporate directors of fund or property vehicles hold many appointments legitimately."
+          ],
+          "id": "companies.prolific_officer",
+          "parameters": {
+            "exclude_roles": {
+              "default": "REVI|REGN",
+              "max_length": 500,
+              "type": "string"
+            },
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_companies": {
+              "default": 100,
+              "maximum": 1000000,
+              "minimum": 2,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "company_officers",
+            "company_controllers"
+          ],
+          "severity": "medium",
+          "title": "Prolific officer or controller",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml.",
+            "Indicator: Open Ownership's red-flag queries over UK beneficial ownership data ask how many entities were founded and dissolved within a year (https://www.openownership.org/en/blog/spotting-red-flags-in-beneficial-ownership-datasets/); the default of 365 days follows it.",
+            "Only companies whose register publishes both dates are tested; Brreg removes deleted entities from its API and Zefix's legacy search publishes neither date."
+          ],
+          "description": "Companies dissolved within a short time of incorporation, the throwaway vehicles of one-off schemes.",
+          "domain": "companies",
+          "false_positives": [
+            "Most short-lived companies are failed start-ups, abandoned formations or vehicles closed after a completed transaction; read it with the address, officer and controller signals."
+          ],
+          "id": "companies.rapid_dissolution",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_days": {
+              "default": 365,
+              "maximum": 3650,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "companies"
+          ],
+          "severity": "low",
+          "title": "Rapid incorporation and dissolution",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml.",
+            "Indicator: Global Witness found more than 10,000 UK companies declaring a foreign company as their PSC, 72% of them linked to a secrecy jurisdiction; its red-flag table counts a jurisdiction with a Financial Secrecy Index secrecy score above 60 as a secrecy jurisdiction (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/).",
+            "The default jurisdictions are the 82 of 141 jurisdictions with a secrecy score above 60 in the Tax Justice Network Financial Secrecy Index full list as displayed on 2026-10-27 (https://fsi.taxjustice.net/full-list/), as ISO 3166-1 alpha-2 codes separated by a vertical bar. Pass your own list to override it.",
+            "Only current legal-entity controllers count, and only when their country differs from the company's own jurisdiction (taken from companies, else the company_id prefix).",
+            "controller_country must be an ISO alpha-2 code; a register that publishes country names (Companies House country_registered) must be normalised first or the row is missed."
+          ],
+          "description": "Companies controlled by a legal entity registered in another country that scores high on financial secrecy.",
+          "domain": "companies",
+          "false_positives": [
+            "The list includes large onshore economies (United States, Switzerland, Singapore, Hong Kong, China), so ordinary foreign parent groups match; narrow the list to small-island secrecy havens for a stricter run.",
+            "Listed and regulated parent companies are exempt from look-through in several registers and are not concealment."
+          ],
+          "id": "companies.secrecy_jurisdiction_controller",
+          "parameters": {
+            "jurisdictions": {
+              "default": "US|CH|SG|HK|AE|GG|TW|KR|CN|PA|VG|KY|SA|JE|RU|MY|DZ|EG|BS|MT|NG|KZ|TH|MO|KW|GT|QA|KE|NZ|BD|VN|BH|BM|MU|JO|CL|LK|LI|UY|BO|MA|LB|TZ|IM|CW|BB|VE|SC|PK|KN|OM|SV|AW|NA|RS|WS|GI|CM|PR|BZ|AI|LC|FJ|TC|VI|GD|CK|VC|XK|BN|GU|MH|MC|AS|MV|TT|VU|GM|LR|AG|AO|MS",
+              "max_length": 1000,
+              "type": "string"
+            },
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "company_controllers",
+            "companies"
+          ],
+          "severity": "medium",
+          "title": "Controller in a secrecy jurisdiction",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the companies domain contract in domains/companies.yaml.",
+            "Two addresses match when they are equal after dropping case, spaces and punctuation; a different flat number, a missing postcode or an added country makes two keys.",
+            "Indicator: OCCRP reported one London address used to register 4,000 to 5,000 businesses (https://www.occrp.org/en/news/uk-strikes-off-11500-companies-in-crackdown-on-fraud-and-shell-entities); Transparency International UK found over 6,000 identikit shell companies at just 10 addresses (https://www.transparency.org.uk/news/house-horrors-what-leaked-documents-tell-us-about-uks-fight-against-dirty-money); FATF and Egmont list a post-box-only address as a shell company indicator (https://www.fatf-gafi.org/content/dam/fatf-gafi/reports/FATF-Egmont-Concealment-beneficial-ownership.pdf, paragraph 63).",
+            "The default of 50 companies is a judgement, far below the published cases; lower it for a small sample.",
+            "Counts cover only the rows loaded, not the whole register. Enumerate an address first (Companies House advanced search by location, Brreg search by postal code) before reading a count as the address's total."
+          ],
+          "description": "Registered office addresses shared by many companies, the mailbox and formation-agent addresses that shell company schemes use.",
+          "domain": "companies",
+          "false_positives": [
+            "Accountants, registered-agent services, serviced offices, business centres and group head offices legitimately host many companies.",
+            "Global Witness counted 208,572 UK companies at company-factory or mailbox addresses (https://globalwitness.org/en/campaigns/corruption-and-money-laundering/the-companies-we-keep/), so the address alone is common; combine with rapid dissolution, prolific officers or offshore controllers."
+          ],
+          "id": "companies.shared_registered_address",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_companies": {
+              "default": 50,
+              "maximum": 1000000,
+              "minimum": 2,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "companies"
+          ],
+          "severity": "medium",
+          "title": "Mass registration address",
+          "version": "1.0.0"
+        }
+      ],
       "domain": "companies",
       "sources": [
         {
@@ -580,8 +865,308 @@
       ]
     },
     {
-      "contract": null,
-      "detectors": [],
+      "contract": {
+        "case_counsel": [
+          "case_id",
+          "counsel_name",
+          "firm_name"
+        ],
+        "case_parties": [
+          "case_id",
+          "party_name",
+          "party_role"
+        ],
+        "court_cases": [
+          "case_id",
+          "court_id",
+          "case_name",
+          "docket_number",
+          "date_filed",
+          "date_terminated",
+          "nature_of_suit",
+          "division",
+          "assigned_judge_id",
+          "assigned_judge_name",
+          "url"
+        ],
+        "judge_interests": [
+          "judge_id",
+          "judge_name",
+          "report_year",
+          "interest_type",
+          "counterparty",
+          "description",
+          "value_low",
+          "value_high",
+          "url"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier.",
+            "Indicator: ProPublica reported luxury travel and gifts from Harlan Crow that did not appear on Justice Clarence Thomas's disclosures (https://www.propublica.org/article/clarence-thomas-scotus-undisclosed-luxury-travel-gifts-crow). Federal judges disclose gifts and travel reimbursements over 415 USD from one source (https://wiki.free.law/c/courtlistener/help/api/rest/v4/financial-disclosures).",
+            "Names are normalised and matched as in court.judge_holds_party_stock (exact or prefix after removing punctuation and legal-form words).",
+            "case_counsel may be an empty file with only a header when the source publishes no counsel."
+          ],
+          "description": "Gifts or travel reimbursements on a judge's disclosure whose source matches a party, attorney or law firm in a case assigned to that judge, within year_slack years of the case.",
+          "domain": "court",
+          "false_positives": [
+            "Name matching is the main false-positive risk: gift sources are often individuals, and common personal names match unrelated parties or attorneys. Confirm identity in the disclosure PDF and the docket.",
+            "Bar associations, universities and law firms reimburse judges for teaching and speaking; a match with a firm that appears in a case is a lead to check, not a conflict in itself.",
+            "Undisclosed gifts, the subject of the ProPublica reporting, cannot be found this way; only disclosed lines are compared."
+          ],
+          "id": "court.gift_from_litigant_or_counsel",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_name_length": {
+              "default": 4,
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "year_slack": {
+              "default": 2,
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "court_cases",
+            "case_parties",
+            "case_counsel",
+            "judge_interests"
+          ],
+          "severity": "high",
+          "title": "Gift or paid trip from a litigant or counsel",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier (CourtListener person id).",
+            "Indicator: the Wall Street Journal found 131 federal judges failed to recuse from 685 cases (2010-2018) involving companies they or their family held shares in (https://www.wsj.com/us-news/law/131-federal-judges-broke-the-law-by-hearing-cases-where-they-had-a-financial-interest-11632834421); see also Fix the Court (https://fixthecourt.com/2021/09/100-federal-judges-failed-recuse-owned-stock-litigant-whats-excuses/).",
+            "Names are matched after upper-casing, dropping bracketed text such as tickers, punctuation and legal-form words (Inc, Corp, LLC, Common Stock, Class): equal keys are an exact match, and one key starting with the other followed by a space is a prefix match. Both keys must have at least min_name_length characters.",
+            "A holding counts when its report year falls between year_slack years before the filing year and year_slack years after the termination year; a pending case has no upper bound.",
+            "Value bounds come from the disclosure value codes; the top band has no upper bound, so max_value_high can be empty."
+          ],
+          "description": "Cases assigned to a judge whose financial disclosure lists an investment whose name matches a party, in a report year overlapping the case.",
+          "domain": "court",
+          "false_positives": [
+            "Name matching is the main false-positive risk: a prefix match links Apple Inc to Apple Hospitality REIT, and different companies share words. Check every lead against the disclosure PDF and the party's corporate identity.",
+            "Ownership in a mutual or common investment fund is not a financial interest in the securities it holds unless the judge helps manage the fund (28 U.S.C. 455(d)(4)(i), https://www.law.cornell.edu/uscode/text/28/455); a fund whose name contains an issuer's name can still match.",
+            "assigned_judge_id is the judge assigned when the record was captured; the judge may have recused, been reassigned, or divested before acting in the case. Read the docket before treating a lead as a failure to recuse.",
+            "Parents, subsidiaries and renamed companies are missed (false negatives), not flagged."
+          ],
+          "id": "court.judge_holds_party_stock",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_name_length": {
+              "default": 4,
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "year_slack": {
+              "default": 1,
+              "maximum": 5,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "court_cases",
+            "case_parties",
+            "judge_interests"
+          ],
+          "severity": "high",
+          "title": "Judge holds stock in a party",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the court domain contract in domains/court.yaml.",
+            "Indicator: the Civil Justice Reform Act report lists, per US district judge, civil cases pending more than three years (28 U.S.C. 476) (https://www.uscourts.gov/data-news/reports/statistical-reports/civil-justice-reform-act-report); min_years defaults to that three years.",
+            "as_of_date is YYYY-MM-DD; when empty the latest filing or termination date in the data is used, so results do not depend on the day the detector runs.",
+            "civil_only = 1 keeps cases with a nature of suit, which PACER records for civil cases only."
+          ],
+          "description": "Cases still open more than min_years after filing at the as-of date, with each judge's count of such cases.",
+          "domain": "court",
+          "false_positives": [
+            "Records captured before a case closed keep an empty date_terminated: stale RECAP dockets look pending. Check the live docket.",
+            "Stayed cases, bankruptcy-related stays, complex litigation and multidistrict proceedings run long legitimately."
+          ],
+          "id": "court.long_pending_cases",
+          "parameters": {
+            "as_of_date": {
+              "default": "",
+              "max_length": 10,
+              "type": "string"
+            },
+            "civil_only": {
+              "default": 1,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_years": {
+              "default": 3,
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "court_cases"
+          ],
+          "severity": "low",
+          "title": "Long-pending cases",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the court domain contract in domains/court.yaml.",
+            "Indicator: the Brennan Center documents litigants repeatedly filing where one judge hears all cases, including an organisation that incorporated in Amarillo before suing there (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+            "party_role keeps parties with that role (case-insensitive) or no role; an empty party_role keeps every party. Parties are grouped by the same normalised name as the other court detectors.",
+            "exclude_pattern is a regular expression on the normalised party name; the default drops US federal and state government parties, which appear in so many cases that they dominate the output. An empty pattern keeps them.",
+            "judges_in_court counts the judges seen in the supplied data for that court; 1 means the data cannot show a choice between judges.",
+            "The defaults (3 cases, 75 percent) are uncalibrated thresholds."
+          ],
+          "description": "Parties with at least min_cases cases in one court of which at least min_share were assigned to the same judge.",
+          "domain": "court",
+          "false_positives": [
+            "Name matching risk: different parties with the same normalised name merge, and one party spelled two ways splits.",
+            "Related cases are assigned to the judge who has the first case; serial filers in one-judge divisions or with related cases concentrate legitimately.",
+            "A sample fetched by judge or by search term over-represents that judge."
+          ],
+          "id": "court.repeat_party_before_judge",
+          "parameters": {
+            "exclude_pattern": {
+              "default": "^(UNITED STATES|USA|U S A|STATE OF|COMMISSIONER OF SOCIAL SECURITY|SOCIAL SECURITY ADMINISTRATION)( |$)",
+              "max_length": 500,
+              "type": "string"
+            },
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_cases": {
+              "default": 3,
+              "maximum": 100000,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "min_share": {
+              "default": 0.75,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "party_role": {
+              "default": "plaintiff",
+              "max_length": 50,
+              "type": "string"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "court_cases",
+            "case_parties"
+          ],
+          "severity": "medium",
+          "title": "Repeat party before the same judge",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the court domain contract in domains/court.yaml.",
+            "Indicator: the Brennan Center describes litigants filing in single-judge divisions (Amarillo, Waco) to choose their judge instead of being randomly assigned (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+            "A market is one court, division (empty when unknown) and nature of suit (empty when unknown); cases without an assigned judge are left out.",
+            "The defaults (10 cases, 90 percent) are uncalibrated thresholds, not taken from a published standard."
+          ],
+          "description": "Courts or divisions where one judge receives at least min_share of the cases of one nature of suit, the pattern single-judge divisions create for judge shopping.",
+          "domain": "court",
+          "false_positives": [
+            "Small divisions with one sitting judge concentrate every case by design; the lead is the filing pattern into that division, which needs the parties' connection to the place.",
+            "Specialised dockets, related-case and multidistrict assignments legitimately send cases to one judge.",
+            "Without division, a district-level market hides single-judge divisions (false negatives)."
+          ],
+          "id": "court.single_judge_concentration",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_cases": {
+              "default": 10,
+              "maximum": 1000000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_share": {
+              "default": 0.9,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "court_cases"
+          ],
+          "severity": "medium",
+          "title": "Cases concentrated on one judge",
+          "version": "1.0.0"
+        }
+      ],
       "domain": "court",
       "sources": [
         {
@@ -601,7 +1186,7 @@
           "title": "International Criminal Court \u2014 Cases"
         },
         {
-          "auth": "none",
+          "auth": "api_key",
           "cost": [
             "upstream_quota"
           ],
@@ -610,14 +1195,18 @@
           "id": "us/courtlistener/docket",
           "jurisdiction": "us",
           "license": "Mixed court-record rights; judicial opinions and many filings are generally public domain, but embedded third-party works may remain copyrighted",
-          "provides": [],
+          "provides": [
+            "case_counsel",
+            "case_parties",
+            "court_cases"
+          ],
           "setup_url": "https://www.courtlistener.com/profile/api-token/",
           "skill": "data-skills/us/courtlistener-docket/SKILL.md",
           "status": "queryable",
           "title": "CourtListener \u2014 RECAP Federal Dockets"
         },
         {
-          "auth": "none",
+          "auth": "api_key",
           "cost": [
             "upstream_quota"
           ],
@@ -626,14 +1215,16 @@
           "id": "us/courtlistener/financial-disclosures",
           "jurisdiction": "us",
           "license": "Government disclosure records with CourtListener extraction; inspect source-document and embedded-content rights",
-          "provides": [],
+          "provides": [
+            "judge_interests"
+          ],
           "setup_url": "https://www.courtlistener.com/profile/api-token/",
           "skill": "data-skills/us/courtlistener-financial-disclosures/SKILL.md",
           "status": "queryable",
           "title": "CourtListener \u2014 Judicial Financial Disclosures"
         },
         {
-          "auth": "none",
+          "auth": "api_key",
           "cost": [
             "upstream_quota"
           ],
@@ -649,7 +1240,7 @@
           "title": "CourtListener \u2014 Judicial People"
         },
         {
-          "auth": "none",
+          "auth": "api_key",
           "cost": [
             "upstream_quota"
           ],
@@ -665,7 +1256,7 @@
           "title": "CourtListener \u2014 Case-Law Opinions"
         },
         {
-          "auth": "none",
+          "auth": "api_key",
           "cost": [
             "upstream_quota"
           ],
@@ -1656,8 +2247,328 @@
       ]
     },
     {
-      "contract": null,
-      "detectors": [],
+      "contract": {
+        "parl_affiliations": [
+          "member_id",
+          "parliament",
+          "affiliation_type",
+          "org_name",
+          "start_date",
+          "end_date",
+          "term"
+        ],
+        "parl_interests": [
+          "interest_id",
+          "member_id",
+          "parliament",
+          "organisation",
+          "role",
+          "paid",
+          "income_high",
+          "end_date"
+        ],
+        "parl_member_votes": [
+          "voting_id",
+          "parliament",
+          "member_id",
+          "position",
+          "group_at_vote"
+        ],
+        "parl_members": [
+          "member_id",
+          "parliament",
+          "name",
+          "country"
+        ],
+        "parl_votings": [
+          "voting_id",
+          "parliament",
+          "chamber",
+          "vote_date",
+          "title",
+          "dossier_id",
+          "url"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+            "absent means the member held a seat that day and cast no vote. HowTheyVote defines 'Did not vote' as not participating, 'for example because the MEP was not present' (https://howtheyvote.eu/about); FicheD\u00e9put\u00e9 counts it as an absence (https://fichedepute.eu/methode).",
+            "A member is flagged when the absence rate reaches both ratio times the chamber median and min_rate; members with fewer than min_votings recorded votes are left out, and so is their share of the median.",
+            "Source values other than for, against, abstain and absent (such as an excused flag) are ignored.",
+            "The defaults are uncalibrated starting points."
+          ],
+          "description": "Members who miss a far higher share of roll-call votes than the median member of their chamber.",
+          "domain": "parliamentary",
+          "false_positives": [
+            "The President chairs sittings and rarely votes, so shows near-total absence (https://fichedepute.eu/methode).",
+            "Illness, parental leave, official missions and excused absences look the same as unexcused ones unless the source separates them.",
+            "A source can keep a mandate open after a member stopped sitting. In a four-sitting European Parliament sample (2025-07-09/10, 2025-10-22/23) seven MEPs with open mandates appeared in no voter list, among them the President; check the official member page before reporting a rate near 1.",
+            "Members who joined or left mid-sample are on fewer rolls; the rate is per roll they were on, not per sitting day."
+          ],
+          "id": "parliamentary.absence_outlier",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_rate": {
+              "default": 0.1,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_votings": {
+              "default": 50,
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "ratio": {
+              "default": 2.0,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "parl_members",
+            "parl_votings",
+            "parl_member_votes"
+          ],
+          "severity": "low",
+          "title": "Absence outlier",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+            "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
+            "A group's line on a vote is the position (for, against or abstain) most of its voting members took, as in FicheD\u00e9put\u00e9's group loyalty measure, which 'compares each vote to the European political group's majority line' (https://fichedepute.eu/methode). The member's own vote counts towards the line.",
+            "Votes where the group is smaller than min_group_size or the top positions tie have no line and are skipped; absent members are not compared.",
+            "The group is the one the member belonged to on the day of the vote (group_at_vote); latest_group is the most recent one in the sample.",
+            "The defaults min_votes 50 and min_rate 0.1 are uncalibrated starting points, not published thresholds."
+          ],
+          "description": "Members who vote against the majority line of their own parliamentary group in a high share of roll-call votes.",
+          "domain": "parliamentary",
+          "false_positives": [
+            "Defection is normal and varies by policy area and national party (https://journals.sagepub.com/doi/10.1177/1354068813487114); national delegations often vote against their group on purpose, and free votes have no whip.",
+            "Only roll-call votes are recorded member by member (https://howtheyvote.eu/about); a sample of amendment votes overweights contested details.",
+            "A group with an even split has no line, so members of small or divided groups show few comparisons."
+          ],
+          "id": "parliamentary.group_rebellion_rate",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_group_size": {
+              "default": 3,
+              "maximum": 1000,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "min_rate": {
+              "default": 0.1,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_votes": {
+              "default": 50,
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "unattached_groups": {
+              "default": "NI|Fraktionslos",
+              "max_length": 200,
+              "type": "string"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "parl_members",
+            "parl_votings",
+            "parl_member_votes"
+          ],
+          "severity": "low",
+          "title": "Group rebellion rate",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+            "Members' memberships are ordered by start_date and a switch is a change of org_name (case and spacing ignored). HowTheyVote notes that 'MEPs can change their political group during the term' (https://github.com/HowTheyVote/data/releases/latest).",
+            "When the source fills term, memberships are only compared within one term, so joining a new group after an election is not a switch; without term every pair of consecutive memberships is compared.",
+            "Comparing names rather than identifiers keeps a re-elected member in the same group from showing as a switch where the source gives the group a new identifier each term, as the European Parliament does.",
+            "affiliation_type is group (parliamentary groups) or party (national parties); any other value matches no rows."
+          ],
+          "description": "Members who moved from one parliamentary group (or party) to another during a legislative term, with the date of each move.",
+          "domain": "parliamentary",
+          "false_positives": [
+            "Groups that merge, split or rename within a term appear as switches for all their members.",
+            "Without a term column, a group renamed between terms (the European Parliament's PPE-DE became PPE) shows as a switch at the term start.",
+            "Moves between a group and the non-attached members are switches by this definition.",
+            "Where a source derives group spans from votes, as the Swiss adapter does, a mislabelled vote row looks like a short switch."
+          ],
+          "id": "parliamentary.group_switch",
+          "parameters": {
+            "affiliation_type": {
+              "default": "group",
+              "max_length": 20,
+              "type": "string"
+            },
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "parl_members",
+            "parl_affiliations"
+          ],
+          "severity": "low",
+          "title": "Group switch",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+            "Only declaration lines without an end_date count as current.",
+            "The default min_paid of 10 sits just above the 90th percentile of paid mandates per sitting member in the Swiss federal register on 2026-10-27 (OpenParlData interests export: median 3, 90th percentile 9, 24 of 261 members at 10 or more); it is not a legal or published threshold.",
+            "Swiss members declare for each mandate whether it is honorary or paid, without amounts (Parlamentsgesetz Art. 11 para. 1bis, https://www.fedlex.admin.ch/eli/cc/2003/510/de), so income_high is empty for Swiss data and only min_paid applies.",
+            "MEPs declare remunerated outside activities with income bands when the total exceeds EUR 5,000 a year (Code of Conduct Art. 4, https://www.europarl.europa.eu/pdf/meps/Code_of_Conduct_EN.pdf); min_income 100,000 follows Transparency International EU's count of MEPs who 'potentially earn more than 100,000 EUR a year from their side activities' (https://transparency.eu/burning-candle-mep-income/). Income is summed in the declared currency without conversion."
+          ],
+          "description": "Members who declare many paid outside mandates, or high declared outside income, among their current interests.",
+          "domain": "parliamentary",
+          "false_positives": [
+            "Outside work is legal in both parliaments; Transparency International EU calls it a potential, not an actual, conflict of interest (https://transparency.eu/burning-candle-mep-income/).",
+            "Members of a militia parliament such as the Swiss Federal Assembly keep their professions, so paid mandates are common across the chamber.",
+            "Lines the member forgot to close keep counting; former members' last declarations may still be in the register."
+          ],
+          "id": "parliamentary.outside_interests_load",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_income": {
+              "default": 100000,
+              "maximum": 1000000000,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_paid": {
+              "default": 10,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "parl_members",
+            "parl_interests"
+          ],
+          "severity": "low",
+          "title": "Outside interests load",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+            "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
+            "Group lines are computed as in parliamentary.group_rebellion_rate (majority position of the group's voting members, after FicheD\u00e9put\u00e9, https://fichedepute.eu/methode); ties and groups under min_group_size are skipped.",
+            "Periods are calendar quarters of vote_date; a quarter with fewer than min_votes_per_period comparisons is dropped, so the previous period is the last quarter that qualified, not always the one before.",
+            "The defaults are uncalibrated starting points."
+          ],
+          "description": "Members whose rate of voting against their own group's line jumps from one calendar quarter to the next.",
+          "domain": "parliamentary",
+          "false_positives": [
+            "Defection rates vary by policy area (https://journals.sagepub.com/doi/10.1177/1354068813487114), so a quarter dominated by one contested file can raise any member's rate.",
+            "A member who changed group is compared with the new group's line; check parliamentary.group_switch for the same member.",
+            "Quarters with few roll-call votes give unstable rates."
+          ],
+          "id": "parliamentary.rebellion_rise",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_group_size": {
+              "default": 3,
+              "maximum": 1000,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "min_increase": {
+              "default": 0.2,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_votes_per_period": {
+              "default": 30,
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "unattached_groups": {
+              "default": "NI|Fraktionslos",
+              "max_length": 200,
+              "type": "string"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "parl_members",
+            "parl_votings",
+            "parl_member_votes"
+          ],
+          "severity": "low",
+          "title": "Rebellion rise",
+          "version": "1.0.0"
+        }
+      ],
       "domain": "parliamentary",
       "sources": [
         {
@@ -1670,7 +2581,13 @@
           "id": "ch/openparldata/parliamentary-data",
           "jurisdiction": "ch",
           "license": "CC BY 4.0 (attribute \"Source: OpenParlData.ch\")",
-          "provides": [],
+          "provides": [
+            "parl_affiliations",
+            "parl_interests",
+            "parl_member_votes",
+            "parl_members",
+            "parl_votings"
+          ],
           "setup_url": "",
           "skill": "data-skills/openparldata-parliamentary-data/SKILL.md",
           "status": "queryable",
@@ -1686,7 +2603,12 @@
           "id": "eu/europarl/open-data",
           "jurisdiction": "eu",
           "license": "CC BY 4.0",
-          "provides": [],
+          "provides": [
+            "parl_affiliations",
+            "parl_member_votes",
+            "parl_members",
+            "parl_votings"
+          ],
           "setup_url": "",
           "skill": "data-skills/eu/europarl-open-data/SKILL.md",
           "status": "queryable",

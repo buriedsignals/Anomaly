@@ -1,0 +1,37 @@
+id: court.long_pending_cases
+version: 1.0.0
+release: released
+title: Long-pending cases
+author: buried-signals
+license: internal
+group: domain
+family: court
+data_type: court
+menu_order: 5
+description: Cases still open more than min_years after filing at the as-of date, with each judge's count of such cases.
+required_tables: [court_cases]
+required_fields: [id]
+parameters:
+  min_years: 3
+  as_of_date: ""
+  civil_only: 1
+  limit: 200
+parameter_bounds:
+  min_years: {type: number, minimum: 0, maximum: 100}
+  as_of_date: {type: string, max_length: 10}
+  civil_only: {type: integer, minimum: 0, maximum: 1}
+  limit: {type: integer, minimum: 1, maximum: 1000}
+signal_category: court
+severity: low
+expected_output: [case_id, court_id, case_name, docket_number, nature_of_suit, judge_id, judge_name, date_filed, as_of_date, years_pending, judge_long_pending, url]
+assumptions:
+  - Tables follow the court domain contract in domains/court.yaml.
+  - "Indicator: the Civil Justice Reform Act report lists, per US district judge, civil cases pending more than three years (28 U.S.C. 476) (https://www.uscourts.gov/data-news/reports/statistical-reports/civil-justice-reform-act-report); min_years defaults to that three years."
+  - "as_of_date is YYYY-MM-DD; when empty the latest filing or termination date in the data is used, so results do not depend on the day the detector runs."
+  - "civil_only = 1 keeps cases with a nature of suit, which PACER records for civil cases only."
+false_positives:
+  - "Records captured before a case closed keep an empty date_terminated: stale RECAP dockets look pending. Check the live docket."
+  - Stayed cases, bankruptcy-related stays, complex litigation and multidistrict proceedings run long legitimately.
+sensitive_output: none
+resource_limits: {timeout_seconds: 5, memory_mb: 256}
+query: query.sql

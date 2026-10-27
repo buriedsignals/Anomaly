@@ -20,6 +20,11 @@ other sections in this playbook may document provider or unreleased adapter scop
 **Released**
 
 - `ch/openparldata/parliamentary-data:search-persons` — Search Persons using the fields returned by the current OpenParlData.ch — Swiss Parliamentary Data adapter.
+- `ch/openparldata/parliamentary-data:parl-members` — One row per person OpenParlData lists for the body, current and former, with constituency, party and active flag.
+- `ch/openparldata/parliamentary-data:parl-affiliations` — One span per run of votes a member cast under one parliamentary group label in the date window; OpenParlData publishes no dated group memberships.
+- `ch/openparldata/parliamentary-data:parl-votings` — One row per recorded voting of the body in the date window, with its chamber, date, title and affair.
+- `ch/openparldata/parliamentary-data:parl-member-votes` — One row per member vote in the body's votings inside the date window, read from the votes export and dated by its voting; stops at max_rows.
+- `ch/openparldata/parliamentary-data:parl-interests` — One row per declared interest of the body's members, with organisation, role and whether the mandate is paid or honorary.
 
 **Not released**
 
@@ -101,6 +106,44 @@ the individual member's vote. `include_raw: true` retains every upstream field.
   gzipped NDJSON exports at <https://files.openparldata.ch/exports/>.
 - A vote is evidence of one recorded division. Inspect the related affair,
   voting meaning, corrections, and source link before characterizing it.
+
+## Parliamentary contract rows
+
+The `parl-*` operations read the gzipped NDJSON exports at
+<https://files.openparldata.ch/exports/> (the API stops at offset 100,000 and a
+vote row carries no date) and return rows of `domains/parliamentary.yaml` for
+one body (`body_key`, default `CHE`), ready for `anomaly.oneshot`:
+
+```bash
+catalogue query ch/openparldata/parliamentary-data --operation parl-member-votes \
+  --input '{"from":"2025-09-08","to":"2025-09-26"}'
+catalogue query ch/openparldata/parliamentary-data --operation parl-interests --input '{}'
+```
+
+The votes export (287 MB on 2026-10-27, all bodies mixed, not in date order)
+is streamed once per call; a full pass took about 18 s here. Votes are kept
+when their voting is in the window, until `max_rows`.
+
+| OpenParlData publishes | column | notes |
+|---|---|---|
+| `persons.id`, `fullname` | `member_id`, `parl_members.name` | person ids are shared by votes and interests |
+| `persons.electoral_district_*` | `parl_members.country` | canton for the Federal Assembly |
+| `body_key` | `parliament` | CHE = Federal Assembly |
+| `votings.id`, `date`, `title_*`, `affair_id`, `url_external_*` | `voting_id`, `vote_date`, `title`, `dossier_id`, `url` | |
+| `groups.name_*` of `votings.group_id` | `parl_votings.chamber` | Nationalrat or Ständerat |
+| `votes.vote` yes / no / abstention | `position` for / against / abstain | |
+| `votes.vote` absent, absent_excused | `position` absent | excused absences count as absent, as in EU data |
+| `votes.vote` abstention_president | `position` abstention_president | kept, so detectors skip the chair |
+| `votes.person_parliamentary_group_name_*` | `group_at_vote`; group spans in `parl_affiliations` | no dated faction memberships exist; spans run from first to last vote under a label, the last left open, `term` empty |
+| `interests.name_*`, `role_name_*` | `organisation`, `role` | |
+| `interests.type_payment_harmonized` paid / honorary | `paid` paid / unpaid | ParlG Art. 11 (1bis) asks paid or honorary only, so `income_high` is empty |
+| `interests.end_date` | `end_date` | empty on every CHE line on 2026-10-27 |
+
+Coverage checked on 2026-10-27: CHE Nationalrat votings run from 2003-12-01
+to 2025-09-26 and Ständerat votings from 2022-02-28 to 2026-06-19, so recent
+Nationalrat sessions are missing. The interests export holds the current
+register (2,433 CHE lines: 1,078 paid, 1,355 honorary), including lines of 20
+people no longer active.
 
 ## Source-local helper
 

@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:a76bf43dfac1d4bc8bda3599365e7b3598a5358c061dca294886853ec49c887a",
+  "catalogue_hash": "sha256:b68a952de49125dde6994b8f8ac5defc1a65fde1b5a3f6b088661c292a0fe8e1",
   "detectors": [
     {
       "assumptions": [
@@ -645,6 +645,394 @@
       "severity": "medium",
       "signal_category": "companies",
       "title": "Mass registration address",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier.",
+        "Indicator: ProPublica reported luxury travel and gifts from Harlan Crow that did not appear on Justice Clarence Thomas's disclosures (https://www.propublica.org/article/clarence-thomas-scotus-undisclosed-luxury-travel-gifts-crow). Federal judges disclose gifts and travel reimbursements over 415 USD from one source (https://wiki.free.law/c/courtlistener/help/api/rest/v4/financial-disclosures).",
+        "Names are normalised and matched as in court.judge_holds_party_stock (exact or prefix after removing punctuation and legal-form words).",
+        "case_counsel may be an empty file with only a header when the source publishes no counsel."
+      ],
+      "data_type": "court",
+      "description": "Gifts or travel reimbursements on a judge's disclosure whose source matches a party, attorney or law firm in a case assigned to that judge, within year_slack years of the case.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "date_filed",
+        "date_terminated",
+        "judge_id",
+        "judge_name",
+        "matched_name",
+        "matched_as",
+        "interest_type",
+        "benefit_source",
+        "benefit_description",
+        "report_year",
+        "value_low",
+        "value_high",
+        "match_type",
+        "report_url",
+        "url"
+      ],
+      "false_positives": [
+        "Name matching is the main false-positive risk: gift sources are often individuals, and common personal names match unrelated parties or attorneys. Confirm identity in the disclosure PDF and the docket.",
+        "Bar associations, universities and law firms reimburse judges for teaching and speaking; a match with a firm that appears in a case is a lead to check, not a conflict in itself.",
+        "Undisclosed gifts, the subject of the ProPublica reporting, cannot be found this way; only disclosed lines are compared."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.gift_from_litigant_or_counsel",
+      "implementation_hash": "sha256:8bc1070a65a6f54ba7645a9aed5970cabf83e4a1771ac8678418697a77b484f2",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_name_length": {
+          "default": 4,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "year_slack": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties",
+        "case_counsel",
+        "judge_interests"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "court",
+      "title": "Gift or paid trip from a litigant or counsel",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml; assigned_judge_id and judge_interests.judge_id are the same identifier (CourtListener person id).",
+        "Indicator: the Wall Street Journal found 131 federal judges failed to recuse from 685 cases (2010-2018) involving companies they or their family held shares in (https://www.wsj.com/us-news/law/131-federal-judges-broke-the-law-by-hearing-cases-where-they-had-a-financial-interest-11632834421); see also Fix the Court (https://fixthecourt.com/2021/09/100-federal-judges-failed-recuse-owned-stock-litigant-whats-excuses/).",
+        "Names are matched after upper-casing, dropping bracketed text such as tickers, punctuation and legal-form words (Inc, Corp, LLC, Common Stock, Class): equal keys are an exact match, and one key starting with the other followed by a space is a prefix match. Both keys must have at least min_name_length characters.",
+        "A holding counts when its report year falls between year_slack years before the filing year and year_slack years after the termination year; a pending case has no upper bound.",
+        "Value bounds come from the disclosure value codes; the top band has no upper bound, so max_value_high can be empty."
+      ],
+      "data_type": "court",
+      "description": "Cases assigned to a judge whose financial disclosure lists an investment whose name matches a party, in a report year overlapping the case.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "docket_number",
+        "date_filed",
+        "date_terminated",
+        "judge_id",
+        "judge_name",
+        "party_name",
+        "party_role",
+        "holding",
+        "match_type",
+        "first_report_year",
+        "last_report_year",
+        "max_value_low",
+        "max_value_high",
+        "report_url",
+        "url"
+      ],
+      "false_positives": [
+        "Name matching is the main false-positive risk: a prefix match links Apple Inc to Apple Hospitality REIT, and different companies share words. Check every lead against the disclosure PDF and the party's corporate identity.",
+        "Ownership in a mutual or common investment fund is not a financial interest in the securities it holds unless the judge helps manage the fund (28 U.S.C. 455(d)(4)(i), https://www.law.cornell.edu/uscode/text/28/455); a fund whose name contains an issuer's name can still match.",
+        "assigned_judge_id is the judge assigned when the record was captured; the judge may have recused, been reassigned, or divested before acting in the case. Read the docket before treating a lead as a failure to recuse.",
+        "Parents, subsidiaries and renamed companies are missed (false negatives), not flagged."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.judge_holds_party_stock",
+      "implementation_hash": "sha256:10149ec89757b0d6ed100b579348bec4d37a34be839663fd8b5c47d61eeb4a9b",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_name_length": {
+          "default": 4,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "year_slack": {
+          "default": 1,
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties",
+        "judge_interests"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "high",
+      "signal_category": "court",
+      "title": "Judge holds stock in a party",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Civil Justice Reform Act report lists, per US district judge, civil cases pending more than three years (28 U.S.C. 476) (https://www.uscourts.gov/data-news/reports/statistical-reports/civil-justice-reform-act-report); min_years defaults to that three years.",
+        "as_of_date is YYYY-MM-DD; when empty the latest filing or termination date in the data is used, so results do not depend on the day the detector runs.",
+        "civil_only = 1 keeps cases with a nature of suit, which PACER records for civil cases only."
+      ],
+      "data_type": "court",
+      "description": "Cases still open more than min_years after filing at the as-of date, with each judge's count of such cases.",
+      "expected_output": [
+        "case_id",
+        "court_id",
+        "case_name",
+        "docket_number",
+        "nature_of_suit",
+        "judge_id",
+        "judge_name",
+        "date_filed",
+        "as_of_date",
+        "years_pending",
+        "judge_long_pending",
+        "url"
+      ],
+      "false_positives": [
+        "Records captured before a case closed keep an empty date_terminated: stale RECAP dockets look pending. Check the live docket.",
+        "Stayed cases, bankruptcy-related stays, complex litigation and multidistrict proceedings run long legitimately."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.long_pending_cases",
+      "implementation_hash": "sha256:daae36187e28cd490a1f0e13eda932c49d6f5ea7d44272584ad5a1bcfbff47c0",
+      "parameters": {
+        "as_of_date": {
+          "default": "",
+          "max_length": 10,
+          "type": "string"
+        },
+        "civil_only": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_years": {
+          "default": 3,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "none",
+      "severity": "low",
+      "signal_category": "court",
+      "title": "Long-pending cases",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Brennan Center documents litigants repeatedly filing where one judge hears all cases, including an organisation that incorporated in Amarillo before suing there (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+        "party_role keeps parties with that role (case-insensitive) or no role; an empty party_role keeps every party. Parties are grouped by the same normalised name as the other court detectors.",
+        "exclude_pattern is a regular expression on the normalised party name; the default drops US federal and state government parties, which appear in so many cases that they dominate the output. An empty pattern keeps them.",
+        "judges_in_court counts the judges seen in the supplied data for that court; 1 means the data cannot show a choice between judges.",
+        "The defaults (3 cases, 75 percent) are uncalibrated thresholds."
+      ],
+      "data_type": "court",
+      "description": "Parties with at least min_cases cases in one court of which at least min_share were assigned to the same judge.",
+      "expected_output": [
+        "party_name",
+        "court_id",
+        "judge_id",
+        "judge_name",
+        "cases_before_judge",
+        "party_cases",
+        "judge_share",
+        "judges_in_court",
+        "first_filed",
+        "last_filed"
+      ],
+      "false_positives": [
+        "Name matching risk: different parties with the same normalised name merge, and one party spelled two ways splits.",
+        "Related cases are assigned to the judge who has the first case; serial filers in one-judge divisions or with related cases concentrate legitimately.",
+        "A sample fetched by judge or by search term over-represents that judge."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.repeat_party_before_judge",
+      "implementation_hash": "sha256:517c6078dbbee62e26467350e9899ffe4eef8bc8a0c84acf55566ff84ed9e94b",
+      "parameters": {
+        "exclude_pattern": {
+          "default": "^(UNITED STATES|USA|U S A|STATE OF|COMMISSIONER OF SOCIAL SECURITY|SOCIAL SECURITY ADMINISTRATION)( |$)",
+          "max_length": 500,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_cases": {
+          "default": 3,
+          "maximum": 100000,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "party_role": {
+          "default": "plaintiff",
+          "max_length": 50,
+          "type": "string"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases",
+        "case_parties"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "medium",
+      "signal_category": "court",
+      "title": "Repeat party before the same judge",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the court domain contract in domains/court.yaml.",
+        "Indicator: the Brennan Center describes litigants filing in single-judge divisions (Amarillo, Waco) to choose their judge instead of being randomly assigned (https://www.brennancenter.org/our-work/research-reports/judge-shopping-explained).",
+        "A market is one court, division (empty when unknown) and nature of suit (empty when unknown); cases without an assigned judge are left out.",
+        "The defaults (10 cases, 90 percent) are uncalibrated thresholds, not taken from a published standard."
+      ],
+      "data_type": "court",
+      "description": "Courts or divisions where one judge receives at least min_share of the cases of one nature of suit, the pattern single-judge divisions create for judge shopping.",
+      "expected_output": [
+        "court_id",
+        "division",
+        "nature_of_suit",
+        "judge_id",
+        "judge_name",
+        "judge_cases",
+        "total_cases",
+        "judge_share",
+        "judges_in_market",
+        "first_filed",
+        "last_filed"
+      ],
+      "false_positives": [
+        "Small divisions with one sitting judge concentrate every case by design; the lead is the filing pattern into that division, which needs the parties' connection to the place.",
+        "Specialised dockets, related-case and multidistrict assignments legitimately send cases to one judge.",
+        "Without division, a district-level market hides single-judge divisions (false negatives)."
+      ],
+      "family": "court",
+      "group": "domain",
+      "id": "court.single_judge_concentration",
+      "implementation_hash": "sha256:7133d4685e938699046dc382b5c5fe2c68a3fe2299624006b2baa846018870ea",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_cases": {
+          "default": 10,
+          "maximum": 1000000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_share": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "court_cases"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "none",
+      "severity": "medium",
+      "signal_category": "court",
+      "title": "Cases concentrated on one judge",
       "version": "1.0.0"
     },
     {
@@ -1668,6 +2056,377 @@
       "signal_category": "anomaly",
       "title": "Z-score outliers",
       "version": "1.1.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "absent means the member held a seat that day and cast no vote. HowTheyVote defines 'Did not vote' as not participating, 'for example because the MEP was not present' (https://howtheyvote.eu/about); FicheD\u00e9put\u00e9 counts it as an absence (https://fichedepute.eu/methode).",
+        "A member is flagged when the absence rate reaches both ratio times the chamber median and min_rate; members with fewer than min_votings recorded votes are left out, and so is their share of the median.",
+        "Source values other than for, against, abstain and absent (such as an excused flag) are ignored.",
+        "The defaults are uncalibrated starting points."
+      ],
+      "data_type": "parliamentary",
+      "description": "Members who miss a far higher share of roll-call votes than the median member of their chamber.",
+      "expected_output": [
+        "member_id",
+        "name",
+        "parliament",
+        "chamber",
+        "votings",
+        "absences",
+        "absence_rate",
+        "median_rate"
+      ],
+      "false_positives": [
+        "The President chairs sittings and rarely votes, so shows near-total absence (https://fichedepute.eu/methode).",
+        "Illness, parental leave, official missions and excused absences look the same as unexcused ones unless the source separates them.",
+        "A source can keep a mandate open after a member stopped sitting. In a four-sitting European Parliament sample (2025-07-09/10, 2025-10-22/23) seven MEPs with open mandates appeared in no voter list, among them the President; check the official member page before reporting a rate near 1.",
+        "Members who joined or left mid-sample are on fewer rolls; the rate is per roll they were on, not per sitting day."
+      ],
+      "family": "parliamentary",
+      "group": "domain",
+      "id": "parliamentary.absence_outlier",
+      "implementation_hash": "sha256:30bcbcc018c43750c5e569762ac93ad82f4f752a1313457fd625b9c3fc9d4308",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_rate": {
+          "default": 0.1,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_votings": {
+          "default": 50,
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ratio": {
+          "default": 2.0,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "parl_members",
+        "parl_votings",
+        "parl_member_votes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "parliamentary",
+      "title": "Absence outlier",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
+        "A group's line on a vote is the position (for, against or abstain) most of its voting members took, as in FicheD\u00e9put\u00e9's group loyalty measure, which 'compares each vote to the European political group's majority line' (https://fichedepute.eu/methode). The member's own vote counts towards the line.",
+        "Votes where the group is smaller than min_group_size or the top positions tie have no line and are skipped; absent members are not compared.",
+        "The group is the one the member belonged to on the day of the vote (group_at_vote); latest_group is the most recent one in the sample.",
+        "The defaults min_votes 50 and min_rate 0.1 are uncalibrated starting points, not published thresholds."
+      ],
+      "data_type": "parliamentary",
+      "description": "Members who vote against the majority line of their own parliamentary group in a high share of roll-call votes.",
+      "expected_output": [
+        "member_id",
+        "name",
+        "parliament",
+        "latest_group",
+        "votes_compared",
+        "rebellions",
+        "rebellion_rate"
+      ],
+      "false_positives": [
+        "Defection is normal and varies by policy area and national party (https://journals.sagepub.com/doi/10.1177/1354068813487114); national delegations often vote against their group on purpose, and free votes have no whip.",
+        "Only roll-call votes are recorded member by member (https://howtheyvote.eu/about); a sample of amendment votes overweights contested details.",
+        "A group with an even split has no line, so members of small or divided groups show few comparisons."
+      ],
+      "family": "parliamentary",
+      "group": "domain",
+      "id": "parliamentary.group_rebellion_rate",
+      "implementation_hash": "sha256:6af624b033b939e19adf68254c18daaebdd2e7fbbc2591ed5b39e26532a3e11c",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_group_size": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "min_rate": {
+          "default": 0.1,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_votes": {
+          "default": 50,
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "unattached_groups": {
+          "default": "NI|Fraktionslos",
+          "max_length": 200,
+          "type": "string"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "parl_members",
+        "parl_votings",
+        "parl_member_votes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "parliamentary",
+      "title": "Group rebellion rate",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Members' memberships are ordered by start_date and a switch is a change of org_name (case and spacing ignored). HowTheyVote notes that 'MEPs can change their political group during the term' (https://github.com/HowTheyVote/data/releases/latest).",
+        "When the source fills term, memberships are only compared within one term, so joining a new group after an election is not a switch; without term every pair of consecutive memberships is compared.",
+        "Comparing names rather than identifiers keeps a re-elected member in the same group from showing as a switch where the source gives the group a new identifier each term, as the European Parliament does.",
+        "affiliation_type is group (parliamentary groups) or party (national parties); any other value matches no rows."
+      ],
+      "data_type": "parliamentary",
+      "description": "Members who moved from one parliamentary group (or party) to another during a legislative term, with the date of each move.",
+      "expected_output": [
+        "member_id",
+        "name",
+        "parliament",
+        "from_org",
+        "to_org",
+        "from_end",
+        "switch_date"
+      ],
+      "false_positives": [
+        "Groups that merge, split or rename within a term appear as switches for all their members.",
+        "Without a term column, a group renamed between terms (the European Parliament's PPE-DE became PPE) shows as a switch at the term start.",
+        "Moves between a group and the non-attached members are switches by this definition.",
+        "Where a source derives group spans from votes, as the Swiss adapter does, a mislabelled vote row looks like a short switch."
+      ],
+      "family": "parliamentary",
+      "group": "domain",
+      "id": "parliamentary.group_switch",
+      "implementation_hash": "sha256:09cd0e8212a294129ee8d49ea5ae2cfb813c9fc392ea70ff23155f7611ce3a2b",
+      "parameters": {
+        "affiliation_type": {
+          "default": "group",
+          "max_length": 20,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "parl_members",
+        "parl_affiliations"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 5
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "parliamentary",
+      "title": "Group switch",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Only declaration lines without an end_date count as current.",
+        "The default min_paid of 10 sits just above the 90th percentile of paid mandates per sitting member in the Swiss federal register on 2026-10-27 (OpenParlData interests export: median 3, 90th percentile 9, 24 of 261 members at 10 or more); it is not a legal or published threshold.",
+        "Swiss members declare for each mandate whether it is honorary or paid, without amounts (Parlamentsgesetz Art. 11 para. 1bis, https://www.fedlex.admin.ch/eli/cc/2003/510/de), so income_high is empty for Swiss data and only min_paid applies.",
+        "MEPs declare remunerated outside activities with income bands when the total exceeds EUR 5,000 a year (Code of Conduct Art. 4, https://www.europarl.europa.eu/pdf/meps/Code_of_Conduct_EN.pdf); min_income 100,000 follows Transparency International EU's count of MEPs who 'potentially earn more than 100,000 EUR a year from their side activities' (https://transparency.eu/burning-candle-mep-income/). Income is summed in the declared currency without conversion."
+      ],
+      "data_type": "parliamentary",
+      "description": "Members who declare many paid outside mandates, or high declared outside income, among their current interests.",
+      "expected_output": [
+        "member_id",
+        "name",
+        "parliament",
+        "interests",
+        "paid_interests",
+        "unpaid_interests",
+        "income_high"
+      ],
+      "false_positives": [
+        "Outside work is legal in both parliaments; Transparency International EU calls it a potential, not an actual, conflict of interest (https://transparency.eu/burning-candle-mep-income/).",
+        "Members of a militia parliament such as the Swiss Federal Assembly keep their professions, so paid mandates are common across the chamber.",
+        "Lines the member forgot to close keep counting; former members' last declarations may still be in the register."
+      ],
+      "family": "parliamentary",
+      "group": "domain",
+      "id": "parliamentary.outside_interests_load",
+      "implementation_hash": "sha256:18432eb58dc955c2cbdb6533599925bc69bf0c4780f9a85828b99227b71960a0",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_income": {
+          "default": 100000,
+          "maximum": 1000000000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_paid": {
+          "default": 10,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "parl_members",
+        "parl_interests"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "parliamentary",
+      "title": "Outside interests load",
+      "version": "1.0.0"
+    },
+    {
+      "assumptions": [
+        "Tables follow the parliamentary domain contract in domains/parliamentary.yaml.",
+        "Members outside any group (unattached_groups, names separated by a vertical bar; the European Parliament's NI and the Swiss Fraktionslos by default) have no group line and are skipped.",
+        "Group lines are computed as in parliamentary.group_rebellion_rate (majority position of the group's voting members, after FicheD\u00e9put\u00e9, https://fichedepute.eu/methode); ties and groups under min_group_size are skipped.",
+        "Periods are calendar quarters of vote_date; a quarter with fewer than min_votes_per_period comparisons is dropped, so the previous period is the last quarter that qualified, not always the one before.",
+        "The defaults are uncalibrated starting points."
+      ],
+      "data_type": "parliamentary",
+      "description": "Members whose rate of voting against their own group's line jumps from one calendar quarter to the next.",
+      "expected_output": [
+        "member_id",
+        "name",
+        "parliament",
+        "previous_period_start",
+        "period_start",
+        "previous_votes_compared",
+        "votes_compared",
+        "previous_rate",
+        "rate",
+        "increase"
+      ],
+      "false_positives": [
+        "Defection rates vary by policy area (https://journals.sagepub.com/doi/10.1177/1354068813487114), so a quarter dominated by one contested file can raise any member's rate.",
+        "A member who changed group is compared with the new group's line; check parliamentary.group_switch for the same member.",
+        "Quarters with few roll-call votes give unstable rates."
+      ],
+      "family": "parliamentary",
+      "group": "domain",
+      "id": "parliamentary.rebellion_rise",
+      "implementation_hash": "sha256:b7f54c3e3c54ca13f139f9e8f4be3fd2d584f58cf2c613d77ce60f32bec1dd21",
+      "parameters": {
+        "limit": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min_group_size": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 2,
+          "type": "integer"
+        },
+        "min_increase": {
+          "default": 0.2,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_votes_per_period": {
+          "default": 30,
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "unattached_groups": {
+          "default": "NI|Fraktionslos",
+          "max_length": 200,
+          "type": "string"
+        }
+      },
+      "required_fields": [
+        {
+          "name": "id",
+          "types": null
+        }
+      ],
+      "required_tables": [
+        "parl_members",
+        "parl_votings",
+        "parl_member_votes"
+      ],
+      "resource_limits": {
+        "memory_mb": 256,
+        "timeout_seconds": 10
+      },
+      "sensitive_output": "redact",
+      "severity": "low",
+      "signal_category": "parliamentary",
+      "title": "Rebellion rise",
+      "version": "1.0.0"
     },
     {
       "assumptions": [

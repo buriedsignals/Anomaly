@@ -25,6 +25,13 @@ notes: >
   and detail operations share one adapter; allow-listed relation traversal
   handles joins such as person→interests and affair→votings. Offset is capped
   upstream at 100,000; use the upstream NDJSON exports for full datasets.
+provides:
+  parl_members: {}
+  parl_affiliations: {}
+  parl_votings: {}
+  parl_member_votes: {}
+  parl_interests: {}
+
 examples:
   - 'Find Swiss parliamentarians named Müller'
   - 'Search Swiss parliamentary affairs about climate policy'
@@ -32,6 +39,26 @@ examples:
 input_schema:
   type: object
   properties:
+    operation:
+      type: string
+      enum: [parl-members, parl-affiliations, parl-votings, parl-member-votes, parl-interests]
+      description: Parliamentary contract table to fill from the bulk NDJSON exports (domains/parliamentary.yaml).
+    body_key:
+      type: string
+      default: CHE
+      description: Parliament whose rows to keep, as OpenParlData's body_key (CHE for the Federal Assembly).
+    from:
+      type: string
+      description: Earliest voting date (YYYY-MM-DD); votings, member votes and group spans only.
+    to:
+      type: string
+      description: Latest voting date (YYYY-MM-DD); votings, member votes and group spans only.
+    max_rows:
+      type: integer
+      minimum: 1
+      maximum: 500000
+      default: 50000
+      description: Stop after this many vote rows (or votings); the page block says whether the cap was reached.
     resource:
       type: string
       description: Primary upstream table. Inferred as persons from name/person_id and affairs from q/affair_id.
@@ -336,3 +363,118 @@ operations:
   availability_reason: Operation-level fixture coverage is not available; this operation is not released yet.
   prohibited_uses:
   - Do not treat returned records as independently verified facts.
+
+- id: parl-members
+  title: People of a parliament as parl_members rows
+  description: One row per person OpenParlData lists for the body, current and former, with constituency, party and active flag.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [body_key]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-members}
+  output_fields: [member_id, parliament, name, country, party, active]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [files.openparldata.ch]
+    data_classes: [body key]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - A listed person is not necessarily a current member; check active.
+
+- id: parl-affiliations
+  title: Parliamentary groups as parl_affiliations rows, derived from votes
+  description: One span per run of votes a member cast under one parliamentary group label in the date window; OpenParlData publishes no dated group memberships.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [body_key, from, to, max_rows]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-affiliations}
+  output_fields: [member_id, parliament, affiliation_type, org_id, org_name, start_date, end_date, term]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [files.openparldata.ch]
+    data_classes: [body key and date window]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Span dates are first and last votes seen in the sample, not membership dates.
+
+- id: parl-votings
+  title: Votings as parl_votings rows
+  description: One row per recorded voting of the body in the date window, with its chamber, date, title and affair.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [body_key, from, to, max_rows]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-votings}
+  output_fields: [voting_id, parliament, chamber, vote_date, title, dossier_id, url]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [files.openparldata.ch]
+    data_classes: [body key and date window]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - Coverage differs by parliament and period; an empty window is not evidence that no vote took place.
+
+- id: parl-member-votes
+  title: Individual votes as parl_member_votes rows
+  description: One row per member vote in the body's votings inside the date window, read from the votes export and dated by its voting; stops at max_rows.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [body_key, from, to, max_rows]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-member-votes}
+  output_fields: [voting_id, parliament, member_id, position, group_at_vote, member_name, vote_date]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [files.openparldata.ch]
+    data_classes: [body key and date window]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - A truncated sample can cut votings short; do not compute group lines from a sample that hit max_rows.
+
+- id: parl-interests
+  title: Declared interests as parl_interests rows
+  description: One row per declared interest of the body's members, with organisation, role and whether the mandate is paid or honorary.
+  status: queryable
+  entities: [ParliamentaryContractRow]
+  actions: [list]
+  input_fields: [body_key]
+  required: []
+  any_of_required: []
+  adapter_input: {operation: parl-interests}
+  output_fields: [interest_id, member_id, parliament, organisation, role, paid, income_high, end_date, interest_type, start_date]
+  semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: false, joins: none}
+  access: {auth: none, cost: free, side_effects: none}
+  disclosure:
+    destinations: [files.openparldata.ch]
+    data_classes: [body key]
+    sensitive_inputs: []
+    consent_required: false
+  verification: {endpoint_live: true, query_tested: true, adapter_tested: true, fixture_tested: true}
+  availability_reason: null
+  prohibited_uses:
+  - A declared paid mandate is legal and not evidence of a conflict of interest.

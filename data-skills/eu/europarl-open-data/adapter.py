@@ -383,8 +383,213 @@ def _request(input: dict, client: httpx.Client) -> dict:
     }
 
 
+# --- Parliamentary contract rows ------------------------------------------------
+# Rows of one table of domains/parliamentary.yaml per operation. Votes come
+# from each sitting's decisions (roll-call only); MEPs who held a mandate that
+# day but appear in no voter list are recorded as absent.
+
+PARLIAMENT = "EP"
+CONTRACT_OPERATIONS = {"parl-members", "parl-affiliations", "parl-votings", "parl-member-votes"}
+ROLLCALL = "def/ep-decision-methods/VOTE_ELECTRONIC_ROLLCALL"
+MANDATE_ROLE = "def/ep-roles/MEMBER_PARLIAMENT"
+AFFILIATION_TYPES = {
+    "def/ep-entities/EU_POLITICAL_GROUP": "group",
+    "def/ep-entities/NATIONAL_POLITICAL_GROUP": "party",
+}
+VOTER_LISTS = (("had_voter_favor", "for"), ("had_voter_against", "against"), ("had_voter_abstention", "abstain"))
+MAX_SITTINGS = 10
+PAGE_SIZE = 500
+MAX_PAGES = 20
+BATCH = 50
+JSON_LD = "application/ld+json"
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _as_list(value: Any) -> list:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _tail(value: Any) -> str:
+    return str(value).rsplit("/", 1)[-1]
+
+
+def _paged(client: httpx.Client, url: str, params: dict[str, Any]) -> list[dict]:
+    rows: list[dict] = []
+    for page in range(MAX_PAGES):
+        batch = _get(client, url, params | {"format": JSON_LD, "limit": PAGE_SIZE, "offset": page * PAGE_SIZE})
+        data = _as_list(batch.get("data"))
+        rows.extend(data)
+        if len(data) < PAGE_SIZE:
+            return rows
+    raise ValueError(f"More than {MAX_PAGES * PAGE_SIZE} rows at {url}; narrow the request.")
+
+
+def _term(input: dict) -> int:
+    term = int(input.get("parliamentary_term") or 10)
+    if not 1 <= term <= 10:
+        raise ValueError("`parliamentary_term` must be between 1 and 10.")
+    return term
+
+
+def _sitting_dates(input: dict) -> list[str]:
+    dates = input.get("sitting_dates")
+    dates = [dates] if isinstance(dates, str) else dates
+    if (not isinstance(dates, list) or not dates or len(dates) > MAX_SITTINGS
+            or not all(isinstance(day, str) and _DATE_RE.match(day) for day in dates)):
+        raise ValueError(f"`sitting_dates` must list 1 to {MAX_SITTINGS} plenary sitting dates (YYYY-MM-DD).")
+    return sorted(set(dates))
+
+
+def _rollcalls(client: httpx.Client, day: str) -> list[dict]:
+    decisions = _paged(client, f"{API_URL}/meetings/MTG-PL-{day}/decisions", {})
+    return [item for item in decisions if item.get("decision_method") == ROLLCALL]
+
+
+def _voting_id(decision: dict) -> str:
+    return str(decision.get("notation_votingId") or _identifier(decision))
+
+
+def _covers(span: dict, day: str) -> bool:
+    return bool(span["start"]) and span["start"] <= day and (not span["end"] or day <= span["end"])
+
+
+def _spans(person: dict) -> list[dict]:
+    spans = []
+    for item in _as_list(person.get("hasMembership")):
+        period = item.get("memberDuring") or {}
+        spans.append({
+            "organization": str(item.get("organization") or ""),
+            "classification": item.get("membershipClassification"),
+            "role": item.get("role"),
+            "start": period.get("startDate"),
+            "end": period.get("endDate"),
+            "represents": _as_list(item.get("represents")),
+        })
+    return spans
+
+
+def _roster(client: httpx.Client, term: int) -> list[dict]:
+    """Every MEP with a mandate in the term, with all memberships, ended ones included."""
+    listing = _paged(client, f"{API_URL}/meps", {"parliamentary-term": term})
+    ids = sorted({_identifier(row) for row in listing if _identifier(row)})
+    people = []
+    for start in range(0, len(ids), BATCH):
+        payload = _get(client, f"{API_URL}/meps/{','.join(ids[start:start + BATCH])}", {"format": JSON_LD})
+        people.extend(_as_list(payload.get("data")))
+    roster = []
+    for person in people:
+        spans = _spans(person)
+        mandates = [s for s in spans if s["role"] == MANDATE_ROLE and s["organization"] == f"org/ep-{term}"]
+        if mandates:
+            roster.append({"id": _identifier(person), "name": person.get("label"), "spans": spans, "mandates": mandates})
+    return roster
+
+
+def _labels(client: httpx.Client, roster: list[dict]) -> dict[str, str]:
+    """Short labels of the groups and parties in the roster (ECR, FdL, ...)."""
+    ids = sorted({_tail(s["organization"]) for person in roster for s in person["spans"]
+                  if s["classification"] in AFFILIATION_TYPES})
+    labels: dict[str, str] = {}
+    for start in range(0, len(ids), BATCH):
+        payload = _get(client, f"{API_URL}/corporate-bodies/{','.join(ids[start:start + BATCH])}", {"format": JSON_LD})
+        for body in _as_list(payload.get("data")):
+            label = body.get("label")
+            labels[_identifier(body)] = _pick(label, "en") if isinstance(label, dict) else label
+    return labels
+
+
+def _member_rows(roster: list[dict]) -> list[dict]:
+    rows = []
+    for person in roster:
+        represented = next((r for m in person["mandates"] for r in m["represents"]), None)
+        code = _tail(represented) if represented else None
+        rows.append({"member_id": person["id"], "parliament": PARLIAMENT, "name": person["name"],
+                     "country": _EU_COUNTRY_3_TO_2.get(code, code)})
+    return rows
+
+
+def _affiliation_rows(roster: list[dict], labels: dict[str, str]) -> list[dict]:
+    rows = []
+    for person in roster:
+        # The term of a membership is the mandate (org/ep-N) it starts in.
+        mandates = [s for s in person["spans"] if s["role"] == MANDATE_ROLE and s["organization"].startswith("org/ep-")]
+        for span in person["spans"]:
+            kind = AFFILIATION_TYPES.get(span["classification"])
+            if kind and span["start"]:
+                org_id = _tail(span["organization"])
+                term = next((m["organization"].removeprefix("org/ep-") for m in mandates if _covers(m, span["start"])), None)
+                rows.append({"member_id": person["id"], "parliament": PARLIAMENT, "affiliation_type": kind,
+                             "org_id": org_id, "org_name": labels.get(org_id), "start_date": span["start"],
+                             "end_date": span["end"], "term": term,
+                             "role": _tail(span["role"]) if span["role"] else None})
+    return rows
+
+
+def _voting_rows(decisions: list[dict], language: str) -> list[dict]:
+    rows = []
+    for decision in decisions:
+        dossier = next(iter(_as_list(decision.get("decided_on_a_realization_of"))), None)
+        rows.append({
+            "voting_id": _voting_id(decision),
+            "parliament": PARLIAMENT,
+            "chamber": None,
+            "vote_date": decision.get("activity_date"),
+            "title": _pick(decision.get("activity_label"), language),
+            "dossier_id": _tail(dossier) if dossier else None,
+            "url": _semantic_url(decision),
+        })
+    return rows
+
+
+def _member_vote_rows(decisions: list[dict], roster: list[dict], labels: dict[str, str]) -> list[dict]:
+    rows = []
+    for decision in decisions:
+        day = decision.get("activity_date")
+        voting_id = _voting_id(decision)
+        cast: dict[str, str] = {}
+        for field, position in VOTER_LISTS:
+            for person in _as_list(decision.get(field)):
+                cast[_tail(person)] = position
+        on_roll = {p["id"]: p for p in roster if any(_covers(m, day) for m in p["mandates"])}
+        for member_id in sorted(set(cast) | set(on_roll)):
+            person = on_roll.get(member_id) or next((p for p in roster if p["id"] == member_id), None)
+            group = next((labels.get(_tail(s["organization"])) for s in (person or {}).get("spans", [])
+                          if AFFILIATION_TYPES.get(s["classification"]) == "group" and _covers(s, day)), None)
+            rows.append({"voting_id": voting_id, "parliament": PARLIAMENT, "member_id": member_id,
+                         "position": cast.get(member_id, "absent"), "group_at_vote": group})
+    return rows
+
+
+def _contract_rows(input: dict, client: httpx.Client) -> dict:
+    operation = input["operation"]
+    language = input.get("language") or "en"
+    decisions: list[dict] = []
+    if operation in {"parl-votings", "parl-member-votes"}:
+        for day in _sitting_dates(input):
+            decisions.extend(_rollcalls(client, day))
+        if operation == "parl-votings":
+            records = _voting_rows(decisions, language)
+            return {"source_id": SOURCE_ID, "mode": operation, "records": records,
+                    "attribution": "European Parliament Open Data (CC BY 4.0)"}
+    roster = _roster(client, _term(input))
+    if operation == "parl-members":
+        records = _member_rows(roster)
+    else:
+        labels = _labels(client, roster)
+        records = (_affiliation_rows(roster, labels) if operation == "parl-affiliations"
+                   else _member_vote_rows(decisions, roster, labels))
+    return {"source_id": SOURCE_ID, "mode": operation, "records": records,
+            "attribution": "European Parliament Open Data (CC BY 4.0)"}
+
+
 def run(input: dict, ctx) -> dict:
     del ctx  # public API; retained for the standard adapter contract
     headers = {"User-Agent": "BuriedSignals-Datacatalogue-0.1"}
     with httpx.Client(headers=headers, timeout=45, follow_redirects=True) as client:
+        if input.get("operation") is not None:
+            if input["operation"] not in CONTRACT_OPERATIONS:
+                raise ValueError(f"Unsupported European Parliament operation `{input['operation']}`.")
+            return _contract_rows(input, client)
         return _request(input, client)
