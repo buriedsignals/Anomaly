@@ -753,3 +753,191 @@ def test_electoral_commission_refuses_an_unfiltered_donations_export(run_source)
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []
 
+
+
+# --- Companies contract sources ------------------------------------------------
+# Companies operations emit rows carrying every companies contract column
+# (domains/companies.yaml), so they run through anomaly.oneshot unmapped.
+
+def _companies_leads(tmp_path: Path, rows: dict[str, list[dict]], requests: list[dict]) -> dict[str, list[dict]]:
+    import csv
+
+    from anomaly import catalogue, oneshot
+
+    contract = domains.load_domain("companies")["tables"]
+    tables = {}
+    for table, records in rows.items():
+        assert all(set(contract[table]["columns"]) <= set(row) for row in records)
+        tables[table] = tmp_path / f"{table}.csv"
+        with tables[table].open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(contract[table]["columns"]), extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(records)
+    versions = {entry["id"]: entry["version"] for entry in catalogue.build_catalogue()["detectors"]}
+    signals = oneshot.run_detectors(tables, [{**r, "version": versions[r["id"]]} for r in requests], approved=True)
+    return {r["id"]: [s["values"] for s in signals if s["detector_id"] == r["id"]] for r in requests}
+
+
+CH = "https://api.company-information.service.gov.uk"
+CH_OFFICERS = {"total_results": 2, "items": [
+    {"name": "AGENT, Ann", "officer_role": "director", "appointed_on": "2020-01-01",
+     "links": {"officer": {"appointments": "/officers/abc123/appointments"}}},
+    {"name": "GONE, Gus", "officer_role": "secretary", "appointed_on": "2019-01-01", "resigned_on": "2020-06-30",
+     "links": {"officer": {"appointments": "/officers/def456/appointments"}}}]}
+CH_APPOINTMENTS = {"name": "AGENT, Ann", "total_results": 2, "items": [
+    {"name": "AGENT, Ann", "officer_role": "director", "appointed_on": "2020-01-01",
+     "appointed_to": {"company_number": "01234567", "company_name": "FIRST LTD"}},
+    {"name": "AGENT, Ann", "officer_role": "director", "appointed_on": "2021-02-02",
+     "appointed_to": {"company_number": "07654321", "company_name": "SECOND LTD"}}]}
+
+
+def _ch_psc(owner_number: str) -> str:
+    return json.dumps({"total_results": 3, "items": [
+        {"kind": "corporate-entity-person-with-significant-control", "name": "OWNER LIMITED",
+         "identification": {"country_registered": "England", "registration_number": owner_number,
+                            "place_registered": "Companies House"},
+         "natures_of_control": ["ownership-of-shares-75-to-100-percent", "voting-rights-75-to-100-percent"],
+         "notified_on": "2019-04-06"},
+        {"kind": "individual-person-with-significant-control", "name": "Mrs Nina Nominee",
+         "date_of_birth": {"year": 1970, "month": 3}, "country_of_residence": "Seychelles",
+         "natures_of_control": ["significant-influence-or-control"], "notified_on": "2019-04-06",
+         "ceased_on": "2022-01-01"},
+        {"kind": "super-secure-person-with-significant-control", "description": "super-secure-persons-with-significant-control"}]})
+
+
+def test_companies_house_fills_officers_appointments_and_controllers(run_source, tmp_path: Path) -> None:
+    routes = {f"{CH}/company/01234567/officers": json.dumps(CH_OFFICERS),
+              f"{CH}/officers/abc123/appointments": json.dumps(CH_APPOINTMENTS),
+              f"{CH}/company/01234567/persons-with-significant-control": _ch_psc("7654321"),
+              f"{CH}/company/07654321/persons-with-significant-control": _ch_psc("01234567")}
+    officers = run_source("gb/companies-house/companies", {"operation": "company-officers", "company_number": "01234567"},
+                          routes, ctx=_Key())["records"]
+    appointments = run_source("gb/companies-house/companies",
+                              {"operation": "officer-appointments", "officer_id": "abc123"}, ctx=_Key())["records"]
+    controllers = [row for number in ("01234567", "07654321") for row in run_source(
+        "gb/companies-house/companies", {"operation": "company-controllers", "company_number": number}, ctx=_Key())["records"]]
+
+    # The officer id comes from the appointments link, so one officer joins across companies.
+    assert [(r["company_id"], r["officer_id"], r["role"], r["resigned_on"]) for r in officers] == [
+        ("gb:01234567", "abc123", "director", None), ("gb:01234567", "def456", "secretary", "2020-06-30")]
+    assert [(r["company_id"], r["officer_id"], r["company_name"]) for r in appointments] == [
+        ("gb:01234567", "abc123", "FIRST LTD"), ("gb:07654321", "abc123", "SECOND LTD")]
+    # A UK corporate PSC resolves to its own company_id, zero-padded; a person is keyed by name and birth month.
+    assert [(r["controller_id"], r["controller_kind"], r["controller_country"], r["controller_company_id"], r["ceased_on"])
+            for r in controllers[:3]] == [
+        ("gb:psc:OWNER LIMITED", "legal_entity", "England", "gb:07654321", None),
+        ("gb:psc:MRS NINA NOMINEE|1970-03", "individual", "Seychelles", None, "2022-01-01"),
+        ("gb:statement:super-secure-person-with-significant-control", "statement", None, None, None)]
+    assert controllers[0]["control_type"] == "ownership-of-shares-75-to-100-percent|voting-rights-75-to-100-percent"
+    assert run_source.params[0] == {"items_per_page": 100, "start_index": 0}
+
+    leads = _companies_leads(tmp_path, {"company_controllers": controllers}, [{"id": "companies.circular_control"}])
+    assert [(lead["company_id"], lead["cycle_length"]) for lead in leads["companies.circular_control"]] == [
+        ("gb:01234567", 2), ("gb:07654321", 2)]
+
+
+def test_companies_house_companies_read_advanced_search_and_the_profile(run_source) -> None:
+    address = {"care_of": "Agent Services", "premises": "10", "address_line_1": "Queen Street Place",
+               "locality": "London", "postal_code": "EC4R 1AG", "country": "United Kingdom"}
+    search = {"hits": 1, "items": [{"company_name": "SHELL ONE LTD", "company_number": "01234567",
+                                    "company_status": "dissolved", "date_of_creation": "2024-01-01",
+                                    "date_of_cessation": "2024-09-01", "registered_office_address": address}]}
+    profile = {"company_name": "CHAMELEON LTD", "company_number": "00000010", "company_status": "active",
+               "date_of_creation": "2015-01-01", "registered_office_address": address,
+               "previous_company_names": [{"name": f"OLD NAME {i}"} for i in range(6)]}
+    routes = {f"{CH}/advanced-search/companies": json.dumps(search), f"{CH}/company/00000010": json.dumps(profile)}
+
+    found = run_source("gb/companies-house/companies",
+                       {"operation": "companies", "location": "10 Queen Street Place", "incorporated_from": "2024-01-01"},
+                       routes, ctx=_Key())["records"]
+    named = run_source("gb/companies-house/companies", {"operation": "companies", "company_number": "00000010"},
+                       ctx=_Key())["records"]
+
+    assert run_source.params[0] == {"location": "10 Queen Street Place", "incorporated_from": "2024-01-01",
+                                    "size": 500, "start_index": 0}
+    # Care-of names and the country are left out so filings of one address match.
+    assert [(r["company_id"], r["registered_address"], r["dissolution_date"], r["previous_name_count"]) for r in found] == [
+        ("gb:01234567", "10, Queen Street Place, London, EC4R 1AG", "2024-09-01", None)]
+    assert named[0]["previous_name_count"] == 6
+    assert set(domains.load_domain("companies")["tables"]["companies"]["columns"]) <= set(named[0])
+
+
+GLEIF = "https://api.gleif.org/api/v1/lei-records"
+
+
+def _lei_record(lei: str, name: str, jurisdiction: str, **entity) -> dict:
+    return {"type": "lei-records", "id": lei, "links": {"self": f"{GLEIF}/{lei}"},
+            "attributes": {"lei": lei, "entity": {"legalName": {"name": name}, "jurisdiction": jurisdiction,
+                                                  "legalAddress": {"addressLines": ["1 Main St"], "city": "Town",
+                                                                   "postalCode": "1000", "country": jurisdiction[:2]},
+                                                  "status": "ACTIVE", **entity}}}
+
+
+def test_gleif_parents_fill_controllers_for_the_secrecy_detector(run_source, tmp_path: Path) -> None:
+    child = _lei_record("549300A8CJBWDXKOC509", "GERMAN DAUGHTER GMBH", "DE", creationDate="2009-10-15T00:00:00Z",
+                        expiration={"date": "2025-01-31T00:00:00Z", "reason": "DISSOLVED"})
+    parent = _lei_record("CAYMANPARENT00000001", "CAYMAN PARENT LTD", "KY")
+    routes = {GLEIF: json.dumps({"data": [child]}),
+              f"{GLEIF}/549300A8CJBWDXKOC509/direct-parent": json.dumps({"data": parent}),
+              f"{GLEIF}/549300A8CJBWDXKOC509/ultimate-parent": json.dumps({"data": parent})}
+    query = {"q": "German Daughter", "search_field": "legal_name"}
+
+    companies = run_source("global/gleif/lei-records", {**query, "operation": "companies"}, routes)["records"]
+    controllers = run_source("global/gleif/lei-records", {**query, "operation": "company-controllers"})["records"]
+
+    assert [(r["company_id"], r["jurisdiction"], r["incorporation_date"], r["dissolution_date"]) for r in companies] == [
+        ("lei:549300A8CJBWDXKOC509", "DE", "2009-10-15", "2025-01-31")]
+    # The same entity as direct and ultimate parent is one controller row.
+    assert [(r["controller_id"], r["controller_country"], r["control_type"]) for r in controllers] == [
+        ("lei:CAYMANPARENT00000001", "KY", "direct-parent")]
+    leads = _companies_leads(tmp_path, {"companies": companies, "company_controllers": controllers},
+                             [{"id": "companies.secrecy_jurisdiction_controller"}])
+    assert [(lead["company_name"], lead["controller_country"])
+            for lead in leads["companies.secrecy_jurisdiction_controller"]] == [("GERMAN DAUGHTER GMBH", "KY")]
+
+
+def test_gleif_entity_without_a_reported_parent_has_no_controller_rows(run_source) -> None:
+    # GLEIF answers 404 on the parent routes when the entity filed a reporting exception.
+    routes = {f"{GLEIF}/KY37LUS27QQX7BB93L28": json.dumps({"data": _lei_record("KY37LUS27QQX7BB93L28", "NESTLE S.A.", "CH")})}
+
+    result = run_source("global/gleif/lei-records",
+                        {"operation": "company-controllers", "lei": "KY37LUS27QQX7BB93L28"}, routes)
+
+    # The runner reports an empty answer as empty-source-result, not as an upstream failure.
+    assert result["error"]["code"] == "empty-source-result"
+    assert run_source.requested[-2:] == [f"{GLEIF}/KY37LUS27QQX7BB93L28/direct-parent",
+                                         f"{GLEIF}/KY37LUS27QQX7BB93L28/ultimate-parent"]
+
+
+BRREG = "https://data.brreg.no/enhetsregisteret/api/enheter"
+
+
+def test_brreg_fills_companies_by_postal_code_and_current_roles(run_source, tmp_path: Path) -> None:
+    entity = {"organisasjonsnummer": "923609016", "navn": "EQUINOR ASA", "stiftelsesdato": "1972-09-18",
+              "forretningsadresse": {"adresse": ["Forusbeen 50"], "postnummer": "4035", "poststed": "STAVANGER",
+                                     "land": "Norge"},
+              "historiskeNavn": [{"navn": f"STATOIL {i}"} for i in range(6)],
+              "_links": {"self": {"href": f"{BRREG}/923609016"}}}
+    roles = {"rollegrupper": [{"roller": [
+        {"avregistrert": False, "type": {"kode": "LEDE"},
+         "person": {"fodselsdato": "1960-04-26", "navn": {"fornavn": "Jarle Kjell", "etternavn": "Roth"}}},
+        {"avregistrert": True, "type": {"kode": "MEDL"},
+         "person": {"fodselsdato": "1964-02-15", "navn": {"fornavn": "Finn", "etternavn": "Ruyter"}}},
+        {"avregistrert": False, "type": {"kode": "REVI"},
+         "enhet": {"organisasjonsnummer": "976389387", "navn": ["ERNST & YOUNG AS"]}}]}]}
+    routes = {BRREG: json.dumps({"_embedded": {"enheter": [entity]}, "page": {"totalElements": 1, "totalPages": 1}}),
+              f"{BRREG}/923609016/roller": json.dumps(roles)}
+
+    companies = run_source("no/brreg/enheter", {"operation": "companies", "postnummer": "4035"}, routes)["records"]
+    officers = run_source("no/brreg/enheter", {"operation": "company-officers", "organisasjonsnummer": "923609016"})["records"]
+
+    assert run_source.params[0] == {"size": 100, "page": 0, "forretningsadresse.postnummer": "4035"}
+    assert [(r["company_id"], r["incorporation_date"], r["registered_address"], r["previous_name_count"])
+            for r in companies] == [("no:923609016", "1972-09-18", "Forusbeen 50, 4035 STAVANGER", 6)]
+    # Deregistered roles are dropped; a corporate role is keyed by its organisation number.
+    assert [(r["officer_id"], r["name"], r["role"]) for r in officers] == [
+        ("no:person:JARLE KJELL ROTH|1960-04-26", "Jarle Kjell Roth", "LEDE"),
+        ("no:976389387", "ERNST & YOUNG AS", "REVI")]
+    leads = _companies_leads(tmp_path, {"companies": companies}, [{"id": "companies.frequent_name_changes"}])
+    assert [lead["name"] for lead in leads["companies.frequent_name_changes"]] == ["EQUINOR ASA"]
+

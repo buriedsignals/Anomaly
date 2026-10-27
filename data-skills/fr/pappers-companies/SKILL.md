@@ -69,6 +69,28 @@ free `lien_pappers` supplement on detail.
 - Officer, beneficial-owner, document, account, graph, and monitoring endpoints
   are not released. Some beneficial-owner access requires authorization.
 
+## Companies contract mapping (not implemented)
+
+This adapter does not fill `domains/companies.yaml`; Pappers is keyed and
+paid. An agent reading `/v2/entreprise` can map it as below (field names from
+the API documentation examples, https://www.pappers.fr/api/documentation,
+read 2026-10-27; not checked against a live response):
+
+| If the source publishes | map it to column |
+|---|---|
+| `siren` | `company_id` = `fr:` + SIREN; `jurisdiction` = `FR` |
+| `nom_entreprise`, `statut_rcs` | `name`, `status` |
+| `date_creation`, `date_cessation` | `incorporation_date`, `dissolution_date` |
+| `siege.adresse_ligne_1`, `siege.code_postal`, `siege.ville` | `registered_address` |
+| `representants[]`: `nom_complet` (person) or `denomination` + `siren` (`personne_morale: true`) | `company_officers.name`, `officer_id` (`fr:` + SIREN for a company, else name + `date_de_naissance`) |
+| `representants[].qualites[]`, `date_prise_de_poste` | `role`, `appointed_on` |
+| `beneficiaires_effectifs[]`: `prenom` + `nom`, `date_de_naissance_formatee`, `code_pays` | `company_controllers.controller_name`, `controller_id`, `controller_country` (`controller_kind` = `individual`) |
+| `beneficiaires_effectifs[].pourcentage_parts`, `date_greffe` | `control_type`, `notified_on` |
+
+Beneficial-owner data needs lawful access. No field for earlier company names
+or an officer's departure date was confirmed, so `previous_name_count` and
+`resigned_on` stay empty.
+
 Read [the API reference](references/api-reference.md) and
 [the query guide](references/query-guide.md) before interpreting coverage,
 employee bands, or negative results.

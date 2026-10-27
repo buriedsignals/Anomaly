@@ -70,6 +70,28 @@ corroboration.
 - A missing record can reflect spelling, jurisdiction, number format, provider
   coverage, pagination, or source lag; it is not proof the company never existed.
 
+## Companies contract mapping (not implemented)
+
+This adapter does not fill `domains/companies.yaml`; OpenCorporates is keyed
+and paid. Its records can be mapped as below (API reference,
+https://api.opencorporates.com/documentation/API-Reference, read
+2026-10-27). A company_id built as `<jurisdiction_code>:<company_number>`
+equals the Companies House one for `gb` companies, so rows from both join.
+
+| If the source publishes | map it to column |
+|---|---|
+| `jurisdiction_code`, `company_number` | `company_id` = `jurisdiction_code:company_number`; `jurisdiction` = first two letters of `jurisdiction_code`, upper case |
+| `name`, `current_status` | `name`, `status` |
+| `incorporation_date`, `dissolution_date` | `incorporation_date`, `dissolution_date` |
+| `registered_address_in_full` | `registered_address` |
+| `previous_names[]` (kept by this adapter) | `previous_name_count` |
+| company `officers[]`: `name`, `position`, `start_date`, `end_date`, `opencorporates_url` | `company_officers.name`, `role`, `appointed_on`, `resigned_on`, `officer_id` |
+| `statements/control_statements` | `company_controllers` (field names not verified) |
+
+OpenCorporates officer records are per appointment, so one person on several
+companies has several officer URLs; `prolific_officer` needs a shared id,
+which this source does not give.
+
 ## Authentication and reuse
 
 Provide the token through the execution context; never place it in
