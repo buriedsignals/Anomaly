@@ -1,308 +1,265 @@
 ---
 name: Anomaly
-description: A station departures board for data, where a record that doesn't fit flips to LEAD.
+description: A filter drawn on chart paper. Records flow from sources through detectors, and a red pen circles the few that come out as leads.
 colors:
-  housing-charcoal: "#16191B"
-  board-housing: "#1B1F21"
-  led-cell: "#0D0F10"
-  cell-head: "#111415"
-  cell-line: "#22272A"
-  housing-edge: "#2A3033"
-  field-edge: "#333A3E"
-  signal-amber: "#D4A853"
-  lead-amber-hot: "#F2C266"
-  amber-tint: "rgba(212, 168, 83, 0.15)"
-  amber-edge: "rgba(212, 168, 83, 0.4)"
-  cream: "#F5F2ED"
-  cream-muted: "rgba(245, 242, 237, 0.66)"
-  cream-faint: "rgba(245, 242, 237, 0.56)"
-  cream-rule: "rgba(245, 242, 237, 0.13)"
-  queryable-teal: "#7DB1AE"
-  teal-tint: "rgba(91, 138, 138, 0.28)"
+  paper: "#F5F6F0"
+  paper-2: "#ECEEE5"
+  paper-3: "#E2E5DA"
+  grid: "rgba(28, 115, 80, 0.10)"
+  grid-major: "rgba(28, 115, 80, 0.22)"
+  ink: "#161B22"
+  ink-2: "#434C55"
+  ink-3: "#626B73"
+  rule: "rgba(22, 27, 34, 0.14)"
+  rule-2: "rgba(22, 27, 34, 0.26)"
+  blue: "#2546B5"
+  blue-tint: "rgba(37, 70, 181, 0.09)"
+  green: "#1C7350"
+  green-tint: "rgba(28, 115, 80, 0.10)"
+  red: "#D42A3C"
+  red-tint: "rgba(212, 42, 60, 0.09)"
 typography:
   display:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
-    fontSize: "clamp(2.9rem, 6.4vw, 5.6rem)"
-    fontWeight: 600
-    lineHeight: 0.95
-    letterSpacing: "-0.035em"
-  headline:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
-    fontSize: "clamp(2rem, 4.2vw, 3.3rem)"
-    fontWeight: 600
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "clamp(2.1rem, 4vw, 3.4rem)"
+    fontWeight: 560
     lineHeight: 1.02
-    letterSpacing: "-0.03em"
+    letterSpacing: "-0.045em"
+    fontVariation: "'wdth' 112.5"
+  headline:
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "clamp(1.6rem, 3vw, 2.35rem)"
+    fontWeight: 560
+    lineHeight: 1.12
+    letterSpacing: "-0.035em"
+    fontVariation: "'wdth' 112.5"
   title:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
-    fontSize: "1.22rem"
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "1.3rem"
     fontWeight: 600
-    letterSpacing: "-0.01em"
-  lede:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
-    fontSize: "1.12rem"
-    fontWeight: 400
-    lineHeight: 1.55
-  body:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.6
-  body-small:
-    fontFamily: "'Space Grotesk', system-ui, sans-serif"
+    letterSpacing: "-0.02em"
+    fontVariation: "'wdth' 112.5"
+  subtitle:
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
     fontSize: "0.92rem"
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontFamily: "'Space Mono', ui-monospace, monospace"
-    fontSize: "0.78rem"
-    fontWeight: 400
-    lineHeight: 1
-    letterSpacing: "0.12em"
-  label-column:
-    fontFamily: "'Space Mono', ui-monospace, monospace"
-    fontSize: "0.66rem"
-    fontWeight: 400
-    lineHeight: 1
-    letterSpacing: "0.16em"
-  code:
-    fontFamily: "'Space Mono', ui-monospace, monospace"
-    fontSize: "0.88rem"
-    fontWeight: 400
+    fontWeight: 600
+    letterSpacing: "-0.005em"
+    fontVariation: "'wdth' 100"
+  body:
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "0.94rem"
+    fontWeight: 360
+    lineHeight: 1.7
+    fontVariation: "'wdth' 87.5"
+    fontFeature: "'tnum'"
+  small:
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "0.8rem"
+    fontWeight: 360
     lineHeight: 1.6
-  led-row:
-    fontFamily: "'Doto', 'Space Mono', monospace"
-    fontSize: "1.28rem"
-    fontWeight: 700
-    letterSpacing: "0.03em"
-    fontFeature: "\"tnum\""
-  led-id:
-    fontFamily: "'Doto', 'Space Mono', monospace"
-    fontSize: "1.05rem"
-    fontWeight: 700
+    fontVariation: "'wdth' 87.5"
+  label:
+    fontFamily: "'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    fontSize: "0.76rem"
+    fontWeight: 360
     letterSpacing: "0.06em"
+    fontVariation: "'wdth' 87.5"
 rounded:
-  flap: "2px"
-  xs: "3px"
-  sm: "5px"
-  md: "6px"
-  lg: "8px"
-  xl: "10px"
+  code: "4px"
+  tag: "5px"
+  control: "7px"
+  tile: "8px"
+  panel: "10px"
+  frame: "12px"
+  pill: "999px"
 spacing:
-  chip-gap: "0.45rem"
-  board-inset: "1.1rem"
-  column-gap: "1.2rem"
-  block-gap: "2rem"
-  hero-gap: "3rem"
+  wrap: "min(100% - 2.5rem, 74rem)"
+  grid-minor: "10px"
+  grid-major: "50px"
   section: "clamp(4.5rem, 10vw, 7.5rem)"
-  page-max: "78rem"
 components:
   button-primary:
-    backgroundColor: "{colors.cream}"
-    textColor: "{colors.led-cell}"
-    rounded: "{rounded.md}"
-    padding: "0 1.2rem"
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.pill}"
+    padding: "0 1.5rem"
     height: "3.1rem"
+  button-primary-sm:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.pill}"
+    padding: "0 1.15rem"
+    height: "2.6rem"
+  button-primary-hover:
+    backgroundColor: "#000000"
+  icon-button:
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    size: "2.6rem"
+  icon-button-hover:
+    backgroundColor: "{colors.paper-2}"
+  chip:
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.pill}"
+    padding: "0 0.85rem"
+    height: "2.25rem"
+  chip-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paper}"
   search-input:
-    backgroundColor: "{colors.led-cell}"
-    textColor: "{colors.cream}"
-    rounded: "{rounded.md}"
-    padding: "0 1rem 0 2.9rem"
-    height: "3.1rem"
-  key:
-    backgroundColor: "{colors.cell-line}"
-    textColor: "{colors.cream-muted}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "0 0.95rem"
-    height: "2.5rem"
-  key-selected:
-    textColor: "{colors.cream}"
-  nav-github:
-    textColor: "{colors.cream}"
-    typography: "{typography.label}"
-    padding: "0.55rem 0.8rem"
-  pill-queryable:
-    backgroundColor: "{colors.teal-tint}"
-    textColor: "{colors.queryable-teal}"
-    rounded: "{rounded.xs}"
-    padding: "0.35rem 0.5rem"
-  pill-catalogued:
-    textColor: "{colors.cream-muted}"
-    rounded: "{rounded.xs}"
-    padding: "0.35rem 0.5rem"
-  board-row:
-    backgroundColor: "{colors.led-cell}"
-    textColor: "{colors.signal-amber}"
-    typography: "{typography.led-row}"
-    padding: "0.42rem 1.1rem"
-  status-ok:
-    textColor: "{colors.queryable-teal}"
-    rounded: "{rounded.flap}"
-  status-lead:
-    backgroundColor: "{colors.lead-amber-hot}"
-    textColor: "{colors.led-cell}"
-    rounded: "{rounded.flap}"
-  lead-ticket-header:
-    backgroundColor: "{colors.signal-amber}"
-    textColor: "{colors.led-cell}"
-    padding: "0.9rem 1.1rem"
-  domain-line-active:
-    backgroundColor: "{colors.amber-tint}"
-    textColor: "{colors.cream}"
-    rounded: "{rounded.sm}"
-    padding: "0.55rem 0.7rem"
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.frame}"
+    padding: "0 1.2rem 0 3.1rem"
+    height: "3.6rem"
   command-row:
-    backgroundColor: "{colors.led-cell}"
-    textColor: "{colors.cream}"
-    typography: "{typography.code}"
-    rounded: "{rounded.lg}"
-    padding: "0.55rem 0.6rem 0.55rem 1.1rem"
+    backgroundColor: "{colors.paper-2}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.panel}"
+    padding: "0.55rem 0.55rem 0.55rem 1.1rem"
+  copy-button:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.control}"
+    size: "2.4rem"
+  readout:
+    backgroundColor: "{colors.paper-2}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.panel}"
+    padding: "1rem 1.2rem"
 ---
 
 # Design System: Anomaly
 
 ## Overview
 
-**Creative North Star: "The Departures Board for Data"**
+**Creative North Star: "The Chart-Paper Filter"**
 
-Anomaly is set as a station departures board. The page is the board's charcoal housing, ruled by the Buried Signals 40px amber grid; live data sits in amber LED dot-matrix on near-black cells with faint unlit dots; prose is cream Space Grotesk set straight on the housing, and every label, column head and command is Space Mono. Records arrive as rows, the board computes, and a row that doesn't fit flips its status characters to LEAD. That flip is the only moment the system spends solid amber.
+Anomaly is drawn on cool chart paper with a green engineering grid. Records travel across it as blue dots, pass through green detector gates, and the few that do not fit are caught and circled in red pen. Everything else on the page is quiet ink on paper, so the three data colours carry all the meaning.
 
-The world is dense and operational rather than decorative: tables, rails, column heads, a route strip with stops, an interchange map, a printed ticket. Each component is a piece of transit or terminal hardware, and the data inside it is always real (generated catalogue, a computed z-score, a real runner output). Motion is mechanical: split-flap character flips, rows wiping in from the top, dashes travelling along map lines. All of it stops under reduced motion.
+One variable monospace family does every job. Its width axis separates the voices: wide (112.5) for headlines, normal (100) for small titles, condensed (87.5) for reading and measurement. The page is light, flat and calm: no shadows for lift, hairline inset rules, generous section spacing, and soft-cornered paper panels (`paper-2`) for anything that holds a readout.
+
+Anomaly has its own look, separate from Buried Signals; it presents as a Spotlight plugin.
 
 **Key Characteristics:**
-- Charcoal housing with a 40px amber grid at 2.8% opacity behind everything.
-- Doto LED dot-matrix in amber for board data, IDs and the domain hub; never for prose.
-- Cream Space Grotesk for headlines and prose; Space Mono uppercase for labels.
-- Steel teal marks what is queryable (and OK); amber marks detectors and leads.
-- Solid amber fill appears only where a LEAD is declared.
-- Thin cream rules divide rows; housings and cells carry 1px dark edges.
+- Cool chart paper with a two-level green grid on diagram surfaces only.
+- Martian Mono only; width axis, not a second family, makes hierarchy.
+- Colour is semantic: blue = data and sources, green = detectors, red = leads.
+- The hand-drawn red ring is the signature mark.
+- Pill buttons and a round icon button; everything else flat.
 
 ## Colors
 
-A near-monochrome charcoal-and-cream terminal with two signal colours: amber for detection, steel teal for queryable data.
+Ink on cool paper, with three semantic pens.
 
 ### Primary
-- **Signal Amber** (signal-amber): the LED phosphor. Board rows, the clock, LED IDs in the catalogue, detector lines and the domain hub stroke on the interchange map, the headline's emphasised phrase, focus rings, the search caret and icon. As a solid fill, only on the lead ticket header.
-- **Lead Amber Hot** (lead-amber-hot): the lit split-flap module. Fills each character cell of a LEAD status; also the text of the "Paid" pill.
-- **Amber Tint / Amber Edge** (amber-tint, amber-edge): the selected state. Active domain line, input focus halo, hover borders on GitHub and copy buttons.
+- **Source Blue** (`blue`): records in flight, queryable sources, source edges in the domain diagram, links that expand the catalogue, focus rings, caret and text selection.
 
 ### Secondary
-- **Queryable Teal** (queryable-teal): sources with an adapter, the OK status, JSON keys in the lead ticket, the copied state. A lightened steel teal chosen for legibility on near-black cells; the brand's base steel teal survives as the tint.
-- **Teal Tint** (teal-tint): ground for the "Queryable" pill.
+- **Detector Green** (`green`): detector gates on the bench, detector edges and markers in the diagram, detector tags in the catalogue, the copy-done tick. Also the grid colour at low alpha (`grid`, `grid-major`).
+
+### Tertiary
+- **Lead Red** (`red`): caught records, the leads tray, the leads tally, the Lead step, the red ring on the headline phrase and on Install hover, the gate flash when a detector catches a record.
 
 ### Neutral
-- **Housing Charcoal** (housing-charcoal): page background and title bar (at 92% with a 10px blur).
-- **Board Housing** (board-housing): the hero board's casing and copy-button ground.
-- **LED Cell** (led-cell): the near-black inside every display: board rows, catalogue board, map frame, ticket, command rows, inputs. Also the text colour on cream and amber fills.
-- **Cell Head** (cell-head): column-head band and opened detail drawer in the catalogue.
-- **Cell Line / Housing Edge / Field Edge** (cell-line, housing-edge, field-edge): dividers inside cells, 1px casing edges, and input/key borders respectively.
-- **Cream** (cream): headlines, emphasised prose, the primary button fill, the current route stop.
-- **Cream Muted / Cream Faint** (cream-muted, cream-faint): body prose and secondary labels; column heads, notes and placeholders.
-- **Cream Rule** (cream-rule): row and list dividers on the housing.
+- **Chart Paper** (`paper`): page background and diagram ground.
+- **Paper Fold** (`paper-2`): readouts, command rows, open catalogue rows, selected steps, hover fills.
+- **Paper Crease** (`paper-3`): deepest paper tone; reserved.
+- **Ink** (`ink`): text, primary buttons, selected chips, the domain hub outline.
+- **Ink Soft** (`ink-2`): ledes, intros, secondary text.
+- **Ink Faint** (`ink-3`): captions, metadata, axis and column labels.
+- **Rule / Rule Strong** (`rule`, `rule-2`): hairlines, inset outlines, underline colour.
 
 ### Named Rules
-**The Lead Flip Rule.** Solid amber is a declaration. It fills only a LEAD: the split-flap status modules of a flagged row and the header of a lead ticket. Selection, activity and progress use amber tint, amber strokes or cream, never an amber fill.
+**The Three Pens Rule.** Blue, green and red each mean one thing: data, detectors, leads. Never use one of them for decoration or for a different meaning.
 
-**The Two Signals Rule.** Teal means a source an agent can query (and a record that passed). Amber means a detector or a lead. Catalogued-only sources fall back to faint cream. Don't swap them for decoration.
+**The Red Is Earned Rule.** Red marks leads and the ring that circles them, nothing else. No red errors, badges or emphasis.
 
 ## Typography
 
-**Display Font:** Space Grotesk (with system-ui)
-**Label/Mono Font:** Space Mono (with ui-monospace)
-**LED Font:** Doto (with Space Mono), weights 500/700/900 loaded, 700 in use
+**Display Font:** Martian Mono, width 112.5 (fallback ui-monospace, SF Mono, Menlo)
+**Body Font:** Martian Mono, width 87.5
+**Label/Mono Font:** same family
 
-**Character:** Space Grotesk is the station signage, tight and confident at large sizes; Space Mono is the stencilled hardware labelling; Doto is the light-emitting display. Three voices, never mixed within one element.
+**Character:** A measurement voice. Wide and tight-tracked at the top, condensed and light (360) for reading, tabular figures throughout so counts line up.
 
 ### Hierarchy
-- **Display** (600, clamp 2.9–5.6rem, 0.95, -0.035em): the hero headline only; 2.6rem on mobile. Balanced wrap.
-- **Headline** (600, clamp 2–3.3rem, 1.02, -0.03em): section headings, max 22ch, written as plain sentences.
-- **Title** (600, 1.22rem, -0.01em): route stop names; the promise list uses 1.08rem.
-- **Lede** (400, 1.12rem, 1.55): the hero paragraph, 46ch; section intros run 1.08rem at 62ch in cream muted.
-- **Body** (400, 1rem, 1.6): default prose.
-- **Label** (Space Mono 400, 0.78rem, 0.12–0.14em, uppercase): nav, board head, command names, footer links.
-- **Column label** (Space Mono 400, 0.66rem, 0.16em, uppercase): table column heads on the board and catalogue.
-- **Code** (Space Mono 400, 0.88–0.9rem): commands, inline code, the ticket JSON (0.84rem).
-- **LED row** (Doto 700, 1.28rem, 0.03em, tabular numbers, amber with an 8px amber glow): hero board data; 1rem on mobile. **LED ID** (Doto 700, 1.05rem): catalogue IDs, the clock, empty-state and hub labels.
+- **Display** (560, `clamp(2.1rem, 4vw, 3.4rem)`, 1.02): the hero headline only; balanced wrapping.
+- **Headline** (560, `clamp(1.6rem, 3vw, 2.35rem)`, 1.12): section headings, max 24ch.
+- **Title** (600, 1.3rem): the hero tagline.
+- **Subtitle** (600, 0.92rem, width 100): step names and small headings.
+- **Body** (360, 0.94rem, 1.7): ledes up to 46ch, intros up to 66ch.
+- **Small** (0.78–0.84rem): captions, catalogue rows, readouts, notes up to 78ch.
+- **Label** (0.76rem, 0.06em, uppercase): catalogue column headers and diagram axis labels (SOURCES, DETECTORS, LEADS) only.
 
 ### Named Rules
-**The Lit Data Rule.** Doto is for data the board displays (records, IDs, the clock, a domain hub, the LEAD word). Prose, headings and controls never set in Doto.
+**The Width Is The Hierarchy Rule.** Change the width axis and weight to make rank; never add a second family.
+
+**The Labels Name Axes Rule.** Uppercase tracked text appears only as a column or axis label attached to the data it names, never as a section kicker above a heading.
 
 ## Layout
 
-A single centred column, `min(100% - 2.5rem, 78rem)`, on the gridded housing. The hero pairs the headline and lede in a 1.25fr / 1fr grid aligned to the baseline, with the full-width board below; the catalogue search sits in the board's footer rail beside the primary button. Sections open with a fluid top pad (section token) and a headline plus intro, then a single component at 2.4–3.2rem below.
+A single centred column (`wrap`: up to 74rem with 1.25rem gutters). The hero is two columns (1.4fr / 1fr, 4rem gap), stacking under 960px. The filter bench is full-bleed between strong rules, 290–430px tall. Sections open with `section` spacing; the footer sits further away. The six steps sit in a six-column row (two columns under 760px). The catalogue is a ledger of hairline-ruled rows (five columns, three under 960px, two under 760px). Under 760px the domain diagram becomes a stacked list and the step route line hides. Chip rows scroll horizontally on mobile instead of wrapping.
 
-Tables are CSS grids with fixed data columns and one flexible column (board: 6.5 / 6.2 / flex / 7.5 / 4.5 / 7.4rem; catalogue: 18rem / flex / 9 / 7 / 8.5rem), padded by the 1.1rem board inset. The route strip is six equal columns on a 4px track.
-
-Responsive: at 980px the route becomes three columns and loses its track, the interchange and lead sections stack, the domain list wraps as a row. At 760px the board drops TIME and RECORD columns and shows four rows, names wrap to their own line, the interchange SVG is replaced by a stacked list with the same teal/cream/amber node rings, catalogue rows collapse to ID + status with the title beneath, and secondary nav links hide (GitHub stays).
+Grid-drawn surfaces (bench, domain frame) use a 10px minor and 50px major grid; drawings snap to it.
 
 ## Elevation & Depth
 
-Depth is mostly tonal: charcoal housing, a slightly lighter board casing, near-black display cells inside, separated by 1px dark edges. The one lifted object is the hero board. Light is emitted, not cast: amber and teal LED text carry a soft text glow, and a 5px dot screen of unlit amber dots sits behind the board rows (4px behind catalogue IDs).
-
-### Shadow Vocabulary
-- **Board lift** (`box-shadow: 0 30px 60px -30px rgba(0,0,0,0.8), 0 0 0 1px rgba(0,0,0,0.4) inset`): the hero board only.
-- **LED glow** (`text-shadow: 0 0 8px rgba(212,168,83,0.35)`; teal `0 0 6px rgba(125,177,174,0.35)`): lit data on cells.
-- **Focus halo** (`box-shadow: 0 0 0 3px rgba(212,168,83,0.15)`): focused inputs.
+Flat. Depth comes from tone (`paper` vs `paper-2`) and 1px inset outlines (`box-shadow: inset 0 0 0 1px` with `rule` or `rule-2`), never from cast shadows.
 
 ### Named Rules
-**The Emitted Light Rule.** Displays glow; housings don't cast. Add glow to lit data, not shadows to cards.
+**The Paper Lies Flat Rule.** No drop shadows. Outlines are inset hairlines; emphasis is a tone shift.
 
 ## Shapes
 
-Small, hardware-like radii scaled by object size: 2px flap modules, 3px pills/tags/inline code, 5px keys and list buttons, 6px input and button, 8px command rows, 10px board-scale displays (hero board, catalogue board, map frame, ticket). Circles only for route stops and map nodes. Split-flap modules carry a 1px dark hinge line across their middle. The ticket's foot is divided by a dashed rule, like a tear line.
+Soft corners scaled to size: 4px code, 5px tags, 7px small controls, 8px step tiles, 10px panels and command rows, 12px frames and the search field. Actions are full pills; the GitHub button is a circle. Data marks are geometric: blue filled dots for records, dashed circles for catalogued sources, small rounded squares for detectors, and a loose hand-drawn ellipse (the ring) around anything that becomes a lead.
 
 ## Components
 
 ### Buttons
-- **Shape:** gently rounded (md, 6px), 3.1rem tall to match the search field.
-- **Primary:** solid cream with charcoal text, Space Grotesk 600 at 0.95rem, trailing arrow. One per view.
-- **Hover / Active:** fill brightens to white; presses down 1px.
-- **Icon (copy):** 2.4rem square on board housing with a field-edge border; amber on hover, teal when copied.
+- **Shape:** full pill (`pill`).
+- **Primary:** ink fill, paper text, 560 weight, trailing arrow; 3.1rem tall, a 2.6rem small variant in the nav.
+- **Hover / Focus:** fill deepens; the arrow nudges 3px right; a red ring draws itself around the button (stroke-dashoffset, 0.9s, `cubic-bezier(0.16, 1, 0.3, 1)`). Focus also gets the global 2px blue outline.
+- **Text link action:** "Open Spotlight": underlined ink text with the same arrow nudge, no fill.
 
-### Keys (tabs and filters)
-- **Style:** physical keys on cell-line ground with a field-edge border, Space Mono uppercase labels, 2.5rem tall.
-- **Selected:** cream 10% ground, cream border and text. Press nudges down 1px.
+### Icon button (GitHub)
+- Round 2.6rem button with a 1px inset `rule-2` outline and an 18px inline SVG; hover fills `paper-2` and darkens the outline to ink.
 
-### Pills
-- **Queryable:** teal on teal tint. **Catalogued:** muted cream on 7% cream. **Free:** teal text; **Needs key:** amber text; **Paid:** hot amber on amber tint.
-
-### Cards / Containers (display cells)
-- **Corner Style:** xl (10px) for display-scale cells, lg (8px) for command rows.
-- **Background:** LED cell, with cell-head bands for column heads and open drawers.
-- **Border:** 1px housing edge. Rows inside divide with cell-line or cream-rule.
-- **Internal Padding:** board inset (1.1rem).
+### Chips
+- **Style:** pill, transparent, inset `rule` outline, `ink-2` text, optional count at 0.7 opacity.
+- **State:** selected or pressed fills ink with paper text. Used for domain picks, catalogue tabs and filters.
 
 ### Inputs / Fields
-- **Style:** LED cell ground, field-edge border, 6px radius, amber search icon, amber caret.
-- **Focus:** border turns amber with a 3px amber-tint halo.
+- **Search:** 3.6rem tall, 12px radius, inset `rule-2` outline, leading search icon in `ink-3`.
+- **Focus:** 1.5px blue inset outline plus a 4px `blue-tint` halo.
+
+### Catalogue ledger
+- Hairline-ruled rows; hover tints the row; an expanded row and its detail panel sit on `paper-2`. Status tags lead with a 7px marker: blue filled dot (queryable), dashed ring (catalogued), green square (detector).
+
+### Readouts and command rows
+- `paper-2` panels with 10px corners. Commands show a small label, the command in ink, and a 7px-radius copy button that turns green when copied.
+
+### Filter bench (signature)
+- A full-width chart-paper canvas: four blue source tables, three green detector gates with tick marks, a white leads tray. Blue dots stream left to right; dots that clear the last gate fade to grey; caught dots turn red, get ringed, and stack in the tray as numbered leads. A tally and a Pause control sit under it. Reduced motion stops the animation.
+
+### Domain diagram
+- On grid paper: sources on the left (blue solid edges, grey dashed for catalogued), an ink-outlined hub naming the domain and its tables, detectors on the right in green.
 
 ### Navigation
-- **Style:** sticky charcoal title bar at 92% with blur and a cream-rule bottom edge. Wordmark in Space Grotesk 600 with a dot-matrix glyph; links in Space Mono uppercase cream-muted, cream on hover. GitHub is an outlined 4px-radius chip that turns amber on hover. Mobile keeps only GitHub.
-
-### Departures Board (signature)
-Housing casing with a board head (live dot, Space Mono label, Doto amber clock), a column-label row, LED data rows, and a footer rail holding search and the primary button. A new row wipes in from the top (0.55s); its status flips character by character (0.09s per flap, linear) to OK in teal or LEAD in hot-amber modules, and a lead row gains an amber gradient wash from the left. Rows are scored for real; nothing blinks without a computation behind it.
-
-### Route Strip (signature)
-Six numbered stops on a 4px track; the track fills in cream to the current stop, past stops keep a 45% cream ring, the current stop is a solid cream disc with a soft cream halo. A command cell below shows the current stop's exchange in mono with an amber speaker tag.
-
-### Interchange Map (signature)
-Sources on the left (teal rings and dashed teal lines if queryable, faint cream if catalogued), a domain hub in the centre (amber 2px stroke, Doto amber name, mono table list), detectors on the right (amber rings and lines). Dashes travel along the lines.
-
-### Lead Ticket (signature)
-A display cell with a solid amber header (Doto "Lead" plus detector id), mono JSON body with teal keys, cream values and amber hashes, and a dashed-rule foot carrying provenance.
+- Logo mark (a trace with a red ring) and wordmark left; round GitHub button and small Install pill right. No menu bar.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep solid amber for a LEAD declaration (flap modules, lead ticket header) and use amber tint or strokes everywhere else.
-- **Do** set board data, IDs and clocks in Doto amber on LED cells with the dot screen behind them.
-- **Do** mark queryable sources in teal and catalogued ones in faint cream, consistently across pills, map nodes and lists.
-- **Do** keep the 40px amber grid (2.8%) on the housing behind every surface.
-- **Do** drive every number, count and row from generated data or a real computation.
-- **Do** honour reduced motion by stopping flips, wipes, flows and the live pulse.
+- **Do** keep blue for data, green for detectors and red for leads, everywhere including drawings.
+- **Do** use the red ring to mark a lead or the single primary action's hover.
+- **Do** make hierarchy with Martian Mono's width axis (112.5 display, 100 titles, 87.5 body).
+- **Do** draw diagrams on the 10px / 50px green grid and snap marks to it.
+- **Do** separate surfaces with `paper-2` tone and inset hairlines.
 
 ### Don't:
-- **Don't** fill buttons, selected states, badges or progress with solid amber; the primary button is cream and the current route stop is cream.
-- **Don't** set prose, headings or controls in Doto.
-- **Don't** add drop shadows to cells and cards; only the hero board is lifted.
-- **Don't** animate the board without a computation behind it (no decorative blinking).
+- **Don't** add a second typeface or a system display face.
+- **Don't** use red for errors, warnings, badges or decorative emphasis.
+- **Don't** add cast drop shadows or hard offset shadows.
+- **Don't** put uppercase tracked kickers above headings.
+- **Don't** put the grid behind running text; it belongs to diagram surfaces.

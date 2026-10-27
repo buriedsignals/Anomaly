@@ -69,7 +69,7 @@
     h1 { margin: 0; font-weight: 560; font-stretch: 112.5%; font-size: clamp(2.1rem, 4vw, 3.4rem); line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance; }
     h1 .odd { color: var(--red); position: relative; white-space: nowrap; }
     h1 .odd svg { position: absolute; left: -5%; top: 8%; width: 110%; height: 98%; overflow: visible; pointer-events: none; }
-    h1 .odd svg ellipse { fill: none; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 600; stroke-dashoffset: 600; animation: ink 1.1s var(--ease) .5s forwards; vector-effect: non-scaling-stroke; }
+    h1 .odd svg ellipse { fill: none; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: ink 1.1s var(--ease) .5s forwards; vector-effect: non-scaling-stroke; }
     @keyframes ink { to { stroke-dashoffset: 0; } }
     .tagline { margin: 0 0 0.7rem; font-weight: 600; font-stretch: 112.5%; font-size: 1.3rem; letter-spacing: -0.02em; }
     .lede { margin: 0; color: var(--ink-2); max-width: 46ch; font-size: 0.98rem; }
@@ -77,7 +77,6 @@
     .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.8rem; margin-top: 1.8rem; }
     .btn { position: relative; display: inline-flex; align-items: center; gap: 0.65rem; height: 3.1rem; padding: 0 1.5rem; border-radius: 999px; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 560; font-size: 0.88rem; transition: background .2s; }
     .btn.sm { height: 2.6rem; padding: 0 1.15rem; font-size: 0.82rem; }
-    .btn:hover { background: #000; }
     .btn .arr { width: 17px; height: 17px; transition: translate .3s var(--ease); }
     .btn:hover .arr { translate: 3px 0; }
     .btn .ring { position: absolute; left: -9px; top: -8px; width: calc(100% + 18px); height: calc(100% + 16px); overflow: visible; pointer-events: none; }
@@ -95,9 +94,11 @@
     .bench canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     .mc-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.6rem 2rem; padding: 0.9rem 0 1rem; font-size: 0.8rem; color: var(--ink-3); }
     .mc-foot p { margin: 0; max-width: 70ch; }
-    .tally { display: flex; gap: 1.4rem; white-space: nowrap; }
+    .tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1.4rem; white-space: nowrap; }
     .tally b { color: var(--ink); font-weight: 600; }
     .tally .l b { color: var(--red); }
+    .pause { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--rule-2); text-underline-offset: 0.3em; cursor: pointer; }
+    .pause:hover { color: var(--ink); }
 
     /* ---------- sections ---------- */
     section { padding: clamp(4.5rem, 10vw, 7.5rem) 0 0; }
@@ -114,7 +115,7 @@
     .stop:hover { background: var(--paper-2); }
     .stop p { margin: 0.35rem 0 0; color: var(--ink-3); font-size: 0.78rem; line-height: 1.55; }
     .stop[aria-current="step"] { background: var(--paper-2); }
-    .stop[aria-current="step"] h3 { color: var(--blue); }
+    .stop[aria-current="step"] h3 { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.35em; }
     .stop.lead-stop[aria-current="step"] h3 { color: var(--red); }
     .readout { margin-top: 1.2rem; min-height: 6.2rem; padding: 1rem 1.2rem; border-radius: 10px; background: var(--paper-2); font-size: 0.82rem; line-height: 1.6; color: var(--ink-2); }
     .readout .who { color: var(--ink-3); }
@@ -146,14 +147,14 @@
     .tabs, .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .chip .n { font-size: 0.76rem; color: inherit; opacity: 0.7; }
     .ledger { margin-top: 1rem; border-top: 1px solid var(--rule-2); }
-    .crow { display: grid; grid-template-columns: 17rem minmax(0, 1fr) 8rem 6.5rem 7.5rem; gap: 1rem; align-items: center; padding: 0.8rem 0.4rem; border-bottom: 1px solid var(--rule); font-size: 0.82rem; }
+    .crow { display: grid; grid-template-columns: 17rem minmax(0, 1fr) 10rem 6.5rem 7.5rem; gap: 1rem; align-items: center; padding: 0.8rem 0.4rem; border-bottom: 1px solid var(--rule); font-size: 0.82rem; }
     .crow.head { font-size: 0.76rem; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; padding-block: 0.7rem; }
     .crow[data-key] { cursor: pointer; transition: background .2s; }
     .crow[data-key]:hover { background: rgba(22, 27, 34, 0.035); }
     .crow[aria-expanded="true"] { background: var(--paper-2); border-bottom-color: transparent; }
     .crow .id { font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .crow .t { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .crow .m { color: var(--ink-3); }
+    .crow .m { color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tag-s { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--ink-2); }
     .tag-s::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--ink-3); }
     .tag-s.q { color: var(--blue); } .tag-s.q::before { border-color: var(--blue); background: var(--blue); }
@@ -199,8 +200,14 @@
       .crow > :nth-child(4), .crow > :nth-child(5) { display: none; }
     }
     @media (max-width: 760px) {
+      h1 { line-height: 1.16; }
+      h1 .odd svg { top: -8%; height: 118%; }
+      #route-svg { display: none; }
+      .tabs, .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -1.25rem; padding-inline: 1.25rem; }
+      .tabs::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
+      .chip { flex: none; }
       .mark span { display: none; }
-      .stops { grid-template-columns: repeat(3, 1fr); }
+      .stops { grid-template-columns: repeat(2, 1fr); gap: 0.3rem; }
       .stop { text-align: left; padding: 0.7rem; }
       #map { display: none; }
       .map-frame { padding: 1.1rem 1rem; }
@@ -220,8 +227,9 @@
       .crow > :nth-child(5) { display: block; grid-column: 2; grid-row: 1; }
       .crow.head > :nth-child(2) { display: none; }
       .detail.open { grid-template-columns: 1fr; }
-      .cmd { grid-template-columns: minmax(0, 1fr) auto; }
-      .cmd span { display: none; }
+      .cmd { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0.2rem; padding-block: 0.7rem; }
+      .cmd span { grid-column: 1 / -1; }
+      .cmd code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -261,7 +269,7 @@
       <div class="bench" id="bench"><canvas id="mc" aria-hidden="true"></canvas></div>
       <figcaption class="wrap mc-foot">
         <p id="mc-cap">Records flow in from the sources an agent fetched. Detectors test every one, most pass straight through, and the few that don't fit come out as leads for a person to check.</p>
-        <p class="tally" aria-hidden="true"><span><b id="n-rec">0</b> records tested</span><span class="l"><b id="n-lead">0</b> leads</span></p>
+        <p class="tally"><span aria-hidden="true"><b id="n-rec">0</b> simulated records tested</span><span class="l" aria-hidden="true"><b id="n-lead">0</b> leads</span><button class="pause" id="mc-pause" type="button" aria-pressed="false">Pause</button></p>
       </figcaption>
     </figure>
 
@@ -287,7 +295,7 @@
         <label class="cat-search">
           <span class="sr-only">Search the catalogue</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="cat-q" type="search" placeholder="Search by name, domain, country or description: sanctions, procurement, FR…" autocomplete="off">
+          <input id="cat-q" type="search" placeholder="Search sources, domains and detectors" autocomplete="off">
         </label>
         <div class="cat-tools">
           <div class="tabs" role="tablist" aria-label="Catalogue view">
@@ -321,7 +329,7 @@
             <li class="stop lead-stop" data-cmd="<span class='who'>runner ›</span> <b>{&quot;status&quot;: &quot;lead&quot;, &quot;detector_id&quot;: &quot;lobbying.revolving_door_committee_match&quot;, &quot;input_hashes&quot;: {…}}</b><br>One JSON line per flagged record, with the detector hash and a hash of every input table."><h3>Lead</h3><p>Each flagged record comes back as a JSON line with its detector, inputs and parameters.</p></li>
             <li class="stop" data-cmd="<span class='who'>journalist ›</span> <b>Accept as a lead · Dismiss</b><br>Spotlight's integration, in review now, puts this at its Investigation gate. Nothing becomes a finding until a person and the fact-checker have been through it."><h3>Gate</h3><p>A person accepts or dismisses each lead. A detector never decides what's true.</p></li>
           </ol>
-          <div class="readout" id="readout" aria-live="polite"></div>
+          <div class="readout" id="readout"></div>
         </div>
       </div>
     </section>
@@ -384,10 +392,11 @@
         top, bot, mid: (top + bot) / 2,
         srcX: m + 18 * s, srcW: 70 * s, srcH: 44 * s,
         srcY: SOURCES.map((_, i) => top + (bot - top) * (i + 0.5) / SOURCES.length),
-        gates: GATES.map((_, i) => W * (0.42 + i * 0.1)),
-        trayX: W - m - 190 * s, trayW: 190 * s,
+        trayX: W - m - (W < 560 ? 92 : 190 * s), trayW: W < 560 ? 92 : 190 * s,
       };
       L.outX = L.srcX + L.srcW;
+      // On narrow screens spread the gates across the whole stream so their labels fit.
+      L.gates = GATES.map((_, i) => W < 560 ? L.outX + (L.trayX - L.outX) * (0.3 + i * 0.25) : W * (0.42 + i * 0.1));
     }
     const ease = u => 1 - (1 - u) ** 3;
     function spawn() {
@@ -444,7 +453,7 @@
         ctx.strokeStyle = 'rgba(37,70,181,.35)'; ctx.lineWidth = 1;
         for (let k = 1; k < 4; k++) { const ry = y - h / 2 + h * k / 4; ctx.beginPath(); ctx.moveTo(x + 6, ry); ctx.lineTo(x + w - 6, ry); ctx.stroke(); }
         ctx.beginPath(); ctx.moveTo(x + w * .38, y - h / 2 + 4); ctx.lineTo(x + w * .38, y + h / 2 - 4); ctx.stroke();
-        if (W > 560) label(SOURCES[i], x + w / 2, y + h / 2 + 13 * s + 2, 'center', '#434C55', 400, 10.5);
+        label(SOURCES[i], W < 560 ? x : x + w / 2, y + h / 2 + 13 * s + 2, W < 560 ? 'left' : 'center', '#434C55', 400, 10.5);
       });
       // Detectors: gates the stream must pass.
       L.gates.forEach((x, g) => {
@@ -454,7 +463,8 @@
         ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(28,115,80,.55)';
         for (let y = y0 + 8; y < y1; y += 12 * s + 4) { ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke(); }
         if (flash[g] > 0) { ctx.globalAlpha = flash[g]; ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.globalAlpha = 1; }
-        label(GATES[g], x, y1 + 16 * s + 2, 'center', '#434C55', 400, 10.5);
+        // Narrow screens alternate gate labels above and below so they never overlap.
+        label(GATES[g], x, W < 560 && g === 1 ? y0 - 12 : y1 + 16 * s + 2, 'center', '#434C55', 400, 10.5);
       });
       // Records.
       for (const p of flow) {
@@ -480,6 +490,7 @@
         ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(x, y, 4.6 * s + 1, 0, 7); ctx.fill();
         ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke();
         if (W > 560) { label(`lead ${String(l.no).padStart(3, '0')}`, x + 22 * s, y - 6 * s, 'left', INK, 600, 11); label(l.gate, x + 22 * s, y + 8 * s, 'left', '#626B73', 400, 10); }
+        else label(String(l.no).padStart(3, '0'), x + 18, y, 'left', INK, 600, 11);
         ctx.globalAlpha = 1;
       });
     }
@@ -495,7 +506,13 @@
       layout();
       for (let i = 0; i < 1500; i++) step(1 / 60);   // start mid-flow
       draw(); tally();
-      if (!reduced) whenVisible(bench, () => { if (!mRun) { mRun = true; mLast = performance.now(); mRaf = requestAnimationFrame(mFrame); } }, () => { mRun = false; cancelAnimationFrame(mRaf); });
+      let paused = reduced, seen = false;
+      const play = () => { if (!mRun && seen && !paused) { mRun = true; mLast = performance.now(); mRaf = requestAnimationFrame(mFrame); } };
+      const halt = () => { mRun = false; cancelAnimationFrame(mRaf); };
+      const btn = $('#mc-pause');
+      if (reduced) btn.hidden = true;
+      btn.addEventListener('click', () => { paused = !paused; btn.setAttribute('aria-pressed', String(paused)); btn.textContent = paused ? 'Play' : 'Pause'; paused ? halt() : play(); });
+      if (!reduced) whenVisible(bench, () => { seen = true; play(); }, () => { seen = false; halt(); });
     }
     let mrt; addEventListener('resize', () => { clearTimeout(mrt); mrt = setTimeout(() => { layout(); flow.length = 0; for (let i = 0; i < 200; i++) step(1 / 60); draw(); }, 120); });
     (document.fonts ? document.fonts.ready : Promise.resolve()).then(bootMachine);
@@ -579,12 +596,16 @@
     }
     stops.forEach((s, i) => {
       s.tabIndex = 0; s.setAttribute('role', 'button');
-      const go = () => { userPicked = true; clearInterval(stepTimer); setStop(i); };
+      const go = () => { userPicked = true; clearInterval(stepTimer); readout.setAttribute('aria-live', 'polite'); setStop(i); };
       s.addEventListener('click', go);
       s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     });
     setStop(0);
-    if (!reduced) whenVisible($('.route'), () => { clearInterval(stepTimer); if (!userPicked) stepTimer = setInterval(() => setStop((current + 1) % stops.length), 3400); }, () => clearInterval(stepTimer));
+    let routeHeld = false;
+    const route = $('.route');
+    ['pointerenter', 'focusin'].forEach(ev => route.addEventListener(ev, () => { routeHeld = true; }));
+    ['pointerleave', 'focusout'].forEach(ev => route.addEventListener(ev, () => { routeHeld = false; }));
+    if (!reduced) whenVisible(route, () => { clearInterval(stepTimer); if (!userPicked) stepTimer = setInterval(() => { if (!routeHeld) setStop((current + 1) % stops.length); }, 3400); }, () => clearInterval(stepTimer));
 
     /* ================= catalogue data ================= */
     let DATA = null;
