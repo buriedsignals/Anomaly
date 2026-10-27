@@ -1,5 +1,5 @@
 {
-  "catalogue_hash": "sha256:0dabc7adf9d7f2d2b14aefe7bf09731c704f56dd2c2bfe72ae4736790c3043aa",
+  "catalogue_hash": "sha256:e9afbbaea43716a6207f9f5a91c3875c76eb43ca147a6fa72b3d19d92de29a56",
   "detectors": [
     {
       "assumptions": [
@@ -523,7 +523,7 @@
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.revolving_door_committee_match",
-      "implementation_hash": "sha256:2e6f5909889b6b53a63fba7b41146400d1becd71a614d38c6c885c3e2dcf601b",
+      "implementation_hash": "sha256:fafb937d68f9f5714f2f56b09d02b97246a603781092b8c7ff8d53ec9ba0c4d4",
       "parameters": {
         "limit": {
           "default": 200,
@@ -552,7 +552,7 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Revolving door committee match",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "assumptions": [
@@ -584,7 +584,7 @@
       "family": "lobbying",
       "group": "domain",
       "id": "lobbying.shell_pattern_filings",
-      "implementation_hash": "sha256:f78b5efba51c70f9d57e59086f8543b0db83aca064bb9aef353182bb4bad857e",
+      "implementation_hash": "sha256:5b238361fcab3e1f3a54e43ec06c4fa611e6e8788013ce1c1ccd855ba52bded7",
       "parameters": {
         "limit": {
           "default": 100,
@@ -619,7 +619,7 @@
       "signal_category": "lobbying",
       "source_repository": "https://github.com/buriedsignals/gain-2026",
       "title": "Shell pattern filings",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "assumptions": [

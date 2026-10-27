@@ -16,7 +16,6 @@
                     f.registrant_name, f.client_name,
                     f.client_general_description AS client_desc,
                     f.income, f.url,
-                    -- Shell-pattern signals (each adds 1 to score)
                     (lower(coalesce(f.client_general_description,'')) LIKE '%sovereign%')::int                              AS sig_sovereign_client,
                     (lower(coalesce(f.client_general_description,'')) LIKE '%established government%')::int                 AS sig_established_govt,
                     (lower(coalesce(actv.act_text,'')) LIKE '%empress%' OR
