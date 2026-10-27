@@ -238,25 +238,241 @@
   ],
   "domains": [
     {
-      "contract": null,
-      "detectors": [],
-      "domain": "campaign-finance",
+      "contract": {
+        "donations": [
+          "donation_id",
+          "recipient_id",
+          "recipient_name",
+          "recipient_type",
+          "donor_name",
+          "donor_type",
+          "donor_company_number",
+          "donor_employer",
+          "donor_postcode",
+          "amount",
+          "currency",
+          "donation_date"
+        ],
+        "recipients": [
+          "recipient_id",
+          "name",
+          "registered_date"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; donor_employer and donor_postcode are optional, and a source without either column yields no clusters.",
+            "limit_amount defaults to the 2025-2026 FEC limit for an individual giving to a federal candidate, $3,500 per election (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/). Set it to the limit of the recipient type and jurisdiction under review; the UK has no donation limit (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans).",
+            "The pattern matches what the FEC describes in conduit cases: someone at the limit gives money to others to contribute to the same candidate, or a corporation reimburses employees' contributions (https://www.fec.gov/updates/contributions-in-the-name-of-another-are-strictly-prohibited/).",
+            "Donors are matched by upper-cased name; postcodes are compared without spaces, so a 9-digit ZIP+4 matches only the same ZIP+4."
+          ],
+          "description": "Donors who share an employer or postcode and each give one recipient an amount at or near the contribution limit within a few days.",
+          "domain": "campaign_finance",
+          "false_positives": [
+            "Colleagues often give together at a fundraiser their employer or a senior colleague hosts; that is lawful when each gives their own money.",
+            "Spouses and relatives at one address each have their own limit (https://www.fec.gov/help-candidates-and-committees/taking-receipts-ssf/limits-contributions-received-ssf/), so a household giving the maximum on one day is common.",
+            "Placeholder employers (for example INFORMATION REQUESTED or SELF-EMPLOYED) are excluded only when spelled as listed in the query; other spellings can form spurious clusters.",
+            "Large employers and dense postcodes produce clusters by chance; compare against the recipient's other donors before treating a cluster as a lead."
+          ],
+          "id": "campaign_finance.maxed_donor_clusters",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "limit_amount": {
+              "default": 3500,
+              "maximum": 100000000,
+              "minimum": 1,
+              "type": "number"
+            },
+            "min_donors": {
+              "default": 3,
+              "maximum": 1000,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "near_limit_ratio": {
+              "default": 0.9,
+              "maximum": 1,
+              "minimum": 0.1,
+              "type": "number"
+            },
+            "window_days": {
+              "default": 7,
+              "maximum": 366,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "donations"
+          ],
+          "severity": "medium",
+          "title": "Maxed donor clusters",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml; recipients.registered_date is the date the recipient registered with the regulator.",
+            "Only donations dated up to max_age_days after registration count, including any dated before it.",
+            "The pattern follows Campaign Legal Center complaints about pop-up committees: two super PACs formed within weeks of an LLC reported no contributions from any other source (https://campaignlegal.org/update/what-are-straw-donor-schemes-and-why-are-they-problem).",
+            "Donors are matched by upper-cased name."
+          ],
+          "description": "A recipient that registered recently and received nearly all of its early money from one donor.",
+          "domain": "campaign_finance",
+          "false_positives": [
+            "Many legitimate committees start with seed money from their founder, a sponsoring organisation or an affiliated committee.",
+            "A single-candidate committee funded by the candidate's own money, or a party branch funded by its central party, has one funder by design.",
+            "The source may list only donations above a reporting threshold, so many small donors can be invisible and the top donor's share overstated.",
+            "A single funder is not proof of a straw donor; the lead is whether the funder had its own money, which needs company records and bank or filing evidence."
+          ],
+          "id": "campaign_finance.new_recipient_single_funder",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_age_days": {
+              "default": 90,
+              "maximum": 3650,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_top_share": {
+              "default": 0.9,
+              "maximum": 1,
+              "minimum": 0.5,
+              "type": "number"
+            },
+            "min_total": {
+              "default": 10000,
+              "maximum": 10000000000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "donations",
+            "recipients"
+          ],
+          "severity": "high",
+          "title": "New recipient, single funder",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the campaign_finance domain contract in domains/campaign_finance.yaml.",
+            "threshold defaults to the UK reporting threshold for donations to a party's central organisation, 11,180 GBP (https://www.electoralcommission.org.uk/political-registration-and-regulation/financial-reporting/donations-and-loans). For US federal candidates use the per-election limit, 3,500 USD in 2025-2026 (https://www.fec.gov/help-candidates-and-committees/candidate-taking-receipts/contribution-limits/).",
+            "A donor is one upper-cased name plus postcode when the source publishes one; the same person spelled two ways counts as two donors.",
+            "Amounts are compared as published; the detector does not convert currencies."
+          ],
+          "description": "One donor gives one recipient several gifts, each below a threshold, that together reach the threshold within a short window.",
+          "domain": "campaign_finance",
+          "false_positives": [
+            "Regular monthly or recurring gifts reach any threshold eventually; a long window_days or low min_gifts flags ordinary supporters.",
+            "Published registers only list gifts above their own reporting thresholds or aggregated past them (UK parties report gifts over 2,230 GBP once a donor has passed the central threshold in a calendar year), so small split gifts may be missing or already disclosed as aggregations.",
+            "US committees can lawfully accept separate per-election contributions for a primary and a general election, and refunds or redesignations may follow; check the election designation and memo text of each gift.",
+            "Common names merge different people when the source publishes no postcode.",
+            "UK registers list a party's gifts per accounting unit (local branch) under one regulated entity, so one donor funding several branches on one day looks like split gifts to one recipient."
+          ],
+          "id": "campaign_finance.structured_gifts",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_gifts": {
+              "default": 3,
+              "maximum": 100,
+              "minimum": 2,
+              "type": "integer"
+            },
+            "threshold": {
+              "default": 11180,
+              "maximum": 100000000,
+              "minimum": 1,
+              "type": "number"
+            },
+            "window_days": {
+              "default": 30,
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "donations"
+          ],
+          "severity": "medium",
+          "title": "Structured gifts",
+          "version": "1.0.0"
+        }
+      ],
+      "domain": "campaign_finance",
       "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Donations reported to the UK Electoral Commission by political parties, non-party campaigners, referendum participants and regulated donees, and the registers of parties and campaigners with their registration dates, returned as rows of the campaign_finance domain contract (donations, recipients).",
+          "domain": "campaign_finance",
+          "id": "gb/electoral-commission/donations",
+          "jurisdiction": "gb",
+          "license": "Electoral Commission public register data; the Commission licenses information under the Open Government Licence wherever possible, but the search export states no licence",
+          "provides": [
+            "donations",
+            "recipients"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/gb/electoral-commission-donations/SKILL.md",
+          "status": "queryable",
+          "title": "Electoral Commission \u2014 UK Political Donations and Registrations"
+        },
         {
           "auth": "api_key",
           "cost": [
             "free"
           ],
-          "description": "Search federal candidate and committee entities by name with documented OpenFEC filters, stable FEC identifiers, filing dates, election cycles, and links to FEC profiles. These operations do not return transactions or totals.",
-          "domain": "campaign-finance",
+          "description": "Search federal candidate and committee entities by name with documented OpenFEC filters, and fetch Schedule A itemized receipts and committee registration dates as rows of the campaign_finance domain contract (donations, recipients).",
+          "domain": "campaign_finance",
           "id": "us/fec/campaign-finance",
           "jurisdiction": "us",
           "license": "FEC public data subject to FEC Terms of Service and Acceptable Use Policy",
-          "provides": [],
+          "provides": [
+            "donations",
+            "recipients"
+          ],
           "setup_url": "https://api.data.gov/signup/",
           "skill": "data-skills/us/openfec-campaign-finance/SKILL.md",
           "status": "queryable",
-          "title": "OpenFEC \u2014 Candidates and Committees"
+          "title": "OpenFEC \u2014 Candidates, Committees and Itemized Receipts"
         }
       ]
     },
@@ -630,46 +846,60 @@
           "state"
         ],
         "lobbying_activities": [
-          "filing_uuid",
+          "registration_id",
           "general_issue_code",
           "description",
           "activity_index"
         ],
-        "lobbying_activity_lobbyists": [
-          "filing_uuid",
-          "lobbyist_id",
-          "first_name",
-          "last_name",
-          "covered_position"
+        "lobbying_contacts": [
+          "contact_id",
+          "registrant_id",
+          "registrant_name",
+          "contact_date",
+          "official_name",
+          "official_title",
+          "institution",
+          "subject"
         ],
-        "lobbying_contributions": [
-          "filing_uuid",
-          "payee_name",
-          "honoree_name",
-          "amount",
-          "contributor_name"
+        "lobbying_foreign_entities": [
+          "registration_id",
+          "foreign_entity_name",
+          "country",
+          "ppb_country"
         ],
-        "lobbying_filings": [
-          "filing_uuid",
-          "filing_year",
-          "filing_period",
-          "filing_type",
+        "lobbying_registrations": [
+          "registration_id",
+          "register",
+          "period_start",
+          "period_end",
           "registrant_id",
           "registrant_name",
           "client_id",
           "client_name",
           "client_country",
-          "client_ppb_country",
-          "client_general_description",
-          "income",
+          "spend_low",
+          "spend_high",
+          "issue_area",
+          "filing_type",
           "url",
+          "client_description",
+          "client_ppb_country",
           "posted_by_name"
         ],
-        "lobbying_foreign_entities": [
-          "filing_uuid",
-          "foreign_entity_name",
-          "country",
-          "ppb_country"
+        "lobbyists": [
+          "registration_id",
+          "lobbyist_id",
+          "name",
+          "former_public_office",
+          "former_office_institution",
+          "former_office_end"
+        ],
+        "political_contributions": [
+          "registration_id",
+          "payee_name",
+          "honoree_name",
+          "amount",
+          "contributor_name"
         ],
         "press_releases": [
           "bioguide_id",
@@ -683,12 +913,13 @@
       "detectors": [
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+            "Press releases are matched to the client pattern and the phrase private equity."
           ],
-          "description": "Multi-corpus committee, lobbying, and press-release comparison.",
+          "description": "Lobbying for a target client by former committee staff, compared with the committee's members and their press releases.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Members criticise industries they also meet with; co-occurrence is not influence."
           ],
           "id": "lobbying.committee_say_vs_pay",
           "parameters": {
@@ -716,24 +947,72 @@
             }
           ],
           "required_tables": [
-            "lobbying_activity_lobbyists",
-            "lobbying_filings",
+            "lobbyists",
+            "lobbying_registrations",
             "committee_assignments",
             "legislators",
             "press_releases"
           ],
           "severity": "medium",
           "title": "Committee say vs pay",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "The usual rate is total contacts over the months from the registrant's first to last contact with that institution, so quiet months count as zero."
           ],
-          "description": "Named foreign-lobbying candidates absent from the FARA registrant set.",
+          "description": "Months in which one registrant's contacts with one institution jump far above its usual monthly rate.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Consultations, legislative deadlines and crises legitimately concentrate meetings.",
+            "Registers that report one row per official count a meeting with several officials several times only when contact_id differs."
+          ],
+          "id": "lobbying.contact_bursts",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_contacts": {
+              "default": 5,
+              "maximum": 10000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_ratio": {
+              "default": 3.0,
+              "maximum": 1000.0,
+              "minimum": 1.0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_contacts"
+          ],
+          "severity": "medium",
+          "title": "Contact bursts",
+          "version": "2.0.0"
+        },
+        {
+          "assumptions": [
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+            "Reads filings from 2024 to 2026 only.",
+            "Registrant names are matched to FARA names after removing punctuation."
+          ],
+          "description": "LDA filings with foreign-interest signals whose registrant is absent from the FARA registrant list.",
+          "domain": "lobbying",
+          "false_positives": [
+            "The LDA exemption lets foreign commercial clients register under LDA instead of FARA.",
+            "Name variants hide real FARA registrations."
           ],
           "id": "lobbying.fara_gap_narrowed",
           "parameters": {
@@ -751,23 +1030,62 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings",
+            "lobbying_registrations",
             "lobbying_foreign_entities",
             "lobbying_activities",
             "foreign_agent_registrants"
           ],
           "severity": "medium",
           "title": "FARA gap narrowed",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "home_countries lists the register's home countries, spelled as the register spells client_country and separated by a vertical bar; left empty, the most common client_country in each register is the home country.",
+            "client_country is the country of the client, or of the registrant when it lobbies for itself."
           ],
-          "description": "Senate filings carrying foreign entity records.",
+          "description": "Registrations whose represented interest is based outside the register's home country or countries.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Foreign subsidiaries, embassies and international bodies lobby openly and lawfully.",
+            "Country names spelled differently from home_countries count as foreign."
+          ],
+          "id": "lobbying.foreign_clients",
+          "parameters": {
+            "home_countries": {
+              "default": "",
+              "max_length": 1000,
+              "type": "string"
+            },
+            "limit": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbying_registrations"
+          ],
+          "severity": "medium",
+          "title": "Foreign clients",
+          "version": "2.0.0"
+        },
+        {
+          "assumptions": [
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish."
+          ],
+          "description": "LDA filings that list foreign entities with an interest in the lobbying.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Foreign parents and affiliates of US clients are routinely listed."
           ],
           "id": "lobbying.foreign_filings",
           "parameters": {
@@ -785,21 +1103,67 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings",
+            "lobbying_registrations",
             "lobbying_foreign_entities"
           ],
           "severity": "medium",
           "title": "Foreign filings",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "Institutions match when the names are equal or one contains the other (six characters or more), case-insensitively; registers that spell institutions differently in the two tables miss matches.",
+            "A lobbyist is linked to a contact through the registrant, so the contact may have been made by a colleague.",
+            "Without a former_office_end date every matching contact counts."
           ],
-          "description": "Quarter-over-quarter issue-code income and registrant shifts.",
+          "description": "A registrant's contacts with an institution where one of its lobbyists held public office, within a window after they left.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Former officials may lawfully lobby after a cooling-off period, and colleagues may have made the contact.",
+            "Broad institution names (a ministry) match many offices."
+          ],
+          "id": "lobbying.former_official_lobbies_former_institution",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_days_after_leaving": {
+              "default": 1825,
+              "maximum": 36500,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "lobbyists",
+            "lobbying_registrations",
+            "lobbying_contacts"
+          ],
+          "severity": "medium",
+          "title": "Former official lobbies former institution",
+          "version": "2.0.0"
+        },
+        {
+          "assumptions": [
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "issue_area holds the register's own codes separated by a vertical bar; areas are compared only within one register.",
+            "Each row's full spend counts toward every issue area it lists."
+          ],
+          "description": "Quarter-over-quarter shifts in spend (or, without money, registrant count) per issue area within one register's taxonomy.",
+          "domain": "lobbying",
+          "false_positives": [
+            "Legislative calendars move whole issue areas at once.",
+            "Registers whose rows start on registration dates measure new registrations, not activity."
           ],
           "id": "lobbying.issue_concentration_shifts",
           "parameters": {
@@ -809,7 +1173,7 @@
               "minimum": 1,
               "type": "integer"
             },
-            "min_qoq_delta_pct": {
+            "min_delta_pct": {
               "default": 25,
               "maximum": 100000,
               "minimum": 0,
@@ -823,23 +1187,24 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings",
-            "lobbying_activities"
+            "lobbying_registrations"
           ],
           "severity": "medium",
           "title": "Issue concentration shifts",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "A filing type counts as money-bearing when any row of that type in the same register discloses spend."
           ],
-          "description": "Quarterly filings with null income clustered by registrant.",
+          "description": "Registrants with repeated reports that disclose no spend, in a register and filing type that normally carry spend.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Some registers allow no amount below a threshold (LDA reports under 5,000 dollars carry none).",
+            "Registers that never publish money produce no rows."
           ],
-          "id": "lobbying.missing_income_filings",
+          "id": "lobbying.missing_spend_filings",
           "parameters": {
             "limit": {
               "default": 200,
@@ -861,20 +1226,22 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings"
+            "lobbying_registrations"
           ],
           "severity": "medium",
-          "title": "Missing income filings",
-          "version": "1.2.0"
+          "title": "Missing spend filings",
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "The window ends at the latest period_start in the supplied register data, so the data must span more than the window."
           ],
-          "description": "New registrants ranked by recent filing income.",
+          "description": "Registrants first seen in a register's latest window, ranked by disclosed spend and clients.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "A partial extract makes every registrant look new.",
+            "Renamed or re-registered firms appear as new registrants."
           ],
           "id": "lobbying.new_registrant_surge",
           "parameters": {
@@ -884,9 +1251,9 @@
               "minimum": 1,
               "type": "integer"
             },
-            "lookback_quarters": {
-              "default": 2,
-              "maximum": 40,
+            "lookback_days": {
+              "default": 183,
+              "maximum": 3660,
               "minimum": 1,
               "type": "integer"
             }
@@ -898,20 +1265,20 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings"
+            "lobbying_registrations"
           ],
           "severity": "medium",
           "title": "New registrant surge",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish."
           ],
-          "description": "Contribution flows aggregated by payee and honoree.",
+          "description": "LD-203 contribution flows aggregated by payee and honoree.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "LD-203 reports lawful contributions; large flows are expected for party committees."
           ],
           "id": "lobbying.pac_contribution_flow",
           "parameters": {
@@ -929,20 +1296,22 @@
             }
           ],
           "required_tables": [
-            "lobbying_contributions"
+            "political_contributions"
           ],
           "severity": "medium",
           "title": "PAC contribution flow",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "former_public_office is self-disclosed text; values shorter than four characters or none and n/a are ignored."
           ],
-          "description": "Lobbyists with populated covered-position text and current clients.",
+          "description": "Lobbyists who disclosed a former public office, with the registrations and clients they now work on.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Disclosure of a former office is a legal requirement, not misconduct.",
+            "Former junior or unrelated offices are listed alongside senior ones."
           ],
           "id": "lobbying.revolving_door_candidates",
           "parameters": {
@@ -960,21 +1329,22 @@
             }
           ],
           "required_tables": [
-            "lobbying_activity_lobbyists",
-            "lobbying_filings"
+            "lobbyists",
+            "lobbying_registrations"
           ],
           "severity": "medium",
           "title": "Revolving door candidates",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+            "Committee names are matched in English free text and mapped to LDA issue codes; reads quarterly reports from 2024 to 2026."
           ],
-          "description": "Lobbyist former-committee text matched to current issue codes.",
+          "description": "LDA lobbyists whose former committee role matches the issue codes they now lobby on.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Former staff legitimately work in their field of expertise; cooling-off rules may have expired."
           ],
           "id": "lobbying.revolving_door_committee_match",
           "parameters": {
@@ -992,22 +1362,23 @@
             }
           ],
           "required_tables": [
-            "lobbying_activity_lobbyists",
-            "lobbying_filings",
+            "lobbyists",
+            "lobbying_registrations",
             "lobbying_activities"
           ],
           "severity": "medium",
           "title": "Revolving door committee match",
-          "version": "1.2.1"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "US only. Reads US extension tables (LDA, FARA or Congress) that other registers do not publish.",
+            "Text patterns were tuned on English-language LDA filings."
           ],
-          "description": "Filings with multiple deterministic text-pattern signals.",
+          "description": "LDA filings with several deterministic text-pattern signals of self-styled sovereign or shell clients.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Legitimate sovereign clients match the sovereign and government patterns."
           ],
           "id": "lobbying.shell_pattern_filings",
           "parameters": {
@@ -1031,22 +1402,24 @@
             }
           ],
           "required_tables": [
-            "lobbying_activity_lobbyists",
-            "lobbying_filings",
+            "lobbyists",
+            "lobbying_registrations",
             "lobbying_activities"
           ],
           "severity": "medium",
           "title": "Shell pattern filings",
-          "version": "1.2.1"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "Rows where the registrant lobbies for itself have no client and are ignored.",
+            "Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values."
           ],
-          "description": "Registrants with one or two clients and high total income.",
+          "description": "Consultant registrants with one or two clients and high total disclosed spend.",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "Boutique firms or a client's dedicated outside counsel legitimately serve one client."
           ],
           "id": "lobbying.single_client_juggernauts",
           "parameters": {
@@ -1056,7 +1429,7 @@
               "minimum": 1,
               "type": "integer"
             },
-            "min_total_income": {
+            "min_total_spend": {
               "default": 250000,
               "maximum": 10000000000,
               "minimum": 0,
@@ -1070,20 +1443,23 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings"
+            "lobbying_registrations"
           ],
           "severity": "medium",
           "title": "Single client juggernauts",
-          "version": "1.2.0"
+          "version": "2.0.0"
         },
         {
           "assumptions": [
-            "Tables follow the lobbying domain contract in domains/lobbying.yaml."
+            "Generic. Runs on any lobbying register that fills the columns it reads (see the source's SKILL.md column mapping).",
+            "One spend value is kept per registrant, client and period (the highest), so amendments do not double count.",
+            "Spend is the midpoint of spend_low and spend_high; registers that publish annual ranges (EU) give coarse values."
           ],
-          "description": "Registrant-quarter income z-score against prior quarters.",
+          "description": "A registrant's disclosed spend in one period jumps against its previous four periods (z-score).",
           "domain": "lobbying",
           "false_positives": [
-            "Legitimate activity can produce the observed pattern."
+            "A registrant that gains a large client or changes its reporting method spikes legitimately.",
+            "Registers without money columns produce no rows."
           ],
           "id": "lobbying.spending_spikes",
           "parameters": {
@@ -1093,7 +1469,7 @@
               "minimum": 1,
               "type": "integer"
             },
-            "min_income": {
+            "min_spend": {
               "default": 50000,
               "maximum": 1000000000,
               "minimum": 0,
@@ -1113,15 +1489,54 @@
             }
           ],
           "required_tables": [
-            "lobbying_filings"
+            "lobbying_registrations"
           ],
           "severity": "medium",
           "title": "Spending spikes",
-          "version": "1.2.0"
+          "version": "2.0.0"
         }
       ],
       "domain": "lobbying",
       "sources": [
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Federal lobbying registrations, the lobbyists and former public offices they declare, and monthly communication reports with designated public office holders, from the Office of the Commissioner of Lobbying open-data exports, returned as lobbying_registrations, lobbyists and lobbying_contacts rows of the lobbying domain contract.",
+          "domain": "lobbying",
+          "id": "ca/ocl/registry-of-lobbyists",
+          "jurisdiction": "ca",
+          "license": "Open Data Licence Agreement of the Office of the Commissioner of Lobbying (https://lobbycanada.gc.ca/en/open-data/open-data-licence-agreement/)",
+          "provides": [
+            "lobbying_contacts",
+            "lobbying_registrations",
+            "lobbyists"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/ca/lobbying-registry/SKILL.md",
+          "status": "queryable",
+          "title": "Canada Registry of Lobbyists \u2014 registrations and communication reports"
+        },
+        {
+          "auth": "none",
+          "cost": [
+            "free"
+          ],
+          "description": "Organisations registered in the EU Transparency Register (daily export) and their meetings with Commissioners, cabinet members and Directors-General, returned as lobbying_registrations and lobbying_contacts rows of the lobbying domain contract.",
+          "domain": "lobbying",
+          "id": "eu/transparency-register/lobbying",
+          "jurisdiction": "eu",
+          "license": "Public EU data; no dataset licence is shown on data.europa.eu, so the Commission reuse policy (Decision 2011/833/EU) applies; cite the Transparency Register and the retrieval date",
+          "provides": [
+            "lobbying_contacts",
+            "lobbying_registrations"
+          ],
+          "setup_url": "",
+          "skill": "data-skills/eu/transparency-register-lobbying/SKILL.md",
+          "status": "queryable",
+          "title": "EU Transparency Register and Commission meetings"
+        },
         {
           "auth": "none",
           "cost": [
@@ -1182,17 +1597,17 @@
           "cost": [
             "free"
           ],
-          "description": "Federal lobbying registrations and quarterly activity reports (LD-1/LD-2) and political contribution reports (LD-203) from the LDA.gov REST API, returned as rows of the lobbying domain contract: filings, foreign entities, activities, lobbyists, and contributions.",
+          "description": "Federal lobbying registrations and quarterly activity reports (LD-1/LD-2) and political contribution reports (LD-203) from the LDA.gov REST API, returned as rows of the lobbying domain contract: the generic lobbying_registrations and lobbyists tables, plus the US extension tables lobbying_foreign_entities, lobbying_activities and political_contributions.",
           "domain": "lobbying",
           "id": "us/lda/lobbying-disclosures",
           "jurisdiction": "us",
           "license": "US Senate public records; cite the retrieval date and state that the Senate Office of Public Records cannot vouch for the data or analyses after retrieval",
           "provides": [
             "lobbying_activities",
-            "lobbying_activity_lobbyists",
-            "lobbying_contributions",
-            "lobbying_filings",
-            "lobbying_foreign_entities"
+            "lobbying_foreign_entities",
+            "lobbying_registrations",
+            "lobbyists",
+            "political_contributions"
           ],
           "setup_url": "https://lda.gov/api/register/",
           "skill": "data-skills/us/lda-lobbying-disclosures/SKILL.md",
@@ -1296,8 +1711,248 @@
       ]
     },
     {
-      "contract": null,
-      "detectors": [],
+      "contract": {
+        "procurement_awards": [
+          "award_id",
+          "process_id",
+          "supplier_id",
+          "supplier_name",
+          "award_value",
+          "currency",
+          "award_date",
+          "final_value"
+        ],
+        "procurement_processes": [
+          "process_id",
+          "buyer_id",
+          "buyer_name",
+          "country",
+          "category_code",
+          "procurement_method",
+          "tender_value",
+          "currency",
+          "tender_published_date",
+          "tender_deadline",
+          "number_of_tenderers"
+        ]
+      },
+      "detectors": [
+        {
+          "assumptions": [
+            "Tables follow the procurement domain contract in domains/procurement.yaml.",
+            "procurement_method uses the OCDS codes; limited and direct count as non-open, rows without a method are skipped.",
+            "The default min_share of 0.3 is the example threshold in OCP R013; iqr_upper_fence is the OCP alternative (Q3 + 1.5 IQR across the buyers shown)."
+          ],
+          "description": "Buyers that run a high share of their processes as limited or direct awards (OCP red flag R013).",
+          "domain": "procurement",
+          "false_positives": [
+            "OCP R013: limited and direct methods have valid legal grounds such as urgency, sole sources, low values and framework call-offs.",
+            "Buyers that publish many framework call-offs as direct awards look non-open by construction."
+          ],
+          "id": "procurement.non_open_procedure_share",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_processes": {
+              "default": 5,
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_share": {
+              "default": 0.3,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "procurement_processes"
+          ],
+          "severity": "medium",
+          "title": "High share of non-open procedures",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the procurement domain contract in domains/procurement.yaml.",
+            "tender_published_date is the start of the submission period (OCDS tender/tenderPeriod/startDate, else the notice publication date) and tender_deadline its end.",
+            "Set min_days to the legal minimum for the buyer's jurisdiction and method; the default of 10 is a screen, not a legal threshold."
+          ],
+          "description": "Open or selective processes whose submission period is shorter than a minimum number of days (OCP red flag R003).",
+          "domain": "procurement",
+          "false_positives": [
+            "OCP R003: accelerated procedures for urgency, prior information notices and dynamic purchasing systems allow shorter periods legally.",
+            "A notice republished or corrected late shortens the apparent period."
+          ],
+          "id": "procurement.short_submission_period",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_days": {
+              "default": 10,
+              "maximum": 365,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "procurement_processes"
+          ],
+          "severity": "medium",
+          "title": "Short submission period",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the procurement domain contract in domains/procurement.yaml.",
+            "procurement_method uses the OCDS codes open, selective, limited and direct; rows without a method or a bid count are skipped.",
+            "number_of_tenderers counts bids for the process or lot the row describes (OCDS tender/numberOfTenderers or bids/statistics with measure bids)."
+          ],
+          "description": "Open or selective processes (or lots) that received exactly one bid (OCP red flag R018).",
+          "domain": "procurement",
+          "false_positives": [
+            "OCP R018: niche markets, specialised goods or tight specifications can legitimately draw a single bidder.",
+            "Framework call-offs and lots reported with the parent notice's bid count can misstate competition per lot."
+          ],
+          "id": "procurement.single_bid_competitive",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "procurement_processes"
+          ],
+          "severity": "medium",
+          "title": "Single bid in a competitive procedure",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the procurement domain contract in domains/procurement.yaml.",
+            "Supplier and buyer identifiers are stable within one source; names are not matched across sources.",
+            "Shares are by award value per buyer, award year, currency and category_code (R050 when filled, R040 when empty); an award with several suppliers is split equally between them.",
+            "The default min_share of 0.4 is the example threshold in OCP R040 and R050; min_awards keeps small markets out."
+          ],
+          "description": "Suppliers that win a high share of one buyer's award value in a year, within one market when categories are known (OCP red flags R040 and R050).",
+          "domain": "procurement",
+          "false_positives": [
+            "OCP R040/R050: small or specialised markets, incumbents on long programmes and buyers with few purchases concentrate legitimately.",
+            "Only the awards in the fetched sample count; a partial fetch inflates shares."
+          ],
+          "id": "procurement.supplier_share_outlier",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_awards": {
+              "default": 5,
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_share": {
+              "default": 0.4,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "procurement_processes",
+            "procurement_awards"
+          ],
+          "severity": "medium",
+          "title": "Supplier share outlier",
+          "version": "1.0.0"
+        },
+        {
+          "assumptions": [
+            "Tables follow the procurement domain contract in domains/procurement.yaml.",
+            "award_value is the value at award and final_value the current or final value after amendments, in the same currency; rows without final_value are skipped.",
+            "OCP R069 flags any increase; the default min_growth of 0.2 (20 percent) keeps small adjustments out."
+          ],
+          "description": "Awards whose current or final contract value exceeds the value at award by a minimum ratio and amount (OCP red flag R069).",
+          "domain": "procurement",
+          "false_positives": [
+            "OCP R069: amendments can be legitimate, such as exercised options, indexation and scope added through a documented change.",
+            "Where final_value is cumulative obligations (USAspending), incremental funding of an unchanged contract looks like growth."
+          ],
+          "id": "procurement.value_growth_after_award",
+          "parameters": {
+            "limit": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "min_growth": {
+              "default": 0.2,
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_increase": {
+              "default": 0,
+              "maximum": 1000000000000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required_fields": [
+            {
+              "name": "id",
+              "types": null
+            }
+          ],
+          "required_tables": [
+            "procurement_processes",
+            "procurement_awards"
+          ],
+          "severity": "medium",
+          "title": "Value growth after award",
+          "version": "1.0.0"
+        }
+      ],
       "domain": "procurement",
       "sources": [
         {
@@ -1321,12 +1976,15 @@
           "cost": [
             "free"
           ],
-          "description": "Retrieve Find a Tender OCDS 1.1.5 release packages by update window and contracting stage, with optional transparent local term filtering.",
+          "description": "Retrieve Find a Tender OCDS 1.1.5 release packages by update window and contracting stage, with optional transparent local term filtering, as notice records or as procurement_processes and procurement_awards contract rows.",
           "domain": "procurement",
           "id": "gb/find-a-tender/notices",
           "jurisdiction": "gb",
           "license": "Open Government Licence v3.0; TED-derived material attribution also applies where stated",
-          "provides": [],
+          "provides": [
+            "procurement_awards",
+            "procurement_processes"
+          ],
           "setup_url": "",
           "skill": "data-skills/gb/find-a-tender-notices/SKILL.md",
           "status": "queryable",
@@ -1337,12 +1995,15 @@
           "cost": [
             "free"
           ],
-          "description": "Search prime federal contracts, grants, loans, IDVs, direct payments, and other assistance by a bounded time window plus keyword, recipient text, or exact award ID, returning award-level amounts, agencies, dates, and identifiers.",
+          "description": "Search prime federal contracts, grants, loans, IDVs, direct payments, and other assistance by a bounded time window plus keyword, recipient text, or exact award ID, returning award-level amounts, agencies, dates, and identifiers, or contracts as procurement_processes and procurement_awards contract rows.",
           "domain": "procurement",
           "id": "us/usaspending/awards",
           "jurisdiction": "us",
           "license": "US federal spending data published under the DATA Act; public US government data",
-          "provides": [],
+          "provides": [
+            "procurement_awards",
+            "procurement_processes"
+          ],
           "setup_url": "",
           "skill": "data-skills/us/usaspending-awards/SKILL.md",
           "status": "queryable",

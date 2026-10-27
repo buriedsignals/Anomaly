@@ -4,11 +4,11 @@
 
 ### Data sources and anomaly detectors for investigating agents
 
-**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 38 data sources across 16 domains and 18 released detectors.**
+**Anomaly tells an investigating agent which data sources could help, how to get each one, and which detectors fit that type of data. It then runs those detectors deterministically on the tables the agent fetched. It has 41 data sources across 16 domains and 29 released detectors.**
 
 [How it works](#how-it-works) | [Domains](#domains) | [Using it](#using-it-from-an-agent) | [Adding to it](#adding-sources-and-detectors) | [Website](https://anomaly.buriedsignals.com/)
 
-[![38 Data Sources](https://img.shields.io/badge/data_sources-38-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![18 Detectors](https://img.shields.io/badge/detectors-18-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
+[![41 Data Sources](https://img.shields.io/badge/data_sources-41-0080ff?style=for-the-badge&logo=bookstack&logoColor=white)](#domains)[![16 Domains](https://img.shields.io/badge/domains-16-00bfa5?style=for-the-badge&logo=databricks&logoColor=white)](#domains)[![29 Detectors](https://img.shields.io/badge/detectors-29-aa00ff?style=for-the-badge&logo=filter&logoColor=white)](#detectors)
 
 Built by [**Buried Signals**](https://buriedsignals.com/) • [tom@buriedsignals.com](mailto:tom@buriedsignals.com)
 
@@ -39,17 +39,20 @@ flowchart LR
         S3["Source C<br/>category: procurement"]
     end
     subgraph D["Domains · domains/"]
-        D1["lobbying<br/>contract tables:<br/>lobbying_filings,<br/>legislators, …"]
-        D2["procurement<br/>no contract yet"]
+        D1["lobbying<br/>contract tables:<br/>lobbying_registrations,<br/>lobbyists, …"]
+        D2["procurement<br/>contract tables:<br/>procurement_processes,<br/>procurement_awards"]
     end
     subgraph F["Detector families · detectors/"]
         F1["lobbying family<br/>data_type: lobbying"]
+        F2["procurement family<br/>data_type: procurement"]
         F0["statistical detectors<br/>any table, mapped by role"]
     end
     S1 --> D1
     S2 --> D1
     S3 --> D2
     D1 --> F1
+    D2 --> F2
+    F2 --> R
     F1 --> R["Runner<br/>anomaly.oneshot"]
     F0 --> R
     R --> L["Leads<br/>JSONL signals with provenance"]
@@ -88,7 +91,7 @@ nothing but its contract's columns.
 
 | Domain | Sources | Detectors |
 |---|---|---|
-| campaign-finance | OpenFEC | — |
+| campaign_finance | OpenFEC · UK Electoral Commission | 3, with a contract of 2 tables |
 | companies | Zefix · Pappers · Companies House · GLEIF · OpenCorporates · Brønnøysund | — |
 | court | ICC cases · CourtListener (5 skills) | — |
 | entities | OCCRP Aleph · Wikidata | — |
@@ -96,10 +99,10 @@ nothing but its contract's columns.
 | filings | SEC EDGAR | — |
 | geography | Wikimapia | — |
 | legislation | Congress Corral · Congress.gov | — |
-| lobbying | Lobbying Disclosure Act filings · FARA · congress-legislators · Congress Press · LobbyData | 12, with a contract of 9 tables |
+| lobbying | EU Transparency Register · Canada Registry of Lobbyists · Lobbying Disclosure Act filings · FARA · congress-legislators · Congress Press · LobbyData | 15, with a contract of 10 tables |
 | news | GDELT | — |
 | parliamentary | OpenParlData.ch · European Parliament · Party Facts | — |
-| procurement | TED · Find a Tender · USAspending | — |
+| procurement | TED · Find a Tender · USAspending | 5, with a contract of 2 tables |
 | regulations | Federal Register | — |
 | sanctions | OpenSanctions | — |
 | social | Bluesky · ThinkPol | — |
@@ -113,14 +116,26 @@ ships only `meta.yaml` and `SKILL.md`. Catalogued sources still tell the agent
 that the data exists and how a person can get it, which matters for paid,
 login-only or reuse-restricted data.
 
-Every lobbying contract table now has a free, queryable source. The Lobbying
-Disclosure Act API at lda.gov fills the five filing tables, FARA fills the
-foreign-agent registrants, unitedstates/congress-legislators fills legislators
-and committee seats, and Congress Press fills member press releases. Each
-adapter emits its table's contract columns, so an agent can write the records
-to CSV and pass them to the runner unchanged. One limit is known: lda.gov
-refused requests from a Swiss network during testing, so the LDA adapter has
-only been checked against a real API page fetched another way.
+Three domains have their own detectors.
+
+- **Lobbying** works across national registers. Its core tables
+  (registrations, lobbyists, contacts with officials) hold what most registers
+  publish, money is a low–high range because the EU, France and Germany only
+  publish ranges, and a column a register doesn't publish is optional. Nine
+  detectors run on any register; six need US-only tables such as FARA or
+  political contributions. Each source's `SKILL.md` maps its own fields to
+  the contract columns.
+- **Procurement** has five detectors based on the Open Contracting
+  Partnership's red flags (single bid, supplier share, non-open procedures,
+  short submission periods, value growth). USAspending and Find a Tender fill
+  its tables.
+- **Campaign finance** has three detectors for donor clusters at the limit,
+  gifts split under a reporting threshold, and new recipients funded by one
+  donor. OpenFEC and the UK Electoral Commission fill its tables.
+
+Known gaps: lda.gov and the Canada registry block scripted downloads from the
+network used for testing, so both adapters were checked on real pages fetched
+another way or on files from the official data dictionaries.
 
 ## Using it from an agent
 
@@ -133,8 +148,8 @@ python -m anomaly.context --source global/partyfacts/parties
 
 # 3. Run detectors on tables the agent fetched.
 python -m anomaly.oneshot --table donations.csv --request request.json --approved
-python -m anomaly.oneshot --tables lobbying_filings=filings.csv \
-  --tables lobbying_foreign_entities=entities.csv --request request.json --approved
+python -m anomaly.oneshot --tables lobbying_registrations=registrations.csv \
+  --tables lobbying_contacts=contacts.csv --request request.json --approved
 ```
 
 A request names the detector by catalogue id and version, maps roles with
@@ -154,8 +169,8 @@ accept or dismiss.
 
 ## Detectors
 
-The 18 released detectors are listed in `detectors/catalogue.json` with their
-id, version, implementation hash, `data_type` and bounds. Another 14 packages
+The 29 released detectors are listed in `detectors/catalogue.json` with their
+id, version, implementation hash, `data_type` and bounds. Another 12 packages
 are drafts with placeholder SQL; they are left out of the catalogue and never
 offered. Detector SQL runs read-only, and DDL, DML, `ATTACH`, `COPY` and
 external readers are rejected at validation.
