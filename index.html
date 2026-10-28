@@ -136,8 +136,6 @@
     .stat-toggle:hover text { fill: var(--green); }
     .stat-toggle:focus { outline: none; }
     .stat-toggle:focus-visible text { fill: var(--blue); }
-    .stat-list summary { cursor: pointer; font-weight: 560; margin: 0.2rem 0 0.5rem; }
-    .map-stack { display: none; }
     .map-caption { color: var(--ink-2); font-size: 0.84rem; margin: 1rem 0 0; max-width: 78ch; }
     .map-caption b { color: var(--ink); font-weight: 600; }
 
@@ -207,25 +205,18 @@
     @media (max-width: 760px) {
       h1 { line-height: 1.16; }
       h1 .odd svg { top: -8%; height: 118%; }
-      #route-svg { display: none; }
+      .bench { height: clamp(500px, 70svh, 580px); }
       .tabs, .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -1.25rem; padding-inline: 1.25rem; }
       .tabs::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
       .chip { flex: none; }
       .mark span { display: none; }
-      .stops { grid-template-columns: repeat(2, 1fr); gap: 0.3rem; }
+      /* The route becomes a vertical rail beside the stacked steps. */
+      .route { position: relative; }
+      #route-svg { position: absolute; left: 0; top: 0; width: 44px; }
+      .stops { grid-template-columns: 1fr; gap: 0.2rem; padding-left: 3.2rem; }
       .stop { text-align: left; padding: 0.7rem; }
-      #map { display: none; }
-      .map-frame { padding: 1.1rem 1rem; }
-      .map-stack { display: block; font-size: 0.8rem; }
-      .map-stack h4 { margin: 0.4rem 0 0.4rem; font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
-      .map-stack ul { list-style: none; margin: 0 0 0.9rem; padding: 0; display: grid; gap: 0.3rem; }
-      .map-stack li { display: flex; gap: 0.55rem; align-items: center; }
-      .map-stack li::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
-      .map-stack li.c::before { background: transparent; border: 1.5px dashed var(--ink-3); }
-      .map-stack li.d::before { background: var(--green); border-radius: 2px; }
-      .map-hub { margin: 0.2rem 0 1rem; padding: 0.8rem 0.9rem; border-radius: 10px; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
-      .map-hub b { display: block; font-weight: 640; font-stretch: 112.5%; }
-      .map-hub span { color: var(--ink-3); font-size: 0.78rem; }
+      .map-frame { padding: 0.8rem 0.4rem; }
+      #map { max-width: 26rem; }
       .crow { grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 0.8rem; }
       .crow .t { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
       .crow > :nth-child(3) { display: none; }
@@ -287,7 +278,6 @@
         <div class="domain-pick" id="domain-list" role="group" aria-label="Choose a domain"></div>
         <div class="map-frame">
           <svg id="map" role="img" aria-labelledby="map-desc"><desc id="map-desc">Diagram of the selected domain's sources and detectors.</desc></svg>
-          <div class="map-stack" id="map-stack"></div>
         </div>
         <p class="map-caption" id="map-caption"></p>
       </div>
@@ -374,6 +364,8 @@
     const REPO = 'https://github.com/buriedsignals/Anomaly/blob/main/';
     const INK = '#161B22', BLUE = '#2546B5', GREEN = '#1C7350', RED = '#D42A3C';
     const FONT = "'Martian Mono', ui-monospace, monospace";
+    // Phones get every diagram turned to run top to bottom.
+    const narrow = matchMedia('(max-width: 760px)');
     const whenVisible = (el, on, off) => new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? on() : off()), { rootMargin: '80px' }).observe(el);
 
     /* ================= the machine =================
@@ -382,29 +374,35 @@
     const SOURCES = ['lobbying', 'procurement', 'companies', 'court'];
     const GATES = ['outliers', 'rare values', 'duplicates'];
     const cv = $('#mc'), ctx = cv.getContext('2d'), bench = $('#bench');
-    let W = 0, H = 0, dpr = 1, s = 1, L = {};
+    let W = 0, H = 0, dpr = 1, s = 1, L = {}, V = false;
     const flow = [], caughtList = [], flash = [0, 0, 0];
     let nRec = 0, nLead = 0, spawnAcc = 0, leadNo = 0, sinceLead = 0, hover = null;
     const notes = [];
     // What each detector would say about a record it caught (simulated).
     const WHY = { 'outliers': 'amount far from the rest', 'rare values': 'category seen once', 'duplicates': 'same row twice' };
 
+    // Layout is in stream coordinates: x runs along the stream, y across it.
+    // Wide screens draw the stream left to right; narrow ones (V) top to bottom.
+    const P = (a, c) => V ? [c, a] : [a, c];
     function layout() {
       const r = bench.getBoundingClientRect();
       dpr = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-      s = Math.max(0.55, Math.min(1, W / 1240));
-      const m = Math.max(14, (W - Math.min(W, 1240)) / 2 + 24 * s);
-      const top = 64 * s + 10, bot = H - 30 * s;
-      L = {
-        top, bot, mid: (top + bot) / 2,
-        srcX: m + 18 * s, srcW: 70 * s, srcH: 44 * s,
-        srcY: SOURCES.map((_, i) => top + (bot - top) * (i + 0.5) / SOURCES.length),
-        trayX: W - m - (W < 560 ? 92 : 190 * s), trayW: W < 560 ? 92 : 190 * s,
-      };
+      V = narrow.matches;
+      if (V) {
+        s = 0.8;
+        L = { top: 16, bot: W - 16, srcX: 40, srcW: 30, srcH: 60, trayW: 78 };
+        L.trayX = H - 12 - L.trayW;
+      } else {
+        s = Math.max(0.55, Math.min(1, W / 1240));
+        const m = Math.max(14, (W - Math.min(W, 1240)) / 2 + 24 * s);
+        L = { top: 64 * s + 10, bot: H - 30 * s, srcX: m + 18 * s, srcW: 70 * s, srcH: 44 * s, trayW: 190 * s };
+        L.trayX = W - m - L.trayW;
+      }
+      L.mid = (L.top + L.bot) / 2;
+      L.srcY = SOURCES.map((_, i) => L.top + (L.bot - L.top) * (i + 0.5) / SOURCES.length);
       L.outX = L.srcX + L.srcW;
-      // On narrow screens spread the gates across the whole stream so their labels fit.
-      L.gates = GATES.map((_, i) => W < 560 ? L.outX + (L.trayX - L.outX) * (0.3 + i * 0.25) : W * (0.42 + i * 0.1));
+      L.gates = GATES.map((_, i) => V ? L.outX + 50 + (L.trayX - L.outX - 90) * i / 2 : W * (0.42 + i * 0.1));
     }
     const ease = u => 1 - (1 - u) ** 3;
     function spawn() {
@@ -427,14 +425,14 @@
           if (p.caught >= 0 && p.x >= L.gates[p.caught]) {
             p.state = 'pull'; p.t = 0; p.fx = p.x; p.fy = p.y; flash[p.caught] = 1;
             p.slot = leadNo++; p.gate = GATES[p.caught];
-            if (W >= 560) notes.push({ x: p.x, y: p.y, text: WHY[p.gate], age: 0 });  // no room for notes on phones
+            if (!V) notes.push({ x: p.x, y: p.y, text: WHY[p.gate], age: 0 });  // no room for notes on phones
           }
           if (p.x > L.trayX - 30 * s) flow.splice(i, 1);
         } else {
           p.t += dt / 1.1;
           const u = ease(Math.min(1, p.t));
-          const tx = L.trayX + 22 * s, ty = trayY(0);
-          const cx = (p.fx + tx) / 2, cy = Math.min(p.fy, ty) - 70 * s;
+          const tx = trayX(), ty = trayY(0);
+          const cx = (p.fx + tx) / 2, cy = Math.max(4, Math.min(p.fy, ty) - 70 * s);
           p.x = (1 - u) ** 2 * p.fx + 2 * (1 - u) * u * cx + u * u * tx;
           p.y = (1 - u) ** 2 * p.fy + 2 * (1 - u) * u * cy + u * u * ty;
           if (p.t >= 1) { flow.splice(i, 1); caughtList.unshift({ no: p.slot + 1, gate: p.gate, age: 0 }); nLead++; if (caughtList.length > 6) caughtList.pop(); }
@@ -444,37 +442,50 @@
       for (let i = notes.length - 1; i >= 0; i--) { notes[i].age += dt; if (notes[i].age > 2.4) notes.splice(i, 1); }
       for (let g = 0; g < 3; g++) flash[g] = Math.max(0, flash[g] - dt * 1.8);
     }
-    const trayY = i => L.top + 26 * s + i * Math.max(26, 38 * s);
+    // Lead slots in the tray: a column on wide screens, a row on narrow ones.
+    const trayX = () => L.trayX + (V ? 26 : 22 * s);
+    const trayY = i => V ? L.top + 30 + i * 58 : L.top + 26 * s + i * Math.max(26, 38 * s);
     function label(text, x, y, align, color, weight = 400, size = 11) {
-      ctx.font = `${weight} ${Math.max(10, size * s + 2)}px ${FONT}`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y);
+      // Phones use the condensed width so four source names fit side by side.
+      ctx.font = `${weight} ${V ? 'condensed ' : ''}${Math.max(10, size * s + 2)}px ${FONT}`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y);
     }
+    function line(a1, c1, a2, c2) { const [x1, y1] = P(a1, c1), [x2, y2] = P(a2, c2); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+    function dot(a, c, r) { const [x, y] = P(a, c); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+    function ring(a, c) { const [x, y] = P(a, c); ctx.beginPath(); ctx.ellipse(x, y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke(); }
+    function leadMark(a, c) { ctx.fillStyle = RED; dot(a, c, 4.6 * s + 1); ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ring(a, c); }
     function draw() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      const head = 26 * s + 8;
-      label('DATA SOURCES', L.srcX, head, 'left', '#626B73');
-      label('DETECTORS', L.gates[1], head, 'center', '#626B73');
-      label('LEADS', L.trayX, head, 'left', '#626B73');
-      // Sources: small tables.
-      L.srcY.forEach((y, i) => {
-        const x = L.srcX, w = L.srcW, h = L.srcH;
+      if (V) {
+        label('DATA SOURCES', L.top, 18, 'left', '#626B73');
+        label('DETECTORS', L.bot, L.gates[0] - 12, 'right', '#626B73');
+        label('LEADS', L.top, L.trayX - 12, 'left', '#626B73');
+      } else {
+        const head = 26 * s + 8;
+        label('DATA SOURCES', L.srcX, head, 'left', '#626B73');
+        label('DETECTORS', L.gates[1], head, 'center', '#626B73');
+        label('LEADS', L.trayX, head, 'left', '#626B73');
+      }
+      // Sources: small tables, always drawn upright.
+      L.srcY.forEach((c, i) => {
+        const [x, y] = P(L.srcX, c - L.srcH / 2), w = V ? L.srcH : L.srcW, h = V ? L.srcW : L.srcH;
         ctx.fillStyle = '#F5F6F0'; ctx.strokeStyle = BLUE; ctx.lineWidth = 1.4;
-        mRect(x, y - h / 2, w, h, 6); ctx.fill(); ctx.stroke();
+        mRect(x, y, w, h, 6); ctx.fill(); ctx.stroke();
         ctx.strokeStyle = 'rgba(37,70,181,.35)'; ctx.lineWidth = 1;
-        for (let k = 1; k < 4; k++) { const ry = y - h / 2 + h * k / 4; ctx.beginPath(); ctx.moveTo(x + 6, ry); ctx.lineTo(x + w - 6, ry); ctx.stroke(); }
-        ctx.beginPath(); ctx.moveTo(x + w * .38, y - h / 2 + 4); ctx.lineTo(x + w * .38, y + h / 2 - 4); ctx.stroke();
-        label(SOURCES[i], W < 560 ? x : x + w / 2, y + h / 2 + 13 * s + 2, W < 560 ? 'left' : 'center', '#434C55', 400, 10.5);
+        for (let k = 1; k < 4; k++) { const ry = y + h * k / 4; ctx.beginPath(); ctx.moveTo(x + 6, ry); ctx.lineTo(x + w - 6, ry); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(x + w * .38, y + 4); ctx.lineTo(x + w * .38, y + h - 4); ctx.stroke();
+        const [lx, ly] = V ? [c, L.outX + 13] : [L.srcX + L.srcW / 2, c + L.srcH / 2 + 13 * s + 2];
+        label(SOURCES[i], lx, ly, 'center', '#434C55', 400, 10.5);
       });
       // Detectors: gates the stream must pass.
-      L.gates.forEach((x, g) => {
-        const y0 = L.top + 4, y1 = L.bot - 4;
-        ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+      L.gates.forEach((a, g) => {
+        const c0 = L.top + 4, c1 = L.bot - 4;
+        ctx.strokeStyle = GREEN; ctx.lineWidth = 2; line(a, c0, a, c1);
         ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(28,115,80,.55)';
-        for (let y = y0 + 8; y < y1; y += 12 * s + 4) { ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke(); }
-        if (flash[g] > 0) { ctx.globalAlpha = flash[g]; ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.globalAlpha = 1; }
-        // Narrow screens alternate gate labels above and below so they never overlap.
-        label(GATES[g], x, W < 560 && g === 1 ? y0 - 12 : y1 + 16 * s + 2, 'center', '#434C55', 400, 10.5);
+        for (let c = c0 + 8; c < c1; c += 12 * s + 4) line(a - 5, c, a + 5, c);
+        if (flash[g] > 0) { ctx.globalAlpha = flash[g]; ctx.strokeStyle = RED; ctx.lineWidth = 3; line(a, c0, a, c1); ctx.globalAlpha = 1; }
+        if (V) label(GATES[g], L.top, a - 12, 'left', '#434C55', 400, 10.5);
+        else label(GATES[g], a, c1 + 16 * s + 2, 'center', '#434C55', 400, 10.5);
       });
       // Records.
       for (const p of flow) {
@@ -482,25 +493,24 @@
           const past = Math.max(0, (p.x - L.gates[2]) / (L.trayX - 30 * s - L.gates[2]));
           ctx.globalAlpha = 0.85 * (1 - past);
           ctx.fillStyle = p.x > L.gates[2] ? '#8A939B' : BLUE;
-          ctx.beginPath(); ctx.arc(p.x, p.y, 3.2 * s + .6, 0, 7); ctx.fill();
+          dot(p.x, p.y, 3.2 * s + .6);
         } else {
-          ctx.globalAlpha = 1; ctx.fillStyle = RED;
-          ctx.beginPath(); ctx.arc(p.x, p.y, 4.6 * s + 1, 0, 7); ctx.fill();
-          ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(p.x, p.y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke();
+          ctx.globalAlpha = 1; leadMark(p.x, p.y);
         }
       }
       ctx.globalAlpha = 1;
       // Leads tray.
       ctx.strokeStyle = 'rgba(22,27,34,.3)'; ctx.lineWidth = 1.2; ctx.fillStyle = 'rgba(255,255,255,.75)';
-      mRect(L.trayX, L.top, L.trayW, L.bot - L.top, 10); ctx.fill(); ctx.stroke();
+      const [tx, ty] = P(L.trayX, L.top), tl = L.bot - L.top;
+      mRect(tx, ty, V ? tl : L.trayW, V ? L.trayW : tl, 10); ctx.fill(); ctx.stroke();
       caughtList.forEach((l, i) => {
-        const y = trayY(i), x = L.trayX + 22 * s, a = Math.min(1, l.age / 0.25);
-        if (y > L.bot - 14) return;
-        ctx.globalAlpha = a;
-        ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(x, y, 4.6 * s + 1, 0, 7); ctx.fill();
-        ctx.strokeStyle = RED; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, 11 * s + 3, 9 * s + 3, 0, 0, 7); ctx.stroke();
-        if (W > 560) { label(`lead ${String(l.no).padStart(3, '0')}`, x + 22 * s, y - 6 * s, 'left', INK, 600, 11); label(l.gate, x + 22 * s, y + 8 * s, 'left', '#626B73', 400, 10); }
-        else label(String(l.no).padStart(3, '0'), x + 18, y, 'left', INK, 600, 11);
+        const a = trayX(), c = trayY(i);
+        if (c > L.bot - 14) return;
+        ctx.globalAlpha = Math.min(1, l.age / 0.25);
+        leadMark(a, c);
+        const [x, y] = P(a, c);
+        if (V) label(String(l.no).padStart(3, '0'), x, y + 24, 'center', INK, 600, 11);
+        else { label(`lead ${String(l.no).padStart(3, '0')}`, x + 22 * s, y - 6 * s, 'left', INK, 600, 11); label(l.gate, x + 22 * s, y + 8 * s, 'left', '#626B73', 400, 10); }
         ctx.globalAlpha = 1;
       });
       // Margin notes in red pen where a detector caught a record.
@@ -518,17 +528,18 @@
       // Hover readout: the record nearest the pointer.
       if (hover) {
         let best = null, bd = 18;
-        for (const p of flow) { const d = Math.hypot(p.x - hover.x, p.y - hover.y); if (d < bd) { bd = d; best = p; } }
+        for (const p of flow) { const [x, y] = P(p.x, p.y), d = Math.hypot(x - hover.x, y - hover.y); if (d < bd) { bd = d; best = { p, x, y }; } }
         if (best) {
-          const status = best.state === 'pull' ? `caught by ${best.gate}` : best.x > L.gates[2] ? 'passed every check' : `checked by ${GATES.filter((_, g) => best.x > L.gates[g]).length} of 3`;
-          const lines = [`record ${String(best.no).padStart(4, '0')}`, `from ${SOURCES[best.src]}`, status];
+          const { p, x, y } = best;
+          const status = p.state === 'pull' ? `caught by ${p.gate}` : p.x > L.gates[2] ? 'passed every check' : `checked by ${GATES.filter((_, g) => p.x > L.gates[g]).length} of 3`;
+          const lines = [`record ${String(p.no).padStart(4, '0')}`, `from ${SOURCES[p.src]}`, status];
           ctx.font = `600 ${Math.max(10, 11 * s + 2)}px ${FONT}`;
           const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 24, h = 60;
-          let bx = best.x + 14; if (bx + w > W - 8) bx = best.x - 14 - w;
-          const by = Math.min(Math.max(L.top, best.y - h / 2), L.bot - h);
-          ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(best.x, best.y, 8, 0, 7); ctx.stroke();
+          let bx = x + 14; if (bx + w > W - 8) bx = Math.max(8, x - 14 - w);
+          const by = Math.min(Math.max(8, y - h / 2), H - h - 8);
+          ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke();
           ctx.fillStyle = INK; mRect(bx, by, w, h, 8); ctx.fill();
-          lines.forEach((l, i) => label(l, bx + 11, by + 15 + i * 15, 'left', i === 2 && best.state === 'pull' ? '#FF8A95' : '#F5F6F0', i === 0 ? 600 : 400, 11));
+          lines.forEach((l, i) => label(l, bx + 11, by + 15 + i * 15, 'left', i === 2 && p.state === 'pull' ? '#FF8A95' : '#F5F6F0', i === 0 ? 600 : 400, 11));
         }
       }
     }
@@ -553,28 +564,51 @@
       if (!reduced) whenVisible(bench, () => { seen = true; play(); }, () => { seen = false; halt(); });
     }
     let mrt; addEventListener('resize', () => { clearTimeout(mrt); mrt = setTimeout(() => { layout(); flow.length = 0; for (let i = 0; i < 200; i++) step(1 / 60); draw(); }, 120); });
-    bench.addEventListener('pointermove', e => { const b = bench.getBoundingClientRect(); hover = { x: e.clientX - b.left, y: e.clientY - b.top }; if (!mRun) draw(); });
-    bench.addEventListener('pointerleave', () => { hover = null; if (!mRun) draw(); });
+    bench.addEventListener('pointermove', e => { const b = bench.getBoundingClientRect(); hover = { x: e.clientX - b.left, y: e.clientY - b.top }; if (!mRun && L.gates) draw(); });
+    bench.addEventListener('pointerleave', () => { hover = null; if (!mRun && L.gates) draw(); });
     (document.fonts ? document.fonts.ready : Promise.resolve()).then(bootMachine);
 
     /* ================= how it works: records along the route ================= */
-    const rsvg = $('#route-svg');
-    const SX = i => 100 + i * 200, RY = 60;
+    const rsvg = $('#route-svg'), stopList = $('#stops');
     const NS = 'http://www.w3.org/2000/svg';
     const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
-    rsvg.appendChild(mk('line', { x1: SX(0), y1: RY, x2: SX(5), y2: RY, stroke: 'rgba(22,27,34,.22)', 'stroke-width': 1.5 }));
-    // Records only exist from Fetch onward; leads only from Run onward.
-    rsvg.appendChild(mk('line', { x1: SX(2), y1: RY, x2: SX(3), y2: RY, stroke: BLUE, 'stroke-width': 1.5, 'stroke-opacity': .35 }));
-    rsvg.appendChild(mk('line', { x1: SX(3), y1: RY, x2: SX(5), y2: RY, stroke: RED, 'stroke-width': 1.5, 'stroke-opacity': .35, 'stroke-dasharray': '4 4' }));
-    const rings = [];
-    for (let i = 0; i < 6; i++) {
-      const g = mk('g', {});
-      g.appendChild(mk('circle', { cx: SX(i), cy: RY, r: 17, fill: '#F5F6F0', stroke: INK, 'stroke-width': 1.5 }));
-      const t = mk('text', { x: SX(i), y: RY + 4.5, 'text-anchor': 'middle', 'font-family': FONT, 'font-size': 13, 'font-weight': 600, fill: INK });
-      t.textContent = i + 1; g.appendChild(t);
-      rsvg.appendChild(g); rings.push(g);
+    // pos(t) is the point at step t (fractional between steps); perp points across the rail.
+    let pos, perp, dots, rings = [];
+    function buildRoute() {
+      if (narrow.matches) {
+        // A vertical rail beside the stacked steps, one ring level with each step's heading.
+        const top = stopList.getBoundingClientRect().top, h = stopList.offsetHeight;
+        const ys = stops.map(st => { const r = st.querySelector('h3').getBoundingClientRect(); return r.top + r.height / 2 - top; });
+        rsvg.setAttribute('viewBox', `0 0 44 ${h}`); rsvg.style.height = h + 'px';
+        pos = t => { const i = Math.min(4, Math.floor(t)); return [22, ys[i] + (ys[i + 1] - ys[i]) * (t - i)]; };
+        perp = [1, 0];
+      } else {
+        rsvg.setAttribute('viewBox', '0 0 1200 120'); rsvg.style.height = '';
+        pos = t => [100 + t * 200, 60];
+        perp = [0, 1];
+      }
+      const seg = (a, b, attrs) => { const [x1, y1] = pos(a), [x2, y2] = pos(b); rsvg.appendChild(mk('line', { x1, y1, x2, y2, 'stroke-width': 1.5, ...attrs })); };
+      rsvg.replaceChildren();
+      seg(0, 5, { stroke: 'rgba(22,27,34,.22)' });
+      // Records only exist from Fetch onward; leads only from Run onward.
+      seg(2, 3, { stroke: BLUE, 'stroke-opacity': .35 });
+      seg(3, 5, { stroke: RED, 'stroke-opacity': .35, 'stroke-dasharray': '4 4' });
+      dots = mk('g', {}); rsvg.appendChild(dots);
+      const [r, fs] = narrow.matches ? [14, 12] : [17, 13];
+      rings = stops.map((_, i) => {
+        const [x, y] = pos(i), g = mk('g', {});
+        g.appendChild(mk('circle', { cx: x, cy: y, r, fill: '#F5F6F0', stroke: INK, 'stroke-width': 1.5 }));
+        const t = mk('text', { x, y: y + 4.5, 'text-anchor': 'middle', 'font-family': FONT, 'font-size': fs, 'font-weight': 600, fill: INK });
+        t.textContent = i + 1; g.appendChild(t);
+        rsvg.appendChild(g); return g;
+      });
+      if (reduced) {
+        // A still: a batch of records at Run and one lead at Lead.
+        [-12, -4, 4, 12].forEach(o => { const [x, y] = pos(2.6); dots.appendChild(mk('circle', { cx: x + perp[0] * o, cy: y + perp[1] * o, r: 4, fill: BLUE, 'fill-opacity': .8 })); });
+        const [x, y] = pos(4); dots.appendChild(mk('circle', { cx: x, cy: y, r: 6, fill: RED }));
+      }
+      setStop(current);
     }
-    const dots = mk('g', {}); rsvg.insertBefore(dots, rings[0]);
     const parts = [];
     function spawnQuery(t) { parts.push({ kind: 'q', t0: t }); }
     function routeTick(now) {
@@ -583,23 +617,23 @@
         const p = parts[i], age = now - p.t0;
         if (p.kind === 'q') {
           // A question travels from Ask to Fetch, then becomes a batch of records.
-          const u = Math.min(1, age / 1900), x = SX(0) + (SX(2) - SX(0)) * easeInOut(u);
-          dots.appendChild(mk('circle', { cx: x, cy: RY, r: 6, fill: INK }));
+          const u = Math.min(1, age / 1900), [x, y] = pos(2 * easeInOut(u));
+          dots.appendChild(mk('circle', { cx: x, cy: y, r: 6, fill: INK }));
           if (u >= 1) { parts.splice(i, 1); const lead = (Math.random() * 9) | 0; for (let k = 0; k < 9; k++) parts.push({ kind: 'r', t0: now + k * 120, dy: (k - 4) * 4.2, lead: k === lead && Math.random() < 0.8 }); }
         } else {
           if (age < 0) continue;
           const u = age / 1700;
           if (u < 1) {
-            const x = SX(2) + (SX(3) - SX(2)) * easeInOut(u), y = RY + p.dy * Math.sin(Math.PI * u);
-            dots.appendChild(mk('circle', { cx: x, cy: y, r: 4, fill: BLUE, 'fill-opacity': .8 }));
+            const [x, y] = pos(2 + easeInOut(u)), o = p.dy * Math.sin(Math.PI * u);
+            dots.appendChild(mk('circle', { cx: x + perp[0] * o, cy: y + perp[1] * o, r: 4, fill: BLUE, 'fill-opacity': .8 }));
           } else if (!p.lead) {
-            const f = Math.min(1, (u - 1) / 0.35);
-            dots.appendChild(mk('circle', { cx: SX(3) + 8 * f, cy: RY + p.dy * f * 2, r: 4 * (1 - f), fill: BLUE, 'fill-opacity': .8 * (1 - f) }));
+            const f = Math.min(1, (u - 1) / 0.35), [x, y] = pos(3 + 0.04 * f), o = p.dy * f * 2;
+            dots.appendChild(mk('circle', { cx: x + perp[0] * o, cy: y + perp[1] * o, r: 4 * (1 - f), fill: BLUE, 'fill-opacity': .8 * (1 - f) }));
             if (f >= 1) parts.splice(i, 1);
           } else {
-            const v = Math.min(1, (u - 1) / 1.6), x = SX(3) + (SX(5) - SX(3)) * easeInOut(v);
-            dots.appendChild(mk('circle', { cx: x, cy: RY, r: 6, fill: RED }));
-            dots.appendChild(mk('ellipse', { cx: x, cy: RY, rx: 12, ry: 10, fill: 'none', stroke: RED, 'stroke-width': 1.5 }));
+            const v = Math.min(1, (u - 1) / 1.6), [x, y] = pos(3 + 2 * easeInOut(v));
+            dots.appendChild(mk('circle', { cx: x, cy: y, r: 6, fill: RED }));
+            dots.appendChild(mk('ellipse', { cx: x, cy: y, rx: 12, ry: 10, fill: 'none', stroke: RED, 'stroke-width': 1.5 }));
             if (v >= 1) { p.hold = (p.hold || now); const h = (now - p.hold) / 1200; if (h >= 1) parts.splice(i, 1); }
           }
         }
@@ -613,11 +647,7 @@
       routeTick(now);
       if (routeOn) routeRaf = requestAnimationFrame(routeFrame);
     }
-    if (reduced) {
-      // A still: a batch of records at Run and one lead at Lead.
-      [-12, -4, 4, 12].forEach(dy => dots.appendChild(mk('circle', { cx: SX(2) + 120, cy: RY + dy, r: 4, fill: BLUE, 'fill-opacity': .8 })));
-      dots.appendChild(mk('circle', { cx: SX(4), cy: RY, r: 6, fill: RED }));
-    } else {
+    if (!reduced) {
       whenVisible(rsvg, () => { if (!routeOn) { routeOn = true; routeRaf = requestAnimationFrame(routeFrame); } }, () => { routeOn = false; cancelAnimationFrame(routeRaf); });
     }
 
@@ -640,7 +670,9 @@
       s.addEventListener('click', go);
       s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     });
-    setStop(0);
+    buildRoute();
+    // Step heights change with width and font loading, which moves the narrow rail's rings.
+    new ResizeObserver(buildRoute).observe(stopList);
     let routeHeld = false;
     const route = $('.route');
     ['pointerenter', 'focusin'].forEach(ev => route.addEventListener(ev, () => { routeHeld = true; }));
@@ -724,26 +756,97 @@
     $('#cat-q').addEventListener('input', e => { state.q = e.target.value; state.open = null; if (DATA) render(); });
 
     /* ================= domain diagram ================= */
+    const flowDot = (id, color, r, dur, delay) => reduced ? '' : `<circle r="${r}" fill="${color}"><animateMotion dur="${dur}s" begin="${delay}s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .6 1"><mpath href="#${id}"/></animateMotion></circle>`;
+    const detName = x => x.id.split('.').pop().replace(/_/g, ' ');
     function drawMap() {
       const d = DATA.domains.find(x => x.domain === state.domain) || DATA.domains[0];
       const svg = $('#map');
+      const tables = d.contract ? Object.keys(d.contract) : [];
+      const { w, h, g } = narrow.matches ? mapTall(d, tables) : mapWide(d, tables);
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources, ${d.detectors.length} ${esc(d.domain)} detectors and ${DATA.any_table.length} statistical detectors.</desc>` + g;
+      const tog = svg.querySelector('.stat-toggle');
+      if (tog) {
+        const flip = () => { state.statOpen = !state.statOpen; drawMap(); const t = $('#map .stat-toggle'); if (t) t.focus(); };
+        tog.addEventListener('click', flip);
+        tog.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+      }
+      const q = d.sources.filter(s => s.status !== 'catalogued').length;
+      $('#map-caption').innerHTML = (d.contract
+        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} ${esc(d.domain)} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them.`
+        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). No detectors are written for ${esc(d.domain)} data yet.`)
+        + ` The ${DATA.any_table.length} statistical detectors work on any one table once its columns are mapped to roles such as amount, date or category.`;
+    }
+    const statToggle = (x, y, label) => `<g class="stat-toggle" role="button" tabindex="0" aria-expanded="${!!state.statOpen}" aria-label="${state.statOpen ? 'Hide' : 'Show'} the ${DATA.any_table.length} statistical detectors"><rect x="${x - 8}" y="${y - 17}" width="250" height="26" fill="transparent"/><text x="${x}" y="${y}" font-family="${FONT}" font-size="12" font-weight="560" fill="${INK}" text-decoration="underline">${esc(label)} ${state.statOpen ? '−' : '+'}</text></g>`;
+    const srcMark = (s, x, y) => s.status === 'catalogued'
+      ? `<circle cx="${x}" cy="${y}" r="5" fill="#F5F6F0" stroke="#626B73" stroke-width="1.5" stroke-dasharray="2 2"/>`
+      : `<circle cx="${x}" cy="${y}" r="5" fill="${BLUE}" stroke="${BLUE}" stroke-width="1.5"/>`;
+    const srcStroke = s => s.status === 'catalogued' ? 'stroke="#626B73" stroke-opacity=".55" stroke-dasharray="4 4"' : `stroke="${BLUE}" stroke-opacity=".7"`;
+    const detMark = (stat, x, y) => stat ? `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" rx="2" fill="#F5F6F0" stroke="${GREEN}" stroke-width="1.5"/>` : `<rect x="${x - 4.5}" y="${y - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
+
+    // Narrow screens: sources on top, the domain in the middle, detectors below. Each side hangs
+    // off one trunk down the left margin, so lines never cross a label.
+    function mapTall(d, tables) {
+      const W = 360, TR = 22, GX = 36, TX = 50, ROW = 28;
+      const fit = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+      const text = (x, y, t, size = 12, fill = INK, extra = '') => `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" fill="${fill}" ${extra}>${esc(t)}</text>`;
+      let g = text(8, 20, 'SOURCES', 10.5, '#626B73', 'letter-spacing="1"'), moving = '';
+      const sy = i => 44 + i * ROW;
+      const hubTop = sy(d.sources.length - 1) + 40;
+      const hubH = tables.length ? 52 + Math.ceil(tables.length / 2) * 17 : 70, hubBot = hubTop + hubH;
+      g += `<path d="M${TR} ${sy(0) + 10} V${hubTop}" stroke="${BLUE}" stroke-opacity=".7" stroke-width="1.5"/>`;
+      d.sources.forEach((s, i) => {
+        const y = sy(i), id = `ps${i}`;
+        g += `<path id="${id}" d="M${GX} ${y} H${TR + 10} Q${TR} ${y} ${TR} ${y + 10} V${hubTop}" fill="none" stroke="none"/>`;
+        g += `<path d="M${GX} ${y} H${TR + 10} Q${TR} ${y} ${TR} ${y + 10}" fill="none" ${srcStroke(s)} stroke-width="1.5"/>`;
+        g += srcMark(s, GX, y) + text(TX, y + 4, fit(short(s), 38));
+        if (s.status !== 'catalogued') moving += flowDot(id, BLUE, 3.2, 2.4 + (i % 3) * .5, -i * .55);
+      });
+      const rows = [
+        ...d.detectors.map(x => ({ k: 'det', t: detName(x) })),
+        { k: 'statnode', t: `statistical detectors (${DATA.any_table.length})` },
+        ...(state.statOpen ? DATA.any_table.map(x => ({ k: 'stat', t: detName(x) })) : []),
+      ];
+      let y = hubBot + 34;
+      if (d.detectors.length) { g += text(TX, y, `${d.domain} detectors`.toUpperCase(), 10.5, '#626B73', 'letter-spacing="1"'); y += 26; }
+      else y += 4;
+      const n = rows.filter(r => r.k !== 'stat').length, leadPath = (Math.random() * n) | 0;
+      let k = 0, trunkEnd = hubBot;
+      rows.forEach(r => {
+        if (r.k === 'stat') { g += text(TX + 16, y, fit(r.t, 36), 11.5, '#434C55'); y += 24; return; }
+        const id = `pd${k}`, stat = r.k === 'statnode', cy = y - 4;
+        g += `<path id="${id}" d="M${TR} ${hubBot} V${cy - 10} Q${TR} ${cy} ${TR + 10} ${cy} H${GX}" fill="none" stroke="none"/>`;
+        g += `<path d="M${TR} ${cy - 10} Q${TR} ${cy} ${TR + 10} ${cy} H${GX}" fill="none" stroke="${GREEN}" stroke-opacity="${stat ? .4 : .7}" stroke-width="1.5"/>`;
+        g += detMark(stat, GX, cy) + (stat ? statToggle(TX, y, r.t) : text(TX, y, fit(r.t, 38)));
+        moving += flowDot(id, GREEN, 3, 2.8 + (k % 3) * .4, -k * .6);
+        if (k === leadPath) moving += flowDot(id, RED, 4.5, 3.6, 1.2);
+        trunkEnd = cy - 10; k++; y += ROW;
+      });
+      g += `<path d="M${TR} ${hubBot} V${trunkEnd}" stroke="${GREEN}" stroke-opacity=".7" stroke-width="1.5"/>`;
+      g += `<rect x="8" y="${hubTop}" width="${W - 16}" height="${hubH}" rx="12" fill="#F5F6F0" stroke="${INK}" stroke-width="1.6"/>`;
+      g += text(W / 2, hubTop + 28, d.domain, 16, INK, 'text-anchor="middle" font-weight="640" font-stretch="112.5%"');
+      // Contract tables in two columns, condensed so the longest names fit.
+      if (tables.length) tables.forEach((t, i) => { g += text(i % 2 ? W / 2 + 4 : 22, hubTop + 52 + Math.floor(i / 2) * 17, t, 10.5, '#434C55', 'font-stretch="75%"'); });
+      else g += text(W / 2, hubTop + 52, 'single-table domain', 11, '#626B73', 'text-anchor="middle"');
+      return { w: W, h: y, g: g + moving };
+    }
+
+    function mapWide(d, tables) {
       const W = 960;
       const src = d.sources.slice(0, 9), srcMore = d.sources.length - src.length;
       // Right column: the domain's own detectors, then the statistical detectors every domain gets.
       const own = d.detectors.slice(0, 8), ownMore = d.detectors.length - own.length;
       const rows = [
         ...(own.length ? [{ k: 'head', t: `${d.domain} detectors` }] : []),
-        ...own.map(x => ({ k: 'det', t: x.id.split('.').pop().replace(/_/g, ' ') })),
+        ...own.map(x => ({ k: 'det', t: detName(x) })),
         ...(ownMore > 0 ? [{ k: 'more', t: `+${ownMore} more` }] : []),
         { k: 'statnode', t: `statistical detectors (${DATA.any_table.length})` },
-        ...(state.statOpen ? DATA.any_table.map(x => ({ k: 'stat', t: x.id.split('.').pop().replace(/_/g, ' ') })) : []),
+        ...(state.statOpen ? DATA.any_table.map(x => ({ k: 'stat', t: detName(x) })) : []),
       ];
       const left = src.length + (srcMore > 0 ? 1 : 0);
       const right = rows.length;
-      const tables = d.contract ? Object.keys(d.contract) : [];
       const rowsN = Math.max(left, right, 4, Math.ceil(tables.length * 0.42));
       const ROW = rowsN > 11 ? 32 : 40, TOP = 46, H = TOP * 2 + rowsN * ROW;
-      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       const cx = W / 2, cy = H / 2 + 6;
       const yL = i => TOP + (rowsN - left) * ROW / 2 + i * ROW + ROW / 2;
       const yR = i => TOP + (rowsN - right) * ROW / 2 + i * ROW + ROW / 2;
@@ -751,14 +854,12 @@
       const fan = (i, n) => n <= 1 ? cy : cy - hub.h * 0.32 + (hub.h * 0.64) * (i / (n - 1));
       const XL = 272, XR = W - 272;
       let g = '', moving = '';
-      const dot = (id, color, r, dur, delay) => reduced ? '' : `<circle r="${r}" fill="${color}"><animateMotion dur="${dur}s" begin="${delay}s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .6 1"><mpath href="#${id}"/></animateMotion></circle>`;
       src.forEach((s, i) => {
         const y = yL(i), x2 = cx - hub.w / 2, hy = fan(i, src.length), id = `ps${i}`;
-        const cat = s.status === 'catalogued';
-        g += `<path id="${id}" d="M${XL} ${y} C ${XL + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" stroke="${cat ? '#626B73' : BLUE}" stroke-opacity="${cat ? .55 : .7}" stroke-width="1.5" ${cat ? 'stroke-dasharray="4 4"' : ''}/>`;
-        g += `<circle cx="${XL}" cy="${y}" r="5" fill="${cat ? '#F5F6F0' : BLUE}" stroke="${cat ? '#626B73' : BLUE}" stroke-width="1.5" ${cat ? 'stroke-dasharray="2 2"' : ''}/>`;
+        g += `<path id="${id}" d="M${XL} ${y} C ${XL + 90} ${y}, ${x2 - 90} ${hy}, ${x2} ${hy}" fill="none" ${srcStroke(s)} stroke-width="1.5"/>`;
+        g += srcMark(s, XL, y);
         g += `<text x="${XL - 14}" y="${y + 4}" text-anchor="end" font-family="${FONT}" font-size="12.5" fill="${INK}">${esc(short(s).slice(0, 28))}</text>`;
-        if (!cat) moving += dot(id, BLUE, 3.2, 2.4 + (i % 3) * .5, -i * .55);
+        if (s.status !== 'catalogued') moving += flowDot(id, BLUE, 3.2, 2.4 + (i % 3) * .5, -i * .55);
       });
       if (srcMore > 0) g += `<text x="${XL - 14}" y="${yL(src.length) + 4}" text-anchor="end" font-family="${FONT}" font-size="11.5" fill="#626B73">+${srcMore} more</text>`;
       const lines = rows.map((r, i) => ({ ...r, y: yR(i) })).filter(r => r.k === 'det' || r.k === 'statnode');
@@ -771,12 +872,12 @@
         if (r.k === 'stat') { g += `<text x="${XR + 30}" y="${y + 4}" font-family="${FONT}" font-size="11.5" fill="#434C55">${esc(r.t)}</text>`; return; }
         const k = li++, x1 = cx + hub.w / 2, hy = fan(k, lines.length), id = `pd${k}`, stat = r.k === 'statnode';
         g += `<path id="${id}" d="M${x1} ${hy} C ${x1 + 90} ${hy}, ${XR - 90} ${y}, ${XR} ${y}" fill="none" stroke="${GREEN}" stroke-opacity="${stat ? .4 : .7}" stroke-width="1.5"/>`;
-        g += stat ? `<rect x="${XR - 4}" y="${y - 4}" width="8" height="8" rx="2" fill="#F5F6F0" stroke="${GREEN}" stroke-width="1.5"/>` : `<rect x="${XR - 4.5}" y="${y - 4.5}" width="9" height="9" rx="2" fill="${GREEN}"/>`;
+        g += detMark(stat, XR, y);
         g += stat
-          ? `<g class="stat-toggle" role="button" tabindex="0" aria-expanded="${!!state.statOpen}" aria-label="${state.statOpen ? 'Hide' : 'Show'} the ${DATA.any_table.length} statistical detectors"><rect x="${XR + 6}" y="${y - 13}" width="250" height="26" fill="transparent"/><text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" font-weight="560" fill="${INK}" text-decoration="underline">${esc(r.t)} ${state.statOpen ? '−' : '+'}</text></g>`
+          ? statToggle(XR + 14, y + 4, r.t)
           : `<text x="${XR + 14}" y="${y + 4}" font-family="${FONT}" font-size="12" fill="${INK}">${esc(r.t)}</text>`;
-        moving += dot(id, GREEN, 3, 2.8 + (k % 3) * .4, -k * .6);
-        if (k === leadPath) moving += dot(id, RED, 4.5, 3.6, 1.2);
+        moving += flowDot(id, GREEN, 3, 2.8 + (k % 3) * .4, -k * .6);
+        if (k === leadPath) moving += flowDot(id, RED, 4.5, 3.6, 1.2);
       });
       g += `<rect x="${cx - hub.w / 2}" y="${cy - hub.h / 2}" width="${hub.w}" height="${hub.h}" rx="12" fill="#F5F6F0" stroke="${INK}" stroke-width="1.6"/>`;
       g += `<text x="${cx}" y="${cy - hub.h / 2 + 30}" text-anchor="middle" font-family="${FONT}" font-weight="640" font-stretch="112.5%" font-size="17" fill="${INK}">${esc(d.domain)}</text>`;
@@ -784,23 +885,9 @@
       else g += `<text x="${cx}" y="${cy - hub.h / 2 + 56}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="#626B73">single-table domain</text>`;
       g += `<text x="${XL}" y="24" text-anchor="end" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">SOURCES</text>`;
       g += `<text x="${XR}" y="24" font-family="${FONT}" font-size="10.5" letter-spacing="1" fill="#626B73">DETECTORS</text>`;
-      svg.innerHTML = `<desc id="map-desc">${esc(d.domain)}: ${d.sources.length} sources, ${d.detectors.length} ${esc(d.domain)} detectors and ${DATA.any_table.length} statistical detectors.</desc>` + g + moving;
-      const tog = svg.querySelector('.stat-toggle');
-      if (tog) {
-        const flip = () => { state.statOpen = !state.statOpen; drawMap(); const t = $('#map .stat-toggle'); if (t) t.focus(); };
-        tog.addEventListener('click', flip);
-        tog.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
-      }
-      $('#map-stack').innerHTML = `<h4>Sources</h4><ul>${d.sources.map(s => `<li class="${s.status === 'catalogued' ? 'c' : 'q'}">${esc(short(s))}</li>`).join('')}</ul>`
-        + `<div class="map-hub"><b>${esc(d.domain)}</b><span>${tables.length ? tables.map(esc).join(' · ') : 'single-table domain'}</span></div>`
-        + (d.detectors.length ? `<h4>${esc(d.domain)} detectors</h4><ul>${d.detectors.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul>` : '')
-        + `<details class="stat-list"><summary>Statistical detectors (${DATA.any_table.length})</summary><ul>${DATA.any_table.map(x => `<li class="d">${esc(x.id.split('.').pop().replace(/_/g, ' '))}</li>`).join('')}</ul></details>`;
-      const q = d.sources.filter(s => s.status !== 'catalogued').length;
-      $('#map-caption').innerHTML = (d.contract
-        ? `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). Its ${d.detectors.length} ${esc(d.domain)} detectors read ${tables.length} shared tables, so a new ${esc(d.domain)} source that fills them works with every one of them.`
-        : `${d.sources.length} source${d.sources.length === 1 ? ' covers' : 's cover'} <b>${esc(d.domain)}</b> (${q} queryable). No detectors are written for ${esc(d.domain)} data yet.`)
-        + ` The ${DATA.any_table.length} statistical detectors work on any one table once its columns are mapped to roles such as amount, date or category.`;
+      return { w: W, h: H, g: g + moving };
     }
+    narrow.addEventListener('change', () => { if (DATA) drawMap(); });
     function drawDomainList() {
       const list = $('#domain-list');
       const sorted = [...DATA.domains].sort((a, b) => (b.detectors.length - a.detectors.length) || (b.sources.length - a.sources.length) || a.domain.localeCompare(b.domain));
