@@ -1,0 +1,39 @@
+# Anomaly
+
+> Data sources and anomaly detectors for investigating agents. Anomaly helps an agent find datasets relevant to a story, understand how to obtain them, and run deterministic checks on the tables it retrieves. The outputs are traceable reporting leads for a journalist to investigate.
+
+## What Anomaly does
+
+Anomaly has two main parts: a catalogue of data sources and detectors, and a local Python runner. An investigating agent reads the catalogue, chooses sources, fetches the data, and gives prepared tables to the runner. SQL in a sealed DuckDB instance computes the checks; the language model does not do the arithmetic.
+
+Sources and detectors connect through domains such as lobbying, procurement, campaign finance, companies, parliamentary records, and courts. A domain defines the tables and columns its detectors expect. Statistical checks can work across domains. A source can be catalogued without having an executable adapter; read its access, licence, cost, and setup requirements before using it.
+
+## Inputs and outputs
+
+- **Input:** a reporting question for catalogue lookup; then local tables, a detector ID and version, column mappings, and bounded parameters for a run.
+- **Output:** matching source and detector metadata; then machine-readable signals with record references and provenance for follow-up.
+- **Interpretation:** a flagged record is a lead. It does not establish identity, intent, causation, fraud, or wrongdoing. Review false positives, data coverage, and entity matches before making a claim.
+
+## Using it from an agent
+
+1. Read the [public catalogue snapshot](https://anomaly.buriedsignals.com/docs/context.json) or run `uv run python -m anomaly.context --domain lobbying` in a current checkout.
+2. Inspect an individual source with `python -m anomaly.context --source <source-id>` and follow its acquisition instructions. The agent fetches the data.
+3. Select compatible detectors and confirm the plan with the journalist. Run `python -m anomaly.oneshot --table records.csv --request request.json --approved` only after approval. Domain detectors can take multiple contract tables with `--tables`.
+4. Review the signals and investigate the records. At most ten detectors run per request; the runner rejects unlisted detectors and out-of-bounds parameters.
+
+## Relationship to Spotlight
+
+The public site presents Anomaly as a Spotlight plugin for data. Spotlight owns the investigation and editorial decisions; Anomaly supplies data context and computes checks. The current source README describes integration with the expanded catalogue as in review, so check version compatibility before assuming an installed Spotlight has it. Anomaly also retains a standalone case workflow with explicit journalist approval gates.
+
+## Installation and documentation
+
+Anomaly is a local Python package requiring Python 3.11+ and uv. It has no account, hosted server, or API key of its own. Individual data providers may require accounts, keys, payment, or permission.
+
+- [Human overview and interactive catalogue](https://anomaly.buriedsignals.com/)
+- [Machine-readable catalogue snapshot](https://anomaly.buriedsignals.com/docs/context.json)
+- [Current README and installation](https://github.com/buriedsignals/Anomaly#readme)
+- [Detector requests, schemas, and refusal rules](https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md)
+- [Data-source skills](https://github.com/buriedsignals/Anomaly/tree/main/data-skills)
+- [Source repository](https://github.com/buriedsignals/Anomaly)
+
+Built by [Buried Signals](https://buriedsignals.com/). Use the current repository documentation for operational instructions; the website catalogue is a published snapshot.
