@@ -22,11 +22,15 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Verify public site staging
+        run: python3 tests/test_site_publish.py
       - name: Stage site
         run: |
           mkdir -p _site/docs
           cp index.html _site/
-          cp docs/context.json _site/docs/
+          cp docs/context.json docs/flow.html _site/docs/
+          cp llms.txt _site/
+          cp -R shared _site/
           cp CNAME _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
