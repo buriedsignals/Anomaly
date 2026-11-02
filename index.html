@@ -189,6 +189,32 @@
     .copy.done { color: var(--green); }
     .copy svg { width: 16px; height: 16px; }
 
+    /* ---------- lab ---------- */
+    .lab { margin-top: 2.4rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem 3.5rem; padding: clamp(1.5rem, 3vw, 2.4rem); border-radius: 14px; background: var(--paper-2); }
+    .lab-main { display: flex; flex-direction: column; align-items: flex-start; }
+    .lab-pre { margin: 0; font-size: 0.78rem; color: var(--red); }
+    .lab h3 { margin: 0.4rem 0 0; font-weight: 560; font-stretch: 112.5%; font-size: 1.15rem; letter-spacing: -0.02em; }
+    .lab-sub { margin: 0.6rem 0 0; color: var(--ink-2); max-width: 62ch; }
+    .lab-price { margin: 0.6rem 0 1.6rem; font-size: 0.86rem; color: var(--ink); }
+    .nl { padding-left: 3.5rem; border-left: 1px solid var(--rule); display: grid; gap: 0.6rem; align-content: start; }
+    .nl-opts { display: grid; gap: 0.5rem; }
+    .nl [hidden] { display: none; }
+    .nl-head, .nl-proof { margin: 0; font-size: 0.78rem; color: var(--ink-3); }
+    .nl-opt { display: flex; gap: 0.7rem; width: 100%; text-align: left; padding: 0.75rem 0.9rem; border: 0; border-radius: 10px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--rule); font: inherit; color: inherit; cursor: pointer; transition: box-shadow .2s; }
+    .nl-opt[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--blue); }
+    .nl-chk { flex: none; width: 1rem; height: 1rem; margin-top: 0.2rem; border-radius: 4px; display: grid; place-items: center; font-size: 0.7rem; box-shadow: inset 0 0 0 1px var(--rule-2); }
+    .nl-opt[aria-pressed="true"] .nl-chk { background: var(--blue); color: var(--paper); box-shadow: none; }
+    .nl-opt b { display: block; font-weight: 560; font-size: 0.86rem; }
+    .nl-opt small { display: block; margin-top: 0.15rem; font-size: 0.78rem; line-height: 1.5; color: var(--ink-2); }
+    .nl-form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .nl-form input { flex: 1 1 12rem; min-width: 0; height: 2.6rem; padding: 0 1rem; border: 0; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 1px var(--rule-2); font: inherit; font-size: 0.86rem; color: var(--ink); }
+    .nl-form input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--blue), 0 0 0 4px var(--blue-tint); }
+    .nl-form .btn { border: 0; cursor: pointer; font-family: inherit; }
+    .nl-form .btn:disabled { opacity: 0.55; cursor: default; }
+    .nl-err { margin: 0; font-size: 0.8rem; color: var(--red); }
+    .nl-ok { margin: 0; font-size: 0.86rem; color: var(--green); }
+    @media (max-width: 760px) { .lab { grid-template-columns: 1fr; } .nl { padding: 1.6rem 0 0; border-left: 0; border-top: 1px solid var(--rule); } }
+
     /* ---------- footer ---------- */
     footer { margin-top: clamp(5rem, 11vw, 8rem); border-top: 1px solid var(--rule-2); padding: 2rem 0 2.6rem; font-size: 0.8rem; color: var(--ink-3); }
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem 2rem; }
@@ -347,6 +373,35 @@
         <p class="note">Request format, domain detectors and every refusal rule are in <a href="https://github.com/buriedsignals/Anomaly/blob/main/docs/catalogue.md">docs/catalogue.md</a>. The run command uses a small example in the repository and flags one donation. Without Spotlight, Anomaly can also run a full standalone case: see the <a href="https://github.com/buriedsignals/Anomaly#standalone-case-workflow">README</a>.</p>
       </div>
     </section>
+
+    <section id="lab" aria-labelledby="lab-h">
+      <div class="wrap">
+        <h2 id="lab-h">Join the Lab.</h2>
+        <div class="lab">
+          <div class="lab-main">
+            <p class="lab-pre">↳ now open</p>
+            <h3>Indicator Lab</h3>
+            <p class="lab-sub">The Buried Signals tool suite, a monthly live workshop and Lab Newsletter, office hours every two weeks, and the training course.</p>
+            <p class="lab-price">$22.95/month · billed monthly, cancel anytime.</p>
+            <a class="btn" href="https://indicator.media/indicator-lab">Join Indicator Lab<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="ring" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="50" cy="20" rx="48" ry="18" pathLength="600"/></svg></a>
+          </div>
+          <div class="nl">
+            <p class="nl-head">Newsletters</p>
+            <div class="nl-opts" id="nl-options" aria-label="Newsletter choices">
+              <button class="nl-opt" type="button" data-newsletter="buried_signals" aria-pressed="true"><span class="nl-chk" aria-hidden="true">✓</span><span><b>Buried Signals</b><small>Monthly dispatches on investigations and the changing practice of journalism with AI in the loop.</small></span></button>
+              <button class="nl-opt" type="button" data-newsletter="indicator_media" aria-pressed="true"><span class="nl-chk" aria-hidden="true">✓</span><span><b>Indicator Briefing</b><small>Weekly news, research, OSINT tools, and techniques for investigating digital deception.</small></span></button>
+            </div>
+            <p class="nl-proof" id="nl-proof">1,000+ journalists already reading.</p>
+            <form class="nl-form" id="nl-form">
+              <input type="email" id="nl-email" placeholder="you@example.com" autocomplete="email" aria-label="Email" required>
+              <button class="btn sm" type="submit" id="nl-submit">Subscribe</button>
+            </form>
+            <p class="nl-err" id="nl-error" role="alert" hidden></p>
+            <p class="nl-ok" id="nl-success" role="status" hidden></p>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -358,6 +413,47 @@
       </nav>
     </div>
   </footer>
+  <script>
+  (() => {
+    const ENDPOINT = 'https://navigator.indicator.media/api/newsletter/subscribe';
+    const LABELS = { buried_signals: 'Buried Signals', indicator_media: 'Indicator Briefing' };
+    const form = document.getElementById('nl-form');
+    const email = document.getElementById('nl-email');
+    const submit = document.getElementById('nl-submit');
+    const err = document.getElementById('nl-error');
+    const ok = document.getElementById('nl-success');
+    const opts = document.getElementById('nl-options');
+    const proof = document.getElementById('nl-proof');
+    const toggles = Array.from(opts.querySelectorAll('[data-newsletter]'));
+    const selected = () => toggles.filter(t => t.getAttribute('aria-pressed') === 'true').map(t => t.dataset.newsletter);
+    toggles.forEach(t => t.addEventListener('click', () => {
+      const on = t.getAttribute('aria-pressed') === 'true';
+      if (on && selected().length === 1) return; // keep at least one newsletter chosen
+      t.setAttribute('aria-pressed', String(!on));
+      t.querySelector('.nl-chk').textContent = on ? '' : '✓';
+    }));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const value = email.value.trim();
+      const newsletters = selected();
+      if (!value || !newsletters.length) return;
+      submit.disabled = email.disabled = true;
+      err.hidden = true;
+      try {
+        const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: value, newsletters }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || data.detail || 'Something went wrong. Please try again.');
+        form.hidden = opts.hidden = proof.hidden = true;
+        ok.textContent = newsletters.length === 2 ? "You're subscribed to both newsletters." : `You're subscribed to ${LABELS[newsletters[0]]}.`;
+        ok.hidden = false;
+      } catch (error) {
+        err.textContent = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+        err.hidden = false;
+        submit.disabled = email.disabled = false;
+      }
+    });
+  })();
+  </script>
 <!-- property-signal:start -->
 <!-- Shared Buried Signals property signature; synced by scripts/sync-property-signal.py. -->
 <aside class="bs-property-signal" aria-label="Buried Signals network" lang="en">
