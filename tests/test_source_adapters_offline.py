@@ -8,11 +8,13 @@ result contract without network.
 from __future__ import annotations
 
 import gzip
+import html
 import json
 import sys
 import types
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 
@@ -307,6 +309,97 @@ def test_lda_refuses_an_unfiltered_query_before_any_request(run_source) -> None:
 
     assert result["error"]["code"] == "invalid-source-request"
     assert run_source.requested == []
+
+
+# Firecrawl transport: real Firecrawl /v2/scrape responses for two LDA API
+# pages (client_name=OpenAI, 2026-11-13), each trimmed to one filing.
+LDA_SCRAPES = json.loads((Path(__file__).parent / "fixtures" / "lda_firecrawl_scrapes.json").read_text())
+
+
+def _query(url: str) -> tuple:
+    parts = urlsplit(url)
+    return parts.path, tuple(sorted(parse_qsl(parts.query)))
+
+
+def _fake_lda_httpx(scrapes: dict, direct_status: int, sent: list) -> types.ModuleType:
+    """Direct GETs answer `direct_status`; Firecrawl scrapes answer from `scrapes` by page URL."""
+    by_query = {_query(url): body for url, body in scrapes.items()}
+
+    class Client:
+        def __init__(self, *_args, headers=None, **_kwargs) -> None:
+            self.headers = headers or {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+        def get(self, url, **_kwargs):
+            sent.append(("get", url, self.headers))
+            return _FakeResponse(direct_status, "")
+
+        def post(self, url, **kwargs):
+            request = kwargs["json"]
+            sent.append(("post", request["url"], self.headers))
+            assert url == "https://api.firecrawl.dev/v2/scrape" and request["formats"] == ["rawHtml"]
+            body = by_query.get(_query(request["url"]))
+            return _FakeResponse(200, json.dumps(body)) if body else _FakeResponse(404, "")
+
+    module = types.ModuleType("httpx")
+    module.Client = Client
+    return module
+
+
+class _FirecrawlKey:
+    def get_key_optional(self, name: str) -> str | None:
+        return "fc-test-key" if name == "firecrawl" else None
+
+
+def _as_browser_json_view(raw: str) -> str:
+    # A browser render of a JSON body: escaped text inside a <pre>.
+    return f'<html><head></head><body><pre style="word-wrap: break-word;">{html.escape(raw)}</pre></body></html>'
+
+
+@pytest.mark.parametrize("wrap", [lambda raw: raw, _as_browser_json_view], ids=["bare", "pre-wrapped"])
+def test_lda_firecrawl_transport_parses_scraped_pages_and_follows_next_as_json(monkeypatch, wrap) -> None:
+    first, second = LDA_SCRAPES
+    scrapes = json.loads(json.dumps(LDA_SCRAPES))
+    page = json.loads(scrapes[first]["data"]["rawHtml"])
+    # A next link without format=json would come back as the API's HTML page.
+    page["next"] = page["next"].replace("format=json&", "")
+    scrapes[first]["data"]["rawHtml"] = json.dumps(page)
+    for body in scrapes.values():
+        body["data"]["rawHtml"] = wrap(body["data"]["rawHtml"])
+    sent: list = []
+    monkeypatch.setitem(sys.modules, "httpx", _fake_lda_httpx(scrapes, 200, sent))
+    adapter = load_source_adapter(discover_sources(SOURCE_ROOT), "us/lda/lobbying-disclosures")
+
+    result = validate_source_result(adapter.run(
+        {"operation": "lobbying-registrations", "client_name": "OpenAI", "pages": 2, "transport": "firecrawl"},
+        _FirecrawlKey()))
+
+    assert result["status"] == "ok"
+    assert [row["registration_id"] for row in result["records"]] == [
+        "2343a623-780b-4992-881e-39c5683543f0", "8fb2c55d-721f-4ccb-bccc-5f0a31fa7063"]
+    assert result["records"][0]["issue_area"].startswith("CPI")
+    assert [_query(url) for _, url, _ in sent] == [_query(first), _query(second)]
+    assert all(method == "post" and headers["Authorization"] == "Bearer fc-test-key"
+               for method, _, headers in sent)
+
+
+def test_lda_direct_403_is_a_refusal_naming_the_firecrawl_transport_without_using_it(monkeypatch) -> None:
+    sent: list = []
+    monkeypatch.setitem(sys.modules, "httpx", _fake_lda_httpx(LDA_SCRAPES, 403, sent))
+    adapter = load_source_adapter(discover_sources(SOURCE_ROOT), "us/lda/lobbying-disclosures")
+
+    result = validate_source_result(adapter.run(
+        {"operation": "lobbying-registrations", "client_name": "OpenAI"}, _FirecrawlKey()))
+
+    assert result["status"] == "unavailable"
+    assert result["error"]["code"] == "upstream-refused"
+    assert 'transport="firecrawl"' in result["error"]["message"]
+    assert [method for method, _, _ in sent] == ["get"]
 
 
 def test_fara_lists_active_and_terminated_registrants_as_contract_rows(run_source) -> None:

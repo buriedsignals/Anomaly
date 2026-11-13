@@ -166,6 +166,22 @@ def _unavailable_run(entry: SourceEntry, artifact: Path, code: str, message: str
     return run
 
 
+def _declared_error(exc: Exception) -> dict[str, str] | None:
+    """Return the code and message an adapter wrote for this failure, if any.
+
+    Raw exception text can carry URLs and tokens, so it is never reported. An
+    adapter that knows why a source is unavailable and what the caller can do
+    about it raises an exception with ``source_error_code`` and
+    ``source_error_message`` attributes it wrote itself; adapters stay
+    standalone files, so this is a duck-typed protocol, not a shared class.
+    """
+    code = getattr(exc, "source_error_code", None)
+    message = getattr(exc, "source_error_message", None)
+    if isinstance(code, str) and code and isinstance(message, str) and message:
+        return {"code": code, "message": message}
+    return None
+
+
 def _contract_run(entry: SourceEntry, implementation):
     """Bind a source-specific adapter to the catalogue result contract."""
     source_hash = "sha256:" + hashlib.sha256(
@@ -196,12 +212,12 @@ def _contract_run(entry: SourceEntry, implementation):
                     "message": "source request is invalid",
                 },
             }
-        except Exception:
+        except Exception as exc:
             return base | {
                 "status": "unavailable",
                 "records": [],
                 "normalized": True,
-                "error": {
+                "error": _declared_error(exc) or {
                     "code": "upstream-unavailable",
                     "message": "source is unavailable",
                 },
