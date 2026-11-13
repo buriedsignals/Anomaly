@@ -51,7 +51,9 @@ notes: >-
   (and to senate.gov and congress.gov) got HTTP 403 "Access Denied" from the
   CDN on 2026-10-27 while Firecrawl fetched the same API URLs, so the API may
   refuse non-US networks; the live check used Firecrawl-fetched API pages fed
-  through this adapter. filing_year and filing_period become period_start
+  through this adapter. The adapter now has an opt-in transport=firecrawl
+  for that case; a direct 403 returns error upstream-refused naming it.
+  filing_year and filing_period become period_start
   and period_end dates. spend_low = spend_high = income, or expenses when a
   registrant files for itself (client fields are then empty). client_id is
   the API's client record id. Amendments keep their own filing_type codes
@@ -90,6 +92,16 @@ input_schema:
     contribution_honoree: {type: string, description: Contributions only}
     page: {type: integer, minimum: 1, description: First API page to read}
     pages: {type: integer, minimum: 1, maximum: 40, default: 1, description: Pages of 25 results to read}
+    transport:
+      type: string
+      enum: [direct, firecrawl]
+      default: direct
+      description: >-
+        How API pages are fetched. direct calls lda.gov. firecrawl sends each
+        query URL to Firecrawl's scrape API (api.firecrawl.dev), which fetches
+        it; use it only when lda.gov refuses this network (error
+        upstream-refused). Needs a Firecrawl key (context key firecrawl or
+        FIRECRAWL_API_KEY).
   additionalProperties: false
 
 output_schema:
@@ -103,7 +115,7 @@ operations:
     status: queryable
     entities: [LobbyingRegistration]
     actions: [search]
-    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages, transport]
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbying-registrations}
@@ -111,7 +123,8 @@ operations:
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
-      destinations: [lda.gov]
+      # api.firecrawl.dev receives the query URL only when transport is firecrawl.
+      destinations: [lda.gov, api.firecrawl.dev]
       data_classes: [registrant, client, year, period, and filing-type filters]
       sensitive_inputs: [registrant_name, client_name]
       consent_required: false
@@ -126,7 +139,7 @@ operations:
     status: queryable
     entities: [Lobbyist]
     actions: [search]
-    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages, transport]
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbyists}
@@ -134,7 +147,8 @@ operations:
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
-      destinations: [lda.gov]
+      # api.firecrawl.dev receives the query URL only when transport is firecrawl.
+      destinations: [lda.gov, api.firecrawl.dev]
       data_classes: [registrant, client, year, period, and filing-type filters]
       sensitive_inputs: [registrant_name, client_name]
       consent_required: false
@@ -149,7 +163,7 @@ operations:
     status: queryable
     entities: [ForeignEntity]
     actions: [search]
-    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages, transport]
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbying-foreign-entities}
@@ -157,7 +171,8 @@ operations:
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
-      destinations: [lda.gov]
+      # api.firecrawl.dev receives the query URL only when transport is firecrawl.
+      destinations: [lda.gov, api.firecrawl.dev]
       data_classes: [registrant, client, year, period, and filing-type filters]
       sensitive_inputs: [registrant_name, client_name]
       consent_required: false
@@ -172,7 +187,7 @@ operations:
     status: queryable
     entities: [LobbyingActivity]
     actions: [search]
-    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages]
+    input_fields: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid, page, pages, transport]
     required: []
     any_of_required: [registrant_name, registrant_id, client_name, client_id, filing_year, filing_period, filing_type, filing_uuid]
     adapter_input: {operation: lobbying-activities}
@@ -180,7 +195,8 @@ operations:
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: relation}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
-      destinations: [lda.gov]
+      # api.firecrawl.dev receives the query URL only when transport is firecrawl.
+      destinations: [lda.gov, api.firecrawl.dev]
       data_classes: [registrant, client, year, period, and filing-type filters]
       sensitive_inputs: [registrant_name, client_name]
       consent_required: false
@@ -195,7 +211,7 @@ operations:
     status: queryable
     entities: [Contribution]
     actions: [search]
-    input_fields: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree, page, pages]
+    input_fields: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree, page, pages, transport]
     required: []
     any_of_required: [registrant_name, registrant_id, filing_year, filing_period, filing_uuid, lobbyist_name, contribution_payee, contribution_honoree]
     adapter_input: {operation: political-contributions}
@@ -203,7 +219,8 @@ operations:
     semantics: {enumeration: bounded, aggregation: false, temporal: true, pagination: true, joins: none}
     access: {auth: none, cost: free, side_effects: none}
     disclosure:
-      destinations: [lda.gov]
+      # api.firecrawl.dev receives the query URL only when transport is firecrawl.
+      destinations: [lda.gov, api.firecrawl.dev]
       data_classes: [registrant, lobbyist, payee, honoree, and year filters]
       sensitive_inputs: [lobbyist_name, contribution_payee, contribution_honoree]
       consent_required: false

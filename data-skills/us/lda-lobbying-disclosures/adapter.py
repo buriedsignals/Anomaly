@@ -7,11 +7,21 @@ lobbyists, or a US extension table) and every record carries that table's
 columns, so rows can be written straight to a CSV for anomaly.oneshot. The
 LDA-to-contract column mapping is documented in SKILL.md.
 An API key is optional; anonymous requests are throttled to 15 per minute.
+
+Pages are fetched through a transport chosen per request with the `transport`
+input: `direct` (the default) calls lda.gov itself; `firecrawl` asks
+Firecrawl's scrape API to fetch each API page, for hosts whose network lda.gov
+refuses. Firecrawl then sees every query URL, so it is never chosen silently.
 """
 
 from __future__ import annotations
 
+import html
+import json
+import os
+import re
 import time
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 
@@ -19,6 +29,8 @@ API_URL = "https://lda.gov/api/v1"
 UA = "BuriedSignals-catalogue/1.0 (https://buriedsignals.com; catalogue@buriedsignals.com)"
 MAX_PAGES = 40
 MAX_RETRY_AFTER = 60
+FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape"
+TRANSPORTS = ("direct", "firecrawl")
 
 SOURCE_ID = "us/lda/lobbying-disclosures"
 # Reporting periods as (first day, last day) within the filing year.
@@ -163,17 +175,131 @@ def _params(input: dict, allowed: tuple[str, ...]) -> dict:
     return params
 
 
-def _get(client, url: str, params: dict | None) -> dict:
-    """GET one page, waiting once on a 429 when the API asks for a short pause."""
-    response = client.get(url, params=params)
+class SourceUnavailable(Exception):
+    """A failure whose cause and remedy the caller can act on.
+
+    The registry reports ``source_error_code`` and ``source_error_message``
+    instead of its generic upstream-unavailable error.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.source_error_code = code
+        self.source_error_message = message
+
+
+def _refused(through: str) -> SourceUnavailable:
+    if through == "firecrawl":
+        return SourceUnavailable(
+            "upstream-refused",
+            "lda.gov refused the request fetched through Firecrawl too (HTTP 403).")
+    return SourceUnavailable(
+        "upstream-refused",
+        "lda.gov refused the request (HTTP 403): its CDN blocks some networks, including "
+        "non-US hosts. Run from a network it accepts, or pass transport=\"firecrawl\" to "
+        "fetch the pages through Firecrawl, which sends each query URL to firecrawl.dev "
+        "and needs a Firecrawl API key (context key `firecrawl` or FIRECRAWL_API_KEY).")
+
+
+def _send(request):
+    """Send once, waiting and retrying once on a 429 that asks for a short pause."""
+    response = request()
     if response.status_code == 429:
         wait = int(response.headers.get("Retry-After", MAX_RETRY_AFTER + 1))
         if wait > MAX_RETRY_AFTER:
             response.raise_for_status()
         time.sleep(wait)
-        response = client.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
+        response = request()
+    return response
+
+
+def _with_json_format(url: str, params: dict | None) -> str:
+    """The page URL with its filters and format=json, which makes the API answer JSON
+    rather than its browsable HTML page to a browser-based fetch."""
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query)) | {k: str(v) for k, v in (params or {}).items()}
+    return urlunsplit(parts._replace(query=urlencode(query | {"format": "json"})))
+
+
+def _api_json(raw: str) -> dict:
+    """Parse an API page from Firecrawl's rawHtml, which may wrap it in a <pre>."""
+    text = raw.strip()
+    if not text.startswith("{"):
+        match = re.search(r"<pre[^>]*>(.*?)</pre>", text, re.DOTALL | re.IGNORECASE)
+        if match is None:
+            raise RuntimeError("Firecrawl returned no API JSON")
+        text = html.unescape(match.group(1)).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        # An unreadable page is an upstream failure, not an invalid request.
+        raise RuntimeError("Firecrawl returned unparseable API JSON") from exc
+
+
+class _Transport:
+    """Fetches one API page as parsed JSON; closes its HTTP client on exit."""
+
+    _client: "httpx.Client"
+
+    def __enter__(self):
+        self._client.__enter__()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._client.__exit__(*exc)
+
+    def get_page(self, url: str, params: dict | None) -> dict:
+        raise NotImplementedError
+
+
+class DirectTransport(_Transport):
+    """GET each page from lda.gov itself."""
+
+    def __init__(self, ctx) -> None:
+        self._client = httpx.Client(headers=_headers(ctx), timeout=60, follow_redirects=True)
+
+    def get_page(self, url: str, params: dict | None) -> dict:
+        response = _send(lambda: self._client.get(url, params=params))
+        if response.status_code == 403:
+            raise _refused("direct")
+        response.raise_for_status()
+        return response.json()
+
+
+class FirecrawlTransport(_Transport):
+    """Ask Firecrawl's scrape API to fetch each page and return its raw body.
+
+    The LDA key is not forwarded: it would be one more secret sent to a third party.
+    """
+
+    def __init__(self, ctx) -> None:
+        key = ctx.get_key_optional("firecrawl") if ctx is not None and hasattr(ctx, "get_key_optional") else None
+        key = key or os.environ.get("FIRECRAWL_API_KEY")
+        if not key:
+            raise SourceUnavailable(
+                "transport-unavailable",
+                "transport=\"firecrawl\" needs a Firecrawl API key: provide context key "
+                "`firecrawl` or set FIRECRAWL_API_KEY.")
+        self._client = httpx.Client(headers={"Authorization": f"Bearer {key}", "User-Agent": UA},
+                                    timeout=120)
+
+    def get_page(self, url: str, params: dict | None) -> dict:
+        # maxAge 0: filings are amended, so a cached copy could be stale.
+        body = {"url": _with_json_format(url, params), "formats": ["rawHtml"], "maxAge": 0}
+        response = _send(lambda: self._client.post(FIRECRAWL_SCRAPE_URL, json=body))
+        if response.status_code in (401, 402, 403):
+            raise SourceUnavailable(
+                "transport-unavailable",
+                f"Firecrawl refused the scrape (HTTP {response.status_code}); check the "
+                "Firecrawl API key and credits.")
+        response.raise_for_status()
+        data = response.json().get("data") or {}
+        upstream = (data.get("metadata") or {}).get("statusCode")
+        if upstream == 403:
+            raise _refused("firecrawl")
+        if isinstance(upstream, int) and upstream >= 400:
+            raise RuntimeError(f"lda.gov returned HTTP {upstream} through Firecrawl")
+        return _api_json(data.get("rawHtml") or "")
 
 
 def _headers(ctx) -> dict:
@@ -195,11 +321,14 @@ def run(input: dict, ctx) -> dict:
         raise ValueError(f"pages must be an integer from 1 to {MAX_PAGES}.")
     if input.get("page") is not None:
         params["page"] = int(input["page"])
+    transport = input.get("transport", "direct")
+    if transport not in TRANSPORTS:
+        raise ValueError(f"transport must be one of: {', '.join(TRANSPORTS)}.")
     records, fetched = [], 0
     url, query = f"{API_URL}/{endpoint}/", params
-    with httpx.Client(headers=_headers(ctx), timeout=60, follow_redirects=True) as client:
+    with (FirecrawlTransport if transport == "firecrawl" else DirectTransport)(ctx) as client:
         while url and fetched < pages:
-            data = _get(client, url, query)
+            data = client.get_page(url, query)
             fetched += 1
             for item in data.get("results") or []:
                 records.extend(rows(item))

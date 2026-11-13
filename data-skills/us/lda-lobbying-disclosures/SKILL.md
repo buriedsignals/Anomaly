@@ -6,7 +6,7 @@ description: >-
   tables, ready for the lobbying detectors. Each operation fills one table:
   the generic lobbying_registrations or lobbyists, or the US extension tables
   lobbying_foreign_entities, lobbying_activities or political_contributions.
-compatibility: Requires Python 3.11+ and network access to lda.gov (which refused non-US requests in testing); an LDA.gov key is optional.
+compatibility: Requires Python 3.11+ and network access to lda.gov (which refused non-US requests in testing), or a Firecrawl API key to fetch through Firecrawl instead; an LDA.gov key is optional.
 metadata:
   author: Buried Signals
   version: "1.0"
@@ -68,6 +68,31 @@ Filing-based operations re-read the same filings; with no key, LDA.gov allows
 for anything beyond a few pages. The adapter waits once when the API asks for
 a pause of 60 seconds or less.
 
+## When lda.gov refuses your network
+
+LDA.gov's CDN answers some networks, including non-US hosts, with HTTP 403.
+The adapter then returns status `unavailable` with error code
+`upstream-refused`. If that happens, and only if sending the query to a third
+party is acceptable for the investigation, rerun with `"transport":
+"firecrawl"`:
+
+```python
+result = lda.run({"operation": "lobbying-registrations", "client_name": "OpenAI",
+                  "filing_year": 2024, "transport": "firecrawl"}, ctx)
+```
+
+- Every API page URL, with all its filters (client, registrant, lobbyist
+  names), goes to Firecrawl's scrape API (`api.firecrawl.dev`), which fetches
+  it from lda.gov. Firecrawl, not lda.gov, then sees the query. The adapter
+  never switches transport by itself.
+- It needs a Firecrawl API key: `ctx.get_key_optional("firecrawl")`, or the
+  `FIRECRAWL_API_KEY` environment variable. Without one the result is
+  `transport-unavailable`.
+- The LDA key is not forwarded to Firecrawl, so requests run at LDA's
+  anonymous rate from Firecrawl's network. Each page costs Firecrawl credits.
+- Pages are fetched fresh (`maxAge: 0`), with `format=json` added to every page
+  URL, including followed `next` links.
+
 ## Column mapping
 
 If the register publishes X, map it to column Y. The adapter does this; the
@@ -105,7 +130,8 @@ empty and the contact detectors do not apply.
 - Cite the retrieval date and state that the Senate Office of Public Records
   cannot vouch for the data or analyses after retrieval (API terms).
 - LDA.gov returned HTTP 403 to direct requests from a Swiss network on
-  2026-10-27; run from a network the API accepts.
+  2026-10-27 and 2026-11-13; run from a network the API accepts, or opt in
+  to the Firecrawl transport (see above).
 
 Read [the API reference](references/api-reference.md) for endpoints, fields,
 and limits.
